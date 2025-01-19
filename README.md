@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vetify - CRM Veterinario SaaS
 
-## Getting Started
+Una plataforma moderna de gestión veterinaria en la nube que simplifica la administración de clínicas veterinarias y mejora la atención de las mascotas.
 
-First, run the development server:
+## 🐾 Descripción
+
+Vetify es una solución SaaS integral diseñada específicamente para clínicas veterinarias que buscan modernizar y optimizar sus operaciones. Nuestra plataforma combina la gestión de pacientes, historiales clínicos, inventario y facturación en una interfaz intuitiva y fácil de usar.
+
+## ✨ Características Principales
+
+- **Gestión de Pacientes**: Registro completo de mascotas con historiales médicos digitales, vacunaciones y tratamientos. Incluye sistema de recordatorios y alertas para seguimientos médicos.
+- **Agenda Inteligente**: Sistema de citas con recordatorios automáticos vía email y SMS. Optimización automática de horarios y gestión de disponibilidad por veterinario.
+- **Control de Inventario**: Seguimiento en tiempo real de medicamentos, productos y equipamiento. Sistema de alertas para stock bajo y fechas de caducidad.
+- **Facturación Integrada**: Generación automática de facturas, múltiples métodos de pago y gestión de seguros veterinarios.
+- **Reportes y Análisis**: Dashboard personalizable con métricas clave, análisis de tendencias y reportes exportables.
+- **Interfaz Responsiva**: Diseño adaptativo optimizado para todos los dispositivos, con soporte offline para funciones básicas.
+
+## 🚀 Estado del Proyecto
+
+Actualmente en Beta - v0.1.0
+
+## 🛠️ Tecnologías Utilizadas
+
+- **Frontend**:
+  - Next.js 15
+  - React
+  - TypeScript
+  - Tailwind CSS
+  - Shadcn UI
+  - Zustand (state management)
+
+- **Backend**:
+  - Next.js API Routes
+  - Prisma ORM
+  - tRPC
+  - NextAuth.js
+
+- **Base de Datos**:
+  - PostgreSQL
+  - Redis (caché)
+
+- **Infraestructura**:
+  - Vercel
+  - Supabase
+  - AWS S3 (almacenamiento)
+
+## 🔧 Requisitos Previos
+
+- Node.js 18.17 o superior
+- pnpm 8.x
+- PostgreSQL 14+
+- Variables de entorno configuradas (ver `.env.example`)
+
+## 📦 Instalación
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+# Clonar el repositorio
+git clone https://github.com/Ealanisln/vetify.git
+
+# Entrar al directorio
+cd vetify
+
+# Instalar dependencias
+pnpm install
+
+# Configurar variables de entorno
+cp .env.example .env.local
+
+# Ejecutar migraciones
+pnpm prisma migrate dev
+
+# Iniciar servidor de desarrollo
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📝 Licencia
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+MIT
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🤝 Contribuciones
 
-## Learn More
+Las contribuciones son bienvenidas. Por favor, lee nuestro [CONTRIBUTING.md](CONTRIBUTING.md) para conocer el proceso de envío de pull requests.
 
-To learn more about Next.js, take a look at the following resources:
+### Guías de Contribución
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Fork el repositorio
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📞 Contacto
 
-## Deploy on Vercel
+- Website: www.vetify.pro
+- Email: contacto@vetify.pro
+- Twitter: Próximamente
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
