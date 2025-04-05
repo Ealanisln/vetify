@@ -4,11 +4,15 @@ import './globals.css'
 import { Providers } from './providers'
 import type { Viewport } from 'next'
 import { Metadata } from 'next'
+import {AuthProvider} from '../AuthProvider';
+import Nav from "../components/Nav";
 
 const inter = Inter({ subsets: ['latin'] })
 
+const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
 export const metadata: Metadata = {
-  metadataBase: new URL('http://localhost:3000'), // Cambia esto en producción
+  metadataBase: new URL(baseUrl),
   title: 'Vetify | Software de Gestión Veterinaria en la Nube',
   description: 'Sistema integral para clínicas veterinarias. Gestiona pacientes, citas, inventario y más.',
   keywords: [
@@ -81,7 +85,12 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+        <AuthProvider>
+          <Providers>
+            <Nav />
+            {children}
+          </Providers>
+        </AuthProvider>
       </body>
     </html>
   )

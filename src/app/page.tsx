@@ -50,8 +50,8 @@ export default function Home() {
             <Image
               src={
                 resolvedTheme === "dark"
-                  ? "/vetify-logo-dark.png"
-                  : "/vetify-logo.png"
+                  ? "/vetify-logo-dark.webp"
+                  : "/vetify-logo.webp"
               }
               alt="Vetify Logo"
               width={600}
