@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
+import WaitingList from "@/components/WaitingList";
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -21,32 +22,33 @@ export default function Home() {
   }
 
   return (
-    <div className="relative min-h-screen">
-      {/* Fondo */}
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Fondo con gradiente animado */}
       <div
         className={`absolute inset-0 transition-colors duration-500 
         ${
           resolvedTheme === "dark"
-            ? "bg-gradient-to-b from-beigeD to-grayD"
-            : "bg-gradient-to-b from-beige to-white"
+            ? "bg-gradient-to-br from-beigeD via-grayD to-gray-900"
+            : "bg-gradient-to-br from-beige via-white to-gray-100"
         }`}
       />
 
-      {/* Contenido */}
-      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center">
-        <div className="w-full max-w-6xl px-4 sm:px-6 lg:px-8">
-          {/* Botón de tema */}
-          <div className="absolute top-4 right-4">
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg bg-brown text-white dark:bg-brownD hover:opacity-90 transition-opacity"
-              aria-label="Cambiar tema"
-            >
-              {resolvedTheme === "dark" ? "🌞" : "🌙"}
-            </button>
-          </div>
+      {/* Botón de tema */}
+      <div className="absolute top-4 right-4 z-20">
+        <button
+          onClick={toggleTheme}
+          className="p-2 rounded-lg bg-brown/90 text-white dark:bg-brownD/90 hover:opacity-90 transition-all duration-300 hover:scale-105"
+          aria-label="Cambiar tema"
+        >
+          {resolvedTheme === "dark" ? "🌞" : "🌙"}
+        </button>
+      </div>
+
+      {/* Contenedor principal absolutamente centrado */}
+      <div className="relative z-10 min-h-screen flex items-center justify-center py-12">
+        <div className="w-full max-w-5xl px-4 sm:px-6 lg:px-8 flex flex-col items-center gap-12">
           {/* Logo */}
-          <div className="relative w-full max-w-2xl mx-auto mb-8">
+          <div className="relative w-full max-w-sm transform transition-transform duration-500 hover:scale-105">
             <Image
               src={
                 resolvedTheme === "dark"
@@ -61,19 +63,9 @@ export default function Home() {
             />
           </div>
 
-          {/* Subtítulo */}
-          <div className="text-center">
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
-              Estamos construyendo el futuro de la gestión veterinaria
-            </p>
-
-            {/* Botón de contacto */}
-            <a
-              href="mailto:contacto@vetify.pro"
-              className="inline-block bg-[#45635C] hover:bg-[#45635C]/90 dark:bg-sageD dark:hover:bg-sageD/90 text-white font-medium py-3 px-8 rounded-md transition-colors"
-            >
-              Contáctanos
-            </a>
+          {/* Waiting List Container con animación de entrada */}
+          <div className="w-full animate-fadeIn">
+            <WaitingList />
           </div>
         </div>
       </div>
