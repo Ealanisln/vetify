@@ -30,7 +30,7 @@ export default function PlanesPage() {
           <div className="relative w-full max-w-xl">
             <button
               onClick={closeModal}
-              className="absolute -top-12 right-0 text-white hover:text-gray-200 transition-colors"
+              className="absolute top-4 right-4 text-white hover:text-gray-300 dark:text-white dark:hover:text-gray-300 transition-colors z-30"
               aria-label="Cerrar"
             >
               <X className="w-6 h-6" />

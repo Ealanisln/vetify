@@ -53,7 +53,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/planes" className="text-base text-vetify-primary-700 dark:text-vetify-surface-light hover:text-vetify-accent-600 dark:hover:text-vetify-accent-300 transition-colors">
+                <Link href="/precios" className="text-base text-vetify-primary-700 dark:text-vetify-surface-light hover:text-vetify-accent-600 dark:hover:text-vetify-accent-300 transition-colors">
                   Precios
                 </Link>
               </li>
