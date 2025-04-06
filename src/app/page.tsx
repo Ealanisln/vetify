@@ -46,18 +46,16 @@ export default function Home() {
             </button>
           </div>
           {/* Logo */}
-          <div className="relative w-full max-w-2xl mx-auto mb-8">
-            <Image
+          <div className="relative w-full max-w-[800px] mx-auto mb-8">
+            <img
               src={
                 resolvedTheme === "dark"
-                  ? "/vetify-logo-dark.webp"
-                  : "/vetify-logo.webp"
+                  ? "/logo/vetify-logo-dark.png"
+                  : "/logo/vetify-logo.png"
               }
               alt="Vetify Logo"
-              width={600}
-              height={300}
-              priority
-              className="w-full h-auto"
+              className="w-full h-auto object-contain"
+              style={{ maxHeight: '400px' }}
             />
           </div>
 

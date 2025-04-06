@@ -1,0 +1,837 @@
+//GENERATED AT: Saturday, April 5, 2025 at 8:20:05 PM EDT
+//LOCATION: United States
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Modelo de tenant (clínica)
+model Tenant {
+    id                   String       @id @default(uuid())
+    name                 String
+    slug                 String       @unique
+    domain               String?      @unique
+    logo                 String?
+    primaryColor         String?
+    secondaryColor       String?
+    planType             PlanType     @default(BASIC) // Quick reference, main details in Plan model via TenantSubscription
+    status               TenantStatus @default(ACTIVE)
+    isTrialPeriod        Boolean      @default(true)
+    trialEndsAt          DateTime?
+    stripeCustomerId     String?      @unique
+    stripeSubscriptionId String? // Not unique, can change if subscription cancels/restarts
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    // Relaciones
+    users              User[]
+    pets               Pet[]
+    inventoryItems     InventoryItem[]
+    services           Service[]
+    appointments       Appointment[]
+    reminders          Reminder[]
+    sales              Sale[]
+    staff              Staff[]
+    medicalHistories   MedicalHistory[]
+    medicalOrders      MedicalOrder[]
+    treatmentRecords   TreatmentRecord[]
+    treatmentSchedules TreatmentSchedule[]
+    roles              Role[]
+    tenantInvitations  TenantInvitation[]
+    tenantSettings     TenantSettings?
+    tenantSubscription TenantSubscription?
+    tenantApiKeys      TenantApiKey[]
+    tenantUsageStats   TenantUsageStats?
+    cashDrawers        CashDrawer[]
+    InventoryMovement  InventoryMovement[]
+
+    @@index([status])
+    @@index([slug])
+    @@index([domain])
+}
+
+// Modelo Plan
+model Plan {
+    id            String   @id @default(uuid())
+    key           String   @unique // "basic", "standard", "premium" etc. Used programmatically.
+    name          String // "Básico", "Estándar", "Premium" etc. Display name.
+    description   String? // Descripción breve del plan para mostrar en UI.
+    monthlyPrice  Decimal // Precio mensual. La moneda se define implícitamente o en config/TenantSettings.
+    annualPrice   Decimal // Precio anual (total o por mes). La moneda se define implícitamente o en config/TenantSettings. Clarify convention.
+    features      Json // Almacena características/flags como JSON. Ej: {"hasInventory": true, "allowApi": false, "reportingLevel": "basic"}
+    maxUsers      Int // Límite de usuarios (Staff).
+    maxPets       Int // Límite de mascotas activas.
+    storageGB     Int // Almacenamiento en GB. (App logic needs to convert to bytes for comparison with TenantUsageStats.storageUsedBytes).
+    isRecommended Boolean  @default(false) // Flag para destacar en UI de precios.
+    isActive      Boolean  @default(true) // Para poder desactivar planes antiguos.
+    isMvp         Boolean  @default(true) // Indica si es parte del MVP.
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    tenantSubscriptions TenantSubscription[]
+}
+
+// Modelo de Usuario (Cliente/Dueño) - Adaptado para Kinde
+model User {
+    // Este 'id' DEBE almacenar el ID único del usuario proporcionado por Kinde (claim 'sub' del JWT, ej: "kp_...")
+    id                     String   @id
+    tenantId               String? // Nullable if user exists before joining/creating a tenant
+    // Estos campos se sincronizan desde el perfil de Kinde
+    email                  String   @unique
+    firstName              String?
+    lastName               String?
+    name                   String?
+    phone                  String? // Kinde puede o no proporcionar esto, podría ser llenado por el usuario
+    address                String? // Llenado por el usuario en la app
+    preferredContactMethod String? // Llenado por el usuario en la app
+    isActive               Boolean  @default(true)
+    createdAt              DateTime @default(now()) // Momento en que se crea el registro en TU DB
+    updatedAt              DateTime @updatedAt
+
+    // Relaciones (El campo 'userId' en los modelos relacionados debe contener este 'User.id' de Kinde)
+    tenant        Tenant?        @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+    appointments  Appointment[]
+    pets          Pet[]
+    reminders     Reminder[]
+    sales         Sale[]
+    userRoles     UserRole[]
+    medicalOrders MedicalOrder[]
+    openedDrawers CashDrawer[]   @relation("CashDrawer_openedByToUser")
+    closedDrawers CashDrawer[]   @relation("CashDrawer_closedByToUser")
+
+    // inventoryMovements removido, se asocia a Staff
+    @@index([tenantId])
+    @@index([email])
+}
+
+// Modelo de Rol (Global o por Tenant)
+model Role {
+    id        String     @id @default(uuid())
+    tenantId  String?
+    key       String
+    name      String
+    isSystem  Boolean    @default(false)
+    createdAt DateTime   @default(now())
+    updatedAt DateTime   @updatedAt
+    tenant    Tenant?    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    userRoles UserRole[]
+
+    @@unique([tenantId, key])
+}
+
+// Tabla de Unión Usuario-Rol (Muchos a Muchos)
+model UserRole {
+    id     String @id @default(uuid())
+    userId String // Contiene Kinde ID
+    roleId String
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+    role   Role   @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+    @@unique([userId, roleId])
+    @@index([userId])
+    @@index([roleId])
+}
+
+// Modelo de Mascota
+model Pet {
+    id                 String              @id @default(uuid())
+    tenantId           String
+    userId             String // Contiene Kinde ID del dueño
+    internalId         String?
+    name               String
+    species            String
+    breed              String
+    dateOfBirth        DateTime
+    gender             String
+    weight             Decimal?
+    weightUnit         String?
+    microchipNumber    String?
+    isNeutered         Boolean             @default(false)
+    isDeceased         Boolean             @default(false)
+    createdAt          DateTime            @default(now())
+    updatedAt          DateTime            @updatedAt
+    tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    user               User                @relation(fields: [userId], references: [id], onDelete: Restrict)
+    appointments       Appointment[]
+    reminders          Reminder[]
+    sales              Sale[]
+    medicalHistories   MedicalHistory[]
+    medicalOrders      MedicalOrder[]
+    treatmentRecords   TreatmentRecord[]
+    treatmentSchedules TreatmentSchedule[]
+
+    @@index([tenantId])
+    @@index([userId])
+    @@index([name])
+    @@index([tenantId, userId])
+}
+
+// Modelo de Historial Médico (Registro de una visita/consulta)
+model MedicalHistory {
+    id             String        @id @default(uuid())
+    tenantId       String
+    petId          String
+    visitDate      DateTime
+    reasonForVisit String
+    diagnosis      String?
+    treatment      String?
+    notes          String?
+    medicalOrderId String?       @unique
+    staffId        String? // Contiene Kinde ID del staff (si Staff usa Kinde)
+    createdAt      DateTime      @default(now())
+    updatedAt      DateTime      @updatedAt
+    tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    pet            Pet           @relation(fields: [petId], references: [id], onDelete: Cascade)
+    medicalOrder   MedicalOrder? @relation(fields: [medicalOrderId], references: [id], onDelete: SetNull)
+    staff          Staff?        @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+    @@index([tenantId])
+    @@index([petId])
+    @@index([visitDate])
+    @@index([medicalOrderId])
+    @@index([staffId])
+}
+
+// Modelo Abstracto para Registros de Tratamientos (Vacunas, Desparasitaciones, etc.)
+model TreatmentRecord {
+    id                 String            @id @default(uuid())
+    tenantId           String
+    petId              String
+    treatmentType      TreatmentType
+    productName        String
+    administrationDate DateTime
+    batchNumber        String?
+    manufacturer       String?
+    staffId            String? // Contiene Kinde ID del staff (si Staff usa Kinde)
+    notes              String?
+    createdAt          DateTime          @default(now())
+    updatedAt          DateTime          @updatedAt
+    vaccineStage       VaccinationStage?
+    dewormingType      DewormingType?
+    tenant             Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    pet                Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+    staff              Staff?            @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+    @@index([tenantId])
+    @@index([petId, administrationDate])
+    @@index([treatmentType])
+    @@index([staffId])
+}
+
+// Modelo Abstracto para Programación de Tratamientos
+model TreatmentSchedule {
+    id            String            @id @default(uuid())
+    tenantId      String
+    petId         String
+    treatmentType TreatmentType
+    productName   String?
+    scheduledDate DateTime
+    status        TreatmentStatus   @default(SCHEDULED)
+    reminderSent  Boolean           @default(false)
+    createdAt     DateTime          @default(now())
+    updatedAt     DateTime          @updatedAt
+    vaccineStage  VaccinationStage?
+    dewormingType DewormingType?
+    tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    pet           Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+    @@index([tenantId])
+    @@index([petId, scheduledDate, status])
+    @@index([status, scheduledDate])
+}
+
+// Modelo de Cita
+model Appointment {
+    id        String            @id @default(uuid())
+    tenantId  String
+    userId    String // Contiene Kinde ID del cliente
+    petId     String
+    staffId   String? // Contiene Kinde ID del staff (si Staff usa Kinde)
+    dateTime  DateTime
+    duration  Int?
+    reason    String
+    notes     String?
+    status    AppointmentStatus
+    createdAt DateTime          @default(now())
+    updatedAt DateTime          @updatedAt
+    tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+    pet       Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+    staff     Staff?            @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+    @@index([tenantId])
+    @@index([dateTime])
+    @@index([status])
+    @@index([staffId])
+    @@index([userId])
+    @@index([petId])
+}
+
+// Modelo de Recordatorio
+model Reminder {
+    id           String         @id @default(uuid())
+    tenantId     String
+    userId       String // Contiene Kinde ID del cliente
+    petId        String?
+    reminderType ReminderType
+    dueDate      DateTime
+    message      String?
+    status       ReminderStatus
+    createdAt    DateTime       @default(now())
+    updatedAt    DateTime       @updatedAt
+    tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+    pet          Pet?           @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+    @@index([tenantId])
+    @@index([dueDate, status])
+    @@index([userId])
+    @@index([petId])
+}
+
+// Modelo de Personal (Staff) - Adaptado para Kinde (si aplica)
+model Staff {
+    id            String   @id @default(uuid())
+    tenantId      String
+    // Este 'userId' (si se usa) DEBE almacenar el Kinde ID del miembro del staff si ellos también se autentican vía Kinde
+    userId        String?  @unique
+    name          String // Puede sincronizarse desde Kinde si Staff.userId existe
+    position      String
+    email         String?  @unique // Puede sincronizarse desde Kinde si Staff.userId existe
+    phone         String?
+    licenseNumber String?
+    isActive      Boolean  @default(true)
+    createdAt     DateTime @default(now())
+    updatedAt     DateTime @updatedAt
+
+    tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    // user               User?             @relation(fields: [userId], references: [id]) // Descomentar si Staff hereda de User
+    appointments       Appointment[]
+    medicalHistories   MedicalHistory[]
+    medicalOrders      MedicalOrder[]
+    treatmentRecords   TreatmentRecord[]
+    inventoryMovements InventoryMovement[]
+    Sale               Sale[]
+
+    @@index([tenantId])
+    @@index([isActive])
+    @@index([email])
+    @@index([userId])
+}
+
+// Modelo de Ítem de Inventario
+model InventoryItem {
+    id             String              @id @default(uuid())
+    tenantId       String
+    name           String
+    category       InventoryCategory
+    description    String?
+    activeCompound String?
+    presentation   String?
+    measure        String?
+    brand          String?
+    quantity       Decimal             @default(0)
+    minStock       Decimal?
+    location       String?
+    expirationDate DateTime?
+    status         InventoryStatus     @default(ACTIVE)
+    batchNumber    String?
+    specialNotes   String?
+    cost           Decimal?
+    price          Decimal?
+    createdAt      DateTime            @default(now())
+    updatedAt      DateTime            @updatedAt
+    tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    movements      InventoryMovement[]
+    prescriptions  Prescription[]
+    saleItems      SaleItem[]
+
+    @@index([tenantId])
+    @@index([category])
+    @@index([name])
+    @@index([status])
+    @@index([expirationDate])
+    @@index([quantity])
+}
+
+// Modelo de Movimiento de Inventario
+model InventoryMovement {
+    id                String        @id @default(uuid())
+    tenantId          String
+    itemId            String
+    type              MovementType
+    quantity          Decimal
+    date              DateTime      @default(now())
+    reason            String?
+    staffId           String? // Contiene Kinde ID del staff (si Staff usa Kinde)
+    relatedRecordId   String?
+    relatedRecordType String?
+    notes             String?
+    createdAt         DateTime      @default(now())
+    tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    item              InventoryItem @relation(fields: [itemId], references: [id], onDelete: Restrict)
+    staff             Staff?        @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+    @@index([tenantId])
+    @@index([itemId, date])
+    @@index([staffId])
+    @@index([type])
+}
+
+// Modelo de Orden Médica
+model MedicalOrder {
+    id             String             @id @default(uuid())
+    tenantId       String
+    petId          String
+    staffId        String // Contiene Kinde ID del staff (si Staff usa Kinde)
+    visitDate      DateTime
+    diagnosis      String?
+    treatment      String?
+    notes          String?
+    status         MedicalOrderStatus @default(PENDING)
+    saleId         String?            @unique
+    createdAt      DateTime           @default(now())
+    updatedAt      DateTime           @updatedAt
+    tenant         Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    pet            Pet                @relation(fields: [petId], references: [id], onDelete: Cascade)
+    staff          Staff              @relation(fields: [staffId], references: [id], onDelete: Restrict)
+    sale           Sale?              @relation(fields: [saleId], references: [id], onDelete: SetNull)
+    prescriptions  Prescription[]
+    medicalHistory MedicalHistory?
+    User           User?              @relation(fields: [userId], references: [id])
+    userId         String?
+
+    @@index([tenantId])
+    @@index([petId])
+    @@index([staffId])
+    @@index([status])
+    @@index([saleId])
+}
+
+// Modelo de Prescripción
+model Prescription {
+    id           String        @id @default(uuid())
+    orderId      String
+    productId    String
+    quantity     Decimal
+    unitPrice    Decimal
+    dosage       String?
+    frequency    String?
+    duration     String?
+    instructions String?
+    createdAt    DateTime      @default(now())
+    order        MedicalOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+    product      InventoryItem @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+    @@index([orderId])
+    @@index([productId])
+}
+
+// Modelo de Caja
+model CashDrawer {
+    id               String            @id @default(uuid())
+    tenantId         String
+    openedAt         DateTime          @default(now())
+    closedAt         DateTime?
+    openedById       String // Contiene Kinde ID del User/Staff que abrió
+    closedById       String? // Contiene Kinde ID del User/Staff que cerró
+    initialAmount    Decimal
+    finalAmount      Decimal?
+    expectedAmount   Decimal?
+    difference       Decimal?
+    status           DrawerStatus      @default(OPEN)
+    notes            String?
+    createdAt        DateTime          @default(now())
+    updatedAt        DateTime          @updatedAt
+    tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    openedBy         User              @relation("CashDrawer_openedByToUser", fields: [openedById], references: [id], onDelete: Restrict)
+    closedBy         User?             @relation("CashDrawer_closedByToUser", fields: [closedById], references: [id], onDelete: Restrict)
+    cashTransactions CashTransaction[]
+
+    @@index([tenantId])
+    @@index([openedAt])
+    @@index([status])
+    @@index([openedById])
+    @@index([closedById])
+}
+
+// Modelo de Transacción de Caja
+model CashTransaction {
+    id          String          @id @default(uuid())
+    drawerId    String
+    amount      Decimal
+    type        TransactionType
+    description String?
+    relatedId   String?
+    relatedType String?
+    createdAt   DateTime        @default(now())
+    cashDrawer  CashDrawer      @relation(fields: [drawerId], references: [id], onDelete: Cascade)
+    SalePayment SalePayment?
+
+    @@index([drawerId])
+    @@index([relatedId, relatedType])
+    @@index([type])
+}
+
+// Modelo de Venta
+model Sale {
+    id             String        @id @default(uuid())
+    tenantId       String
+    receiptNumber  String
+    date           DateTime      @default(now())
+    userId         String? // Contiene Kinde ID del cliente (si aplica)
+    petId          String?
+    staffId        String? // Contiene Kinde ID del staff (si Staff usa Kinde)
+    subtotal       Decimal
+    taxRate        Decimal?
+    tax            Decimal
+    discountAmount Decimal       @default(0)
+    total          Decimal
+    status         SaleStatus    @default(PENDING)
+    notes          String?
+    createdAt      DateTime      @default(now())
+    updatedAt      DateTime      @updatedAt
+    tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+    pet            Pet?          @relation(fields: [petId], references: [id], onDelete: SetNull)
+    staff          Staff?        @relation(fields: [staffId], references: [id], onDelete: SetNull)
+    saleItems      SaleItem[]
+    medicalOrder   MedicalOrder?
+    payments       SalePayment[]
+
+    @@unique([tenantId, receiptNumber])
+    @@index([tenantId])
+    @@index([date])
+    @@index([status])
+    @@index([userId])
+    @@index([petId])
+    @@index([staffId])
+}
+
+// Modelo de Ítem de Venta
+model SaleItem {
+    id            String         @id @default(uuid())
+    saleId        String
+    itemId        String?
+    serviceId     String?
+    description   String
+    quantity      Decimal
+    unitPrice     Decimal
+    discount      Decimal        @default(0)
+    total         Decimal
+    createdAt     DateTime       @default(now())
+    sale          Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade)
+    inventoryItem InventoryItem? @relation(fields: [itemId], references: [id], onDelete: Restrict)
+    service       Service?       @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+    @@index([saleId])
+    @@index([itemId])
+    @@index([serviceId])
+}
+
+// Modelo de Pago asociado a una Venta
+model SalePayment {
+    id                String           @id @default(uuid())
+    saleId            String
+    paymentMethod     PaymentMethod
+    amount            Decimal
+    paymentDate       DateTime         @default(now())
+    transactionId     String?
+    notes             String?
+    cashTransactionId String?          @unique
+    sale              Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
+    cashTransaction   CashTransaction? @relation(fields: [cashTransactionId], references: [id], onDelete: SetNull)
+
+    @@index([saleId])
+    @@index([paymentMethod])
+    @@index([paymentDate])
+    @@index([cashTransactionId])
+}
+
+// Modelo de Servicio ofrecido por la clínica
+model Service {
+    id          String          @id @default(uuid())
+    tenantId    String
+    name        String
+    description String?
+    category    ServiceCategory
+    price       Decimal
+    duration    Int?
+    isActive    Boolean         @default(true)
+    createdAt   DateTime        @default(now())
+    updatedAt   DateTime        @updatedAt
+    tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    saleItems   SaleItem[]
+
+    @@index([tenantId])
+    @@index([category])
+    @@index([isActive])
+    @@index([name])
+}
+
+// --- Modelos Específicos para SaaS ---
+model TenantInvitation {
+    id        String       @id @default(uuid())
+    tenantId  String
+    email     String
+    roleKey   String
+    token     String       @unique
+    status    InviteStatus @default(PENDING)
+    expiresAt DateTime
+    createdAt DateTime     @default(now())
+    tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+    @@index([tenantId])
+    @@index([token])
+    @@index([status, email])
+}
+
+model TenantSettings {
+    id                   String   @id @default(uuid())
+    tenantId             String   @unique
+    timezone             String   @default("UTC")
+    dateFormat           String   @default("DD/MM/YYYY")
+    enableEmailReminders Boolean  @default(true)
+    enableSmsReminders   Boolean  @default(false)
+    taxRate              Decimal  @default(0)
+    currencyCode         String   @default("USD")
+    currencySymbol       String   @default("$")
+    appointmentDuration  Int      @default(30)
+    updatedAt            DateTime @updatedAt
+    tenant               Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model TenantSubscription {
+    id                   String             @id @default(uuid())
+    tenantId             String             @unique
+    planId               String
+    stripeSubscriptionId String?
+    status               SubscriptionStatus @default(TRIALING)
+    currentPeriodStart   DateTime
+    currentPeriodEnd     DateTime
+    cancelAtPeriodEnd    Boolean            @default(false)
+    createdAt            DateTime           @default(now())
+    updatedAt            DateTime           @updatedAt
+    tenant               Tenant             @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+    plan                 Plan               @relation(fields: [planId], references: [id], onDelete: Restrict)
+}
+
+model TenantApiKey {
+    id        String    @id @default(uuid())
+    tenantId  String
+    name      String
+    keyPrefix String
+    keyHash   String    @unique
+    lastUsed  DateTime?
+    expiresAt DateTime?
+    isActive  Boolean   @default(true)
+    // permissions Json?
+    createdAt DateTime  @default(now())
+    tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+    @@index([tenantId])
+    @@index([isActive])
+}
+
+model TenantUsageStats {
+    id                String   @id @default(uuid())
+    tenantId          String   @unique
+    totalUsers        Int      @default(0) // Tracks Staff count based on Plan.maxUsers
+    totalPets         Int      @default(0) // Tracks Pet count based on Plan.maxPets
+    totalAppointments Int      @default(0)
+    totalSales        Int      @default(0)
+    storageUsedBytes  BigInt   @default(0) // Tracks storage based on Plan.storageGB
+    lastUpdated       DateTime @updatedAt
+    tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+// --- Enums Corregidos ---
+
+enum PlanType {
+    BASIC
+    STANDARD
+    PREMIUM
+    ENTERPRISE
+}
+
+enum TenantStatus {
+    ACTIVE
+    SUSPENDED
+    CANCELLED
+    PENDING_SETUP
+}
+
+enum InviteStatus {
+    PENDING
+    ACCEPTED
+    EXPIRED
+    REVOKED
+}
+
+enum SubscriptionStatus {
+    ACTIVE
+    PAST_DUE
+    UNPAID
+    CANCELLED
+    TRIALING
+    INCOMPLETE
+}
+
+enum TreatmentType {
+    VACCINATION
+    DEWORMING
+    FLEA_TICK
+    OTHER_PREVENTATIVE
+}
+
+enum TreatmentStatus {
+    SCHEDULED
+    COMPLETED
+    OVERDUE
+    CANCELLED
+    SKIPPED
+}
+
+enum VaccinationStage {
+    PUPPY_KITTEN
+    ADULT
+    SENIOR
+    BOOSTER
+}
+
+enum DewormingType {
+    INTERNAL
+    EXTERNAL
+    BOTH
+}
+
+enum AppointmentStatus {
+    SCHEDULED
+    CONFIRMED
+    CHECKED_IN
+    IN_PROGRESS
+    COMPLETED
+    CANCELLED_CLIENT
+    CANCELLED_CLINIC
+    NO_SHOW
+}
+
+enum ReminderType {
+    APPOINTMENT
+    TREATMENT
+    MEDICATION
+    FOOD_REORDER
+    CHECKUP
+    BIRTHDAY
+    OTHER
+}
+
+enum ReminderStatus {
+    PENDING
+    SENT
+    ERROR
+    DISMISSED
+}
+
+enum InventoryCategory {
+    MEDICINE
+    VACCINE
+    DEWORMER
+    FLEA_TICK_PREVENTION
+    FOOD_PRESCRIPTION
+    FOOD_REGULAR
+    SUPPLEMENT
+    ACCESSORY
+    CONSUMABLE_CLINIC
+    SURGICAL_MATERIAL
+    LAB_SUPPLIES
+    HYGIENE_GROOMING
+    OTHER
+}
+
+enum InventoryStatus {
+    ACTIVE
+    INACTIVE
+    LOW_STOCK
+    OUT_OF_STOCK
+    EXPIRED
+    DISCONTINUED
+}
+
+enum MovementType {
+    PURCHASE_IN
+    SALE_OUT
+    RETURN_IN
+    ADJUSTMENT_IN
+    ADJUSTMENT_OUT
+    TRANSFER_IN
+    TRANSFER_OUT
+    EXPIRY_OUT
+}
+
+enum MedicalOrderStatus {
+    PENDING
+    IN_PROGRESS
+    COMPLETED
+    CANCELLED
+}
+
+enum DrawerStatus {
+    OPEN
+    CLOSED
+    RECONCILED
+}
+
+enum TransactionType {
+    SALE_CASH
+    REFUND_CASH
+    DEPOSIT
+    WITHDRAWAL
+    ADJUSTMENT_IN
+    ADJUSTMENT_OUT
+}
+
+enum PaymentMethod {
+    CASH
+    CREDIT_CARD
+    DEBIT_CARD
+    BANK_TRANSFER
+    MOBILE_PAYMENT
+    CHECK
+    INSURANCE
+    OTHER
+}
+
+enum SaleStatus {
+    PENDING
+    PAID
+    PARTIALLY_PAID
+    COMPLETED
+    CANCELLED
+    REFUNDED
+    PARTIALLY_REFUNDED
+}
+
+enum ServiceCategory {
+    CONSULTATION
+    SURGERY
+    VACCINATION
+    DEWORMING
+    PREVENTATIVE_CARE
+    GROOMING
+    BOARDING
+    DENTAL_CARE
+    LABORATORY_TEST
+    IMAGING_RADIOLOGY
+    HOSPITALIZATION
+    EMERGENCY_CARE
+    EUTHANASIA
+    OTHER
+}
