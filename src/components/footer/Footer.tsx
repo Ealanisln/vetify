@@ -12,7 +12,7 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Logo y descripción */}
           <div className="col-span-1 md:col-span-1">
-            <Link href="/" className="flex items-center">
+            <Link href="/" className="flex items-center gap-2">
               <Image
                 src="/logo/capybara-green.png"
                 alt="Vetify"
@@ -20,6 +20,7 @@ export default function Footer() {
                 height={45}
                 className="h-9 w-auto"
               />
+              <span className="text-xl font-semibold text-vetify-primary-500 dark:text-vetify-surface-light">Vetify</span>
             </Link>
             <p className="text-sm text-vetify-primary-500 dark:text-vetify-surface-light mt-2">
               Solución completa para la gestión de tu clínica veterinaria.

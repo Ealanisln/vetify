@@ -3,9 +3,25 @@ import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
+import { useTheme } from "next-themes";
+import { useEffect } from "react";
 
 export default function Nav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+  };
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <nav className="bg-white dark:bg-gray-900 border-b border-[#d5e3df] dark:border-gray-800 shadow-smooth">
@@ -14,7 +30,7 @@ export default function Nav() {
           {/* Logo and brand */}
           <div className="flex items-center">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="flex items-center">
+              <Link href="/" className="flex items-center gap-2">
                 <Image
                   src="/logo/capybara-green.png"
                   alt="Vetify"
@@ -29,6 +45,7 @@ export default function Nav() {
                   height={60}
                   className="h-12 w-auto block dark:hidden"
                 />
+                <span className="text-2xl font-semibold text-[#45635C] dark:text-[#75a99c]">Vetify</span>
               </Link>
             </div>
             
@@ -63,6 +80,13 @@ export default function Nav() {
           
           {/* Right side buttons - Desktop */}
           <div className="hidden sm:flex sm:items-center sm:space-x-4">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-full bg-[#75a99c] hover:bg-[#5b9788] text-white dark:bg-[#2a3630] dark:hover:bg-[#1a2620] transition-colors w-10 h-10 flex items-center justify-center"
+              aria-label="Cambiar tema"
+            >
+              {resolvedTheme === "dark" ? "☀️" : "🌙"}
+            </button>
             <Link
               href="/sign-in"
               className="text-gray-800 dark:text-gray-200 hover:text-[#5b9788] dark:hover:text-[#75a99c] px-6 py-3 rounded-lg text-lg font-medium border-2 border-[#d5e3df] dark:border-gray-700 hover:border-[#75a99c] dark:hover:border-[#5b9788] transition-colors"
@@ -98,6 +122,12 @@ export default function Nav() {
       {mobileMenuOpen && (
         <div className="sm:hidden bg-white dark:bg-gray-900 border-b border-[#d5e3df] dark:border-gray-800 pb-4 shadow-card">
           <div className="px-4 pt-4 pb-4 space-y-3">
+            <button
+              onClick={toggleTheme}
+              className="w-full px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg text-left"
+            >
+              {resolvedTheme === "dark" ? "🌞" : "🌙"}
+            </button>
             <Link
               href="/funcionalidades"
               className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"

@@ -2,8 +2,15 @@ import React from 'react';
 import { Check, X } from 'lucide-react';
 import { FeatureComparisonTableProps, PlanType } from './types';
 
+interface Feature {
+  name: string;
+  description?: string;
+  basic: boolean | string | number;
+  standard: boolean | string | number;
+}
+
 export const FeatureComparisonTable: React.FC<FeatureComparisonTableProps> = ({ plans }) => {
-  const getFeatureValue = (feature: any, planType: PlanType) => {
+  const getFeatureValue = (feature: Feature, planType: PlanType) => {
     switch (planType) {
       case PlanType.BASIC:
         return feature.basic;
@@ -14,7 +21,7 @@ export const FeatureComparisonTable: React.FC<FeatureComparisonTableProps> = ({ 
     }
   };
 
-  const renderFeatureDisplay = (value: string | number | boolean, featureName: string) => {
+  const renderFeatureDisplay = (value: string | number | boolean) => {
     if (typeof value === 'boolean') {
       return value ? (
         <Check className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto" />
@@ -76,7 +83,7 @@ export const FeatureComparisonTable: React.FC<FeatureComparisonTableProps> = ({ 
                   key={`${plan.type}-${i}`}
                   className="px-6 py-5 text-center align-middle"
                 >
-                  {renderFeatureDisplay(getFeatureValue(feature, plan.type), feature.name)}
+                  {renderFeatureDisplay(getFeatureValue(feature, plan.type))}
                 </td>
               ))}
             </tr>

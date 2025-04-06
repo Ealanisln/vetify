@@ -16,6 +16,22 @@ export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: 'Vetify | Software de Gestión Veterinaria en la Nube',
   description: 'Sistema integral para clínicas veterinarias. Gestiona pacientes, citas, inventario y más.',
+  icons: {
+    icon: [
+      { url: '/favicon/favicon.ico' },
+      { url: '/favicon/favicon.svg', type: 'image/svg+xml' },
+      { url: '/favicon/favicon-96x96.png', sizes: '96x96', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/favicon/apple-touch-icon.png' },
+    ],
+    other: [
+      {
+        rel: 'manifest',
+        url: '/favicon/site.webmanifest',
+      },
+    ],
+  },
   keywords: [
     'software veterinario',
     'CRM veterinario',

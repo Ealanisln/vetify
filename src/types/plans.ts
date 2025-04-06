@@ -97,7 +97,7 @@ const planPricing: Record<PlanType, PlanPricing> = {
   }
 };
 
-const plans: Plan[] = [
+export const plans: Plan[] = [
   {
     type: 'BASIC',
     name: 'Básico',

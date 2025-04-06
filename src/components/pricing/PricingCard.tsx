@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check, X, Star } from 'lucide-react';
-import { PricingCardProps, PlanType } from './types';
+import { PricingCardProps, PlanType, Plan, PlanFeature } from './types';
 
 const MAIN_FEATURES_NAMES = [
   'Usuarios Staff',
@@ -27,7 +27,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     return price * 0.75; // 25% de descuento
   };
 
-  const getFeatureValue = (feature: any, planType: PlanType) => {
+  const getFeatureValue = (feature: PlanFeature, planType: PlanType) => {
     switch (planType) {
       case PlanType.BASIC:
         return feature.basic;
@@ -38,7 +38,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     }
   };
 
-  const renderFeatureDisplay = (value: string | number | boolean, featureName: string) => {
+  const renderFeatureDisplay = (value: string | number | boolean) => {
     if (typeof value === 'boolean') {
       return value ? (
         <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -60,8 +60,8 @@ export const PricingCard: React.FC<PricingCardProps> = ({
     return <span className="text-base text-gray-600 dark:text-gray-300">{value}</span>;
   };
 
-  const getMainFeatures = (plan: any) => {
-    return plan.features.filter((feature: any) => MAIN_FEATURES_NAMES.includes(feature.name));
+  const getMainFeatures = (plan: Plan) => {
+    return plan.features.filter((feature) => MAIN_FEATURES_NAMES.includes(feature.name));
   };
 
   return (
@@ -123,12 +123,12 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       <div className="flex-grow mb-6 sm:mb-8">
         <p className="text-sm sm:text-base font-medium text-gray-700 dark:text-gray-200 mb-4">Incluye:</p>
         <ul className="space-y-4">
-          {getMainFeatures(plan).map((feature: any, index: number) => {
+          {getMainFeatures(plan).map((feature: PlanFeature, index: number) => {
             const value = getFeatureValue(feature, plan.type);
             return (
               <li key={index} className="flex items-start">
                 <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center mt-0.5">
-                  {renderFeatureDisplay(value, feature.name)}
+                  {renderFeatureDisplay(value)}
                 </div>
                 <div className="ml-3 flex-grow">
                   <p className="text-sm sm:text-base font-medium text-gray-800 dark:text-gray-200">{feature.name}</p>
