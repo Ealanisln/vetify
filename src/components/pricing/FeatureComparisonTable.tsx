@@ -14,7 +14,7 @@ export const FeatureComparisonTable: React.FC<FeatureComparisonTableProps> = ({ 
     }
   };
 
-  const renderFeatureDisplay = (value: string | number | boolean) => {
+  const renderFeatureDisplay = (value: string | number | boolean, featureName: string) => {
     if (typeof value === 'boolean') {
       return value ? (
         <Check className="w-6 h-6 text-green-600 dark:text-green-400 mx-auto" />
@@ -22,15 +22,17 @@ export const FeatureComparisonTable: React.FC<FeatureComparisonTableProps> = ({ 
         <X className="w-6 h-6 text-gray-400 dark:text-gray-500 mx-auto" />
       );
     }
+    
+    // Para valores de SMS, formateamos especialmente
     if (typeof value === 'string' && value.includes('/mes')) {
-      const [number, period] = value.split('/');
       return (
-        <div className="flex items-baseline space-x-0.5 justify-center w-full whitespace-nowrap">
-          <span className="text-base font-medium text-gray-800 dark:text-gray-200">{number}</span>
-          <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">/{period}</span>
+        <div className="flex flex-col items-center">
+          <span className="font-medium text-base text-gray-800 dark:text-gray-200">{value.split('/')[0]}</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">/mes</span>
         </div>
       );
     }
+    
     return <span className="text-base text-gray-700 dark:text-gray-300">{value}</span>;
   };
 
@@ -74,7 +76,7 @@ export const FeatureComparisonTable: React.FC<FeatureComparisonTableProps> = ({ 
                   key={`${plan.type}-${i}`}
                   className="px-6 py-5 text-center align-middle"
                 >
-                  {renderFeatureDisplay(getFeatureValue(feature, plan.type))}
+                  {renderFeatureDisplay(getFeatureValue(feature, plan.type), feature.name)}
                 </td>
               ))}
             </tr>

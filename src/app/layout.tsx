@@ -5,7 +5,8 @@ import { Providers } from './providers'
 import type { Viewport } from 'next'
 import { Metadata } from 'next'
 import {AuthProvider} from '../AuthProvider';
-import Nav from "../components/Nav";
+import Nav from "../components/navbar/Nav";
+import Footer from "../components/footer/Footer";
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -89,6 +90,7 @@ export default function RootLayout({
           <Providers>
             <Nav />
             {children}
+            <Footer />
           </Providers>
         </AuthProvider>
       </body>
