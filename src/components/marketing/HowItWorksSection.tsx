@@ -18,7 +18,7 @@ const Step: React.FC<StepProps> = ({ number, title, description, icon }) => {
       </div>
       <div>
         <div className="flex items-center mb-2">
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-vetify-primary-100 dark:bg-vetify-primary-900/30 text-vetify-primary-600 dark:text-vetify-primary-300 text-xs font-bold mr-2">
+          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-vetify-primary-100 dark:bg-vetify-primary-900/30 text-vetify-primary-600 dark:text-vetify-primary-300 text-sm font-bold mr-2">
             {number}
           </span>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">{title}</h3>

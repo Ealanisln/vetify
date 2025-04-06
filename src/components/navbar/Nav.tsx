@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
@@ -24,7 +25,7 @@ export default function Nav() {
   }
 
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-[#d5e3df] dark:border-gray-800 shadow-smooth">
+    <nav className="bg-white dark:bg-gray-900 border-b border-[#d5e3df] dark:border-gray-800 shadow-smooth relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-24">
           {/* Logo and brand */}
@@ -58,17 +59,17 @@ export default function Nav() {
                 Funcionalidades
               </Link>
               <Link
-                href="/planes"
+                href="/precios"
                 className="px-5 py-3 text-lg font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] transition-colors rounded-lg mx-1 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30"
               >
                 Precios
               </Link>
-              <Link
+              {/* <Link
                 href="/blog"
                 className="px-5 py-3 text-lg font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] transition-colors rounded-lg mx-1 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30"
               >
                 Blog
-              </Link>
+              </Link> */}
               <Link
                 href="/contacto"
                 className="px-5 py-3 text-lg font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] transition-colors rounded-lg mx-1 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30"
@@ -118,59 +119,73 @@ export default function Nav() {
         </div>
       </div>
       
-      {/* Mobile menu */}
-      {mobileMenuOpen && (
-        <div className="sm:hidden bg-white dark:bg-gray-900 border-b border-[#d5e3df] dark:border-gray-800 pb-4 shadow-card">
-          <div className="px-4 pt-4 pb-4 space-y-3">
-            <button
-              onClick={toggleTheme}
-              className="w-full px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg text-left"
-            >
-              {resolvedTheme === "dark" ? "🌞" : "🌙"}
-            </button>
+      {/* Mobile menu - Usar clases CSS para mostrar/ocultar y animar */}
+      <div 
+        className={`
+          sm:hidden absolute top-full left-0 right-0 
+          bg-white dark:bg-gray-900 border-b border-[#d5e3df] dark:border-gray-800 
+          pb-4 shadow-lg z-40 
+          transition-all duration-200 ease-in-out
+          ${mobileMenuOpen 
+            ? 'opacity-100 translate-y-0' 
+            : 'opacity-0 -translate-y-2 pointer-events-none'}
+        `}
+      >
+        <div className="px-4 pt-4 pb-4 space-y-3">
+          <button
+            onClick={toggleTheme}
+            className="w-full px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg text-left"
+          >
+            {resolvedTheme === "dark" ? "🌞" : "🌙"}
+          </button>
+          <Link
+            href="/funcionalidades"
+            className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Funcionalidades
+          </Link>
+          <Link
+            href="/precios"
+            className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Precios
+          </Link>
+          {/* <Link
+            href="/blog"
+            className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Blog
+          </Link> */}
+          <Link
+            href="/contacto"
+            className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Contacto
+          </Link>
+        </div>
+        <div className="pt-4 pb-3 border-t border-[#d5e3df] dark:border-gray-800">
+          <div className="px-4 space-y-3">
             <Link
-              href="/funcionalidades"
-              className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"
+              href="/sign-in"
+              className="block w-full px-5 py-3 text-center text-base font-medium text-gray-800 dark:text-gray-200 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg border-2 border-[#d5e3df] dark:border-gray-700"
+              onClick={() => setMobileMenuOpen(false)}
             >
-              Funcionalidades
+              Iniciar sesión
             </Link>
             <Link
-              href="/planes"
-              className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"
+              href="/sign-up"
+              className="block w-full px-5 py-3 text-center text-base font-bold text-white bg-[#75a99c] hover:bg-[#5b9788] rounded-lg shadow-card border-2 border-[#65998c]"
+              onClick={() => setMobileMenuOpen(false)}
             >
-              Precios
+              Prueba gratuita
             </Link>
-            <Link
-              href="/blog"
-              className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"
-            >
-              Blog
-            </Link>
-            <Link
-              href="/contacto"
-              className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"
-            >
-              Contacto
-            </Link>
-          </div>
-          <div className="pt-4 pb-3 border-t border-[#d5e3df] dark:border-gray-800">
-            <div className="px-4 space-y-3">
-              <Link
-                href="/sign-in"
-                className="block w-full px-5 py-3 text-center text-base font-medium text-gray-800 dark:text-gray-200 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg border-2 border-[#d5e3df] dark:border-gray-700"
-              >
-                Iniciar sesión
-              </Link>
-              <Link
-                href="/sign-up"
-                className="block w-full px-5 py-3 text-center text-base font-bold text-white bg-[#75a99c] hover:bg-[#5b9788] rounded-lg shadow-card border-2 border-[#65998c]"
-              >
-                Prueba gratuita
-              </Link>
-            </div>
           </div>
         </div>
-      )}
+      </div>
     </nav>
   );
 } 

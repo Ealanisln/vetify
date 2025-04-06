@@ -2,7 +2,7 @@
 
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import HeroSection from "@/components/HeroSection";
+import HeroSection from "@/components/hero/HeroSection";
 import { MarketingSection } from "@/components/marketing";
 
 export default function Home() {
