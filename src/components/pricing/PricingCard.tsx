@@ -13,6 +13,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
   plan,
   billingCycle,
   onSelectPlan,
+  isWaitlist = false,
 }) => {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-MX', {
@@ -20,11 +21,6 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       currency: 'MXN',
       maximumFractionDigits: 0,
     }).format(price);
-  };
-
-  // Calculamos el precio con descuento (25% off)
-  const getDiscountedPrice = (price: number) => {
-    return price * 0.75; // 25% de descuento
   };
 
   const getFeatureValue = (feature: PlanFeature, planType: PlanType) => {
@@ -90,31 +86,21 @@ export const PricingCard: React.FC<PricingCardProps> = ({
       <div className="mb-6 sm:mb-8">
         <div className="flex flex-col">
           <div className="flex items-baseline">
-            {/* Precio original tachado */}
-            <span className="text-xl sm:text-2xl font-bold text-gray-400 dark:text-gray-500 line-through mr-2">
-              {formatPrice(plan.pricing[billingCycle])}
-            </span>
-            {/* Nuevo precio con descuento */}
             <span className="text-3xl sm:text-4xl font-bold text-amber-600 dark:text-amber-300">
-              {formatPrice(getDiscountedPrice(plan.pricing[billingCycle]))}
+              {formatPrice(plan.pricing[billingCycle])}
             </span>
             <span className="ml-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
               MXN /mes
             </span>
           </div>
-          <div className="mt-1 inline-flex items-center px-2 py-1 rounded-md bg-teal-50 dark:bg-teal-900/20">
-            <span className="text-xs font-semibold text-teal-700 dark:text-teal-300">
-              ¡25% de descuento aplicado!
-            </span>
-          </div>
           <p className="mt-2 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
             {billingCycle === 'annual'
-              ? `Facturado anualmente como ${formatPrice(getDiscountedPrice(plan.pricing.annual * 12))}`
-              : `Total ${formatPrice(getDiscountedPrice(plan.pricing.monthly))} al mes, facturado mensualmente`}
+              ? `Facturado anualmente como ${formatPrice(plan.pricing.annual * 12)}`
+              : `Total ${formatPrice(plan.pricing.monthly)} al mes, facturado mensualmente`}
           </p>
           {billingCycle === 'annual' && (
             <p className="mt-1 text-xs sm:text-sm text-teal-600 dark:text-teal-300 font-medium">
-              ¡Ahorras {formatPrice((plan.pricing.monthly - plan.pricing.annual) * 12 * 0.75 + plan.pricing[billingCycle] * 0.25)} al año!
+              ¡Ahorras {formatPrice((plan.pricing.monthly - plan.pricing.annual) * 12)} al año!
             </p>
           )}
         </div>
@@ -151,7 +137,7 @@ export const PricingCard: React.FC<PricingCardProps> = ({
             : 'bg-gray-200 text-gray-700 hover:bg-gray-300 focus:ring-gray-400 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
         }`}
       >
-        Comenzar con {plan.name}
+        {isWaitlist ? 'Unirse a la lista de espera' : `Comenzar con ${plan.name}`}
       </button>
     </div>
   );

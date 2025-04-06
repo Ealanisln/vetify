@@ -7,11 +7,7 @@ import WaitingList from "@/components/WaitingList";
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
-  const { resolvedTheme, setTheme } = useTheme();
-
-  const toggleTheme = () => {
-    setTheme(resolvedTheme === "dark" ? "light" : "dark");
-  };
+  const { theme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
@@ -27,22 +23,11 @@ export default function Home() {
       <div
         className={`absolute inset-0 transition-colors duration-500 
         ${
-          resolvedTheme === "dark"
+          theme === "dark"
             ? "bg-gradient-to-br from-beigeD via-grayD to-gray-900"
             : "bg-gradient-to-br from-beige via-white to-gray-100"
         }`}
       />
-
-      {/* Botón de tema */}
-      <div className="absolute top-4 right-4 z-20">
-        <button
-          onClick={toggleTheme}
-          className="p-2 rounded-lg bg-brown/90 text-white dark:bg-brownD/90 hover:opacity-90 transition-all duration-300 hover:scale-105"
-          aria-label="Cambiar tema"
-        >
-          {resolvedTheme === "dark" ? "🌞" : "🌙"}
-        </button>
-      </div>
 
       {/* Contenedor principal absolutamente centrado */}
       <div className="relative z-10 min-h-screen flex items-center justify-center py-12">
@@ -51,7 +36,7 @@ export default function Home() {
           <div className="relative w-full max-w-sm transform transition-transform duration-500 hover:scale-105">
             <Image
               src={
-                resolvedTheme === "dark"
+                theme === "dark"
                   ? "/vetify-logo-dark.png"
                   : "/vetify-logo.png"
               }

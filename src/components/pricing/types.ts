@@ -35,6 +35,7 @@ export interface PricingCardProps {
   plan: Plan;
   billingCycle: 'monthly' | 'annual';
   onSelectPlan: (planType: PlanType, billingCycle: 'monthly' | 'annual') => void;
+  isWaitlist?: boolean;
 }
 
 export interface FeatureComparisonTableProps {

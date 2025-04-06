@@ -175,11 +175,11 @@ export const BenefitsSection: React.FC = () => {
         </div>
 
         {/* CTA */}
-        <div className="text-center mt-10">
+        {/* <div className="text-center mt-10">
           <a href="/registro" className="inline-flex items-center px-6 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 dark:bg-vetify-accent-600 dark:hover:bg-vetify-accent-700 rounded-xl text-white font-medium transition-all">
             Comenzar prueba gratuita
           </a>
-        </div>
+        </div> */}
       </div>
     </section>
   );

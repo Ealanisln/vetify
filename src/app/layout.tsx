@@ -4,11 +4,12 @@ import './globals.css'
 import { Providers } from './providers'
 import type { Viewport } from 'next'
 import { Metadata } from 'next'
-
+import Footer from '@/components/footer/Footer'
 const inter = Inter({ subsets: ['latin'] })
+import Nav from '@/components/navbar/Nav'
 
 export const metadata: Metadata = {
-  metadataBase: new URL('http://localhost:3000'), // Cambia esto en producción
+  metadataBase: new URL('https://vetify.pro'), // Use production domain
   title: 'Vetify | Software de Gestión Veterinaria en la Nube',
   description: 'Sistema integral para clínicas veterinarias. Gestiona pacientes, citas, inventario y más.',
   keywords: [
@@ -65,12 +66,31 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
+  icons: {
+    icon: [ // General purpose favicons
+      { url: '/favicon/favicon.ico', sizes: 'any', rel: 'icon' },
+      { url: '/favicon/favicon.svg', type: 'image/svg+xml', rel: 'icon' },
+      { url: '/favicon/favicon-96x96.png', sizes: '96x96', type: 'image/png', rel: 'icon' },
+    ],
+    apple: [ // Apple touch icons
+      { url: '/favicon/apple-touch-icon.png', rel: 'apple-touch-icon' },
+    ],
+    other: [ // Additional icons like those for web app manifest
+      { url: '/favicon/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/favicon/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png' },
+    ]
+  },
+  manifest: '/favicon/site.webmanifest',
 }
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#111827' },
+  ],
 }
 
 export default function RootLayout({
@@ -81,7 +101,11 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+          <Providers>
+          <Nav />
+          {children}
+          <Footer />
+        </Providers>
       </body>
     </html>
   )

@@ -88,19 +88,18 @@ export const HowItWorksSection: React.FC = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                   <h3 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-2">
-                    ¿Necesitas ayuda para migrar tus datos?
+                    ¿Te preocupa la migración de tus datos?
                   </h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    Nuestro equipo te ofrece asistencia personalizada para migrar tus expedientes y bases de datos existentes.
+                    En el futuro, nuestro equipo ofrecerá asistencia personalizada para migrar tus expedientes y bases de datos existentes.
                   </p>
                 </div>
                 <div className="flex-shrink-0">
-                  <a 
-                    href="/contacto" 
-                    className="inline-flex whitespace-nowrap items-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-base font-medium rounded-xl text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-vetify-accent-500 dark:ring-offset-gray-800"
+                  <div 
+                    className="inline-flex whitespace-nowrap items-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-base font-medium rounded-xl text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 cursor-not-allowed opacity-80"
                   >
-                    Contactar a soporte
-                  </a>
+                    Próximamente
+                  </div>
                 </div>
               </div>
             </div>

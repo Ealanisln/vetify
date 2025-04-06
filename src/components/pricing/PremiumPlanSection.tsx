@@ -10,7 +10,10 @@ const DUMMY_FUTURE_PREMIUM_FEATURES = [
   'API para Integraciones',
 ];
 
-export const PremiumPlanSection: React.FC = () => {
+// interface PremiumPlanSectionProps {
+// }
+
+export const PremiumPlanSection: React.FC = ({}) => {
   return (
     <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6 sm:p-8 mb-16 text-center">
       <h3 className="text-xl font-display font-bold text-gray-800 dark:text-gray-100 mb-3">
@@ -30,11 +33,7 @@ export const PremiumPlanSection: React.FC = () => {
           </div>
         ))}
       </div>
-      <div className="mt-8">
-        <button className="px-6 py-2.5 text-sm font-medium rounded-xl text-white bg-amber-600 hover:bg-amber-700 dark:bg-amber-700 dark:hover:bg-amber-800 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 dark:ring-offset-gray-900">
-          Solicitar Acceso Anticipado
-        </button>
-      </div>
+      
     </div>
   );
 }; 

@@ -3,15 +3,26 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { FeatureShowcase, HowItWorksSection } from "@/components/marketing";
-import { ChevronRight, Search, Layers, Shield, Zap, BarChart, Users } from 'lucide-react';
+import { 
+  ChevronRight, 
+  Search, 
+  Layers, 
+  Shield, 
+  BarChart, 
+  Users, 
+  Calendar, 
+  ClipboardList, 
+  ShoppingCart, 
+  LineChart,
+  UserCircle
+} from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 interface DetailedFeatureProps {
   title: string;
   description: string;
   icon: React.ReactNode;
-  image: string;
+  largeIcon: React.ReactNode;
   reverse?: boolean;
 }
 
@@ -19,7 +30,7 @@ const DetailedFeature: React.FC<DetailedFeatureProps> = ({
   title, 
   description, 
   icon, 
-  image, 
+  largeIcon,
   reverse = false 
 }) => {
   return (
@@ -32,16 +43,10 @@ const DetailedFeature: React.FC<DetailedFeatureProps> = ({
         <div className="text-gray-600 dark:text-gray-300 space-y-4" dangerouslySetInnerHTML={{ __html: description }} />
       </div>
       <div className={`${reverse ? 'lg:order-1' : ''}`}>
-        <div className="relative rounded-xl overflow-hidden shadow-lg bg-white dark:bg-gray-800 p-2">
+        <div className="relative rounded-xl overflow-hidden shadow-lg bg-white dark:bg-gray-800 p-8 flex items-center justify-center h-64">
           <div className="absolute inset-0 bg-gradient-to-br from-vetify-primary-50/50 to-transparent dark:from-vetify-primary-900/20 z-0"></div>
-          <div className="relative z-10">
-            <Image
-              src={image}
-              alt={title}
-              width={600}
-              height={400}
-              className="rounded-lg w-full h-auto"
-            />
+          <div className="relative z-10 text-vetify-accent-500 dark:text-vetify-accent-300">
+            {largeIcon}
           </div>
         </div>
       </div>
@@ -63,7 +68,7 @@ const featuresData = [
       </ul>
     `,
     icon: <Search className="h-8 w-8" />,
-    image: "/features/expedientes-clinicos.png",
+    largeIcon: <ClipboardList className="h-32 w-32" />,
   },
   {
     title: "Agenda inteligente",
@@ -78,7 +83,7 @@ const featuresData = [
       </ul>
     `,
     icon: <Layers className="h-8 w-8" />,
-    image: "/features/agenda-inteligente.png",
+    largeIcon: <Calendar className="h-32 w-32" />,
     reverse: true,
   },
   {
@@ -94,7 +99,7 @@ const featuresData = [
       </ul>
     `,
     icon: <Shield className="h-8 w-8" />,
-    image: "/features/inventario-facturacion.png",
+    largeIcon: <ShoppingCart className="h-32 w-32" />,
   },
   {
     title: "Reportes y analíticos",
@@ -109,7 +114,7 @@ const featuresData = [
       </ul>
     `,
     icon: <BarChart className="h-8 w-8" />,
-    image: "/features/reportes-analiticos.png",
+    largeIcon: <LineChart className="h-32 w-32" />,
     reverse: true,
   },
   {
@@ -126,7 +131,7 @@ const featuresData = [
       <p class="mt-4 text-sm text-gray-500 dark:text-gray-400 italic">*Próximamente en el Plan Premium</p>
     `,
     icon: <Users className="h-8 w-8" />,
-    image: "/features/portal-clientes.png",
+    largeIcon: <UserCircle className="h-32 w-32" />,
   },
 ];
 
@@ -203,7 +208,7 @@ export default function Funcionalidades() {
                   title={feature.title}
                   description={feature.description}
                   icon={feature.icon}
-                  image={feature.image}
+                  largeIcon={feature.largeIcon}
                   reverse={feature.reverse}
                 />
               ))}
@@ -217,12 +222,12 @@ export default function Funcionalidades() {
                 <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
                   Prueba todas estas funcionalidades sin costo durante 14 días
                 </p>
-                <Link 
+                {/* <Link 
                   href="/registro" 
                   className="inline-flex items-center px-6 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 dark:bg-vetify-accent-600 dark:hover:bg-vetify-accent-700 rounded-xl text-white font-medium transition-all"
                 >
                   Comenzar prueba gratuita <Zap className="ml-2 h-4 w-4" />
-                </Link>
+                </Link> */}
               </div>
             </div>
           </div>
