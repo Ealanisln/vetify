@@ -15,6 +15,8 @@ interface WaitingListProps {
 }
 
 export default function WaitingList({ selectedPlan, onSuccess }: WaitingListProps) {
+  // console.log('WaitingList received selectedPlan prop:', selectedPlan); // Log received prop
+
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [privacyConsent, setPrivacyConsent] = useState(false);
@@ -58,15 +60,36 @@ export default function WaitingList({ selectedPlan, onSuccess }: WaitingListProp
     setMessage(null);
 
     try {
+      // Use the new API URL instead of the environment variable
       const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
       
+      // Helper function to map PlanType enum to PocketBase string value
+      const mapPlanTypeToString = (planType: PlanType | undefined | null): string | null => {
+        if (planType === PlanType.BASIC) {
+          return 'basic';
+        }
+        if (planType === PlanType.STANDARD) {
+          return 'standard';
+        }
+        // Return null if the planType is undefined, null, or not BASIC/STANDARD
+        return null; 
+      };
+      
       // Create a new record in the "waiting_list" collection
+      const mappedPlanType = mapPlanTypeToString(selectedPlan?.planType); // Calculate mapped value
+      // console.log('Mapped plan type before sending:', mappedPlanType); // Log mapped value
+      
       const data = {
         email: email.toLowerCase().trim(),
-        interest_plan: selectedPlan ? selectedPlan.planType : null,
+        // Restore original logic
+        interest_plan: mappedPlanType,
         billing_cycle: selectedPlan ? selectedPlan.billingCycle : null,
+        // interest_plan: selectedPlan ? 'basic' : null, // Remove temporary hardcoding
+        // billing_cycle: selectedPlan ? 'monthly' : null, // Remove temporary hardcoding
         privacy_consent: privacyConsent
       };
+
+      // console.log('Data just before sending:', data); // Add log here
 
       await pb.collection("waiting_list").create(data);
 
@@ -81,22 +104,50 @@ export default function WaitingList({ selectedPlan, onSuccess }: WaitingListProp
         }, 2000);
       }
     } catch (error) {
-      console.error('Error details:', error);
+      // console.error('Error submitting to PocketBase:');
+      // console.error('Full error object:', error);
       
       let errorMessage = "Hubo un error al procesar tu solicitud. Por favor, intenta de nuevo.";
       
       if (error instanceof ClientResponseError) {
-        if (error.status === 0 || error.status === undefined) {
-          errorMessage = "No se pudo conectar con el servidor. Por favor, intenta de nuevo más tarde.";
-        } else if (error.status === 403) {
-          errorMessage = "No tienes permiso para realizar esta acción. Por favor, contacta al administrador.";
-        } else if (error.status === 400) {
-          if (error.response?.data?.email?.message) {
-            errorMessage = "El correo electrónico no es válido.";
-          } else if (error.response?.message) {
-            errorMessage = error.response.message;
+        // console.error('PocketBase error status:', error.status);
+        // console.error('PocketBase error response:', error.response); // Log the detailed response
+        
+        let fieldErrors: string | null = null; // Declare fieldErrors here
+
+        // Try to get more specific field errors
+        if (error.response?.data) {
+          // console.error('PocketBase error data:', error.response.data);
+          // Map PocketBase field errors to a readable string
+          type PocketBaseFieldError = { code?: string; message?: string };
+          
+          const specificErrors = Object.entries(error.response.data).map(([field, errInfoUnknown]) => {
+            // Assert the type of errInfoUnknown after checking it's an object
+            const errInfo = typeof errInfoUnknown === 'object' && errInfoUnknown !== null 
+              ? errInfoUnknown as PocketBaseFieldError 
+              : {};
+            return `${field}: ${errInfo?.message || 'Valor inválido'}`;
+          }).join('; ');
+          
+          if (specificErrors) {
+            fieldErrors = specificErrors;
+            errorMessage = `Error en los campos: ${fieldErrors}. Por favor, revisa la información.`;
           }
         }
+        
+        // Keep existing general error messages as fallback only if no specific field errors were found
+        if (!fieldErrors) { 
+          if (error.status === 0 || error.status === undefined) {
+            errorMessage = "No se pudo conectar con el servidor. Por favor, intenta de nuevo más tarde.";
+          } else if (error.status === 403) { // Should not happen now, but keep for reference
+            errorMessage = "No tienes permiso para realizar esta acción. Por favor, contacta al administrador.";
+          } else if (error.response?.message && !error.response.data) { // Use general PB message if available and no specific data errors
+            errorMessage = error.response.message; 
+          }
+        }
+      } else {
+        // Handle non-PocketBase errors
+        // console.error('Non-PocketBase error:', error);
       }
       
       setMessage({ 
@@ -229,4 +280,4 @@ export default function WaitingList({ selectedPlan, onSuccess }: WaitingListProp
       </div>
     </div>
   );
-} 
+}
