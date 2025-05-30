@@ -16,7 +16,14 @@ export async function POST(request: NextRequest) {
   try {
     const { user } = await getAuthenticatedUserWithOptionalTenant();
     
-    // Check if user already has a tenant
+    // Check if user exists and already has a tenant
+    if (!user) {
+      return NextResponse.json(
+        { message: 'Usuario no autenticado' },
+        { status: 401 }
+      );
+    }
+    
     if (user.tenant) {
       return NextResponse.json(
         { message: 'El usuario ya tiene una clínica configurada' },
@@ -50,22 +57,15 @@ export async function POST(request: NextRequest) {
     }, { status: 201 });
 
   } catch (error) {
-    console.error('Error during onboarding:', error);
+    console.error('Onboarding error:', error);
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { message: error.errors[0].message },
+        { message: 'Datos inválidos', errors: error.errors },
         { status: 400 }
       );
     }
-    
-    if (error instanceof Error) {
-      return NextResponse.json(
-        { message: error.message },
-        { status: 400 }
-      );
-    }
-    
+
     return NextResponse.json(
       { message: 'Error interno del servidor' },
       { status: 500 }

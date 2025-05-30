@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { z } from 'zod';
+import { serializePet, serializePets } from './serializers';
 
 export const createPetSchema = z.object({
   name: z.string().min(1, 'Nombre es requerido'),
@@ -33,7 +34,7 @@ export async function createPet(
     throw new Error('Plan limit reached. Upgrade to add more pets.');
   }
 
-  return prisma.pet.create({
+  const pet = await prisma.pet.create({
     data: {
       name: data.name,
       species: data.species,
@@ -53,22 +54,28 @@ export async function createPet(
       appointments: true
     }
   });
+
+  // Serialize the pet data to convert Decimal fields to numbers
+  return serializePet(pet);
 }
 
 export async function getPetsByTenant(tenantId: string) {
-  return prisma.pet.findMany({
+  const pets = await prisma.pet.findMany({
     where: { tenantId },
     include: {
       user: true,
-      medicalHistories: true,
-      appointments: true
+      appointments: true,
+      medicalHistories: true
     },
     orderBy: { createdAt: 'desc' }
   });
+
+  // Serialize the pets data to convert Decimal fields to numbers
+  return serializePets(pets);
 }
 
 export async function getPetById(petId: string, tenantId: string) {
-  return prisma.pet.findFirst({
+  const pet = await prisma.pet.findFirst({
     where: { id: petId, tenantId },
     include: {
       user: true,
@@ -83,4 +90,7 @@ export async function getPetById(petId: string, tenantId: string) {
       }
     }
   });
+
+  // Serialize the pet data to convert Decimal fields to numbers
+  return serializePet(pet);
 } 

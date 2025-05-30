@@ -62,7 +62,8 @@ export default async function PetsPage() {
       ) : (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">
-            {pets.map((pet) => (
+            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+            {pets.map((pet: any) => (
               <li key={pet.id}>
                 <Link href={`/dashboard/pets/${pet.id}`} className="block hover:bg-gray-50 transition-colors">
                   <div className="px-4 py-4 flex items-center justify-between">

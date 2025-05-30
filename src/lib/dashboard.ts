@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { DashboardStats } from '@/types';
+import { serializeTenant, serializePets } from './serializers';
 
 export async function getDashboardStats(tenantId: string): Promise<DashboardStats> {
   const [
@@ -43,12 +44,17 @@ export async function getDashboardStats(tenantId: string): Promise<DashboardStat
     })
   ]);
 
-  const plan = tenant?.tenantSubscription?.plan;
+  // Serialize the tenant data to convert Decimal fields to numbers
+  const serializedTenant = serializeTenant(tenant);
+  const plan = serializedTenant?.tenantSubscription?.plan;
+
+  // Serialize the pets data to convert Decimal fields to numbers
+  const serializedRecentPets = serializePets(recentPets);
 
   return {
     totalPets,
     totalAppointments,
-    recentPets,
+    recentPets: serializedRecentPets || [],
     upcomingAppointments,
     planLimits: {
       maxPets: plan?.maxPets || 50, // Default FREE plan

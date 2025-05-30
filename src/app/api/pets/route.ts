@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
     
     const validatedData = createPetSchema.parse(body);
-    const pet = await createPet(tenant.id, user.id, validatedData);
+    const pet = await createPet(tenant.id as string, user.id as string, validatedData);
     
     // 🚀 TRIGGER N8N WORKFLOW - The Magic Moment!
     if (user.phone) {
@@ -26,53 +26,38 @@ export async function POST(request: NextRequest) {
           'bird': 'Ave',
           'rabbit': 'Conejo',
           'other': 'Mascota'
-        }[pet.species] || 'Mascota';
+        }[pet?.species as string] || 'Mascota';
 
-        const n8nResult = await n8nService.sendPetWelcomeMessage({
-          petName: pet.name,
-          petSpecies: speciesInSpanish,
-          ownerName: user.name || user.firstName || user.email,
-          ownerPhone: user.phone,
-          clinicName: tenant.name
+        await n8nService.triggerWorkflow('pet-registration', {
+          petName: pet?.name as string,
+          species: speciesInSpanish,
+          ownerName: (user.firstName || user.name || 'Cliente') as string,
+          ownerPhone: user.phone as string,
+          clinicName: tenant.name as string
         });
 
-        if (n8nResult.success) {
-          console.log('🎉 Pet welcome message triggered successfully!');
-          
-          // Log the automation in database for tracking
-          // TODO: Uncomment after running prisma db push
-          /*
-          await prisma.automationLog.create({
-            data: {
-              tenantId: tenant.id,
-              workflowType: 'PET_WELCOME',
-              triggeredBy: user.id,
-              payload: {
-                petId: pet.id,
-                petName: pet.name,
-                ownerPhone: user.phone
-              },
-              status: 'SUCCESS',
-              executionId: n8nResult.executionId
-            }
-          }).catch((err: Error) => {
-            // Don't fail the pet creation if logging fails
-            console.warn('Failed to log automation:', err);
-          });
-          */
-        } else {
-          console.error('❌ N8N workflow failed:', n8nResult.error);
-        }
-      } catch (automationError) {
-        // Don't fail pet creation if automation fails
-        console.error('❌ Automation error (non-blocking):', automationError);
+        return NextResponse.json({ 
+          pet, 
+          automationTriggered: true,
+          message: 'Mascota registrada y WhatsApp enviado' 
+        });
+      } catch (n8nError) {
+        console.error('N8N workflow error:', n8nError);
+        // Continue without failing the pet creation
+        return NextResponse.json({ 
+          pet, 
+          automationTriggered: false,
+          message: 'Mascota registrada, pero falló el envío de WhatsApp' 
+        });
       }
     }
-    
-    return NextResponse.json({
-      ...pet,
-      automationTriggered: !!user.phone
-    }, { status: 201 });
+
+    return NextResponse.json({ 
+      pet, 
+      automationTriggered: false,
+      message: 'Mascota registrada (sin WhatsApp - número no disponible)' 
+    });
+
   } catch (error) {
     console.error('Error creating pet:', error);
     
@@ -82,9 +67,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { message: 'Error interno del servidor' },
       { status: 500 }
     );
   }
@@ -93,13 +78,13 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     const { tenant } = await requireAuth();
-    const pets = await getPetsByTenant(tenant.id);
+    const pets = await getPetsByTenant(tenant.id as string);
     
     return NextResponse.json(pets);
   } catch (error) {
     console.error('Error fetching pets:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
+      { message: 'Error interno del servidor' },
       { status: 500 }
     );
   }

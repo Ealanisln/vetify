@@ -1,6 +1,7 @@
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { prisma } from "./prisma";
 import { redirect } from "next/navigation";
+import { serializeUser, serializeTenant } from "./serializers";
 
 export async function getAuthenticatedUser() {
   const { getUser } = getKindeServerSession();
@@ -46,7 +47,8 @@ export async function getAuthenticatedUser() {
     });
   }
 
-  return user;
+  // Serialize the user data to convert Decimal fields to numbers
+  return serializeUser(user);
 }
 
 export async function getTenantForUser(userId: string) {
@@ -63,7 +65,8 @@ export async function getTenantForUser(userId: string) {
     }
   });
 
-  return user?.tenant;
+  // Serialize the tenant data to convert Decimal fields to numbers
+  return serializeTenant(user?.tenant);
 }
 
 /**
@@ -71,7 +74,7 @@ export async function getTenantForUser(userId: string) {
  */
 export async function checkUserNeedsOnboarding() {
   const user = await getAuthenticatedUser();
-  return !user.tenant;
+  return !user?.tenant;
 }
 
 /**
@@ -80,7 +83,7 @@ export async function checkUserNeedsOnboarding() {
 export async function requireAuth() {
   const user = await getAuthenticatedUser();
   
-  if (!user.tenant) {
+  if (!user?.tenant) {
     // Redirect to onboarding if user doesn't have a tenant
     redirect('/onboarding');
   }
@@ -93,5 +96,5 @@ export async function requireAuth() {
  */
 export async function getAuthenticatedUserWithOptionalTenant() {
   const user = await getAuthenticatedUser();
-  return { user, tenant: user.tenant };
+  return { user, tenant: user?.tenant };
 } 
