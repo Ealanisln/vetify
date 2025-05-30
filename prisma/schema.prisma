@@ -25,6 +25,7 @@ model Tenant {
   createdAt            DateTime            @default(now())
   updatedAt            DateTime            @updatedAt
   appointments         Appointment[]
+  automationLogs       AutomationLog[]
   cashDrawers          CashDrawer[]
   inventoryItems       InventoryItem[]
   InventoryMovement    InventoryMovement[]
@@ -793,4 +794,23 @@ enum ServiceCategory {
   EMERGENCY_CARE
   EUTHANASIA
   OTHER
+}
+
+// Add this model to track automations
+model AutomationLog {
+  id           String   @id @default(uuid())
+  tenantId     String
+  workflowType String   // 'PET_WELCOME', 'VACCINATION_REMINDER', etc.
+  triggeredBy  String   // User ID who triggered
+  payload      Json     // Data sent to N8N
+  status       String   // 'SUCCESS', 'FAILED', 'PENDING'
+  executionId  String?  // N8N execution ID
+  error        String?  // Error message if failed
+  createdAt    DateTime @default(now())
+  
+  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([workflowType])
+  @@index([status])
 }

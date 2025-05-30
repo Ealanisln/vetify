@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 export function AddPetForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showWhatsAppPreview, setShowWhatsAppPreview] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     species: 'dog',
@@ -38,6 +39,15 @@ export function AddPetForm() {
         throw new Error(errorData.message || 'Error creating pet');
       }
 
+      const result = await response.json();
+      
+      // Show success message with WhatsApp automation info
+      if (result.automationTriggered) {
+        alert('¡Mascota registrada! 🎉\n\nSe ha enviado un WhatsApp automático al dueño.');
+      } else {
+        alert('¡Mascota registrada exitosamente!\n\nNota: Para activar WhatsApp automático, asegúrate de que el usuario tenga un número de teléfono registrado.');
+      }
+
       router.push('/dashboard/pets');
       router.refresh();
     } catch (error) {
@@ -54,6 +64,17 @@ export function AddPetForm() {
       ...prev,
       [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }));
+  };
+
+  const getSpeciesEmoji = (species: string) => {
+    const emojis = {
+      'dog': '🐕',
+      'cat': '🐱',
+      'bird': '🐦',
+      'rabbit': '🐰',
+      'other': '🐾'
+    };
+    return emojis[species as keyof typeof emojis] || '🐾';
   };
 
   return (
@@ -192,6 +213,47 @@ export function AddPetForm() {
         </div>
       </div>
 
+      {/* WhatsApp Integration Notice */}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="flex items-start">
+          <span className="text-green-500 text-xl mr-3">💬</span>
+          <div className="flex-1">
+            <h4 className="text-sm font-medium text-green-900">
+              WhatsApp Automático Incluido
+            </h4>
+            <p className="text-sm text-green-700 mt-1">
+              Al registrar la mascota, se enviará automáticamente un mensaje de bienvenida al dueño.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowWhatsAppPreview(!showWhatsAppPreview)}
+              className="text-xs text-green-600 hover:text-green-800 mt-2 underline"
+            >
+              {showWhatsAppPreview ? 'Ocultar' : 'Ver'} vista previa del mensaje
+            </button>
+          </div>
+        </div>
+        
+        {showWhatsAppPreview && (
+          <div className="mt-4 p-3 bg-white rounded border border-green-300">
+            <div className="text-xs text-gray-500 mb-2">Vista previa del WhatsApp:</div>
+            <div className="text-sm bg-green-100 p-3 rounded-lg font-mono whitespace-pre-line">
+              🎉 ¡Bienvenido a Tu Clínica!
+
+              {getSpeciesEmoji(formData.species)} <strong>{formData.name || '[Nombre]'}</strong> ya está registrado en nuestro sistema Vetify.
+
+              ✅ Recibirás recordatorios automáticos de vacunas
+              ✅ Historial médico digitalizado
+              ✅ Comunicación directa con el veterinario
+
+              ¿Alguna pregunta? Solo responde a este mensaje.
+
+              <em>Mensaje automático de Vetify CRM</em>
+            </div>
+          </div>
+        )}
+      </div>
+
       <div className="flex justify-end space-x-3">
         <button
           type="button"
@@ -203,9 +265,22 @@ export function AddPetForm() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+          className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center"
         >
-          {isSubmitting ? 'Registrando...' : 'Registrar Mascota'}
+          {isSubmitting ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Registrando...
+            </>
+          ) : (
+            <>
+              <span className="mr-2">🚀</span>
+              Registrar Mascota
+            </>
+          )}
         </button>
       </div>
     </form>
