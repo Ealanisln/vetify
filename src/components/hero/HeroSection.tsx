@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Play, MessageCircle, Zap, Users } from 'lucide-react';
 import { useTheme } from "next-themes";
 
 const HeroSection: React.FC = () => {
@@ -10,188 +10,222 @@ const HeroSection: React.FC = () => {
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Aquí puedes manejar la lógica para registrar el email
-    // y redirigir al usuario al proceso de registro
+    // Redirect to registration with email
     window.location.href = `/registro?email=${encodeURIComponent(email)}`;
+  };
+
+  const handleDemoClick = () => {
+    // Scroll to demo section or open demo modal
+    const demoSection = document.getElementById('demo-section');
+    if (demoSection) {
+      demoSection.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
     <div className="relative overflow-hidden">
-      {/* Fondo con gradiente adaptado a light/dark mode */}
+      {/* Enhanced background with more modern gradient */}
       <div 
         className={`absolute inset-0 z-0 
         ${
           resolvedTheme === "dark"
-            ? "bg-gradient-to-b from-vetify-primary-800/30 to-vetify-slate-900/50"
-            : "bg-gradient-to-b from-vetify-primary-50 to-white"
+            ? "bg-gradient-to-br from-indigo-900/40 via-purple-900/30 to-slate-900/60"
+            : "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
         }`}
       />
       
-      {/* Decoración de fondo */}
+      {/* Modern geometric background decorations */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute -top-24 -right-20 w-96 h-96 rounded-full bg-vetify-accent-200 blur-3xl opacity-30 dark:opacity-10"></div>
-        <div className="absolute top-1/3 left-10 w-72 h-72 rounded-full bg-vetify-blush-100 blur-3xl opacity-20 dark:opacity-5"></div>
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-vetify-primary-100 blur-3xl opacity-20 dark:opacity-5"></div>
+        <div className="absolute -top-24 -right-20 w-96 h-96 rounded-full bg-gradient-to-r from-blue-400 to-purple-500 blur-3xl opacity-20 dark:opacity-10"></div>
+        <div className="absolute top-1/3 left-10 w-72 h-72 rounded-full bg-gradient-to-r from-green-400 to-blue-500 blur-3xl opacity-15 dark:opacity-5"></div>
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-gradient-to-r from-purple-400 to-pink-500 blur-3xl opacity-15 dark:opacity-5"></div>
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24 md:pt-24 md:pb-32">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          {/* Contenido principal */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Main content */}
           <div>
-            <div className="inline-flex items-center px-4 py-2 bg-vetify-accent-50 dark:bg-vetify-accent-900/30 rounded-full mb-6">
-              <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">Nuevo: Plan Básico desde $349 MXN/mes</span>
+            {/* New launch badge with special offer */}
+            <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-green-100 to-blue-100 dark:from-green-900/30 dark:to-blue-900/30 rounded-full mb-6 border border-green-200 dark:border-green-700">
+              <Zap className="h-4 w-4 text-green-600 dark:text-green-400 mr-2" />
+              <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                🚀 LANZAMIENTO: 35% OFF en planes anuales
+              </span>
             </div>
             
+            {/* Updated headline based on the USP */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight">
-              El software que toda <span className="text-vetify-accent-500 dark:text-vetify-accent-300">clínica veterinaria</span> necesita
+              El primer CRM veterinario con{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+                WhatsApp automático
+              </span>{' '}
+              incluido
             </h1>
             
-            <p className="mt-6 text-xl text-gray-500 dark:text-gray-300 max-w-2xl">
-              Gestiona pacientes, citas, inventario y facturación en un solo lugar. 
-              Diseñado para veterinarios que quieren crecer y brindar un mejor servicio.
+            {/* Updated value proposition */}
+            <p className="mt-6 text-xl text-gray-600 dark:text-gray-300 max-w-2xl leading-relaxed">
+              Automatiza recordatorios, gestiona pacientes y aumenta tus ingresos 30% con el software veterinario más moderno de México. <span className="font-semibold text-gray-900 dark:text-white">Setup en 15 minutos.</span>
             </p>
             
-            {/* Formulario CTA */}
-            <form onSubmit={handleSubmit} className="mt-8 sm:flex max-w-md">
-              <div className="min-w-0 flex-1">
-                <label htmlFor="email" className="sr-only">Email</label>
-                <input
-                  id="email"
-                  type="email"
-                  required
-                  className="block w-full px-4 py-3 rounded-md border border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-white shadow-sm text-base placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-vetify-accent-500 focus:border-vetify-accent-500"
-                  placeholder="Tu correo electrónico"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+            {/* Key benefits with icons */}
+            <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
+              <div className="flex items-center">
+                <MessageCircle className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300 font-medium">WhatsApp automático nativo</span>
               </div>
-              <div className="mt-3 sm:mt-0 sm:ml-3">
+              <div className="flex items-center">
+                <Users className="h-5 w-5 text-blue-500 mr-3 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Plan GRATIS real (no trial)</span>
+              </div>
+              <div className="flex items-center">
+                <Zap className="h-5 w-5 text-purple-500 mr-3 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300 font-medium">50% más barato que competencia</span>
+              </div>
+              <div className="flex items-center">
+                <Check className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Setup instantáneo vs 6 semanas</span>
+              </div>
+            </div>
+            
+            {/* CTA Section */}
+            <div className="mt-8 flex flex-col sm:flex-row gap-4 max-w-md">
+              {/* Email form */}
+              <form onSubmit={handleSubmit} className="flex flex-1">
+                <div className="flex-1">
+                  <label htmlFor="email" className="sr-only">Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    required
+                    className="block w-full px-4 py-3 rounded-l-xl border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white shadow-sm text-base placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Tu correo electrónico"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
                 <button
                   type="submit"
-                  className="block w-full rounded-md px-4 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 dark:bg-vetify-accent-600 dark:hover:bg-vetify-accent-700 text-base font-medium text-white shadow hover:shadow-lg transition-all duration-200"
+                  className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-base font-semibold text-white shadow-lg hover:shadow-xl transition-all duration-200 rounded-r-xl"
                 >
-                  Prueba gratuita
+                  Probar GRATIS
                 </button>
-              </div>
-            </form>
+              </form>
+              
+              {/* Demo button */}
+              <button
+                onClick={handleDemoClick}
+                className="inline-flex items-center justify-center px-6 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-base font-semibold text-gray-700 dark:text-gray-300 hover:border-blue-500 dark:hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400 transition-all duration-200"
+              >
+                <Play className="h-4 w-4 mr-2" />
+                Ver Demo
+              </button>
+            </div>
             
-            {/* Trust badges */}
-            <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center text-sm text-gray-500 dark:text-gray-300">
+            {/* Trust badges - updated */}
+            <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center text-sm text-gray-500 dark:text-gray-400">
               <div className="flex items-center mb-2 sm:mb-0">
-                <Check className="h-4 w-4 text-vetify-success mr-1" />
-                <span>14 días gratis</span>
-              </div>
-              <div className="sm:ml-6 flex items-center mb-2 sm:mb-0">
-                <Check className="h-4 w-4 text-vetify-success mr-1" />
+                <Check className="h-4 w-4 text-green-500 mr-1" />
                 <span>Sin tarjeta de crédito</span>
               </div>
+              <div className="sm:ml-6 flex items-center mb-2 sm:mb-0">
+                <Check className="h-4 w-4 text-green-500 mr-1" />
+                <span>Cancela cuando quieras</span>
+              </div>
               <div className="sm:ml-6 flex items-center">
-                <Check className="h-4 w-4 text-vetify-success mr-1" />
-                <span>Soporte incluido</span>
+                <Check className="h-4 w-4 text-green-500 mr-1" />
+                <span>Soporte en español 24/7</span>
+              </div>
+            </div>
+
+            {/* Social proof */}
+            <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Ya confían en Vetify:
+              </p>
+              <div className="flex items-center space-x-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">500+</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Veterinarios</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">15,000+</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Mascotas</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">98%</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Satisfacción</div>
+                </div>
               </div>
             </div>
           </div>
           
-          {/* Imagen o preview */}
-          <div className="md:pl-8 hidden md:block">
+          {/* Enhanced visual section */}
+          <div className="lg:pl-8 hidden lg:block">
             <div className="relative">
-              {/* Badge flotante 1 */}
-              <div className="absolute -left-6 top-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 flex items-center z-10">
-                <div className="bg-vetify-success/20 rounded-full p-2 mr-3">
-                  <span className="h-6 w-6 text-vetify-success flex items-center justify-center font-bold">+</span>
+              {/* WhatsApp notification mockup */}
+              <div className="absolute -left-6 top-12 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-4 flex items-start z-10 max-w-sm border border-gray-100 dark:border-gray-700">
+                <div className="bg-green-500 rounded-full p-2 mr-3 flex-shrink-0">
+                  <MessageCircle className="h-5 w-5 text-white" />
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">20% más pacientes</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">en los primeros 3 meses</p>
-                </div>
-              </div>
-              
-              {/* Badge flotante 2 */}
-              <div className="absolute -right-4 bottom-16 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 z-10">
-                <div className="flex items-center">
-                  <div className="bg-vetify-accent-100 dark:bg-vetify-accent-900/50 rounded-full p-2 mr-3">
-                    <span className="h-6 w-6 text-vetify-accent-600 dark:text-vetify-accent-400 flex items-center justify-center font-bold">-</span>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">WhatsApp Automático</p>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Ahora</span>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">30% menos tiempo</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">en tareas administrativas</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300 leading-relaxed">
+                    🎉 ¡Hola! Firulais tiene cita mañana a las 10:00 AM para su vacuna anual...
+                  </p>
+                  <div className="mt-2 text-xs text-green-600 dark:text-green-400 font-medium">
+                    ✓ Enviado automáticamente
                   </div>
                 </div>
               </div>
               
-              {/* Screenshot principal */}
-              <div className="rounded-2xl bg-white dark:bg-gray-800 shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700">
-                <div className="h-6 bg-gray-50 dark:bg-gray-900 flex items-center px-4">
+              {/* ROI badge */}
+              <div className="absolute -right-4 bottom-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-2xl p-4 z-10 text-white max-w-48">
+                <div className="flex items-center mb-2">
+                  <Zap className="h-5 w-5 mr-2" />
+                  <span className="font-semibold text-sm">ROI Comprobado</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span>Ingresos:</span>
+                    <span className="font-bold">+30%</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span>Tiempo ahorrado:</span>
+                    <span className="font-bold">5h/semana</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Dashboard mockup */}
+              <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+                <div className="bg-gradient-to-r from-blue-500 to-purple-600 h-16 flex items-center px-6">
                   <div className="flex space-x-2">
-                    <div className="w-2 h-2 rounded-full bg-red-400"></div>
-                    <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-                    <div className="w-2 h-2 rounded-full bg-green-400"></div>
+                    <div className="w-3 h-3 bg-white/30 rounded-full"></div>
+                    <div className="w-3 h-3 bg-white/30 rounded-full"></div>
+                    <div className="w-3 h-3 bg-white/30 rounded-full"></div>
+                  </div>
+                  <div className="ml-4 text-white font-semibold">Vetify Dashboard</div>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">47</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Citas hoy</div>
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">89%</div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400">Satisfacción</div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                    <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
                   </div>
                 </div>
-                <div className="w-full">
-                  <object 
-                    type="image/svg+xml" 
-                    data="/dashboard-preview.svg" 
-                    className="w-full"
-                    aria-label="Dashboard Vetify"
-                  >
-                    <div className="w-full h-60 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                      <p className="text-gray-600 dark:text-gray-300">Vista previa del dashboard</p>
-                    </div>
-                  </object>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Feature highlights strip */}
-      <div className="relative z-10 bg-gray-50 dark:bg-gray-900/50 border-y border-gray-100 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-vetify-accent-500 text-white">
-                  {/* Icono 1 */}
-                  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Expedientes digitales</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Historial médico completo y accesible para todas tus mascotas.</p>
-              </div>
-            </div>
-            
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-vetify-accent-500 text-white">
-                  {/* Icono 2 */}
-                  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Agenda inteligente</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestiona citas y envía recordatorios automáticos a tus clientes.</p>
-              </div>
-            </div>
-            
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-vetify-accent-500 text-white">
-                  {/* Icono 3 */}
-                  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Métricas y reportes</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Conoce el desempeño de tu clínica con informes detallados.</p>
               </div>
             </div>
           </div>

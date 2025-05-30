@@ -1,13 +1,17 @@
 export enum PlanType {
+  FREE = 'FREE',
   BASIC = 'BASIC',
-  STANDARD = 'STANDARD',
+  PROFESSIONAL = 'PROFESSIONAL',
+  PREMIUM = 'PREMIUM',
 }
 
 export interface PlanFeature {
   name: string;
   description?: string;
+  free: string | number | boolean;
   basic: string | number | boolean;
-  standard: string | number | boolean;
+  professional: string | number | boolean;
+  premium: string | number | boolean;
 }
 
 export interface Plan {
@@ -17,9 +21,13 @@ export interface Plan {
   pricing: {
     monthly: number;
     annual: number;
+    monthlyWithDiscount?: number; // For launch discount
+    annualWithDiscount?: number; // For launch discount
   };
   features: PlanFeature[];
   recommended?: boolean;
+  isPopular?: boolean;
+  badge?: string;
 }
 
 export interface PricingPlansProps {
