@@ -3,7 +3,7 @@
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { FeatureShowcase, HowItWorksSection } from "@/components/marketing";
-import { ChevronRight, Search, Layers, Shield, Zap, BarChart, Users } from 'lucide-react';
+import { ChevronRight, MessageCircle, Shield, Package, Zap, Clock, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -13,6 +13,7 @@ interface DetailedFeatureProps {
   icon: React.ReactNode;
   image: string;
   reverse?: boolean;
+  wowFactor: string;
 }
 
 const DetailedFeature: React.FC<DetailedFeatureProps> = ({ 
@@ -20,8 +21,24 @@ const DetailedFeature: React.FC<DetailedFeatureProps> = ({
   description, 
   icon, 
   image, 
-  reverse = false 
+  reverse = false,
+  wowFactor 
 }) => {
+  // Determinar el color del badge basado en el título
+  const getBadgeColor = (title: string) => {
+    if (title.includes("Magic Vaccination")) {
+      return "bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 border border-green-200 dark:border-green-600";
+    } else if (title.includes("Emergency Response")) {
+      return "bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-600";
+    } else if (title.includes("Smart Inventory")) {
+      return "bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-600";
+    } else if (title.includes("Recordatorios")) {
+      return "bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200 border border-purple-200 dark:border-purple-600";
+    } else {
+      return "bg-amber-100 dark:bg-amber-800 text-amber-700 dark:text-amber-200 border border-amber-200 dark:border-amber-600";
+    }
+  };
+
   return (
     <div className={`grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center py-16 border-b border-gray-100 dark:border-gray-800 ${reverse ? 'lg:flex-row-reverse' : ''}`}>
       <div className={`${reverse ? 'lg:order-2' : ''}`}>
@@ -29,6 +46,14 @@ const DetailedFeature: React.FC<DetailedFeatureProps> = ({
           {icon}
         </div>
         <h3 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-4">{title}</h3>
+        
+        <div className="mb-4">
+          <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getBadgeColor(title)}`}>
+            <Zap className="h-3 w-3 mr-1" />
+            {wowFactor}
+          </div>
+        </div>
+        
         <div className="text-gray-600 dark:text-gray-300 space-y-4" dangerouslySetInnerHTML={{ __html: description }} />
       </div>
       <div className={`${reverse ? 'lg:order-1' : ''}`}>
@@ -51,82 +76,89 @@ const DetailedFeature: React.FC<DetailedFeatureProps> = ({
 
 const featuresData = [
   {
-    title: "Expedientes clínicos digitales",
+    title: "Magic Vaccination Assistant",
     description: `
-      <p>Mantén toda la información de tus pacientes organizada y accesible al instante:</p>
+      <p><strong>El gancho: "Nunca más olvides una vacuna"</strong></p>
+      <p>Sistema inteligente que automatiza completamente el seguimiento de vacunaciones:</p>
       <ul class="list-disc list-inside mt-3 space-y-2">
-        <li>Historial médico completo y cronológico</li>
-        <li>Carga de radiografías y resultados de laboratorio</li>
-        <li>Control de vacunaciones y recordatorios automáticos</li>
-        <li>Registro de medicamentos y tratamientos</li>
-        <li>Notas de seguimiento y planes de tratamiento</li>
+        <li>Revisa automáticamente mascotas que necesitan vacuna en los próximos 7 días</li>
+        <li>Envía WhatsApp automático con emoji de mascota personalizado</li>
+        <li>Crea evento automático en el calendario del veterinario</li>
+        <li>Pre-llena el formulario de consulta con datos del paciente</li>
+        <li>Envía seguimiento automático 24 horas antes de la cita</li>
       </ul>
     `,
-    icon: <Search className="h-8 w-8" />,
-    image: "/features/expedientes-clinicos.png",
+    icon: <MessageCircle className="h-8 w-8" />,
+    image: "/features/magic-vaccination.png",
+    wowFactor: "90% reducción en vacunas olvidadas",
   },
   {
-    title: "Agenda inteligente",
+    title: "Emergency Response Protocol",
     description: `
-      <p>Optimiza tu tiempo y el de tu equipo con un sistema de citas avanzado:</p>
+      <p><strong>El gancho: "Respuesta automática en emergencias"</strong></p>
+      <p>Protocolo que se activa automáticamente con la palabra 'EMERGENCIA' en cualquier comunicación:</p>
       <ul class="list-disc list-inside mt-3 space-y-2">
-        <li>Vista por día, semana o mes para múltiples doctores</li>
-        <li>Recordatorios automáticos por SMS o email</li>
-        <li>Reduce el número de citas perdidas hasta en un 40%</li>
-        <li>Categoriza citas por tipo de servicio con códigos de color</li>
-        <li>Historial de asistencia y cancelaciones por cliente</li>
-      </ul>
-    `,
-    icon: <Layers className="h-8 w-8" />,
-    image: "/features/agenda-inteligente.png",
-    reverse: true,
-  },
-  {
-    title: "Inventario y facturación integrados",
-    description: `
-      <p>Controla tus productos y medicamentos mientras automatizas la facturación:</p>
-      <ul class="list-disc list-inside mt-3 space-y-2">
-        <li>Control de stock con alertas de bajo inventario</li>
-        <li>Facturación electrónica CFDI integrada</li>
-        <li>Catálogo de servicios y productos personalizable</li>
-        <li>Reportes de ventas y rentabilidad por producto</li>
-        <li>Integración con terminales de pago</li>
+        <li>Alerta inmediata a todos los veterinarios disponibles</li>
+        <li>Envía automáticamente instrucciones de ubicación al dueño</li>
+        <li>Abre slot de emergencia en la agenda instantáneamente</li>
+        <li>Prepara checklist de emergencia personalizado</li>
+        <li>Inicia secuencia de seguimiento automático post-emergencia</li>
       </ul>
     `,
     icon: <Shield className="h-8 w-8" />,
-    image: "/features/inventario-facturacion.png",
-  },
-  {
-    title: "Reportes y analíticos",
-    description: `
-      <p>Toma decisiones basadas en datos con informes detallados de tu clínica:</p>
-      <ul class="list-disc list-inside mt-3 space-y-2">
-        <li>Dashboard con métricas clave de desempeño</li>
-        <li>Análisis de ingresos y servicios más solicitados</li>
-        <li>Patrones de crecimiento y estacionalidad</li>
-        <li>Seguimiento de rendimiento por doctor</li>
-        <li>Exportación a Excel y PDF para reuniones</li>
-      </ul>
-    `,
-    icon: <BarChart className="h-8 w-8" />,
-    image: "/features/reportes-analiticos.png",
+    image: "/features/emergency-response.png",
     reverse: true,
+    wowFactor: "Respuesta menor a 2 minutos",
   },
   {
-    title: "Portal para clientes",
+    title: "Smart Inventory Guardian",
     description: `
-      <p>Mejora la experiencia de tus clientes y reduce llamadas con un portal dedicado:</p>
+      <p><strong>El gancho: "Nunca te quedes sin medicamentos críticos"</strong></p>
+      <p>IA que predice necesidades de inventario y automatiza todo el proceso de compras:</p>
       <ul class="list-disc list-inside mt-3 space-y-2">
-        <li>Acceso al historial médico de sus mascotas</li>
-        <li>Programación de citas online</li>
-        <li>Recordatorios de vacunación y medicamentos</li>
-        <li>Comunicación directa con el veterinario</li>
-        <li>Facturas y recibos digitales</li>
+        <li>Analiza patrones de uso con inteligencia artificial</li>
+        <li>Genera automáticamente órdenes de compra optimizadas</li>
+        <li>Encuentra los mejores precios entre proveedores</li>
+        <li>Programa entregas automáticas según demanda</li>
+        <li>Notifica al equipo sobre stock entrante y disponibilidad</li>
       </ul>
-      <p class="mt-4 text-sm text-gray-500 dark:text-gray-400 italic">*Próximamente en el Plan Premium</p>
     `,
-    icon: <Users className="h-8 w-8" />,
-    image: "/features/portal-clientes.png",
+    icon: <Package className="h-8 w-8" />,
+    image: "/features/smart-inventory.png",
+    wowFactor: "30% reducción de costos + Zero stockouts",
+  },
+  {
+    title: "Recordatorios Inteligentes",
+    description: `
+      <p>Comunicación proactiva que mantiene a tus clientes comprometidos y aumenta la retención:</p>
+      <ul class="list-disc list-inside mt-3 space-y-2">
+        <li>WhatsApp automático para citas, vacunas y medicamentos</li>
+        <li>Personalización basada en el historial de cada mascota</li>
+        <li>Seguimiento automático de tratamientos en curso</li>
+        <li>Recordatorios de servicios preventivos por edad/raza</li>
+        <li>Comunicación post-consulta para fidelización</li>
+      </ul>
+    `,
+    icon: <Clock className="h-8 w-8" />,
+    image: "/features/recordatorios-inteligentes.png",
+    reverse: true,
+    wowFactor: "40% aumento en retención de clientes",
+  },
+  {
+    title: "Análisis Predictivo",
+    description: `
+      <p>Insights basados en datos para tomar decisiones inteligentes y hacer crecer tu clínica:</p>
+      <ul class="list-disc list-inside mt-3 space-y-2">
+        <li>Predicción de demanda por servicios y temporadas</li>
+        <li>Análisis de rentabilidad por cliente y servicio</li>
+        <li>Identificación de oportunidades de crecimiento</li>
+        <li>Alertas de patrones inusuales en la clínica</li>
+        <li>Reportes automáticos para toma de decisiones</li>
+      </ul>
+    `,
+    icon: <TrendingUp className="h-8 w-8" />,
+    image: "/features/analisis-predictivo.png",
+    wowFactor: "Decisiones basadas en datos reales",
   },
 ];
 
@@ -144,7 +176,6 @@ export default function Funcionalidades() {
 
   return (
     <main className="relative min-h-screen">
-      {/* Fondo */}
       <div
         className={`absolute inset-0 transition-colors duration-500 
         ${
@@ -154,7 +185,6 @@ export default function Funcionalidades() {
         }`}
       />
 
-      {/* Contenido */}
       <div className="relative z-10">
         {/* Header */}
         <section className="relative py-16 lg:py-20 overflow-hidden">
@@ -164,19 +194,52 @@ export default function Funcionalidades() {
           </div>
           
           <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div className="inline-flex items-center px-4 py-2 bg-vetify-accent-50 dark:bg-vetify-accent-900/30 rounded-full mb-6">
+              <Zap className="h-4 w-4 text-vetify-accent-600 dark:text-vetify-accent-300 mr-2" />
+              <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">Automatización inteligente para veterinarios</span>
+            </div>
+            
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white mb-6">
-              Funcionalidades de <span className="text-vetify-accent-500 dark:text-vetify-accent-300">Vetify</span>
+              El CRM que <span className="text-vetify-accent-500 dark:text-vetify-accent-300">automatiza</span> tu clínica veterinaria
             </h1>
             <p className="mt-4 text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Descubre todas las herramientas que Vetify pone a tu disposición para transformar la gestión de tu clínica veterinaria
+              <strong>Reduce 5 horas de trabajo manual por semana.</strong> Workflows inteligentes que aumentan tus ingresos 30% con recordatorios automáticos.
             </p>
-            <div className="mt-8">
+            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
-                href="/precios" 
+                href="/registro" 
                 className="inline-flex items-center px-6 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 dark:bg-vetify-accent-600 dark:hover:bg-vetify-accent-700 rounded-xl text-white font-medium transition-all"
               >
-                Ver planes y precios <ChevronRight className="ml-2 h-4 w-4" />
+                Comenzar GRATIS <ChevronRight className="ml-2 h-4 w-4" />
               </Link>
+              <Link 
+                href="/precios" 
+                className="inline-flex items-center px-6 py-3 border border-gray-300 dark:border-gray-600 hover:border-vetify-accent-500 dark:hover:border-vetify-accent-400 rounded-xl text-gray-700 dark:text-gray-300 hover:text-vetify-accent-600 dark:hover:text-vetify-accent-400 font-medium transition-all"
+              >
+                Ver precios
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Value Props Section */}
+        <section className="py-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-gradient-to-r from-vetify-primary-50 to-vetify-accent-50 dark:from-vetify-primary-900/20 dark:to-vetify-accent-900/20 rounded-2xl p-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                <div>
+                  <div className="text-3xl font-bold text-vetify-primary-600 dark:text-vetify-primary-400 mb-2">5 horas</div>
+                  <p className="text-gray-600 dark:text-gray-300">menos trabajo manual por semana</p>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-vetify-accent-600 dark:text-vetify-accent-400 mb-2">30%</div>
+                  <p className="text-gray-600 dark:text-gray-300">aumento en ingresos promedio</p>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">15 min</div>
+                  <p className="text-gray-600 dark:text-gray-300">setup completo sin técnicos</p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -189,10 +252,10 @@ export default function Funcionalidades() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mx-auto text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                Herramientas creadas para <span className="text-vetify-accent-500 dark:text-vetify-accent-300">veterinarios</span>
+                Workflows de <span className="text-vetify-accent-500 dark:text-vetify-accent-300">máximo impacto</span>
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-300">
-                Cada funcionalidad ha sido diseñada pensando en los retos específicos de las clínicas veterinarias
+                Cada workflow ha sido diseñado para automatizar las tareas más críticas de tu clínica veterinaria
               </p>
             </div>
 
@@ -205,6 +268,7 @@ export default function Funcionalidades() {
                   icon={feature.icon}
                   image={feature.image}
                   reverse={feature.reverse}
+                  wowFactor={feature.wowFactor}
                 />
               ))}
             </div>
@@ -212,16 +276,16 @@ export default function Funcionalidades() {
             <div className="mt-16 text-center">
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-8 shadow-md">
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                  ¿Listo para transformar tu clínica?
+                  ¿Listo para automatizar tu clínica?
                 </h3>
                 <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-                  Prueba todas estas funcionalidades sin costo durante 14 días
+                  Comienza GRATIS hoy. Sin tarjeta de crédito. Setup en 15 minutos.
                 </p>
                 <Link 
                   href="/registro" 
                   className="inline-flex items-center px-6 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 dark:bg-vetify-accent-600 dark:hover:bg-vetify-accent-700 rounded-xl text-white font-medium transition-all"
                 >
-                  Comenzar prueba gratuita <Zap className="ml-2 h-4 w-4" />
+                  Comenzar GRATIS <Zap className="ml-2 h-4 w-4" />
                 </Link>
               </div>
             </div>

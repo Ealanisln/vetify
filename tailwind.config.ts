@@ -2,6 +2,8 @@
 import type { Config } from "tailwindcss";
 import { fontFamily } from "tailwindcss/defaultTheme";
 import type { PluginAPI } from 'tailwindcss/types/config';
+import tailwindForms from "@tailwindcss/forms";
+import tailwindTypography from "@tailwindcss/typography";
 
 export default {
   darkMode: "class",
@@ -127,16 +129,36 @@ export default {
     },
   },
   plugins: [
-    require("@tailwindcss/forms"), 
-    require("@tailwindcss/typography"),
-    function ({ addUtilities, theme }: PluginAPI) {
+    tailwindForms, 
+    tailwindTypography,
+    function ({ addUtilities }: PluginAPI) {
       const animationDelayUtilities: Record<string, Record<string, string>> = {};
       [75, 150, 225, 300, 375, 450].forEach(delay => {
         animationDelayUtilities[`.animation-delay-${delay}`] = {
           'animation-delay': `${delay}ms`,
         };
       });
-      addUtilities(animationDelayUtilities);
+      
+      // Add line clamp utilities
+      const lineClampUtilities: Record<string, Record<string, string>> = {
+        '.line-clamp-2': {
+          'overflow': 'hidden',
+          'display': '-webkit-box',
+          '-webkit-box-orient': 'vertical',
+          '-webkit-line-clamp': '2',
+        },
+        '.line-clamp-3': {
+          'overflow': 'hidden',
+          'display': '-webkit-box',
+          '-webkit-box-orient': 'vertical',
+          '-webkit-line-clamp': '3',
+        },
+      };
+      
+      addUtilities({
+        ...animationDelayUtilities,
+        ...lineClampUtilities,
+      });
     },
   ],
 } satisfies Config;
