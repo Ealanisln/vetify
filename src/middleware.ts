@@ -9,6 +9,18 @@ export default withAuth(
   async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
     
+    // Allow public access to webhook routes (bypass all protection)
+    if (pathname.startsWith('/api/webhooks/')) {
+      const response = NextResponse.next();
+      
+      // Add CORS headers for webhook endpoints
+      response.headers.set('Access-Control-Allow-Origin', '*');
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      
+      return response;
+    }
+    
     // Skip middleware for API routes, static files, and auth routes
     if (
       pathname.startsWith('/api/') ||
@@ -60,10 +72,12 @@ export default withAuth(
 );
 
 // Configuración de las rutas que SÍ requieren autenticación
+// Los webhooks NO están incluidos aquí, por lo que serán públicos
 export const config = {
   matcher: [
     /*
      * Match all request paths within the /dashboard route and onboarding.
+     * Webhooks (/api/webhooks/*) are intentionally excluded to remain public.
      * Add any other routes that should be protected here.
      * Example: '/admin/:path*'
      */
