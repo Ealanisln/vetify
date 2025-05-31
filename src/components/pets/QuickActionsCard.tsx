@@ -1,39 +1,44 @@
 'use client';
 
-import { Pet, User } from '@prisma/client';
+import { Pet, Customer } from '@prisma/client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-type PetWithUser = Pet & { user: User };
+type PetWithCustomer = Pet & { customer: Customer };
 
 interface QuickActionsCardProps {
-  pet: PetWithUser;
+  pet: PetWithCustomer;
 }
 
 export function QuickActionsCard({ pet }: QuickActionsCardProps) {
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleAction = async (actionType: string) => {
     setIsLoading(actionType);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Simulate brief loading for better UX
+    await new Promise(resolve => setTimeout(resolve, 300));
     
     switch (actionType) {
       case 'consultation':
-        alert('Redirigiendo a nueva consulta...');
+        router.push(`/dashboard/pets/${pet.id}/consultation/new`);
+        break;
+      case 'treatment':
+        router.push(`/dashboard/pets/${pet.id}/treatment/new`);
+        break;
+      case 'vaccination':
+        router.push(`/dashboard/pets/${pet.id}/vaccination/new`);
+        break;
+      case 'vitals':
+        router.push(`/dashboard/pets/${pet.id}/vitals/new`);
         break;
       case 'appointment':
         alert('Abriendo calendario...');
         break;
-      case 'vaccination':
-        alert('Abriendo formulario de vacunación...');
-        break;
-      case 'deworming':
-        alert('Abriendo formulario de desparasitación...');
-        break;
       case 'whatsapp':
-        if (pet.user?.phone) {
-          window.open(`https://wa.me/${pet.user.phone.replace(/\D/g, '')}`, '_blank');
+        if (pet.customer?.phone) {
+          window.open(`https://wa.me/${pet.customer.phone.replace(/\D/g, '')}`, '_blank');
         } else {
           alert('No hay número de WhatsApp registrado');
         }
@@ -52,44 +57,99 @@ export function QuickActionsCard({ pet }: QuickActionsCardProps) {
       name: 'Nueva Consulta',
       description: 'Registrar visita médica',
       icon: '🩺',
-      primary: true
+      primary: true,
+      color: 'blue'
+    },
+    {
+      id: 'treatment',
+      name: 'Agregar Tratamiento',
+      description: 'Medicamentos y terapias',
+      icon: '💊',
+      primary: false,
+      color: 'green'
+    },
+    {
+      id: 'vaccination',
+      name: 'Registrar Vacuna',
+      description: 'Aplicar vacunación',
+      icon: '💉',
+      primary: false,
+      color: 'purple'
+    },
+    {
+      id: 'vitals',
+      name: 'Signos Vitales',
+      description: 'Peso, temperatura, etc.',
+      icon: '🩺',
+      primary: false,
+      color: 'orange'
     },
     {
       id: 'appointment',
       name: 'Agendar Cita',
       description: 'Programar próxima visita',
       icon: '📅',
-      primary: false
-    },
-    {
-      id: 'vaccination',
-      name: 'Vacunar',
-      description: 'Registrar vacunación',
-      icon: '💉',
-      primary: false
-    },
-    {
-      id: 'deworming',
-      name: 'Desparasitar',
-      description: 'Aplicar tratamiento',
-      icon: '🪱',
-      primary: false
+      primary: false,
+      color: 'gray'
     },
     {
       id: 'whatsapp',
       name: 'WhatsApp',
       description: 'Contactar al dueño',
       icon: '💬',
-      primary: false
-    },
-    {
-      id: 'images',
-      name: 'Ver Imágenes',
-      description: 'Radiografías y fotos',
-      icon: '📸',
-      primary: false
+      primary: false,
+      color: 'gray'
     }
   ];
+
+  const getActionStyles = (action: typeof actions[0]) => {
+    if (action.primary) {
+      return 'bg-blue-50 border-2 border-blue-200 hover:bg-blue-100';
+    }
+    
+    switch (action.color) {
+      case 'green':
+        return 'border border-gray-200 hover:bg-green-50 hover:border-green-200';
+      case 'purple':
+        return 'border border-gray-200 hover:bg-purple-50 hover:border-purple-200';
+      case 'orange':
+        return 'border border-gray-200 hover:bg-orange-50 hover:border-orange-200';
+      default:
+        return 'border border-gray-200 hover:bg-gray-50';
+    }
+  };
+
+  const getTextStyles = (action: typeof actions[0]) => {
+    if (action.primary) {
+      return {
+        name: 'text-blue-900',
+        description: 'text-blue-700'
+      };
+    }
+    
+    switch (action.color) {
+      case 'green':
+        return {
+          name: 'text-gray-900 group-hover:text-green-900',
+          description: 'text-gray-500 group-hover:text-green-700'
+        };
+      case 'purple':
+        return {
+          name: 'text-gray-900 group-hover:text-purple-900',
+          description: 'text-gray-500 group-hover:text-purple-700'
+        };
+      case 'orange':
+        return {
+          name: 'text-gray-900 group-hover:text-orange-900',
+          description: 'text-gray-500 group-hover:text-orange-700'
+        };
+      default:
+        return {
+          name: 'text-gray-900',
+          description: 'text-gray-500'
+        };
+    }
+  };
 
   return (
     <div className="bg-white shadow rounded-lg border border-gray-200">
@@ -99,37 +159,34 @@ export function QuickActionsCard({ pet }: QuickActionsCardProps) {
         </h3>
         
         <div className="grid grid-cols-1 gap-3">
-          {actions.map((action) => (
-            <button
-              key={action.id}
-              onClick={() => handleAction(action.id)}
-              disabled={isLoading === action.id}
-              className={`relative rounded-lg p-3 text-left transition-all duration-200 ${
-                action.primary 
-                  ? 'bg-green-50 border-2 border-green-200 hover:bg-green-100' 
-                  : 'border border-gray-200 hover:bg-gray-50'
-              } ${isLoading === action.id ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-sm'}`}
-            >
-              <div className="flex items-center space-x-3">
-                <span className="text-xl">{action.icon}</span>
-                <div className="flex-1">
-                  <p className={`text-sm font-medium ${
-                    action.primary ? 'text-green-900' : 'text-gray-900'
-                  }`}>
-                    {action.name}
-                  </p>
-                  <p className={`text-xs ${
-                    action.primary ? 'text-green-700' : 'text-gray-500'
-                  }`}>
-                    {action.description}
-                  </p>
+          {actions.map((action) => {
+            const textStyles = getTextStyles(action);
+            return (
+              <button
+                key={action.id}
+                onClick={() => handleAction(action.id)}
+                disabled={isLoading === action.id}
+                className={`group relative rounded-lg p-3 text-left transition-all duration-200 ${getActionStyles(action)} ${
+                  isLoading === action.id ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-sm'
+                }`}
+              >
+                <div className="flex items-center space-x-3">
+                  <span className="text-xl">{action.icon}</span>
+                  <div className="flex-1">
+                    <p className={`text-sm font-medium transition-colors ${textStyles.name}`}>
+                      {action.name}
+                    </p>
+                    <p className={`text-xs transition-colors ${textStyles.description}`}>
+                      {action.description}
+                    </p>
+                  </div>
+                  {isLoading === action.id && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-blue-600"></div>
+                  )}
                 </div>
-                {isLoading === action.id && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-green-600"></div>
-                )}
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

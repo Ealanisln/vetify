@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Zap, MessageCircle, Shield } from 'lucide-react';
 import { useTheme } from "next-themes";
 
 const HeroSection: React.FC = () => {
@@ -10,8 +10,6 @@ const HeroSection: React.FC = () => {
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Aquí puedes manejar la lógica para registrar el email
-    // y redirigir al usuario al proceso de registro
     window.location.href = `/registro?email=${encodeURIComponent(email)}`;
   };
 
@@ -39,16 +37,16 @@ const HeroSection: React.FC = () => {
           {/* Contenido principal */}
           <div>
             <div className="inline-flex items-center px-4 py-2 bg-vetify-accent-50 dark:bg-vetify-accent-900/30 rounded-full mb-6">
-              <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">Nuevo: Plan Básico desde $349 MXN/mes</span>
+              <Zap className="h-4 w-4 text-vetify-accent-600 dark:text-vetify-accent-300 mr-2" />
+              <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">El primer software veterinario GRATIS con WhatsApp automático</span>
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight">
-              El software que toda <span className="text-vetify-accent-500 dark:text-vetify-accent-300">clínica veterinaria</span> necesita
+              <span className="text-vetify-accent-500 dark:text-vetify-accent-300">Vetify:</span> El CRM que automatiza tu <span className="text-vetify-accent-500 dark:text-vetify-accent-300">clínica veterinaria</span>
             </h1>
             
             <p className="mt-6 text-xl text-gray-500 dark:text-gray-300 max-w-2xl">
-              Gestiona pacientes, citas, inventario y facturación en un solo lugar. 
-              Diseñado para veterinarios que quieren crecer y brindar un mejor servicio.
+              <strong>Recordatorios automáticos = más clientes contentos.</strong> Reduce 5 horas de trabajo manual por semana con automatización inteligente.
             </p>
             
             {/* Formulario CTA */}
@@ -70,7 +68,7 @@ const HeroSection: React.FC = () => {
                   type="submit"
                   className="block w-full rounded-md px-4 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 dark:bg-vetify-accent-600 dark:hover:bg-vetify-accent-700 text-base font-medium text-white shadow hover:shadow-lg transition-all duration-200"
                 >
-                  Prueba gratuita
+                  Comenzar GRATIS
                 </button>
               </div>
             </form>
@@ -79,7 +77,7 @@ const HeroSection: React.FC = () => {
             <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center text-sm text-gray-500 dark:text-gray-300">
               <div className="flex items-center mb-2 sm:mb-0">
                 <Check className="h-4 w-4 text-vetify-success mr-1" />
-                <span>14 días gratis</span>
+                <span>Setup en 15 minutos</span>
               </div>
               <div className="sm:ml-6 flex items-center mb-2 sm:mb-0">
                 <Check className="h-4 w-4 text-vetify-success mr-1" />
@@ -95,26 +93,26 @@ const HeroSection: React.FC = () => {
           {/* Imagen o preview */}
           <div className="md:pl-8 hidden md:block">
             <div className="relative">
-              {/* Badge flotante 1 */}
+              {/* Badge flotante 1 - WhatsApp */}
               <div className="absolute -left-6 top-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 flex items-center z-10">
-                <div className="bg-vetify-success/20 rounded-full p-2 mr-3">
-                  <span className="h-6 w-6 text-vetify-success flex items-center justify-center font-bold">+</span>
+                <div className="bg-green-100 dark:bg-green-900/50 rounded-full p-2 mr-3">
+                  <MessageCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">20% más pacientes</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">en los primeros 3 meses</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">WhatsApp automático</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">90% menos vacunas olvidadas</p>
                 </div>
               </div>
               
-              {/* Badge flotante 2 */}
+              {/* Badge flotante 2 - Emergencias */}
               <div className="absolute -right-4 bottom-16 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 z-10">
                 <div className="flex items-center">
-                  <div className="bg-vetify-accent-100 dark:bg-vetify-accent-900/50 rounded-full p-2 mr-3">
-                    <span className="h-6 w-6 text-vetify-accent-600 dark:text-vetify-accent-400 flex items-center justify-center font-bold">-</span>
+                  <div className="bg-red-100 dark:bg-red-900/50 rounded-full p-2 mr-3">
+                    <Shield className="h-6 w-6 text-red-600 dark:text-red-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">30% menos tiempo</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">en tareas administrativas</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Respuesta menor a 2 min</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">en emergencias</p>
                   </div>
                 </div>
               </div>
@@ -146,52 +144,60 @@ const HeroSection: React.FC = () => {
         </div>
       </div>
       
-      {/* Feature highlights strip */}
+      {/* Feature highlights strip - Top 3 Workflows MVP */}
       <div className="relative z-10 bg-gray-50 dark:bg-gray-900/50 border-y border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              Los 3 workflows que transformarán tu clínica
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Automatización inteligente para máximo impacto
+            </p>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex">
               <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-vetify-accent-500 text-white">
-                  {/* Icono 1 */}
+                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-green-500 text-white">
                   <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                 </div>
               </div>
               <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Expedientes digitales</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Historial médico completo y accesible para todas tus mascotas.</p>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Magic Vaccination Assistant</h3>
+                <p className="mt-1 text-sm font-medium bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 px-2 py-1 rounded-full inline-block border border-green-200 dark:border-green-600">90% reducción en vacunas olvidadas</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Nunca más olvides una vacuna con recordatorios automáticos por WhatsApp.</p>
               </div>
             </div>
             
             <div className="flex">
               <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-vetify-accent-500 text-white">
-                  {/* Icono 2 */}
+                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-red-500 text-white">
                   <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
                   </svg>
                 </div>
               </div>
               <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Agenda inteligente</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestiona citas y envía recordatorios automáticos a tus clientes.</p>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Emergency Response Protocol</h3>
+                <p className="mt-1 text-sm font-medium bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 px-2 py-1 rounded-full inline-block border border-red-200 dark:border-red-600">Respuesta menor a 2 minutos</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Respuesta automática en emergencias con alerta a todo el equipo.</p>
               </div>
             </div>
             
             <div className="flex">
               <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-vetify-accent-500 text-white">
-                  {/* Icono 3 */}
+                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
                   <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
                 </div>
               </div>
               <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Métricas y reportes</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Conoce el desempeño de tu clínica con informes detallados.</p>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Smart Inventory Guardian</h3>
+                <p className="mt-1 text-sm font-medium bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 px-2 py-1 rounded-full inline-block border border-blue-200 dark:border-blue-600">30% reducción de costos</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Nunca te quedes sin medicamentos críticos con IA predictiva.</p>
               </div>
             </div>
           </div>
