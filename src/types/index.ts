@@ -11,16 +11,17 @@ export type TenantWithPlan = NonNullable<Awaited<ReturnType<typeof prisma.tenant
 };
 
 export type PetWithOwner = NonNullable<Awaited<ReturnType<typeof prisma.pet.findUnique>>> & {
-  user: NonNullable<Awaited<ReturnType<typeof prisma.user.findUnique>>>;
+  customer: NonNullable<Awaited<ReturnType<typeof prisma.customer.findUnique>>>;
   appointments: Awaited<ReturnType<typeof prisma.appointment.findMany>>;
   medicalHistories: Awaited<ReturnType<typeof prisma.medicalHistory.findMany>>;
 };
 
 export type AppointmentWithDetails = NonNullable<Awaited<ReturnType<typeof prisma.appointment.findUnique>>> & {
   pet: NonNullable<Awaited<ReturnType<typeof prisma.pet.findUnique>>> & {
-    user: NonNullable<Awaited<ReturnType<typeof prisma.user.findUnique>>>;
+    customer: NonNullable<Awaited<ReturnType<typeof prisma.customer.findUnique>>>;
   };
-  user: NonNullable<Awaited<ReturnType<typeof prisma.user.findUnique>>>;
+  customer: NonNullable<Awaited<ReturnType<typeof prisma.customer.findUnique>>>;
+  user?: NonNullable<Awaited<ReturnType<typeof prisma.user.findUnique>>>;
 };
 
 export type DashboardStats = {

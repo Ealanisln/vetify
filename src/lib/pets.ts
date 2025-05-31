@@ -12,13 +12,13 @@ export const createPetSchema = z.object({
   weightUnit: z.enum(['kg', 'lbs']).default('kg'),
   microchipNumber: z.string().optional(),
   isNeutered: z.boolean().default(false),
+  customerId: z.string().min(1, 'Cliente es requerido'),
 });
 
 export type CreatePetInput = z.infer<typeof createPetSchema>;
 
 export async function createPet(
   tenantId: string, 
-  userId: string, 
   data: CreatePetInput
 ) {
   // Check plan limits
@@ -34,6 +34,15 @@ export async function createPet(
     throw new Error('Plan limit reached. Upgrade to add more pets.');
   }
 
+  // Verify customer exists and belongs to tenant
+  const customer = await prisma.customer.findFirst({
+    where: { id: data.customerId, tenantId }
+  });
+
+  if (!customer) {
+    throw new Error('Cliente no encontrado o no pertenece a esta clínica');
+  }
+
   const pet = await prisma.pet.create({
     data: {
       name: data.name,
@@ -46,10 +55,10 @@ export async function createPet(
       microchipNumber: data.microchipNumber || null,
       isNeutered: data.isNeutered,
       tenantId,
-      userId,
+      customerId: data.customerId,
     },
     include: {
-      user: true,
+      customer: true,
       medicalHistories: true,
       appointments: true
     }
@@ -63,7 +72,7 @@ export async function getPetsByTenant(tenantId: string) {
   const pets = await prisma.pet.findMany({
     where: { tenantId },
     include: {
-      user: true,
+      customer: true,
       appointments: true,
       medicalHistories: true
     },
@@ -78,7 +87,7 @@ export async function getPetById(petId: string, tenantId: string) {
   const pet = await prisma.pet.findFirst({
     where: { id: petId, tenantId },
     include: {
-      user: true,
+      customer: true,
       medicalHistories: {
         orderBy: { visitDate: 'desc' }
       },
