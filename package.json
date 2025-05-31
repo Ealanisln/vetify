@@ -2,11 +2,20 @@
   "name": "vetify",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "env:show": "node scripts/env-config.mjs show",
+    "env:localhost": "node scripts/env-config.mjs localhost",
+    "env:development": "node scripts/env-config.mjs development",
+    "env:help": "node scripts/env-config.mjs help",
+    "vercel:env": "node scripts/vercel-env-export.mjs development",
+    "vercel:env:dev": "node scripts/vercel-env-export.mjs development",
+    "vercel:env:prod": "node scripts/vercel-env-export.mjs production",
+    "vercel:env:help": "node scripts/vercel-env-export.mjs help"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
