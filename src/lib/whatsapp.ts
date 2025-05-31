@@ -1,4 +1,5 @@
 export interface WhatsAppMessage {
+  messaging_product: 'whatsapp';
   to: string;
   type: 'text' | 'template' | 'media';
   text?: {
@@ -269,6 +270,7 @@ export class WhatsAppService {
       const formattedPhone = this.formatPhoneNumber(to);
       
       const payload: WhatsAppMessage = {
+        messaging_product: 'whatsapp',
         to: formattedPhone,
         type: 'text',
         text: {
@@ -315,6 +317,19 @@ export class WhatsAppService {
             throw new Error(`Invalid parameter: ${error.message}. Check your phone number format.`);
           } else if (error.code === 131056) {
             throw new Error(`Phone number not registered with WhatsApp: ${formattedPhone}`);
+          } else if (error.code === 131030) {
+            throw new Error(`🚫 DESARROLLO: El número ${formattedPhone} no está en la lista de destinatarios permitidos.
+
+📋 SOLUCIÓN:
+1. Ve a https://developers.facebook.com
+2. Selecciona tu app "vetify-crm"
+3. Ve a WhatsApp > API Setup
+4. En la sección "To", haz clic en "Manage"
+5. Agrega el número: ${formattedPhone}
+6. Verifica el número con el código de WhatsApp
+
+💡 NOTA: Estás usando el test number (+1 555 655 7868) como remitente, que es correcto.
+El problema es que el destinatario (${formattedPhone}) necesita estar en la lista permitida para desarrollo.`);
           } else {
             throw new Error(`WhatsApp API error (${error.code}): ${error.message}`);
           }
