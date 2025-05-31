@@ -52,7 +52,7 @@ export function RecentPetsCard({ pets }: RecentPetsCardProps) {
                         {pet.species} • {pet.breed}
                       </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500">
-                        Dueño: {pet.user.firstName || pet.user.name}
+                        Dueño: {pet.customer.firstName || pet.customer.name}
                       </p>
                     </div>
                     <div className="flex-shrink-0">

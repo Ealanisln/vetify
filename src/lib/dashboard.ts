@@ -1,6 +1,6 @@
 import { prisma } from './prisma';
 import { DashboardStats } from '@/types';
-import { serializeTenant, serializePets } from './serializers';
+import { serializeTenant, serializePets, serializeObject } from './serializers';
 
 export async function getDashboardStats(tenantId: string): Promise<DashboardStats> {
   const [
@@ -14,7 +14,7 @@ export async function getDashboardStats(tenantId: string): Promise<DashboardStat
     prisma.appointment.count({ where: { tenantId } }),
     prisma.pet.findMany({
       where: { tenantId },
-      include: { user: true, appointments: true, medicalHistories: true },
+      include: { customer: true, appointments: true, medicalHistories: true },
       orderBy: { createdAt: 'desc' },
       take: 5
     }),
@@ -26,9 +26,10 @@ export async function getDashboardStats(tenantId: string): Promise<DashboardStat
       include: { 
         pet: {
           include: {
-            user: true
+            customer: true
           }
         }, 
+        customer: true,
         user: true 
       },
       orderBy: { dateTime: 'asc' },
@@ -51,11 +52,14 @@ export async function getDashboardStats(tenantId: string): Promise<DashboardStat
   // Serialize the pets data to convert Decimal fields to numbers
   const serializedRecentPets = serializePets(recentPets);
 
+  // Serialize the appointments data to convert Decimal fields to numbers
+  const serializedUpcomingAppointments = serializeObject(upcomingAppointments);
+
   return {
     totalPets,
     totalAppointments,
     recentPets: serializedRecentPets || [],
-    upcomingAppointments,
+    upcomingAppointments: serializedUpcomingAppointments || [],
     planLimits: {
       maxPets: plan?.maxPets || 50, // Default FREE plan
       maxUsers: plan?.maxUsers || 1,

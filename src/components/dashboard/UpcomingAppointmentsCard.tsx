@@ -96,7 +96,7 @@ export function UpcomingAppointmentsCard({ appointments }: UpcomingAppointmentsC
                         {appointment.reason}
                       </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500">
-                        {formatDate(appointment.dateTime)} • {appointment.pet.user.firstName || appointment.pet.user.name}
+                        {formatDate(appointment.dateTime)} • {appointment.pet.customer.firstName || appointment.pet.customer.name}
                       </p>
                     </div>
                     <div className="flex-shrink-0 flex flex-col items-end space-y-1">

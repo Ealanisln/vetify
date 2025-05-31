@@ -72,6 +72,22 @@ export function serializePets(pets: any[]) {
 }
 
 /**
+ * Serializes a customer object, converting Decimal fields to numbers
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function serializeCustomer(customer: any) {
+  return serializeObject(customer);
+}
+
+/**
+ * Serializes an array of customers, converting Decimal fields to numbers
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function serializeCustomers(customers: any[]) {
+  return serializeObject(customers);
+}
+
+/**
  * Serializes a plan object, converting Decimal fields to numbers
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

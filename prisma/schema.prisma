@@ -27,6 +27,7 @@ model Tenant {
   appointments         Appointment[]
   automationLogs       AutomationLog[]
   cashDrawers          CashDrawer[]
+  customers            Customer[]
   inventoryItems       InventoryItem[]
   InventoryMovement    InventoryMovement[]
   medicalHistories     MedicalHistory[]
@@ -87,7 +88,6 @@ model User {
   closedDrawers          CashDrawer[]   @relation("CashDrawer_closedByToUser")
   openedDrawers          CashDrawer[]   @relation("CashDrawer_openedByToUser")
   medicalOrders          MedicalOrder[]
-  pets                   Pet[]
   reminders              Reminder[]
   sales                  Sale[]
   tenant                 Tenant?        @relation(fields: [tenantId], references: [id])
@@ -123,10 +123,37 @@ model UserRole {
   @@index([roleId])
 }
 
+model Customer {
+  id                     String         @id @default(uuid())
+  tenantId               String
+  email                  String?
+  firstName              String?
+  lastName               String?
+  name                   String
+  phone                  String?
+  address                String?
+  preferredContactMethod String?        @default("phone")
+  notes                  String?
+  isActive               Boolean        @default(true)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  
+  tenant                 Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pets                   Pet[]
+  appointments           Appointment[]
+  reminders              Reminder[]
+  sales                  Sale[]
+
+  @@index([tenantId])
+  @@index([email])
+  @@index([phone])
+  @@index([tenantId, name])
+}
+
 model Pet {
   id                 String              @id @default(uuid())
   tenantId           String
-  userId             String
+  customerId         String              // Cambio: ahora apunta a Customer en lugar de User
   internalId         String?
   name               String
   species            String
@@ -144,16 +171,16 @@ model Pet {
   medicalHistories   MedicalHistory[]
   medicalOrders      MedicalOrder[]
   tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user               User                @relation(fields: [userId], references: [id])
+  customer           Customer            @relation(fields: [customerId], references: [id]) // Cambio: relación con Customer
   reminders          Reminder[]
   sales              Sale[]
   treatmentRecords   TreatmentRecord[]
   treatmentSchedules TreatmentSchedule[]
 
   @@index([tenantId])
-  @@index([userId])
+  @@index([customerId])  // Cambio: índice en customerId
   @@index([name])
-  @@index([tenantId, userId])
+  @@index([tenantId, customerId])  // Cambio: índice compuesto
 }
 
 model MedicalHistory {
@@ -228,50 +255,61 @@ model TreatmentSchedule {
 }
 
 model Appointment {
-  id        String            @id @default(uuid())
-  tenantId  String
-  userId    String
-  petId     String
-  staffId   String?
-  dateTime  DateTime
-  duration  Int?
-  reason    String
-  notes     String?
-  status    AppointmentStatus
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  pet       Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
-  staff     Staff?            @relation(fields: [staffId], references: [id])
-  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String            @id @default(uuid())
+  tenantId    String
+  petId       String
+  customerId  String            // Cambio: agregar relación directa con Customer
+  staffId     String?
+  userId      String?
+  dateTime    DateTime
+  duration    Int               @default(30)
+  reason      String
+  notes       String?
+  status      AppointmentStatus @default(SCHEDULED)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pet         Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+  customer    Customer          @relation(fields: [customerId], references: [id]) // Nueva relación
+  staff       Staff?            @relation(fields: [staffId], references: [id])
+  user        User?             @relation(fields: [userId], references: [id])
 
   @@index([tenantId])
-  @@index([dateTime])
-  @@index([status])
+  @@index([petId])
+  @@index([customerId])  // Nuevo índice
   @@index([staffId])
   @@index([userId])
-  @@index([petId])
+  @@index([dateTime])
+  @@index([status])
 }
 
 model Reminder {
-  id           String         @id @default(uuid())
-  tenantId     String
-  userId       String
-  petId        String?
-  reminderType ReminderType
-  dueDate      DateTime
-  message      String?
-  status       ReminderStatus
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  pet          Pet?           @relation(fields: [petId], references: [id], onDelete: Cascade)
-  tenant       Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String         @id @default(uuid())
+  tenantId   String
+  petId      String?
+  customerId String         // Cambio: agregar relación con Customer
+  userId     String?
+  type       ReminderType
+  title      String
+  message    String
+  dueDate    DateTime
+  status     ReminderStatus @default(PENDING)
+  sentAt     DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  
+  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pet        Pet?           @relation(fields: [petId], references: [id], onDelete: Cascade)
+  customer   Customer       @relation(fields: [customerId], references: [id]) // Nueva relación
+  user       User?          @relation(fields: [userId], references: [id])
 
   @@index([tenantId])
-  @@index([dueDate, status])
-  @@index([userId])
   @@index([petId])
+  @@index([customerId])  // Nuevo índice
+  @@index([userId])
+  @@index([dueDate])
+  @@index([status])
 }
 
 model Staff {
@@ -449,37 +487,39 @@ model CashTransaction {
 }
 
 model Sale {
-  id             String        @id @default(uuid())
-  tenantId       String
-  receiptNumber  String
-  date           DateTime      @default(now())
-  userId         String?
-  petId          String?
-  staffId        String?
-  subtotal       Decimal
-  taxRate        Decimal?
-  tax            Decimal
-  discountAmount Decimal       @default(0)
-  total          Decimal
-  status         SaleStatus    @default(PENDING)
-  notes          String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  medicalOrder   MedicalOrder?
-  pet            Pet?          @relation(fields: [petId], references: [id])
-  staff          Staff?        @relation(fields: [staffId], references: [id])
-  tenant         Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user           User?         @relation(fields: [userId], references: [id])
-  saleItems      SaleItem[]
-  payments       SalePayment[]
+  id           String        @id @default(uuid())
+  tenantId     String
+  customerId   String        // Cambio: agregar relación con Customer
+  petId        String?
+  userId       String?
+  staffId      String?
+  saleNumber   String        @unique
+  subtotal     Decimal
+  tax          Decimal       @default(0)
+  discount     Decimal       @default(0)
+  total        Decimal
+  status       SaleStatus    @default(PENDING)
+  notes        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer     Customer      @relation(fields: [customerId], references: [id]) // Nueva relación
+  pet          Pet?          @relation(fields: [petId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
+  staff        Staff?        @relation(fields: [staffId], references: [id])
+  items        SaleItem[]
+  payments     SalePayment[]
+  medicalOrder MedicalOrder?
 
-  @@unique([tenantId, receiptNumber])
   @@index([tenantId])
-  @@index([date])
-  @@index([status])
-  @@index([userId])
+  @@index([customerId])  // Nuevo índice
   @@index([petId])
+  @@index([userId])
   @@index([staffId])
+  @@index([saleNumber])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model SaleItem {
