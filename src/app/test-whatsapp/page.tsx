@@ -26,7 +26,8 @@ interface TestScenario {
 const WhatsAppTestPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [results, setResults] = useState<TestResult[]>([]);
-  const [testPhone, setTestPhone] = useState('5215512345678');
+  const [testPhone, setTestPhone] = useState('5214777314130');
+  const [useProxy, setUseProxy] = useState(true);
   const { resolvedTheme } = useTheme();
 
   const testScenarios: TestScenario[] = [
@@ -119,40 +120,72 @@ const WhatsAppTestPage: React.FC = () => {
         timestamp: new Date().toISOString()
       };
 
-      const n8nUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://n8n.alanis.dev';
-      const response = await fetch(`${n8nUrl}${scenario.endpoint}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(updatedPayload)
-      });
+      let response;
+      
+      if (useProxy) {
+        // Use local proxy endpoint
+        response = await fetch('/api/test/n8n-proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            endpoint: scenario.endpoint,
+            payload: updatedPayload
+          })
+        });
+      } else {
+        // Direct connection to n8n (original method)
+        const n8nUrl = process.env.NEXT_PUBLIC_N8N_WEBHOOK_URL || 'https://n8n.alanis.dev';
+        response = await fetch(`${n8nUrl}${scenario.endpoint}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updatedPayload)
+        });
+      }
 
       const data = await response.json();
 
       const result: TestResult = {
         success: response.ok,
         message: response.ok 
-          ? `✅ ${scenario.name} enviado exitosamente` 
-          : `❌ Error: ${data.message || 'Error desconocido'}`,
-        executionId: data.executionId,
+          ? `✅ ${scenario.name} enviado exitosamente${useProxy ? ' (vía proxy)' : ''}` 
+          : `❌ Error: ${data.message || data.error || 'Error desconocido'}`,
+        executionId: data.executionId || data.data?.executionId,
         timestamp: new Date().toLocaleString('es-MX'),
         phoneNumber: testPhone,
         workflowType: scenario.id
       };
 
       setResults(prev => [result, ...prev]);
+
+      // Log detailed response for debugging
+      console.log('🔍 Test Response:', {
+        scenario: scenario.id,
+        success: response.ok,
+        status: response.status,
+        data: data,
+        useProxy: useProxy
+      });
 
     } catch (error) {
       const result: TestResult = {
         success: false,
-        message: `❌ Error de conexión: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+        message: `❌ Error de conexión: ${error instanceof Error ? error.message : 'Error desconocido'}${useProxy ? ' (vía proxy)' : ''}`,
         timestamp: new Date().toLocaleString('es-MX'),
         phoneNumber: testPhone,
         workflowType: scenario.id
       };
 
       setResults(prev => [result, ...prev]);
+      
+      console.error('🔍 Test Error:', {
+        scenario: scenario.id,
+        error: error,
+        useProxy: useProxy
+      });
     } finally {
       setIsLoading(null);
     }
@@ -381,12 +414,30 @@ const WhatsAppTestPage: React.FC = () => {
                 type="tel"
                 value={testPhone}
                 onChange={(e) => setTestPhone(e.target.value)}
-                placeholder="5215512345678"
+                placeholder="5214777314130"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-vetify-accent-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               />
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Formato: 52 + 10 dígitos (ej: 5215512345678)
+              Formato: 52 + 10 dígitos (ej: 5214777314130)
+            </p>
+          </div>
+
+          {/* Proxy Toggle */}
+          <div className="max-w-md mx-auto mb-8">
+            <label className="flex items-center justify-center space-x-3">
+              <input
+                type="checkbox"
+                checked={useProxy}
+                onChange={(e) => setUseProxy(e.target.checked)}
+                className="w-4 h-4 text-vetify-accent-600 bg-gray-100 border-gray-300 rounded focus:ring-vetify-accent-500 dark:focus:ring-vetify-accent-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+              />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Usar proxy local (recomendado para debugging)
+              </span>
+            </label>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {useProxy ? 'Usando /api/test/n8n-proxy' : 'Conexión directa a n8n.alanis.dev'}
             </p>
           </div>
         </div>
@@ -614,23 +665,23 @@ const WhatsAppTestPage: React.FC = () => {
           </h3>
           <div className="space-y-3 text-gray-600 dark:text-gray-300">
             <p>1. <strong>Configura tu número:</strong> Ingresa tu número de WhatsApp en formato mexicano (52 + 10 dígitos)</p>
-            <p>2. <strong>Verifica el token:</strong> Haz clic en Verificar Token para asegurar que tu access token esté válido</p>
-            <p>3. <strong>Selecciona un escenario:</strong> Cada botón prueba un workflow diferente de N8N</p>
-            <p>4. <strong>Revisa tu WhatsApp:</strong> Los mensajes deberían llegar en unos segundos</p>
-            <p>5. <strong>Monitorea los resultados:</strong> Cada prueba se registra con timestamp y estado</p>
+            <p>2. <strong>Activa el proxy:</strong> Mantén activado el proxy local para mejor debugging</p>
+            <p>3. <strong>Verifica el token:</strong> Haz clic en Verificar Token para asegurar que tu access token esté válido</p>
+            <p>4. <strong>Selecciona un escenario:</strong> Cada botón prueba un workflow diferente de N8N</p>
+            <p>5. <strong>Revisa tu WhatsApp:</strong> Los mensajes deberían llegar en unos segundos</p>
+            <p>6. <strong>Monitorea los resultados:</strong> Cada prueba se registra con timestamp y estado</p>
           </div>
           
           <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
             <p className="text-sm text-green-800 dark:text-green-200">
-              <strong>🎉 ¡Nuevo! Token Permanente:</strong> Genera tokens de 60 días que se renuevan automáticamente
+              <strong>🔧 Proxy Local:</strong> Ahora puedes usar el proxy local para mejor debugging
             </p>
-            <ol className="text-xs text-green-700 dark:text-green-300 mt-2 ml-4 space-y-1">
-              <li>1. Asegúrate de tener <code>FACEBOOK_APP_ID</code> y <code>FACEBOOK_APP_SECRET</code> configurados</li>
-              <li>2. Haz clic en &quot;Token Permanente&quot; para generar un token de larga duración</li>
-              <li>3. Copia el nuevo token de la consola del navegador</li>
-              <li>4. Actualiza <code>WHATSAPP_ACCESS_TOKEN</code> en tu <code>.env.local</code></li>
-              <li>5. Reinicia el servidor - ¡Ya no necesitarás renovar cada 24 horas!</li>
-            </ol>
+            <ul className="text-xs text-green-700 dark:text-green-300 mt-2 ml-4 space-y-1">
+              <li>• Evita problemas de CORS</li>
+              <li>• Proporciona logs detallados en la consola del servidor</li>
+              <li>• Permite debugging más fácil de requests a n8n</li>
+              <li>• Maneja errores de manera más robusta</li>
+            </ul>
           </div>
           
           <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
