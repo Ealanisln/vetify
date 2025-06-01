@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Send, MessageCircle, Phone, CheckCircle, XCircle, Loader2, Zap, Calendar, Heart } from 'lucide-react';
-import { useTheme } from "next-themes";
+import { useThemeAware, getThemeClass } from "@/hooks/useThemeAware";
 
 interface TestResult {
   success: boolean;
@@ -28,7 +28,7 @@ const WhatsAppTestPage: React.FC = () => {
   const [results, setResults] = useState<TestResult[]>([]);
   const [testPhone, setTestPhone] = useState('5214777314130');
   const [useProxy, setUseProxy] = useState(true);
-  const { resolvedTheme } = useTheme();
+  const { mounted, theme } = useThemeAware();
 
   const testScenarios: TestScenario[] = [
     {
@@ -270,7 +270,7 @@ const WhatsAppTestPage: React.FC = () => {
   };
 
   const autoRefreshToken = async () => {
-    setIsLoading('auto-refresh');
+    setIsLoading('token-refresh');
     
     try {
       const response = await fetch('/api/whatsapp/token-status', {
@@ -287,7 +287,7 @@ const WhatsAppTestPage: React.FC = () => {
             : `❌ Error en auto-renovación: ${data.error}`,
         timestamp: new Date().toLocaleString('es-MX'),
         phoneNumber: 'N/A',
-        workflowType: 'auto-refresh'
+        workflowType: 'token-refresh'
       };
 
       setResults(prev => [result, ...prev]);
@@ -298,7 +298,7 @@ const WhatsAppTestPage: React.FC = () => {
         message: `❌ Error en auto-renovación: ${error instanceof Error ? error.message : 'Error desconocido'}`,
         timestamp: new Date().toLocaleString('es-MX'),
         phoneNumber: 'N/A',
-        workflowType: 'auto-refresh'
+        workflowType: 'token-refresh'
       };
 
       setResults(prev => [result, ...prev]);
@@ -374,84 +374,111 @@ const WhatsAppTestPage: React.FC = () => {
     setResults([]);
   };
 
+  // Theme-aware class helpers
+  const backgroundClass = getThemeClass(
+    "bg-gradient-to-b from-vetify-primary-50 to-white",
+    "bg-gradient-to-b from-vetify-primary-900/20 to-vetify-slate-900",
+    mounted,
+    theme
+  );
+
+  const cardClass = getThemeClass(
+    "bg-white border border-gray-100",
+    "bg-gray-800/50 backdrop-blur-sm border border-gray-700",
+    mounted,
+    theme
+  );
+
   return (
     <div className="relative min-h-screen">
       {/* Background */}
       <div
-        className={`absolute inset-0 transition-colors duration-500 
-        ${
-          resolvedTheme === "dark"
-            ? "bg-gradient-to-b from-vetify-primary-900/20 to-vetify-slate-900"
-            : "bg-gradient-to-b from-vetify-primary-50 to-white"
-        }`}
+        className={`absolute inset-0 transition-colors duration-500 ${backgroundClass}`}
       />
 
       {/* Content */}
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24">
-        {/* Header */}
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center px-4 py-2 bg-vetify-accent-50 dark:bg-vetify-accent-900/30 rounded-full mb-6">
-            <MessageCircle className="h-4 w-4 text-vetify-accent-600 dark:text-vetify-accent-300 mr-2" />
-            <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">Pruebas de WhatsApp API</span>
-          </div>
-          
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white leading-tight mb-6">
-            Test de <span className="text-vetify-accent-500 dark:text-vetify-accent-300">WhatsApp</span> API
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            🧪 Centro de Pruebas WhatsApp
           </h1>
-          
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
-            Prueba todos los workflows de WhatsApp de Vetify. Desde mensajes de bienvenida hasta alertas de emergencia.
+          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
+            Prueba todos los workflows de automatización de WhatsApp de Vetify. 
+            Configura tu número y ejecuta diferentes escenarios para verificar que todo funcione correctamente.
           </p>
+        </div>
 
-          {/* Phone Input */}
-          <div className="max-w-md mx-auto mb-8">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Número de teléfono de prueba
-            </label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="tel"
-                value={testPhone}
-                onChange={(e) => setTestPhone(e.target.value)}
-                placeholder="5214777314130"
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-vetify-accent-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              />
+        {/* Configuration */}
+        <div className={`rounded-2xl p-6 mb-8 ${cardClass} shadow-card`}>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            ⚙️ Configuración
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Número de WhatsApp (formato: 52XXXXXXXXXX)
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  placeholder="5214777314130"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-vetify-accent-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                />
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Formato mexicano: 52 + código de área + número (10 dígitos)
+              </p>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Formato: 52 + 10 dígitos (ej: 5214777314130)
-            </p>
-          </div>
-
-          {/* Proxy Toggle */}
-          <div className="max-w-md mx-auto mb-8">
-            <label className="flex items-center justify-center space-x-3">
-              <input
-                type="checkbox"
-                checked={useProxy}
-                onChange={(e) => setUseProxy(e.target.checked)}
-                className="w-4 h-4 text-vetify-accent-600 bg-gray-100 border-gray-300 rounded focus:ring-vetify-accent-500 dark:focus:ring-vetify-accent-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-              />
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Usar proxy local (recomendado para debugging)
-              </span>
-            </label>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {useProxy ? 'Usando /api/test/n8n-proxy' : 'Conexión directa a n8n.alanis.dev'}
-            </p>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Método de conexión
+              </label>
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    checked={useProxy}
+                    onChange={() => setUseProxy(true)}
+                    className="h-4 w-4 text-vetify-accent-500 focus:ring-vetify-accent-500 border-gray-300 dark:border-gray-600"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Proxy Local (Recomendado)</span>
+                </label>
+                <label className="flex items-center">
+                  <input
+                    type="radio"
+                    checked={!useProxy}
+                    onChange={() => setUseProxy(false)}
+                    className="h-4 w-4 text-vetify-accent-500 focus:ring-vetify-accent-500 border-gray-300 dark:border-gray-600"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Directo a N8N</span>
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                El proxy local proporciona mejor debugging y manejo de errores
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Test Scenarios */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6 text-center">
+            🚀 Escenarios de Prueba
+          </h2>
+          <p className="text-center text-gray-600 dark:text-gray-300 mb-8">
+            Selecciona un escenario para probar los workflows automáticos de WhatsApp
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           {testScenarios.map((scenario) => (
             <div
               key={scenario.id}
-              className={`rounded-2xl p-6 transition-all duration-300 hover:scale-105 ${
-                resolvedTheme === "dark"
-                  ? "bg-gray-800/50 backdrop-blur-sm border border-gray-700"
-                  : "bg-white border border-gray-100"
-              } shadow-card hover:shadow-card-hover`}
+              className={`rounded-2xl p-6 transition-all duration-300 hover:scale-105 ${cardClass} shadow-card hover:shadow-card-hover`}
             >
               <div className="flex items-center mb-4">
                 <div className={`p-2 rounded-lg ${scenario.color} text-white mr-3`}>
@@ -488,11 +515,7 @@ const WhatsAppTestPage: React.FC = () => {
         </div>
 
         {/* Direct WhatsApp Test */}
-        <div className={`rounded-2xl p-6 mb-12 ${
-          resolvedTheme === "dark"
-            ? "bg-gray-800/50 backdrop-blur-sm border border-gray-700"
-            : "bg-white border border-gray-100"
-        } shadow-card`}>
+        <div className={`rounded-2xl p-6 mb-12 ${cardClass} shadow-card`}>
           <div className="text-center">
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
               Gestión de Tokens WhatsApp
@@ -522,10 +545,10 @@ const WhatsAppTestPage: React.FC = () => {
 
               <button
                 onClick={autoRefreshToken}
-                disabled={isLoading === 'auto-refresh'}
-                className="px-4 py-3 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                disabled={isLoading === 'token-refresh'}
+                className="px-4 py-3 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
-                {isLoading === 'auto-refresh' ? (
+                {isLoading === 'token-refresh' ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Renovando...
@@ -533,7 +556,7 @@ const WhatsAppTestPage: React.FC = () => {
                 ) : (
                   <>
                     <Zap className="h-4 w-4 mr-2" />
-                    Auto-Renovar
+                    Renovar Token
                   </>
                 )}
               </button>
@@ -551,15 +574,15 @@ const WhatsAppTestPage: React.FC = () => {
                 ) : (
                   <>
                     <Calendar className="h-4 w-4 mr-2" />
-                    Token Permanente
+                    Generar Token Permanente
                   </>
                 )}
               </button>
-              
+
               <button
                 onClick={testDirectWhatsApp}
                 disabled={isLoading === 'direct-whatsapp'}
-                className="px-4 py-3 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                className="px-4 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {isLoading === 'direct-whatsapp' ? (
                   <>
@@ -569,36 +592,17 @@ const WhatsAppTestPage: React.FC = () => {
                 ) : (
                   <>
                     <MessageCircle className="h-4 w-4 mr-2" />
-                    Enviar WhatsApp
+                    Prueba Directa
                   </>
                 )}
               </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-300">
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <strong className="text-blue-700 dark:text-blue-300">Verificar Token:</strong> Revisa el estado actual y fecha de expiración
-              </div>
-              <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                <strong className="text-orange-700 dark:text-orange-300">Auto-Renovar:</strong> Intenta renovar automáticamente si está próximo a expirar
-              </div>
-              <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                <strong className="text-purple-700 dark:text-purple-300">Token Permanente:</strong> Genera un token de 60 días de duración
-              </div>
-              <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <strong className="text-green-700 dark:text-green-300">Enviar WhatsApp:</strong> Prueba directa de envío de mensajes
-              </div>
             </div>
           </div>
         </div>
 
         {/* Results */}
         {results.length > 0 && (
-          <div className={`rounded-2xl p-6 ${
-            resolvedTheme === "dark"
-              ? "bg-gray-800/50 backdrop-blur-sm border border-gray-700"
-              : "bg-white border border-gray-100"
-          } shadow-card`}>
+          <div className={`rounded-2xl p-6 ${cardClass} shadow-card`}>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                 Resultados de Pruebas
@@ -615,37 +619,32 @@ const WhatsAppTestPage: React.FC = () => {
               {results.map((result, index) => (
                 <div
                   key={index}
-                  className={`p-4 rounded-lg border-l-4 ${
-                    result.success 
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
-                      : 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                  className={`p-4 rounded-lg border ${
+                    result.success
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                      : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
                   }`}
                 >
                   <div className="flex items-start justify-between">
-                    <div className="flex items-center">
-                      {result.success ? (
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
-                      )}
-                      <div>
-                        <p className={`font-medium ${
-                          result.success ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'
-                        }`}>
-                          {result.message}
-                        </p>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          <span>📱 {result.phoneNumber}</span>
-                          <span className="mx-2">•</span>
-                          <span>⏰ {result.timestamp}</span>
-                          {result.executionId && (
-                            <>
-                              <span className="mx-2">•</span>
-                              <span>🔗 {result.executionId}</span>
-                            </>
-                          )}
-                        </div>
+                    <div className="flex-1">
+                      <p className={`font-medium ${
+                        result.success 
+                          ? 'text-green-800 dark:text-green-200' 
+                          : 'text-red-800 dark:text-red-200'
+                      }`}>
+                        {result.message}
+                      </p>
+                      <div className="mt-2 text-xs text-gray-600 dark:text-gray-400 space-y-1">
+                        <p>📅 {result.timestamp}</p>
+                        {result.phoneNumber && <p>📱 {result.phoneNumber}</p>}
+                        {result.workflowType && <p>🔄 {result.workflowType}</p>}
+                        {result.executionId && <p>🆔 {result.executionId}</p>}
                       </div>
+                    </div>
+                    <div className={`ml-4 ${
+                      result.success ? 'text-green-500' : 'text-red-500'
+                    }`}>
+                      {result.success ? <CheckCircle className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
                     </div>
                   </div>
                 </div>
@@ -655,11 +654,7 @@ const WhatsAppTestPage: React.FC = () => {
         )}
 
         {/* Instructions */}
-        <div className={`mt-12 rounded-2xl p-6 ${
-          resolvedTheme === "dark"
-            ? "bg-gray-800/50 backdrop-blur-sm border border-gray-700"
-            : "bg-white border border-gray-100"
-        } shadow-card`}>
+        <div className={`mt-12 rounded-2xl p-6 ${cardClass} shadow-card`}>
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
             📋 Instrucciones de Uso
           </h3>
@@ -682,37 +677,6 @@ const WhatsAppTestPage: React.FC = () => {
               <li>• Permite debugging más fácil de requests a n8n</li>
               <li>• Maneja errores de manera más robusta</li>
             </ul>
-          </div>
-          
-          <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
-            <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              <strong>💡 Tip:</strong> Si las pruebas fallan, verifica que N8N esté corriendo y que los workflows estén activos en <code>https://n8n.alanis.dev</code>
-            </p>
-          </div>
-
-          <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>🔄 Auto-Renovación:</strong> El sistema ahora detecta automáticamente tokens expirados y los renueva
-            </p>
-            <ul className="text-xs text-blue-700 dark:text-blue-300 mt-2 ml-4 space-y-1">
-              <li>• Los tokens se verifican antes de cada envío</li>
-              <li>• Se renuevan automáticamente si están próximos a expirar (7 días)</li>
-              <li>• En caso de error, se intenta una renovación de emergencia</li>
-              <li>• Usa &quot;Auto-Renovar&quot; para forzar una verificación manual</li>
-            </ul>
-          </div>
-
-          <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
-            <p className="text-sm text-red-800 dark:text-red-200">
-              <strong>🔑 Solución de Problemas:</strong> Si sigues viendo errores de token:
-            </p>
-            <ol className="text-xs text-red-700 dark:text-red-300 mt-2 ml-4 space-y-1">
-              <li>1. Verifica que <code>FACEBOOK_APP_ID</code> y <code>FACEBOOK_APP_SECRET</code> estén configurados</li>
-              <li>2. Usa &quot;Token Permanente&quot; para generar un nuevo token de larga duración</li>
-              <li>3. Si falla, ve a <code>developers.facebook.com</code> y genera un token temporal nuevo</li>
-              <li>4. Luego usa ese token temporal para generar uno permanente</li>
-              <li>5. Reinicia el servidor después de actualizar las variables de entorno</li>
-            </ol>
           </div>
         </div>
       </div>

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useTheme } from 'next-themes';
+import { useThemeAware } from "@/hooks/useThemeAware";
 import { Bars3Icon, BellIcon } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
 
@@ -11,19 +10,27 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ user, tenant }: DashboardHeaderProps) {
-  const [mounted, setMounted] = useState(false);
-  const { resolvedTheme, setTheme } = useTheme();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const { mounted, theme, setTheme } = useThemeAware();
 
   const toggleTheme = () => {
-    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   if (!mounted) {
-    return null;
+    return (
+      <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
+        <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
+          <div className="relative flex flex-1 items-center">
+            <h1 className="text-lg font-semibold text-gray-900">
+              {tenant.name}
+            </h1>
+          </div>
+          <div className="flex items-center gap-x-4 lg:gap-x-6">
+            <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse"></div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -52,7 +59,7 @@ export function DashboardHeader({ user, tenant }: DashboardHeaderProps) {
             className="p-2 rounded-full bg-[#75a99c] hover:bg-[#5b9788] text-white dark:bg-[#2a3630] dark:hover:bg-[#1a2620] transition-colors w-10 h-10 flex items-center justify-center"
             aria-label="Cambiar tema"
           >
-            {resolvedTheme === "dark" ? "☀️" : "🌙"}
+            {theme === "dark" ? "☀️" : "🌙"}
           </button>
 
           {/* Notifications */}
@@ -80,15 +87,12 @@ export function DashboardHeader({ user, tenant }: DashboardHeaderProps) {
               aria-haspopup="true"
             >
               <span className="sr-only">Abrir menú de usuario</span>
-              <div className="h-8 w-8 rounded-full bg-[#75a99c] flex items-center justify-center text-white font-bold">
-                {user.firstName?.[0] || user.name?.[0] || 'U'}
+              <div className="h-8 w-8 rounded-full bg-[#75a99c] flex items-center justify-center text-white font-bold text-sm">
+                {user.firstName?.[0] || user.email?.[0] || 'U'}
               </div>
               <span className="hidden lg:flex lg:items-center">
-                <span
-                  className="ml-4 text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100"
-                  aria-hidden="true"
-                >
-                  {user.firstName || user.name}
+                <span className="ml-4 text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100" aria-hidden="true">
+                  {user.firstName || user.email?.split('@')[0] || 'Usuario'}
                 </span>
               </span>
             </button>

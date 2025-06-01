@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Menu, X, ChevronDown, User, LogOut } from "lucide-react";
 import Image from "next/image";
-import { useTheme } from "next-themes";
+import { useThemeAware } from "@/hooks/useThemeAware";
 import { useEffect } from "react";
 import { useKindeBrowserClient } from "@kinde-oss/kinde-auth-nextjs";
 import { LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
@@ -12,16 +12,11 @@ import { LogoutLink } from "@kinde-oss/kinde-auth-nextjs/components";
 export default function Nav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const { resolvedTheme, setTheme } = useTheme();
+  const { mounted, theme, setTheme } = useThemeAware();
   const { user, isAuthenticated, isLoading } = useKindeBrowserClient();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   const toggleTheme = () => {
-    setTheme(resolvedTheme === "dark" ? "light" : "dark");
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   // Close user menu when clicking outside
@@ -39,8 +34,31 @@ export default function Nav() {
     }
   }, [userMenuOpen]);
 
+  // Don't render theme-dependent content until mounted
   if (!mounted) {
-    return null;
+    return (
+      <nav className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <Link href="/" className="flex items-center">
+                <Image
+                  src="/logo/capybara-green.png"
+                  alt="Vetify"
+                  width={120}
+                  height={40}
+                  className="h-8 w-auto"
+                />
+                <span className="ml-2 text-xl font-semibold text-[#45635C]">
+                  Vetify
+                </span>
+              </Link>
+            </div>
+            <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+          </div>
+        </div>
+      </nav>
+    );
   }
 
   const getUserDisplayName = () => {
@@ -70,68 +88,49 @@ export default function Nav() {
   };
 
   return (
-    <nav className="bg-white dark:bg-gray-900 border-b border-[#d5e3df] dark:border-gray-800 shadow-smooth relative">
+    <nav className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-[#d5e3df] dark:border-gray-800 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-24">
-          {/* Logo and brand */}
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
           <div className="flex items-center">
-            <div className="flex-shrink-0 flex items-center">
-              <Link href="/" className="flex items-center gap-2">
-                <Image
-                  src="/logo/capybara-green.png"
-                  alt="Vetify"
-                  width={160}
-                  height={60}
-                  className="h-12 w-auto hidden dark:block"
-                />
-                <Image
-                  src="/logo/capybara-green.png"
-                  alt="Vetify"
-                  width={160}
-                  height={60}
-                  className="h-12 w-auto block dark:hidden"
-                />
-                <span className="text-2xl font-semibold text-[#45635C] dark:text-[#75a99c]">Vetify</span>
-              </Link>
-            </div>
-            
-            {/* Desktop navigation */}
-            <div className="hidden sm:ml-12 sm:flex sm:items-center sm:space-x-2">
-              <Link
-                href="/funcionalidades"
-                className="px-5 py-3 text-lg font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] transition-colors rounded-lg mx-1 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30"
-              >
-                Funcionalidades
-              </Link>
-              <Link
-                href="/precios"
-                className="px-5 py-3 text-lg font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] transition-colors rounded-lg mx-1 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30"
-              >
-                Precios
-              </Link>
-              {/* <Link
-                href="/blog"
-                className="px-5 py-3 text-lg font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] transition-colors rounded-lg mx-1 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30"
-              >
-                Blog
-              </Link> */}
-              <Link
-                href="/contacto"
-                className="px-5 py-3 text-lg font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] transition-colors rounded-lg mx-1 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30"
-              >
-                Contacto
-              </Link>
-            </div>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/logo/capybara-green.png"
+                alt="Vetify"
+                width={120}
+                height={40}
+                className="h-8 w-auto"
+              />
+              <span className="ml-2 text-xl font-semibold text-[#45635C] dark:text-[#75a99c]">
+                Vetify
+              </span>
+            </Link>
           </div>
-          
-          {/* Right side buttons - Desktop */}
+
+          {/* Desktop Navigation */}
+          <div className="hidden sm:flex sm:items-center sm:space-x-8">
+            <Link
+              href="/funcionalidades"
+              className="text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] px-3 py-2 text-lg font-medium transition-colors"
+            >
+              Funcionalidades
+            </Link>
+            <Link
+              href="/precios"
+              className="text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] px-3 py-2 text-lg font-medium transition-colors"
+            >
+              Precios
+            </Link>
+          </div>
+
+          {/* Right side items */}
           <div className="hidden sm:flex sm:items-center sm:space-x-4">
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full bg-[#75a99c] hover:bg-[#5b9788] text-white dark:bg-[#2a3630] dark:hover:bg-[#1a2620] transition-colors w-10 h-10 flex items-center justify-center"
               aria-label="Cambiar tema"
             >
-              {resolvedTheme === "dark" ? "☀️" : "🌙"}
+              {theme === "dark" ? "☀️" : "🌙"}
             </button>
             
             {/* Show user menu if authenticated, otherwise show login/signup buttons */}
@@ -150,20 +149,19 @@ export default function Nav() {
                 
                 {/* User dropdown menu */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-[#d5e3df] dark:border-gray-700 py-2 z-50">
-                    <div className="px-4 py-2 border-b border-[#d5e3df] dark:border-gray-700">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{getUserDisplayName()}</p>
+                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
+                    <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{getUserDisplayName()}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
                     </div>
                     <Link
                       href="/dashboard"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30"
-                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
                       <User className="h-4 w-4 mr-3" />
                       Dashboard
                     </Link>
-                    <LogoutLink className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 text-left">
+                    <LogoutLink className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                       <LogOut className="h-4 w-4 mr-3" />
                       Cerrar sesión
                     </LogoutLink>
@@ -171,40 +169,40 @@ export default function Nav() {
                 )}
               </div>
             ) : (
-              <>
+              <div className="flex items-center space-x-4">
                 <Link
-                  href="/sign-in"
-                  className="text-gray-800 dark:text-gray-200 hover:text-[#5b9788] dark:hover:text-[#75a99c] px-6 py-3 rounded-lg text-lg font-medium border-2 border-[#d5e3df] dark:border-gray-700 hover:border-[#75a99c] dark:hover:border-[#5b9788] transition-colors"
+                  href="/api/auth/login"
+                  className="text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] px-4 py-2 text-lg font-medium transition-colors"
                 >
                   Iniciar sesión
                 </Link>
                 <Link
-                  href="/sign-up"
-                  className="bg-[#75a99c] hover:bg-[#5b9788] text-white px-6 py-3 rounded-lg text-lg font-bold shadow-card hover:shadow-card-hover transform hover:translate-y-[-1px] transition-all duration-200 border-2 border-[#65998c]"
+                  href="/registro"
+                  className="bg-[#75a99c] hover:bg-[#5b9788] text-white px-6 py-2 rounded-lg text-lg font-medium transition-colors shadow-md hover:shadow-lg"
                 >
-                  Prueba gratuita
+                  Comenzar gratis
                 </Link>
-              </>
+              </div>
             )}
           </div>
-          
+
           {/* Mobile menu button */}
-          <div className="flex items-center sm:hidden">
+          <div className="sm:hidden">
             <button
-              type="button"
-              className="inline-flex items-center justify-center p-3 rounded-md text-[#5b9788] hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:text-[#75a99c] dark:hover:text-[#8cbcb0] dark:hover:bg-[#2a3630]/30 focus:outline-none"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-md text-gray-800 dark:text-gray-200 hover:text-[#5b9788] dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 transition-colors"
+              aria-label="Abrir menú"
             >
               {mobileMenuOpen ? (
-                <X className="h-8 w-8" aria-hidden="true" />
+                <X className="h-6 w-6" />
               ) : (
-                <Menu className="h-8 w-8" aria-hidden="true" />
+                <Menu className="h-6 w-6" />
               )}
             </button>
           </div>
         </div>
       </div>
-      
+
       {/* Mobile menu */}
       <div 
         className={`
@@ -222,7 +220,7 @@ export default function Nav() {
             onClick={toggleTheme}
             className="w-full px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg text-left"
           >
-            {resolvedTheme === "dark" ? "🌞" : "🌙"}
+            {theme === "dark" ? "🌞" : "🌙"}
           </button>
           <Link
             href="/funcionalidades"
@@ -238,71 +236,38 @@ export default function Nav() {
           >
             Precios
           </Link>
-          {/* <Link
-            href="/blog"
-            className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Blog
-          </Link> */}
-          <Link
-            href="/contacto"
-            className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Contacto
-          </Link>
-        </div>
-        
-        {/* Mobile user section */}
-        <div className="pt-4 pb-3 border-t border-[#d5e3df] dark:border-gray-800">
-          <div className="px-4 space-y-3">
-            {!isLoading && isAuthenticated && user ? (
-              <>
-                {/* User info */}
-                <div className="flex items-center px-5 py-3">
-                  <div className="h-10 w-10 rounded-full bg-[#75a99c] flex items-center justify-center text-white font-bold">
-                    {getUserInitials()}
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-base font-medium text-gray-800 dark:text-gray-200">{getUserDisplayName()}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{user.email}</p>
-                  </div>
-                </div>
-                
-                {/* Dashboard link */}
-                <Link
-                  href="/dashboard"
-                  className="block w-full px-5 py-3 text-center text-base font-medium text-gray-800 dark:text-gray-200 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg border-2 border-[#d5e3df] dark:border-gray-700"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Dashboard
-                </Link>
-                
-                {/* Logout button */}
-                <LogoutLink className="block w-full px-5 py-3 text-center text-base font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg border-2 border-red-200 dark:border-red-800">
-                  Cerrar sesión
-                </LogoutLink>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/sign-in"
-                  className="block w-full px-5 py-3 text-center text-base font-medium text-gray-800 dark:text-gray-200 hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg border-2 border-[#d5e3df] dark:border-gray-700"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Iniciar sesión
-                </Link>
-                <Link
-                  href="/sign-up"
-                  className="block w-full px-5 py-3 text-center text-base font-bold text-white bg-[#75a99c] hover:bg-[#5b9788] rounded-lg shadow-card border-2 border-[#65998c]"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Prueba gratuita
-                </Link>
-              </>
-            )}
-          </div>
+          
+          {!isLoading && isAuthenticated && user ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Dashboard
+              </Link>
+              <LogoutLink className="block w-full text-left px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg">
+                Cerrar sesión
+              </LogoutLink>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/api/auth/login"
+                className="block px-5 py-3 text-base font-medium text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Iniciar sesión
+              </Link>
+              <Link
+                href="/registro"
+                className="block px-5 py-3 text-base font-medium bg-[#75a99c] hover:bg-[#5b9788] text-white rounded-lg text-center"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Comenzar gratis
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>
