@@ -1,11 +1,10 @@
 "use client";
 
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
-import { FeatureShowcase, HowItWorksSection } from "@/components/marketing";
-import { ChevronRight, MessageCircle, Shield, Package, Zap, Clock, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useThemeAware, getThemeClass } from "@/hooks/useThemeAware";
+import { Zap, MessageCircle, Shield, Package, Clock, TrendingUp, ChevronRight } from 'lucide-react';
+import { FeatureShowcase, HowItWorksSection } from "@/components/marketing";
 
 interface DetailedFeatureProps {
   title: string;
@@ -162,27 +161,21 @@ const featuresData = [
   },
 ];
 
-export default function Funcionalidades() {
-  const [mounted, setMounted] = useState(false);
-  const { resolvedTheme } = useTheme();
+const FuncionalidadesPage: React.FC = () => {
+  const { mounted, theme } = useThemeAware();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
+  // Theme-aware class helpers
+  const backgroundClass = getThemeClass(
+    "bg-gradient-to-b from-beige to-white",
+    "bg-gradient-to-b from-beigeD to-grayD",
+    mounted,
+    theme
+  );
 
   return (
     <main className="relative min-h-screen">
       <div
-        className={`absolute inset-0 transition-colors duration-500 
-        ${
-          resolvedTheme === "dark"
-            ? "bg-gradient-to-b from-beigeD to-grayD"
-            : "bg-gradient-to-b from-beige to-white"
-        }`}
+        className={`absolute inset-0 transition-colors duration-500 ${backgroundClass}`}
       />
 
       <div className="relative z-10">
@@ -267,7 +260,7 @@ export default function Funcionalidades() {
                   description={feature.description}
                   icon={feature.icon}
                   image={feature.image}
-                  reverse={feature.reverse}
+                  reverse={index % 2 !== 0}
                   wowFactor={feature.wowFactor}
                 />
               ))}
@@ -297,4 +290,6 @@ export default function Funcionalidades() {
       </div>
     </main>
   );
-} 
+};
+
+export default FuncionalidadesPage; 

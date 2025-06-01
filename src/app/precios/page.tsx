@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Check, Star, Zap, Users, Building, Crown } from 'lucide-react';
-import { useTheme } from "next-themes";
+import { useThemeAware, getThemeClass } from "@/hooks/useThemeAware";
 
 interface PricingFeature {
   name: string;
@@ -28,7 +28,7 @@ interface PricingPlan {
 
 const PricingPage: React.FC = () => {
   const [isYearly, setIsYearly] = useState(false);
-  const { resolvedTheme } = useTheme();
+  const { mounted, theme } = useThemeAware();
 
   const plans: PricingPlan[] = [
     {
@@ -140,16 +140,40 @@ const PricingPage: React.FC = () => {
     }
   };
 
+  // Theme-aware class helpers
+  const backgroundClass = getThemeClass(
+    "bg-gradient-to-b from-vetify-primary-50 to-white",
+    "bg-gradient-to-b from-vetify-primary-900/20 to-vetify-slate-900",
+    mounted,
+    theme
+  );
+
+  const cardClass = getThemeClass(
+    "bg-white border border-gray-100",
+    "bg-gray-800/50 backdrop-blur-sm border border-gray-700",
+    mounted,
+    theme
+  );
+
+  const tableClass = getThemeClass(
+    "bg-white border border-gray-100",
+    "bg-gray-800/50 backdrop-blur-sm border border-gray-700",
+    mounted,
+    theme
+  );
+
+  const ctaClass = getThemeClass(
+    "bg-gradient-to-r from-vetify-accent-50 to-vetify-primary-50 border border-gray-100",
+    "bg-gradient-to-r from-vetify-accent-900/50 to-vetify-primary-900/50 border border-gray-700",
+    mounted,
+    theme
+  );
+
   return (
     <div className="relative min-h-screen">
       {/* Fondo */}
       <div
-        className={`absolute inset-0 transition-colors duration-500 
-        ${
-          resolvedTheme === "dark"
-            ? "bg-gradient-to-b from-vetify-primary-900/20 to-vetify-slate-900"
-            : "bg-gradient-to-b from-vetify-primary-50 to-white"
-        }`}
+        className={`absolute inset-0 transition-colors duration-500 ${backgroundClass}`}
       />
 
       {/* Decoración de fondo */}
@@ -223,11 +247,7 @@ const PricingPage: React.FC = () => {
                 plan.popular
                   ? 'ring-2 ring-vetify-accent-500 shadow-2xl'
                   : 'shadow-card hover:shadow-card-hover'
-              } ${
-                resolvedTheme === "dark"
-                  ? "bg-gray-800/50 backdrop-blur-sm border border-gray-700"
-                  : "bg-white border border-gray-100"
-              }`}
+              } ${cardClass}`}
               style={{ animationDelay: `${index * 150}ms` }}
             >
               {/* Badge */}
@@ -341,11 +361,7 @@ const PricingPage: React.FC = () => {
             </p>
           </div>
 
-          <div className={`rounded-2xl overflow-hidden ${
-            resolvedTheme === "dark"
-              ? "bg-gray-800/50 backdrop-blur-sm border border-gray-700"
-              : "bg-white border border-gray-100"
-          } shadow-card`}>
+          <div className={`rounded-2xl overflow-hidden ${tableClass} shadow-card`}>
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-900/50">
@@ -436,11 +452,7 @@ const PricingPage: React.FC = () => {
             ].map((faq, index) => (
               <div
                 key={index}
-                className={`p-6 rounded-xl ${
-                  resolvedTheme === "dark"
-                    ? "bg-gray-800/50 backdrop-blur-sm border border-gray-700"
-                    : "bg-white border border-gray-100"
-                } shadow-card`}
+                className={`p-6 rounded-xl ${cardClass} shadow-card`}
               >
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
                   {faq.question}
@@ -455,11 +467,7 @@ const PricingPage: React.FC = () => {
 
         {/* CTA Final */}
         <div className="mt-20 text-center">
-          <div className={`rounded-2xl p-12 ${
-            resolvedTheme === "dark"
-              ? "bg-gradient-to-r from-vetify-accent-900/50 to-vetify-primary-900/50 border border-gray-700"
-              : "bg-gradient-to-r from-vetify-accent-50 to-vetify-primary-50 border border-gray-100"
-          }`}>
+          <div className={`rounded-2xl p-12 ${ctaClass}`}>
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               ¿Listo para transformar tu clínica?
             </h2>
