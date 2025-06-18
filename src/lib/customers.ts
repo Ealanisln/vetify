@@ -60,6 +60,9 @@ export async function getCustomersByTenant(tenantId: string) {
   return serializeCustomers(customers);
 }
 
+// Alias for getCustomersByTenant
+export const getCustomers = getCustomersByTenant;
+
 export async function getCustomerById(customerId: string, tenantId: string) {
   const customer = await prisma.customer.findFirst({
     where: { id: customerId, tenantId },
