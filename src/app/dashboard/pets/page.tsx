@@ -1,5 +1,6 @@
 import { requireAuth } from '@/lib/auth';
 import { getPetsByTenant } from '@/lib/pets';
+import { PetWithOwner } from '@/types';
 import Link from 'next/link';
 
 export default async function PetsPage() {
@@ -62,8 +63,7 @@ export default async function PetsPage() {
       ) : (
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {pets.map((pet: any) => (
+            {pets.map((pet: PetWithOwner) => (
               <li key={pet.id}>
                 <Link href={`/dashboard/pets/${pet.id}`} className="block hover:bg-gray-50 transition-colors">
                   <div className="px-4 py-4 flex items-center justify-between">
@@ -80,7 +80,7 @@ export default async function PetsPage() {
                           {pet.breed} • {pet.gender === 'male' ? 'Macho' : 'Hembra'}
                         </p>
                         <p className="text-xs text-gray-400">
-                          Dueño: {pet.user.name || pet.user.email}
+                          Dueño: {pet.customer?.name || pet.customer?.email || 'Sin datos'}
                         </p>
                       </div>
                     </div>

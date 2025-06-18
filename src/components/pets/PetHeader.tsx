@@ -1,7 +1,7 @@
-import { Pet, User } from '@prisma/client';
+import { Pet, Customer } from '@prisma/client';
 import { differenceInYears, differenceInMonths } from 'date-fns';
 
-type PetWithOwner = Pet & { user: User };
+type PetWithOwner = Pet & { customer: Customer };
 
 interface PetHeaderProps {
   pet: PetWithOwner;
@@ -84,7 +84,7 @@ export function PetHeader({ pet }: PetHeaderProps) {
                 )}
               </div>
               <p className="text-sm text-gray-600 mt-1">
-                <span className="font-medium">Dueño:</span> {pet.user.name || pet.user.email}
+                <span className="font-medium">Dueño:</span> {pet.customer?.name || pet.customer?.email || 'Sin datos'}
               </p>
             </div>
           </div>

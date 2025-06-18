@@ -1,8 +1,8 @@
-import { Pet, User } from '@prisma/client';
+import { Pet, Customer } from '@prisma/client';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-type PetWithOwner = Pet & { user: User };
+type PetWithOwner = Pet & { customer: Customer };
 
 interface PetInfoCardProps {
   pet: PetWithOwner;
@@ -38,14 +38,14 @@ export function PetInfoCard({ pet }: PetInfoCardProps) {
           <h4 className="text-sm font-medium text-gray-900 mb-3">Información del Dueño</h4>
           <div className="bg-gray-50 rounded-lg p-4">
             <p className="text-sm font-medium text-gray-900">
-              {pet.user.name || 'Nombre no registrado'}
+              {pet.customer?.name || 'Nombre no registrado'}
             </p>
-            <p className="text-sm text-gray-600">{pet.user.email}</p>
-            {pet.user.phone && (
-              <p className="text-sm text-gray-600">📞 {pet.user.phone}</p>
+            <p className="text-sm text-gray-600">{pet.customer?.email || 'Email no registrado'}</p>
+            {pet.customer?.phone && (
+              <p className="text-sm text-gray-600">📞 {pet.customer.phone}</p>
             )}
-            {pet.user.address && (
-              <p className="text-sm text-gray-600">📍 {pet.user.address}</p>
+            {pet.customer?.address && (
+              <p className="text-sm text-gray-600">📍 {pet.customer.address}</p>
             )}
           </div>
         </div>
