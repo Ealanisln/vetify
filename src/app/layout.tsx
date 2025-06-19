@@ -1,5 +1,8 @@
 // app/layout.tsx
 import { Inter } from 'next/font/google'
+
+// Force dynamic rendering for all pages to prevent static generation issues with Kinde Auth
+export const dynamic = 'force-dynamic'
 import './globals.css'
 import { Providers } from './providers'
 import type { Viewport } from 'next'
