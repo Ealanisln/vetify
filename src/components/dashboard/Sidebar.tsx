@@ -7,12 +7,14 @@ import { usePathname } from 'next/navigation';
 import { 
   HomeIcon, 
   UserGroupIcon, 
-  CalendarIcon, 
-  ClipboardDocumentListIcon,
+  CalendarIcon,
   CubeIcon,
   ChartBarIcon,
   CogIcon,
-  XMarkIcon
+  XMarkIcon,
+  CreditCardIcon,
+  DocumentTextIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
 
@@ -23,10 +25,13 @@ interface SidebarProps {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+  { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon },
   { name: 'Mascotas', href: '/dashboard/pets', icon: UserGroupIcon },
-  { name: 'Citas', href: '/dashboard/appointments', icon: CalendarIcon },
-  { name: 'Historial Médico', href: '/dashboard/medical', icon: ClipboardDocumentListIcon },
+  { name: 'Punto de Venta', href: '/dashboard/sales', icon: CreditCardIcon },
+  { name: 'Caja', href: '/dashboard/caja', icon: CurrencyDollarIcon },
   { name: 'Inventario', href: '/dashboard/inventory', icon: CubeIcon },
+  { name: 'Historia Clínica', href: '/dashboard/medical-history', icon: DocumentTextIcon },
+  { name: 'Citas', href: '/dashboard/appointments', icon: CalendarIcon },
   { name: 'Reportes', href: '/dashboard/reports', icon: ChartBarIcon },
   { name: 'Configuración', href: '/dashboard/settings', icon: CogIcon },
 ];

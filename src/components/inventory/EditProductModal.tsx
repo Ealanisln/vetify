@@ -1,0 +1,408 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { XMarkIcon } from '@heroicons/react/24/outline';
+import { getInventoryCategories } from '@/lib/inventory';
+import { InventoryItemWithStock } from '@/types';
+
+interface EditProductModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+  item: InventoryItemWithStock;
+  tenantId: string;
+}
+
+interface ProductFormData {
+  name: string;
+  category: string;
+  description: string;
+  activeCompound: string;
+  presentation: string;
+  measure: string;
+  brand: string;
+  quantity: number;
+  minStock: number;
+  location: string;
+  expirationDate: string;
+  cost: number;
+  price: number;
+  batchNumber: string;
+  specialNotes: string;
+}
+
+export function EditProductModal({ isOpen, onClose, onSuccess, item, tenantId }: EditProductModalProps) {
+  const [formData, setFormData] = useState<ProductFormData>({
+    name: '',
+    category: '',
+    description: '',
+    activeCompound: '',
+    presentation: '',
+    measure: '',
+    brand: '',
+    quantity: 0,
+    minStock: 0,
+    location: '',
+    expirationDate: '',
+    cost: 0,
+    price: 0,
+    batchNumber: '',
+    specialNotes: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const categories = getInventoryCategories();
+
+  // Populate form when item changes
+  useEffect(() => {
+    if (item) {
+      setFormData({
+        name: item.name || '',
+        category: item.category || '',
+        description: item.description || '',
+        activeCompound: item.activeCompound || '',
+        presentation: item.presentation || '',
+        measure: item.measure || '',
+        brand: item.brand || '',
+        quantity: Number(item.quantity) || 0,
+        minStock: Number(item.minStock) || 0,
+        location: item.location || '',
+        expirationDate: item.expirationDate ? new Date(item.expirationDate).toISOString().split('T')[0] : '',
+        cost: Number(item.cost) || 0,
+        price: Number(item.price) || 0,
+        batchNumber: item.batchNumber || '',
+        specialNotes: item.specialNotes || ''
+      });
+    }
+  }, [item]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'quantity' || name === 'minStock' || name === 'cost' || name === 'price' 
+        ? Number(value) || 0 
+        : value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.category) {
+      setError('El nombre y la categoría son obligatorios');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`/api/inventory/${item.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          tenantId,
+          expirationDate: formData.expirationDate || undefined
+        })
+      });
+
+      if (response.ok) {
+        onSuccess();
+      } else {
+        const errorData = await response.json();
+        setError(errorData.error || 'Error al actualizar el producto');
+      }
+    } catch (error) {
+      console.error('Error updating product:', error);
+      setError('Error al actualizar el producto');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white dark:bg-gray-800">
+        <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            Editar Producto: {item.name}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <XMarkIcon className="h-6 w-6" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="mt-4">
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-md">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Información básica */}
+            <div className="md:col-span-2">
+              <h4 className="text-md font-medium text-gray-900 dark:text-gray-100 mb-3">
+                Información Básica
+              </h4>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Nombre del Producto *
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                required
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Categoría *
+              </label>
+              <select
+                name="category"
+                value={formData.category}
+                onChange={handleInputChange}
+                required
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                <option value="">Seleccionar categoría</option>
+                {categories.map((category) => (
+                  <option key={category.value} value={category.value}>
+                    {category.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Marca
+              </label>
+              <input
+                type="text"
+                name="brand"
+                value={formData.brand}
+                onChange={handleInputChange}
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Presentación
+              </label>
+              <input
+                type="text"
+                name="presentation"
+                value={formData.presentation}
+                onChange={handleInputChange}
+                placeholder="ej: Tableta, Ampolla, Frasco"
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Unidad de Medida
+              </label>
+              <input
+                type="text"
+                name="measure"
+                value={formData.measure}
+                onChange={handleInputChange}
+                placeholder="ej: mg, ml, unidades"
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Principio Activo
+              </label>
+              <input
+                type="text"
+                name="activeCompound"
+                value={formData.activeCompound}
+                onChange={handleInputChange}
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            {/* Stock y precios */}
+            <div className="md:col-span-2 mt-4">
+              <h4 className="text-md font-medium text-gray-900 dark:text-gray-100 mb-3">
+                Stock y Precios
+              </h4>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Cantidad Actual
+              </label>
+              <input
+                type="number"
+                name="quantity"
+                value={formData.quantity}
+                onChange={handleInputChange}
+                min="0"
+                step="0.01"
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Stock Mínimo
+              </label>
+              <input
+                type="number"
+                name="minStock"
+                value={formData.minStock}
+                onChange={handleInputChange}
+                min="0"
+                step="0.01"
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Costo
+              </label>
+              <input
+                type="number"
+                name="cost"
+                value={formData.cost}
+                onChange={handleInputChange}
+                min="0"
+                step="0.01"
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Precio de Venta
+              </label>
+              <input
+                type="number"
+                name="price"
+                value={formData.price}
+                onChange={handleInputChange}
+                min="0"
+                step="0.01"
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            {/* Información adicional */}
+            <div className="md:col-span-2 mt-4">
+              <h4 className="text-md font-medium text-gray-900 dark:text-gray-100 mb-3">
+                Información Adicional
+              </h4>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Ubicación
+              </label>
+              <input
+                type="text"
+                name="location"
+                value={formData.location}
+                onChange={handleInputChange}
+                placeholder="ej: Estante A, Refrigerador"
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Fecha de Vencimiento
+              </label>
+              <input
+                type="date"
+                name="expirationDate"
+                value={formData.expirationDate}
+                onChange={handleInputChange}
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Número de Lote
+              </label>
+              <input
+                type="text"
+                name="batchNumber"
+                value={formData.batchNumber}
+                onChange={handleInputChange}
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Descripción
+              </label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                rows={3}
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Notas Especiales
+              </label>
+              <textarea
+                name="specialNotes"
+                value={formData.specialNotes}
+                onChange={handleInputChange}
+                rows={2}
+                placeholder="Instrucciones de manejo, almacenamiento, etc."
+                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c]"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#75a99c] hover:bg-[#5b9788] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Guardando...' : 'Guardar Cambios'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+} 
