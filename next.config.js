@@ -9,8 +9,11 @@ const nextConfig = {
     // Only run type checking in development
     ignoreBuildErrors: false,
   },
-  // Suppress warnings for missing optional dependencies (Next.js 15+)
+  // Configure external packages for serverless environment
   serverExternalPackages: ['@kinde-oss/kinde-auth-nextjs'],
+  
+  // Add transpilation for problematic ESM packages
+  transpilePackages: ['jose'],
 
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -19,6 +22,7 @@ const nextConfig = {
         'expo-secure-store': false,
       };
     }
+    
     // Ignore warnings from Kinde packages
     config.ignoreWarnings = [
       {
@@ -26,6 +30,9 @@ const nextConfig = {
       },
       {
         message: /Can't resolve 'expo-secure-store'/,
+      },
+      {
+        message: /Critical dependency: the request of a dependency is an expression/,
       },
     ];
     return config;
