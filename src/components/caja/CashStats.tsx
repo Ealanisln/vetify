@@ -14,18 +14,18 @@ interface CashStatsProps {
 }
 
 interface DayStats {
-  totalSales: number;
-  totalCash: number;
-  totalCard: number;
-  totalRefunds: number;
+  totalIncome: number;
+  totalExpenses: number;
+  netTotal: number;
   transactionCount: number;
-  avgTicket: number;
-  lastUpdate: string;
+  currentBalance: number;
+  isDrawerOpen: boolean;
 }
 
 export function CashStats({ tenantId }: CashStatsProps) {
   const [stats, setStats] = useState<DayStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStats();
@@ -35,13 +35,18 @@ export function CashStats({ tenantId }: CashStatsProps) {
 
   const fetchStats = async () => {
     try {
+      setError(null);
       const response = await fetch(`/api/caja/stats?tenantId=${tenantId}`);
       if (response.ok) {
         const data = await response.json();
+        console.log('Cash stats data:', data); // Debug log
         setStats(data);
+      } else {
+        throw new Error('Error al obtener estadísticas');
       }
     } catch (error) {
       console.error('Error fetching cash stats:', error);
+      setError('Error al cargar estadísticas');
     } finally {
       setLoading(false);
     }
@@ -66,46 +71,65 @@ export function CashStats({ tenantId }: CashStatsProps) {
     );
   }
 
-  if (!stats) {
+  if (error || !stats) {
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-6">
-            <p className="text-gray-500 text-center">No hay datos disponibles</p>
+            <p className="text-gray-500 text-center">
+              {error || "No hay datos disponibles"}
+            </p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  // Función helper para formatear números de manera segura
+  const formatCurrency = (value: number | undefined | null): string => {
+    if (value === undefined || value === null || isNaN(value)) {
+      return '$0';
+    }
+    return `$${value.toLocaleString('es-MX', { 
+      minimumFractionDigits: 0, 
+      maximumFractionDigits: 2 
+    })}`;
+  };
+
+  // Calcular porcentajes de manera segura
+  const calculatePercentage = (part: number, total: number): string => {
+    if (!total || total === 0 || !part) return '0.0';
+    return ((part / total) * 100).toFixed(1);
+  };
+
   const statCards = [
     {
-      title: "Ventas del Día",
-      value: `$${stats.totalSales.toLocaleString()}`,
-      description: `${stats.transactionCount} transacciones`,
+      title: "Ingresos del Día",
+      value: formatCurrency(stats.totalIncome),
+      description: `${stats.transactionCount || 0} transacciones`,
       icon: ArrowTrendingUpIcon,
       color: "text-green-600"
     },
     {
-      title: "Efectivo",
-      value: `$${stats.totalCash.toLocaleString()}`,
-      description: `${((stats.totalCash / stats.totalSales) * 100 || 0).toFixed(1)}% del total`,
+      title: "Balance Actual",
+      value: formatCurrency(stats.currentBalance),
+      description: stats.isDrawerOpen ? "Cajón abierto" : "Cajón cerrado",
       icon: CurrencyDollarIcon,
       color: "text-blue-600"
     },
     {
-      title: "Tarjetas",
-      value: `$${stats.totalCard.toLocaleString()}`,
-      description: `${((stats.totalCard / stats.totalSales) * 100 || 0).toFixed(1)}% del total`,
-      icon: CreditCardIcon,
-      color: "text-purple-600"
+      title: "Gastos del Día",
+      value: formatCurrency(stats.totalExpenses),
+      description: `${calculatePercentage(stats.totalExpenses, stats.totalIncome)}% del total`,
+      icon: ReceiptRefundIcon,
+      color: "text-red-600"
     },
     {
-      title: "Ticket Promedio",
-      value: `$${stats.avgTicket.toLocaleString()}`,
-      description: stats.totalRefunds > 0 ? `$${stats.totalRefunds.toLocaleString()} devoluciones` : "Sin devoluciones",
-      icon: ReceiptRefundIcon,
-      color: "text-orange-600"
+      title: "Ganancia Neta",
+      value: formatCurrency(stats.netTotal),
+      description: stats.netTotal >= 0 ? "Resultado positivo" : "Resultado negativo",
+      icon: CreditCardIcon,
+      color: stats.netTotal >= 0 ? "text-green-600" : "text-red-600"
     }
   ];
 
