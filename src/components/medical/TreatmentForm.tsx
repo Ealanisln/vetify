@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { treatmentSchema, COMMON_MEDICATIONS, type TreatmentFormData } from '@/lib/medical-validation';
 import { TreatmentType } from '@prisma/client';
+import { getThemeClasses } from '@/utils/theme-colors';
 
 interface TreatmentFormProps {
   petId: string;
@@ -88,17 +89,17 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
   };
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
         {/* Treatment Type */}
-        <div>
-          <label htmlFor="treatment_type" className="block text-sm font-medium text-gray-700 mb-2">
+        <div className={`card p-4 md:p-6 ${getThemeClasses('background.card', 'border.card')}`}>
+          <label htmlFor="treatment_type" className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-2`}>
             Tipo de Tratamiento *
           </label>
           <select
             id="treatment_type"
             {...register('treatment_type')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="form-input"
           >
             <option value={TreatmentType.VACCINATION}>Vacunación</option>
             <option value={TreatmentType.DEWORMING}>Desparasitación</option>
@@ -111,15 +112,15 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
         </div>
 
         {/* Medication Name */}
-        <div>
-          <label htmlFor="medication_name" className="block text-sm font-medium text-gray-700 mb-2">
+        <div className={`card p-4 md:p-6 space-y-3 ${getThemeClasses('background.card', 'border.card')}`}>
+          <label htmlFor="medication_name" className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-2`}>
             Nombre del medicamento *
           </label>
           <input
             type="text"
             id="medication_name"
             {...register('medication_name')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="form-input"
             placeholder="Ej: Amoxicilina"
           />
           {errors.medication_name && (
@@ -128,7 +129,7 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
           
           {/* Common medications suggestions */}
           <div className="mt-2">
-            <p className="text-xs text-gray-500 mb-1">Medicamentos comunes:</p>
+            <p className={`text-xs ${getThemeClasses('text.tertiary')} mb-1`}>Medicamentos comunes:</p>
             <div className="flex flex-wrap gap-1">
               {COMMON_MEDICATIONS.slice(0, 5).map((med) => (
                 <button
@@ -138,7 +139,7 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
                     const medicationInput = document.getElementById('medication_name') as HTMLInputElement;
                     if (medicationInput) medicationInput.value = med;
                   }}
-                  className="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded text-gray-700 transition-colors"
+                  className={`text-xs px-2 py-1 rounded transition-colors ${getThemeClasses('background.muted', 'text.secondary')} ${getThemeClasses('hover.muted')}`}
                 >
                   {med}
                 </button>

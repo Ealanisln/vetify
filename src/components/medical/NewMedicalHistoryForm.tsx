@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { getThemeClasses } from '@/utils/theme-colors';
 
 import { 
   MagnifyingGlassIcon,
@@ -157,22 +158,22 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
       {/* Selección de mascota */}
-      <Card>
+      <Card className={`${getThemeClasses('background.card', 'border.card')}`}>
         <CardHeader>
-          <CardTitle>Seleccionar Mascota</CardTitle>
+          <CardTitle className={getThemeClasses('text.primary')}>Seleccionar Mascota</CardTitle>
         </CardHeader>
         <CardContent>
           {selectedPet ? (
-            <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className={`flex flex-col md:flex-row md:items-center justify-between p-4 ${getThemeClasses('background.accent')} bg-opacity-10 ${getThemeClasses('border.accent')} rounded-lg gap-3`}>
               <div className="flex items-center gap-3">
-                <HeartIcon className="h-5 w-5 text-blue-600" />
+                <HeartIcon className="h-5 w-5 text-[#75a99c] dark:text-[#9ed3c4]" />
                 <div>
-                  <h3 className="font-medium text-gray-900">
+                  <h3 className={`font-medium ${getThemeClasses('text.primary')}`}>
                     {selectedPet.name} ({selectedPet.species})
                   </h3>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className={`flex items-center gap-2 text-sm ${getThemeClasses('text.secondary')}`}>
                     <UserIcon className="h-3 w-3" />
                     <span>{selectedPet.customer.name}</span>
                     {selectedPet.customer.phone && (
@@ -189,6 +190,7 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                   setSelectedPet(null);
                   setFormData(prev => ({ ...prev, petId: '' }));
                 }}
+                className="shrink-0"
               >
                 Cambiar
               </Button>
@@ -196,7 +198,7 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
           ) : (
             <div className="space-y-3">
               <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <MagnifyingGlassIcon className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${getThemeClasses('text.tertiary')}`} />
                 <input
                   type="text"
                   placeholder="Buscar mascota por nombre o cliente..."

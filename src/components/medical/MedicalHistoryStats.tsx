@@ -5,6 +5,7 @@ import {
   ChartBarIcon,
   CalendarDaysIcon
 } from '@heroicons/react/24/outline';
+import { getThemeClasses } from '@/utils/theme-colors';
 
 interface MedicalHistoryStatsProps {
   tenantId: string;
@@ -48,29 +49,29 @@ export async function MedicalHistoryStats({ tenantId }: MedicalHistoryStatsProps
       title: 'Total Consultas',
       value: stats.totalHistories.toString(),
       icon: DocumentTextIcon,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50'
+      color: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/20'
     },
     {
       title: 'Este Mes',
       value: stats.thisMonth.toString(),
       icon: CalendarDaysIcon,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-50 dark:bg-green-900/20'
     },
     {
       title: 'Promedio por Mascota',
       value: stats.avgVisitsPerPet.toFixed(1),
       icon: HeartIcon,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50'
+      color: 'text-red-600 dark:text-red-400',
+      bgColor: 'bg-red-50 dark:bg-red-900/20'
     },
     {
       title: 'Diagnósticos Comunes',
       value: stats.commonDiagnoses.length.toString(),
       icon: ChartBarIcon,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
+      color: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-50 dark:bg-purple-900/20'
     }
   ];
 
@@ -81,7 +82,7 @@ export async function MedicalHistoryStats({ tenantId }: MedicalHistoryStatsProps
         return (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
+              <CardTitle className={`text-sm font-medium ${getThemeClasses('text.secondary')}`}>
                 {stat.title}
               </CardTitle>
               <div className={`p-2 rounded-full ${stat.bgColor}`}>
@@ -89,17 +90,17 @@ export async function MedicalHistoryStats({ tenantId }: MedicalHistoryStatsProps
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-gray-900">
+              <div className={`text-2xl font-bold ${getThemeClasses('text.primary')}`}>
                 {stat.value}
               </div>
               {stat.title === 'Diagnósticos Comunes' && stats.commonDiagnoses.length > 0 && (
                 <div className="mt-2">
-                  <p className="text-xs text-gray-500 mb-1">Más frecuentes:</p>
+                  <p className={`text-xs ${getThemeClasses('text.muted')} mb-1`}>Más frecuentes:</p>
                   <div className="flex flex-wrap gap-1">
                     {stats.commonDiagnoses.slice(0, 2).map((diagnosis, index) => (
                       <span 
                         key={index}
-                        className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded"
+                        className={`text-xs px-2 py-1 rounded ${getThemeClasses('background.tertiary', 'text.secondary')}`}
                       >
                         {diagnosis}
                       </span>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { vitalSignsSchema, type VitalSignsFormData } from '@/lib/medical-validation';
+import { getThemeClasses } from '@/utils/theme-colors';
 
 interface VitalSignsFormProps {
   petId: string;
@@ -90,18 +91,18 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
       {/* Fecha de Registro */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-          <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
+      <div className={`card p-4 md:p-6 space-y-4 ${getThemeClasses('background.card', 'border.card')}`}>
+        <h3 className={`text-base md:text-lg font-semibold ${getThemeClasses('text.primary')} flex items-center`}>
+          <span className={`w-6 h-6 md:w-8 md:h-8 bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center text-xs md:text-sm font-bold mr-3`}>
             1
           </span>
           Fecha de Registro
         </h3>
         
         <div>
-          <label htmlFor="recorded_date" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="recorded_date" className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-2`}>
             Fecha y hora del registro *
           </label>
           <input
@@ -110,7 +111,7 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
             {...register('recorded_date', {
               setValueAs: (value) => new Date(value),
             })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            className="form-input"
           />
           {errors.recorded_date && (
             <p className="mt-1 text-sm text-red-600">{errors.recorded_date.message}</p>
@@ -119,18 +120,18 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
       </div>
 
       {/* Signos Vitales Principales */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-          <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
+      <div className={`card p-4 md:p-6 space-y-4 ${getThemeClasses('background.card', 'border.card')}`}>
+        <h3 className={`text-base md:text-lg font-semibold ${getThemeClasses('text.primary')} flex items-center`}>
+          <span className={`w-6 h-6 md:w-8 md:h-8 bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400 rounded-full flex items-center justify-center text-xs md:text-sm font-bold mr-3`}>
             2
           </span>
           Signos Vitales Principales
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {/* Weight */}
           <div>
-            <label htmlFor="weight" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="weight" className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-2`}>
               Peso (kg) *
             </label>
             <div className="relative">
@@ -141,11 +142,11 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
                 step="0.1"
                 min="0.1"
                 max="200"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className="form-input pr-8"
                 placeholder="15.5"
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <span className="text-gray-500 text-sm">kg</span>
+                <span className={`${getThemeClasses('text.tertiary')} text-sm`}>kg</span>
               </div>
             </div>
             {weight && (

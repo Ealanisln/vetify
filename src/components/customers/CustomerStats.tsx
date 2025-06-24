@@ -1,3 +1,5 @@
+import { getThemeClasses } from '@/utils/theme-colors';
+
 interface Customer {
   id: string;
   name: string;
@@ -48,7 +50,7 @@ export function CustomerStats({ customers }: CustomerStatsProps) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => (
-        <div key={stat.name} className="bg-white overflow-hidden shadow rounded-lg border border-gray-200">
+        <div key={stat.name} className={`${getThemeClasses('background.card')} overflow-hidden shadow rounded-lg border ${getThemeClasses('border.primary')}`}>
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
@@ -56,10 +58,10 @@ export function CustomerStats({ customers }: CustomerStatsProps) {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
+                  <dt className={`text-sm font-medium ${getThemeClasses('text.secondary')} truncate`}>
                     {stat.name}
                   </dt>
-                  <dd className="text-2xl font-bold text-gray-900">
+                  <dd className={`text-2xl font-bold ${getThemeClasses('text.primary')}`}>
                     {stat.value}
                   </dd>
                 </dl>

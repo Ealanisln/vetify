@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { getInventoryCategories } from '@/lib/inventory';
+import { themeColors, responsive } from '@/utils/theme-colors';
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -118,15 +119,15 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white dark:bg-gray-800">
-        <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+    <div className={`fixed inset-0 ${themeColors.modal.backdrop} overflow-y-auto h-full w-full z-50`}>
+      <div className={`relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border ${responsive.modal} shadow-lg rounded-md ${themeColors.modal.content}`}>
+        <div className={`flex items-center justify-between pb-3 border-b ${themeColors.modal.header}`}>
+          <h3 className={`text-lg font-medium ${themeColors.text.primary}`}>
             Agregar Producto
           </h3>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className={`${themeColors.text.secondary} hover:opacity-75 transition-opacity`}
           >
             <XMarkIcon className="h-6 w-6" />
           </button>
@@ -134,21 +135,21 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
 
         <form onSubmit={handleSubmit} className="mt-4">
           {error && (
-            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-md">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <div className={`mb-4 p-4 ${themeColors.status.error} border rounded-md`}>
+              <p className="text-sm">{error}</p>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className={`${responsive.grid.form} gap-4`}>
             {/* Información básica */}
-            <div className="md:col-span-2">
-              <h4 className="text-md font-medium text-gray-900 dark:text-gray-100 mb-3">
+            <div className="col-span-full">
+              <h4 className={`text-md font-medium ${themeColors.text.primary} mb-3`}>
                 Información Básica
               </h4>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="form-label">
                 Nombre del Producto *
               </label>
               <input
@@ -157,12 +158,12 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
                 value={formData.name}
                 onChange={handleInputChange}
                 required
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="form-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="form-label">
                 Categoría *
               </label>
               <select
@@ -170,7 +171,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
                 value={formData.category}
                 onChange={handleInputChange}
                 required
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="form-select"
               >
                 <option value="">Seleccionar categoría</option>
                 {categories.map((category) => (
@@ -182,7 +183,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="form-label">
                 Marca
               </label>
               <input
@@ -190,12 +191,12 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
                 name="brand"
                 value={formData.brand}
                 onChange={handleInputChange}
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="form-input"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="form-label">
                 Presentación
               </label>
               <input
