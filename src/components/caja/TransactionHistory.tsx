@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -31,13 +31,7 @@ export function TransactionHistory({ tenantId }: TransactionHistoryProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchTransactions();
-    const interval = setInterval(fetchTransactions, 60000); // Actualizar cada minuto
-    return () => clearInterval(interval);
-  }, [tenantId]);
-
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     try {
       const response = await fetch(`/api/caja/transactions?tenantId=${tenantId}&limit=20`);
       if (response.ok) {
@@ -49,7 +43,13 @@ export function TransactionHistory({ tenantId }: TransactionHistoryProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId]);
+
+  useEffect(() => {
+    fetchTransactions();
+    const interval = setInterval(fetchTransactions, 60000); // Actualizar cada minuto
+    return () => clearInterval(interval);
+  }, [fetchTransactions]);
 
   const getTransactionIcon = (type: string, paymentMethod: string) => {
     if (type === 'REFUND') return ReceiptRefundIcon;

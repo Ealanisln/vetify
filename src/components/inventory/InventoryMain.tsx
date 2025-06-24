@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   MagnifyingGlassIcon, 
   PlusIcon, 
@@ -33,7 +33,7 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
   const itemsPerPage = 20;
   const categories = getInventoryCategories();
 
-  const fetchItems = async (page = 1, search = '', category = '') => {
+  const fetchItems = useCallback(async (page = 1, search = '', category = '') => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -55,11 +55,11 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId, itemsPerPage]);
 
   useEffect(() => {
     fetchItems(currentPage, searchQuery, selectedCategory);
-  }, [tenantId, currentPage, searchQuery, selectedCategory]);
+  }, [fetchItems, currentPage, searchQuery, selectedCategory]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);

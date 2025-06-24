@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   CurrencyDollarIcon,
@@ -27,13 +27,7 @@ export function CashStats({ tenantId }: CashStatsProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchStats();
-    const interval = setInterval(fetchStats, 30000); // Actualizar cada 30 segundos
-    return () => clearInterval(interval);
-  }, [tenantId]);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       setError(null);
       const response = await fetch(`/api/caja/stats?tenantId=${tenantId}`);
@@ -50,7 +44,13 @@ export function CashStats({ tenantId }: CashStatsProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId]);
+
+  useEffect(() => {
+    fetchStats();
+    const interval = setInterval(fetchStats, 30000); // Actualizar cada 30 segundos
+    return () => clearInterval(interval);
+  }, [fetchStats]);
 
   if (loading) {
     return (

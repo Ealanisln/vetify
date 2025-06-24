@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -56,16 +56,13 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
 
-  useEffect(() => {
-    fetchHistories();
-  }, [tenantId, searchQuery, page]);
-
-  const fetchHistories = async () => {
+  const fetchHistories = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         limit: '10',
-        page: page.toString()
+        page: page.toString(),
+        tenantId: tenantId
       });
       
       if (searchQuery) params.append('q', searchQuery);
@@ -85,7 +82,11 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId, page, searchQuery]);
+
+  useEffect(() => {
+    fetchHistories();
+  }, [fetchHistories]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);

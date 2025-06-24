@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -51,12 +51,7 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
   const [showOpenForm, setShowOpenForm] = useState(false);
   const [showCloseForm, setShowCloseForm] = useState(false);
 
-  useEffect(() => {
-    fetchCurrentDrawer();
-    fetchTransactionSummary();
-  }, [tenantId]);
-
-  const fetchCurrentDrawer = async () => {
+  const fetchCurrentDrawer = useCallback(async () => {
     try {
       const response = await fetch(`/api/caja?tenantId=${tenantId}`);
       if (response.ok) {
@@ -68,9 +63,9 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId]);
 
-  const fetchTransactionSummary = async () => {
+  const fetchTransactionSummary = useCallback(async () => {
     try {
       const response = await fetch(`/api/caja/transactions?tenantId=${tenantId}&summary=true`);
       if (response.ok) {
@@ -80,7 +75,12 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
     } catch (error) {
       console.error('Error fetching transaction summary:', error);
     }
-  };
+  }, [tenantId]);
+
+  useEffect(() => {
+    fetchCurrentDrawer();
+    fetchTransactionSummary();
+  }, [fetchCurrentDrawer, fetchTransactionSummary]);
 
   const openDrawer = async () => {
     if (!initialAmount || parseFloat(initialAmount) < 0) {
