@@ -1,5 +1,4 @@
 "use client";
-import { KindeProvider } from "@kinde-oss/kinde-auth-nextjs";
 import { ReactNode } from "react";
 
 interface AuthProviderProps {
@@ -7,9 +6,11 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
+  // Temporarily return children without KindeProvider 
+  // until Kinde Auth is fully compatible with React 18
   return (
-    <KindeProvider>
+    <>
       {children}
-    </KindeProvider>
+    </>
   );
 };

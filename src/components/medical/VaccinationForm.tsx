@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { vaccinationSchema, COMMON_VACCINES, type VaccinationFormData } from '@/lib/medical-validation';
-import { getStaffMembers } from '@/lib/medical';
 import { TreatmentType, VaccinationStage } from '@prisma/client';
 
 interface VaccinationFormProps {
@@ -42,7 +41,11 @@ export function VaccinationForm({ petId, tenantId, onSuccess, onCancel }: Vaccin
   useEffect(() => {
     const loadStaff = async () => {
       try {
-        const staffData = await getStaffMembers(tenantId);
+        const response = await fetch(`/api/medical/staff?tenantId=${tenantId}`);
+        if (!response.ok) {
+          throw new Error('Error al cargar el personal');
+        }
+        const staffData = await response.json();
         setStaff(staffData);
       } catch (error) {
         console.error('Error loading staff:', error);

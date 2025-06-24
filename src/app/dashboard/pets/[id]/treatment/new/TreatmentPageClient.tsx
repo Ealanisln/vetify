@@ -1,7 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { MedicalFormLayout } from '@/components/medical/MedicalFormLayout';
 import { TreatmentForm } from '@/components/medical/TreatmentForm';
 import { Pet, Customer } from '@prisma/client';
 
@@ -24,18 +23,22 @@ export function TreatmentPageClient({ pet, tenantId }: TreatmentPageClientProps)
   };
 
   return (
-    <MedicalFormLayout
-      petInfo={pet}
-      formTitle="Nuevo Tratamiento"
-      formType="treatment"
-      onCancel={handleCancel}
-    >
-      <TreatmentForm
-        petId={pet.id}
-        tenantId={tenantId}
-        onSuccess={handleSuccess}
-        onCancel={handleCancel}
-      />
-    </MedicalFormLayout>
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h1 className="text-2xl font-bold mb-4">Nuevo Tratamiento - {pet.name}</h1>
+          <p className="text-gray-600 mb-6">
+            {pet.species} • {pet.breed} • Propietario: {pet.customer.name}
+          </p>
+          
+          <TreatmentForm
+            petId={pet.id}
+            tenantId={tenantId}
+            onSuccess={handleSuccess}
+            onCancel={handleCancel}
+          />
+        </div>
+      </div>
+    </div>
   );
 } 

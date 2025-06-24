@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { consultationSchema, COMMON_SYMPTOMS, type ConsultationFormData } from '@/lib/medical-validation';
-import { getStaffMembers } from '@/lib/medical';
 import { MedicalHistory } from '@prisma/client';
 
 interface ConsultationFormProps {
@@ -44,7 +43,11 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
   useEffect(() => {
     const loadStaff = async () => {
       try {
-        const staffData = await getStaffMembers(tenantId);
+        const response = await fetch(`/api/medical/staff?tenantId=${tenantId}`);
+        if (!response.ok) {
+          throw new Error('Error al cargar el personal');
+        }
+        const staffData = await response.json();
         setStaff(staffData);
       } catch (error) {
         console.error('Error loading staff:', error);

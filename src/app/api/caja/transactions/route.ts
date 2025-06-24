@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+interface TransactionData {
+  id: string;
+  type: string;
+  amount: number;
+  paymentMethod: string;
+  description: string;
+  customerName: string;
+  createdAt: Date;
+  status: string;
+}
+
 export async function GET(request: Request) {
   try {
     const { tenant } = await requireAuth();
@@ -17,10 +28,66 @@ export async function GET(request: Request) {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      const salesStats = await prisma.sale.aggregate({
+      // Obtener caja actual
+      const currentDrawer = await prisma.cashDrawer.findFirst({
         where: {
           tenantId,
-          status: 'COMPLETED',
+          openedAt: {
+            gte: today,
+            lt: tomorrow
+          }
+        },
+        orderBy: { openedAt: 'desc' }
+      });
+
+      if (!currentDrawer) {
+        return NextResponse.json({
+          totalSales: 0,
+          totalCash: 0,
+          totalCard: 0,
+          transactionCount: 0
+        });
+      }
+
+      // Obtener transacciones de efectivo de la caja actual
+      const cashTransactions = await prisma.cashTransaction.aggregate({
+        where: {
+          drawerId: currentDrawer.id,
+          type: 'SALE_CASH'
+        },
+        _sum: {
+          amount: true
+        },
+        _count: {
+          id: true
+        }
+      });
+
+      // Obtener pagos con tarjeta del día
+      const cardPayments = await prisma.salePayment.aggregate({
+        where: {
+          paymentMethod: {
+            in: ['CREDIT_CARD', 'DEBIT_CARD']
+          },
+          paymentDate: {
+            gte: today,
+            lt: tomorrow
+          },
+          sale: {
+            tenantId,
+            status: { in: ['COMPLETED', 'PAID'] }
+          }
+        },
+        _sum: {
+          amount: true
+        }
+      });
+
+      // Obtener total de ventas del día
+      const totalSales = await prisma.sale.aggregate({
+        where: {
+          tenantId,
+          status: { in: ['COMPLETED', 'PAID'] },
           createdAt: {
             gte: today,
             lt: tomorrow
@@ -34,87 +101,70 @@ export async function GET(request: Request) {
         }
       });
 
-      const cashPayments = await prisma.salePayment.aggregate({
-        where: {
-          paymentMethod: 'CASH',
-          paymentDate: {
-            gte: today,
-            lt: tomorrow
-          },
-          sale: {
-            tenantId,
-            status: 'COMPLETED'
-          }
-        },
-        _sum: {
-          amount: true
-        }
-      });
-
-      const cardPayments = await prisma.salePayment.aggregate({
-        where: {
-          paymentMethod: {
-            in: ['CREDIT_CARD', 'DEBIT_CARD']
-          },
-          paymentDate: {
-            gte: today,
-            lt: tomorrow
-          },
-          sale: {
-            tenantId,
-            status: 'COMPLETED'
-          }
-        },
-        _sum: {
-          amount: true
-        }
-      });
-
       return NextResponse.json({
-        totalSales: Number(salesStats._sum.total || 0),
-        totalCash: Number(cashPayments._sum.amount || 0),
+        totalSales: Number(totalSales._sum.total || 0),
+        totalCash: Number(cashTransactions._sum.amount || 0),
         totalCard: Number(cardPayments._sum.amount || 0),
-        transactionCount: salesStats._count.id
+        transactionCount: totalSales._count.id
       });
     }
 
-    // Obtener transacciones recientes
-    const transactions = await prisma.salePayment.findMany({
+    // Obtener transacciones recientes (combinando cash transactions y payments)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    // Obtener caja actual
+    const currentDrawer = await prisma.cashDrawer.findFirst({
       where: {
-        sale: {
-          tenantId
+        tenantId,
+        openedAt: {
+          gte: today,
+          lt: tomorrow
         }
       },
-      include: {
-        sale: {
-          include: {
-            customer: {
-              select: {
-                name: true
+      orderBy: { openedAt: 'desc' }
+    });
+
+    let transactions: TransactionData[] = [];
+
+    if (currentDrawer) {
+      // Obtener transacciones de caja
+      const cashTransactions = await prisma.cashTransaction.findMany({
+        where: {
+          drawerId: currentDrawer.id
+        },
+        include: {
+          SalePayment: {
+            include: {
+              sale: {
+                include: {
+                  customer: {
+                    select: { name: true }
+                  }
+                }
               }
             }
           }
-        }
-      },
-      orderBy: {
-        paymentDate: 'desc'
-      },
-      take: limit
-    });
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit
+      });
 
-    // Formatear las transacciones para el frontend
-    const formattedTransactions = transactions.map(payment => ({
-      id: payment.id,
-      type: payment.sale.status === 'CANCELLED' ? 'REFUND' : 'SALE',
-      amount: Number(payment.amount),
-      paymentMethod: payment.paymentMethod,
-      description: `Venta #${payment.sale.saleNumber}`,
-      customerName: payment.sale.customer.name,
-      createdAt: payment.paymentDate,
-      status: payment.sale.status
-    }));
+      transactions = cashTransactions.map(transaction => ({
+        id: transaction.id,
+        type: transaction.type,
+        amount: Number(transaction.amount),
+        paymentMethod: 'CASH',
+        description: transaction.description || 'Transacción de caja',
+        customerName: transaction.SalePayment?.sale.customer.name || 'N/A',
+        createdAt: transaction.createdAt,
+        status: 'COMPLETED'
+      }));
+    }
 
-    return NextResponse.json(formattedTransactions);
+    return NextResponse.json(transactions);
   } catch (error) {
     console.error('Error en GET /api/caja/transactions:', error);
     return NextResponse.json(

@@ -112,6 +112,11 @@ export async function searchProducts(
 }
 
 /**
+ * Alias para searchProducts - buscar productos y servicios para el POS
+ */
+export const searchProductsAndServices = searchProducts;
+
+/**
  * Generar número de venta único
  */
 export async function generateSaleNumber(tenantId: string): Promise<string> {
@@ -216,12 +221,48 @@ export async function createSale(
       }
     }
 
+    // Si es pago en efectivo, verificar si hay caja abierta
+    let cashTransactionId: string | undefined;
+    if (saleData.paymentMethod === 'CASH') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const currentDrawer = await tx.cashDrawer.findFirst({
+        where: {
+          tenantId,
+          status: 'OPEN',
+          openedAt: {
+            gte: today,
+            lt: tomorrow
+          }
+        }
+      });
+
+      if (currentDrawer) {
+        // Crear transacción de caja
+        const cashTransaction = await tx.cashTransaction.create({
+          data: {
+            drawerId: currentDrawer.id,
+            amount: saleData.amountPaid,
+            type: 'SALE_CASH',
+            description: `Venta ${saleNumber}`,
+            relatedId: newSale.id,
+            relatedType: 'SALE'
+          }
+        });
+        cashTransactionId = cashTransaction.id;
+      }
+    }
+
     // Crear el pago
     await tx.salePayment.create({
       data: {
         saleId: newSale.id,
         paymentMethod: saleData.paymentMethod as 'CASH' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'BANK_TRANSFER' | 'MOBILE_PAYMENT' | 'CHECK' | 'INSURANCE' | 'OTHER',
-        amount: saleData.amountPaid
+        amount: saleData.amountPaid,
+        cashTransactionId
       }
     });
 
@@ -229,7 +270,7 @@ export async function createSale(
     if (saleData.amountPaid >= total) {
       await tx.sale.update({
         where: { id: newSale.id },
-        data: { status: 'PAID' }
+        data: { status: 'COMPLETED' }
       });
     }
 

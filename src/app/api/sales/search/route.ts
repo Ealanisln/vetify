@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { searchCustomers, searchProducts } from '@/lib/sales';
+import { searchCustomers, searchProductsAndServices } from '@/lib/sales';
 import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     if (type === 'customers') {
       results = await searchCustomers(userWithTenant.tenant.id, query);
     } else if (type === 'products') {
-      results = await searchProducts(userWithTenant.tenant.id, query);
+      results = await searchProductsAndServices(userWithTenant.tenant.id, query);
     } else {
       return NextResponse.json({ error: 'Tipo de búsqueda inválido' }, { status: 400 });
     }

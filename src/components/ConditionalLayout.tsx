@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Nav from './navbar/Nav';
-import Footer from './footer/Footer';
+// import Footer from './footer/Footer';
 
 interface ConditionalLayoutProps {
   children: React.ReactNode;
@@ -20,9 +20,16 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   
   return (
     <>
+      {/* Re-enabled Nav, Footer still disabled for now */}
       {!shouldHideNavAndFooter && <Nav />}
       {children}
-      {!shouldHideNavAndFooter && <Footer />}
+      {/* {!shouldHideNavAndFooter && <Footer />} */}
+      
+      {/* Debug info */}
+      <div style={{padding: '10px', background: '#f0f0f0', fontSize: '12px'}}>
+        <p>Path: {pathname}</p>
+        <p>Should hide nav/footer: {shouldHideNavAndFooter.toString()}</p>
+      </div>
     </>
   );
 } 
