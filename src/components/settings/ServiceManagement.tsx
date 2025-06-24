@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   PlusIcon, 
   PencilIcon, 
@@ -25,7 +25,7 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | 'ALL'>('ALL');
 
   // Cargar servicios
-  const loadServices = async () => {
+  const loadServices = useCallback(async () => {
     try {
       const response = await fetch(`/api/services?tenantId=${tenantId}`);
       if (response.ok) {
@@ -37,11 +37,11 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId]);
 
   useEffect(() => {
     loadServices();
-  }, [tenantId]);
+  }, [loadServices]);
 
   // Filtrar servicios
   const filteredServices = services.filter(service => {

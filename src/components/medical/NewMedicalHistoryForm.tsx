@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,15 +67,7 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
     prescriptions: []
   });
 
-  useEffect(() => {
-    if (searchQuery.length > 2) {
-      fetchPets();
-    } else {
-      setPets([]);
-    }
-  }, [searchQuery]);
-
-  const fetchPets = async () => {
+  const fetchPets = useCallback(async () => {
     setLoading(true);
     try {
       const response = await fetch(`/api/pets?search=${encodeURIComponent(searchQuery)}&limit=10`);
@@ -88,7 +80,15 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    if (searchQuery.length > 2) {
+      fetchPets();
+    } else {
+      setPets([]);
+    }
+  }, [searchQuery, fetchPets]);
 
   const selectPet = (pet: Pet) => {
     setSelectedPet(pet);
