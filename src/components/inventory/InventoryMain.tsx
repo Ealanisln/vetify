@@ -13,6 +13,8 @@ import { Badge } from '@/components/ui/badge';
 import { AddProductModal } from './AddProductModal';
 import { EditProductModal } from './EditProductModal';
 import { getInventoryCategories } from '@/lib/inventory';
+import { ResponsiveTable } from '@/components/ui/ResponsiveTable';
+import { themeColors, responsive } from '@/utils/theme-colors';
 
 interface InventoryMainProps {
   tenantId: string;
@@ -114,47 +116,153 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
 
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
+  // Define columns for the responsive table
+  const columns = [
+    {
+      key: 'name',
+      header: 'Producto',
+      mobileLabel: 'Producto',
+      render: (item: InventoryItemWithStock) => (
+        <div>
+          <div className={`text-sm font-medium ${themeColors.text.primary}`}>
+            {item.name}
+          </div>
+          {item.brand && (
+            <div className={`text-sm ${themeColors.text.secondary}`}>
+              {item.brand}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'category',
+      header: 'Categoría',
+      mobileLabel: 'Categoría',
+      render: (item: InventoryItemWithStock) => (
+        <span className={`text-sm ${themeColors.text.primary}`}>
+          {categories.find(c => c.value === item.category)?.label || item.category}
+        </span>
+      ),
+    },
+    {
+      key: 'quantity',
+      header: 'Stock',
+      mobileLabel: 'Stock',
+      render: (item: InventoryItemWithStock) => (
+        <div>
+          <div className={`text-sm ${themeColors.text.primary}`}>
+            {Number(item.quantity)} {item.measure}
+          </div>
+          {item.minStock && (
+            <div className={`text-xs ${themeColors.text.secondary}`}>
+              Mín: {Number(item.minStock)}
+            </div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'price',
+      header: 'Precio',
+      mobileLabel: 'Precio',
+      render: (item: InventoryItemWithStock) => (
+        <span className={`text-sm ${themeColors.text.primary}`}>
+          {item.price ? `$${Number(item.price).toFixed(2)}` : '-'}
+        </span>
+      ),
+    },
+    {
+      key: 'expirationDate',
+      header: 'Vencimiento',
+      mobileLabel: 'Vence',
+      render: (item: InventoryItemWithStock) => (
+        <span className={`text-sm ${themeColors.text.primary}`}>
+          {formatDate(item.expirationDate)}
+        </span>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Estado',
+      mobileLabel: 'Estado',
+      render: (item: InventoryItemWithStock) => {
+        const stockStatus = getStockStatus(item);
+        return (
+          <Badge className={stockStatus.color}>
+            {stockStatus.status}
+          </Badge>
+        );
+      },
+    },
+    {
+      key: 'actions',
+      header: 'Acciones',
+      mobileLabel: 'Acciones',
+      className: 'text-right',
+      render: (item: InventoryItemWithStock) => (
+        <div className="flex items-center justify-end sm:justify-center space-x-2">
+          <button
+            onClick={() => handleEdit(item)}
+            className={`${themeColors.text.accent} hover:opacity-75 p-1 rounded transition-opacity`}
+            title="Editar"
+          >
+            <PencilIcon className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => handleDelete(item)}
+            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1 rounded transition-colors"
+            title="Eliminar"
+          >
+            <TrashIcon className="h-4 w-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div id="inventory-main" className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700">
+    <div id="inventory-main" className={`${themeColors.background.card} shadow rounded-lg border ${themeColors.border.primary}`}>
       {/* Header */}
-      <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+      <div className={`${responsive.padding.card} border-b ${themeColors.border.primary}`}>
+        <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-gray-100">
+            <h3 className={`text-lg leading-6 font-medium ${themeColors.text.primary}`}>
               Productos del Inventario
             </h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <p className={`mt-1 text-sm ${themeColors.text.secondary}`}>
               Gestiona los productos, medicamentos y suministros de la clínica
             </p>
           </div>
-          <div className="mt-3 sm:mt-0 sm:ml-4">
+          <div className="flex-shrink-0">
             <button
               onClick={() => setShowAddModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#75a99c] hover:bg-[#5b9788] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c]"
+              className="btn-primary"
             >
               <PlusIcon className="h-5 w-5 mr-2" />
-              Agregar Producto
+              <span className="hidden sm:inline">Agregar Producto</span>
+              <span className="sm:hidden">Agregar</span>
             </button>
           </div>
         </div>
 
         {/* Search and Filters */}
-        <div className="mt-4 flex flex-col sm:flex-row gap-4">
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row">
           <div className="flex-1 relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
             </div>
             <input
               type="text"
               placeholder="Buscar productos..."
               value={searchQuery}
               onChange={handleSearch}
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-[#75a99c] focus:border-[#75a99c]"
+              className="form-input pl-10"
             />
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c]"
+            className="btn-secondary flex-shrink-0"
           >
             <FunnelIcon className="h-5 w-5 mr-2" />
             Filtros
@@ -163,16 +271,16 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
 
         {/* Filter Panel */}
         {showFilters && (
-          <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className={`mt-4 p-4 ${themeColors.background.secondary} rounded-lg`}>
+            <div className={`${responsive.grid.form} gap-4`}>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="form-label">
                   Categoría
                 </label>
                 <select
                   value={selectedCategory}
                   onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-600 text-gray-900 dark:text-gray-100"
+                  className="form-select"
                 >
                   <option value="">Todas las categorías</option>
                   {categories.map((category) => (
@@ -187,143 +295,40 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
         )}
       </div>
 
-      {/* Items List */}
-      <div className="overflow-x-auto">
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#75a99c] mx-auto"></div>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Cargando productos...</p>
-          </div>
-        ) : items.length === 0 ? (
-          <div className="p-8 text-center">
-            <p className="text-gray-500 dark:text-gray-400">No se encontraron productos.</p>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="mt-2 text-[#75a99c] hover:text-[#5b9788] font-medium"
-            >
-              Agregar primer producto
-            </button>
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Producto
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Categoría
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Stock
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Precio
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Vencimiento
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {items.map((item) => {
-                const stockStatus = getStockStatus(item);
-                return (
-                  <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {item.name}
-                        </div>
-                        {item.brand && (
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {item.brand}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-sm text-gray-900 dark:text-gray-100">
-                        {categories.find(c => c.value === item.category)?.label || item.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-gray-100">
-                        {Number(item.quantity)} {item.measure}
-                      </div>
-                      {item.minStock && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400">
-                          Mín: {Number(item.minStock)}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {item.price ? `$${Number(item.price).toFixed(2)}` : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                      {formatDate(item.expirationDate)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge className={stockStatus.color}>
-                        {stockStatus.status}
-                      </Badge>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end space-x-2">
-                        <button
-                          onClick={() => handleEdit(item)}
-                          className="text-[#75a99c] hover:text-[#5b9788] p-1 rounded"
-                          title="Editar"
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item)}
-                          className="text-red-600 hover:text-red-800 p-1 rounded"
-                          title="Eliminar"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
+      {/* Items List - Using ResponsiveTable */}
+      <ResponsiveTable
+        data={items}
+        columns={columns}
+        loading={loading}
+        emptyMessage="No se encontraron productos."
+      />
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6">
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-700 dark:text-gray-300">
+        <div className={`${responsive.padding.card} border-t ${themeColors.border.primary}`}>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className={`text-sm ${themeColors.text.secondary} text-center sm:text-left`}>
               Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems} productos
             </div>
-            <div className="flex space-x-2">
+            <div className="flex justify-center items-center space-x-2">
               <button
                 onClick={() => setCurrentPage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="px-3 py-1 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
+                className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
               >
-                Anterior
+                <span className="hidden sm:inline">Anterior</span>
+                <span className="sm:hidden">‹</span>
               </button>
-              <span className="px-3 py-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span className={`px-3 py-1 text-sm font-medium ${themeColors.text.primary}`}>
                 {currentPage} de {totalPages}
               </span>
               <button
                 onClick={() => setCurrentPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
+                className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm"
               >
-                Siguiente
+                <span className="hidden sm:inline">Siguiente</span>
+                <span className="sm:hidden">›</span>
               </button>
             </div>
           </div>

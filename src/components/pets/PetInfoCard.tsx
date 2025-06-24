@@ -1,6 +1,7 @@
 import { Pet, Customer } from '@prisma/client';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { getThemeClasses } from '@/utils/theme-colors';
 
 type PetWithOwner = Pet & { customer: Customer };
 
@@ -18,36 +19,34 @@ export function PetInfoCard({ pet }: PetInfoCardProps) {
   ];
 
   return (
-    <div className="bg-white shadow rounded-lg border border-gray-200">
-      <div className="px-4 py-5 sm:p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
-          Información General
-        </h3>
-        
-        <dl className="grid grid-cols-1 gap-4">
-          {infoItems.map((item, index) => (
-            <div key={index} className="border-b border-gray-100 pb-3 last:border-b-0">
-              <dt className="text-sm font-medium text-gray-500">{item.label}</dt>
-              <dd className="mt-1 text-sm text-gray-900">{item.value}</dd>
-            </div>
-          ))}
-        </dl>
-        
-        {/* Owner Info Section */}
-        <div className="mt-6 pt-6 border-t border-gray-200">
-          <h4 className="text-sm font-medium text-gray-900 mb-3">Información del Dueño</h4>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <p className="text-sm font-medium text-gray-900">
-              {pet.customer?.name || 'Nombre no registrado'}
-            </p>
-            <p className="text-sm text-gray-600">{pet.customer?.email || 'Email no registrado'}</p>
-            {pet.customer?.phone && (
-              <p className="text-sm text-gray-600">📞 {pet.customer.phone}</p>
-            )}
-            {pet.customer?.address && (
-              <p className="text-sm text-gray-600">📍 {pet.customer.address}</p>
-            )}
+    <div className={`card p-4 md:p-6 ${getThemeClasses('background.card', 'border.card')}`}>
+      <h3 className={`text-base md:text-lg font-medium ${getThemeClasses('text.primary')} mb-4`}>
+        Información General
+      </h3>
+      
+      <dl className="grid grid-cols-1 gap-4">
+        {infoItems.map((item, index) => (
+          <div key={index} className={`border-b ${getThemeClasses('border.card')} pb-3 last:border-b-0`}>
+            <dt className={`text-sm font-medium ${getThemeClasses('text.tertiary')}`}>{item.label}</dt>
+            <dd className={`mt-1 text-sm ${getThemeClasses('text.primary')}`}>{item.value}</dd>
           </div>
+        ))}
+      </dl>
+      
+      {/* Owner Info Section */}
+      <div className={`mt-6 pt-6 border-t ${getThemeClasses('border.card')}`}>
+        <h4 className={`text-sm font-medium ${getThemeClasses('text.primary')} mb-3`}>Información del Dueño</h4>
+        <div className={`${getThemeClasses('background.muted')} rounded-lg p-4`}>
+          <p className={`text-sm font-medium ${getThemeClasses('text.primary')}`}>
+            {pet.customer?.name || 'Nombre no registrado'}
+          </p>
+          <p className={`text-sm ${getThemeClasses('text.secondary')}`}>{pet.customer?.email || 'Email no registrado'}</p>
+          {pet.customer?.phone && (
+            <p className={`text-sm ${getThemeClasses('text.secondary')}`}>📞 {pet.customer.phone}</p>
+          )}
+          {pet.customer?.address && (
+            <p className={`text-sm ${getThemeClasses('text.secondary')}`}>📍 {pet.customer.address}</p>
+          )}
         </div>
       </div>
     </div>

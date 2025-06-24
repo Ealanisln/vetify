@@ -16,6 +16,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
+import { getThemeClasses } from '@/utils/theme-colors';
 
 interface MedicalHistoryMainProps {
   tenantId: string;
@@ -109,8 +110,8 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-3">Cargando historias clínicas...</span>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+            <span className={`ml-3 ${getThemeClasses('text.primary')}`}>Cargando historias clínicas...</span>
           </div>
         </CardContent>
       </Card>
@@ -138,13 +139,13 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <MagnifyingGlassIcon className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${getThemeClasses('text.muted')}`} />
               <input
                 type="text"
                 placeholder="Buscar por mascota, cliente, diagnóstico o tratamiento..."
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                className={`w-full pl-10 pr-4 py-2 border rounded-md ${getThemeClasses('input.base')} ${getThemeClasses('input.focus')}`}
               />
             </div>
           </div>
@@ -156,8 +157,8 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
         <CardContent className="p-0">
           {histories.length === 0 ? (
             <div className="text-center py-12">
-              <DocumentTextIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 mb-4">
+              <DocumentTextIcon className={`h-12 w-12 ${getThemeClasses('text.muted')} mx-auto mb-3`} />
+              <p className={`${getThemeClasses('text.secondary')} mb-4`}>
                 {searchQuery ? 'No se encontraron historias clínicas' : 'No hay historias clínicas registradas'}
               </p>
               <Link href="/dashboard/medical-history/new">
@@ -168,23 +169,23 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
               </Link>
             </div>
           ) : (
-            <div className="divide-y divide-gray-200">
+            <div className={`divide-y ${getThemeClasses('border.primary')}`}>
               {histories.map((history) => (
-                <div key={history.id} className="p-6 hover:bg-gray-50 transition-colors">
+                <div key={history.id} className={`p-6 ${getThemeClasses('hover.card')} transition-colors`}>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       {/* Header con mascota y cliente */}
                       <div className="flex items-center gap-3 mb-2">
                         <div className="flex items-center gap-2">
-                          <HeartIcon className="h-4 w-4 text-red-500" />
-                          <span className="font-medium text-gray-900">
+                          <HeartIcon className="h-4 w-4 text-red-500 dark:text-red-400" />
+                          <span className={`font-medium ${getThemeClasses('text.primary')}`}>
                             {history.pet.name}
                           </span>
-                          <span className="text-sm text-gray-500">
+                          <span className={`text-sm ${getThemeClasses('text.secondary')}`}>
                             ({history.pet.species})
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <div className={`flex items-center gap-2 text-sm ${getThemeClasses('text.secondary')}`}>
                           <UserIcon className="h-3 w-3" />
                           <span>{history.pet.customer.name}</span>
                         </div>
@@ -192,12 +193,12 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
 
                       {/* Motivo de consulta */}
                       <div className="mb-2">
-                        <h3 className="text-lg font-medium text-gray-900 mb-1">
+                        <h3 className={`text-lg font-medium ${getThemeClasses('text.primary')} mb-1`}>
                           {history.reasonForVisit}
                         </h3>
                         {history.diagnosis && (
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="text-sm text-gray-600">Diagnóstico:</span>
+                            <span className={`text-sm ${getThemeClasses('text.secondary')}`}>Diagnóstico:</span>
                             <Badge variant={getDiagnosisColor(history.diagnosis)}>
                               {history.diagnosis}
                             </Badge>
@@ -208,15 +209,15 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
                       {/* Tratamiento */}
                       {history.treatment && (
                         <div className="mb-2">
-                          <span className="text-sm text-gray-600">Tratamiento: </span>
-                          <span className="text-sm text-gray-900">{history.treatment}</span>
+                          <span className={`text-sm ${getThemeClasses('text.secondary')}`}>Tratamiento: </span>
+                          <span className={`text-sm ${getThemeClasses('text.primary')}`}>{history.treatment}</span>
                         </div>
                       )}
 
                       {/* Prescripciones */}
                       {history.medicalOrder?.prescriptions && history.medicalOrder.prescriptions.length > 0 && (
                         <div className="mb-2">
-                          <span className="text-sm text-gray-600">Prescripciones: </span>
+                          <span className={`text-sm ${getThemeClasses('text.secondary')}`}>Prescripciones: </span>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {history.medicalOrder.prescriptions.map((prescription, index) => (
                               <Badge key={index} variant="outline" className="text-xs">
@@ -229,7 +230,7 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
 
                       {/* Notas */}
                       {history.notes && (
-                        <div className="text-sm text-gray-600 mt-2 bg-gray-50 p-2 rounded">
+                        <div className={`text-sm ${getThemeClasses('text.secondary')} mt-2 ${getThemeClasses('background.muted')} p-2 rounded`}>
                           <strong>Notas:</strong> {history.notes}
                         </div>
                       )}
@@ -237,7 +238,7 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
 
                     {/* Fecha y acciones */}
                     <div className="flex flex-col items-end gap-2 ml-4">
-                      <div className="flex items-center gap-1 text-sm text-gray-500">
+                      <div className={`flex items-center gap-1 text-sm ${getThemeClasses('text.secondary')}`}>
                         <CalendarIcon className="h-3 w-3" />
                         <span>
                           {format(new Date(history.visitDate), 'dd/MM/yyyy HH:mm', { locale: es })}
@@ -275,7 +276,7 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
           >
             Anterior
           </Button>
-          <span className="flex items-center px-4 text-sm text-gray-600">
+          <span className={`flex items-center px-4 text-sm ${getThemeClasses('text.secondary')}`}>
             Página {page} de {Math.ceil(total / 10)}
           </span>
           <Button

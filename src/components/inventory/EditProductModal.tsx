@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { getInventoryCategories } from '@/lib/inventory';
 import { InventoryItemWithStock } from '@/types';
+import { getThemeClasses } from '@/utils/theme-colors';
 
 interface EditProductModalProps {
   isOpen: boolean;
@@ -126,282 +127,280 @@ export function EditProductModal({ isOpen, onClose, onSuccess, item, tenantId }:
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white dark:bg-gray-800">
-        <div className="flex items-center justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-            Editar Producto: {item.name}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <XMarkIcon className="h-6 w-6" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-4">
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-800 rounded-md">
-              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Información básica */}
-            <div className="md:col-span-2">
-              <h4 className="text-md font-medium text-gray-900 dark:text-gray-100 mb-3">
-                Información Básica
-              </h4>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Nombre del Producto *
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Categoría *
-              </label>
-              <select
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                required
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              >
-                <option value="">Seleccionar categoría</option>
-                {categories.map((category) => (
-                  <option key={category.value} value={category.value}>
-                    {category.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Marca
-              </label>
-              <input
-                type="text"
-                name="brand"
-                value={formData.brand}
-                onChange={handleInputChange}
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Presentación
-              </label>
-              <input
-                type="text"
-                name="presentation"
-                value={formData.presentation}
-                onChange={handleInputChange}
-                placeholder="ej: Tableta, Ampolla, Frasco"
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Unidad de Medida
-              </label>
-              <input
-                type="text"
-                name="measure"
-                value={formData.measure}
-                onChange={handleInputChange}
-                placeholder="ej: mg, ml, unidades"
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Principio Activo
-              </label>
-              <input
-                type="text"
-                name="activeCompound"
-                value={formData.activeCompound}
-                onChange={handleInputChange}
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            {/* Stock y precios */}
-            <div className="md:col-span-2 mt-4">
-              <h4 className="text-md font-medium text-gray-900 dark:text-gray-100 mb-3">
-                Stock y Precios
-              </h4>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Cantidad Actual
-              </label>
-              <input
-                type="number"
-                name="quantity"
-                value={formData.quantity}
-                onChange={handleInputChange}
-                min="0"
-                step="0.01"
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Stock Mínimo
-              </label>
-              <input
-                type="number"
-                name="minStock"
-                value={formData.minStock}
-                onChange={handleInputChange}
-                min="0"
-                step="0.01"
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Costo
-              </label>
-              <input
-                type="number"
-                name="cost"
-                value={formData.cost}
-                onChange={handleInputChange}
-                min="0"
-                step="0.01"
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Precio de Venta
-              </label>
-              <input
-                type="number"
-                name="price"
-                value={formData.price}
-                onChange={handleInputChange}
-                min="0"
-                step="0.01"
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            {/* Información adicional */}
-            <div className="md:col-span-2 mt-4">
-              <h4 className="text-md font-medium text-gray-900 dark:text-gray-100 mb-3">
-                Información Adicional
-              </h4>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Ubicación
-              </label>
-              <input
-                type="text"
-                name="location"
-                value={formData.location}
-                onChange={handleInputChange}
-                placeholder="ej: Estante A, Refrigerador"
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Fecha de Vencimiento
-              </label>
-              <input
-                type="date"
-                name="expirationDate"
-                value={formData.expirationDate}
-                onChange={handleInputChange}
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Número de Lote
-              </label>
-              <input
-                type="text"
-                name="batchNumber"
-                value={formData.batchNumber}
-                onChange={handleInputChange}
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Descripción
-              </label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={3}
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Notas Especiales
-              </label>
-              <textarea
-                name="specialNotes"
-                value={formData.specialNotes}
-                onChange={handleInputChange}
-                rows={2}
-                placeholder="Instrucciones de manejo, almacenamiento, etc."
-                className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-          </div>
-
-          <div className="mt-6 flex justify-end space-x-3">
+    <div className={`fixed inset-0 ${getThemeClasses('background.overlay')} overflow-y-auto h-full w-full z-50`}>
+      <div className="relative top-4 md:top-20 mx-auto p-4 md:p-5 w-full max-w-2xl md:w-11/12 shadow-lg">
+        <div className={`${getThemeClasses('background.card', 'border.card')} rounded-md p-4 md:p-6`}>
+          <div className={`flex items-center justify-between pb-3 border-b ${getThemeClasses('border.card')}`}>
+            <h3 className={`text-base md:text-lg font-medium ${getThemeClasses('text.primary')}`}>
+              Editar Producto: {item.name}
+            </h3>
             <button
-              type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c]"
+              className={`${getThemeClasses('text.tertiary')} hover:${getThemeClasses('text.secondary')}`}
             >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#75a99c] hover:bg-[#5b9788] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Guardando...' : 'Guardar Cambios'}
+              <XMarkIcon className="h-6 w-6" />
             </button>
           </div>
-        </form>
+
+          <form onSubmit={handleSubmit} className="mt-4">
+            {error && (
+              <div className={`mb-4 p-4 ${getThemeClasses('background.error')} ${getThemeClasses('border.error')} border rounded-md`}>
+                <p className={`text-sm ${getThemeClasses('text.error')}`}>{error}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Información básica */}
+              <div className="md:col-span-2">
+                <h4 className={`text-md font-medium ${getThemeClasses('text.primary')} mb-3`}>
+                  Información Básica
+                </h4>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Nombre del Producto *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  className="form-input"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Categoría *
+                </label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  required
+                  className="form-input"
+                >
+                  <option value="">Seleccionar categoría</option>
+                  {categories.map((category) => (
+                    <option key={category.value} value={category.value}>
+                      {category.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Marca
+                </label>
+                <input
+                  type="text"
+                  name="brand"
+                  value={formData.brand}
+                  onChange={handleInputChange}
+                  className="form-input"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Presentación
+                </label>
+                <input
+                  type="text"
+                  name="presentation"
+                  value={formData.presentation}
+                  onChange={handleInputChange}
+                  className="form-input"
+                  placeholder="Ej: Tabletas, Ampolla, Frasco"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Descripción
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="form-input"
+                />
+              </div>
+
+              {/* Inventario */}
+              <div className="md:col-span-2">
+                <h4 className={`text-md font-medium ${getThemeClasses('text.primary')} mb-3 mt-6`}>
+                  Inventario
+                </h4>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Cantidad *
+                </label>
+                <input
+                  type="number"
+                  name="quantity"
+                  value={formData.quantity}
+                  onChange={handleInputChange}
+                  min="0"
+                  required
+                  className="form-input"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Stock Mínimo *
+                </label>
+                <input
+                  type="number"
+                  name="minStock"
+                  value={formData.minStock}
+                  onChange={handleInputChange}
+                  min="0"
+                  required
+                  className="form-input"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Ubicación
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  className="form-input"
+                  placeholder="Ej: Estante A-1"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Fecha de Vencimiento
+                </label>
+                <input
+                  type="date"
+                  name="expirationDate"
+                  value={formData.expirationDate}
+                  onChange={handleInputChange}
+                  className="form-input"
+                />
+              </div>
+
+              {/* Precios */}
+              <div className="md:col-span-2">
+                <h4 className={`text-md font-medium ${getThemeClasses('text.primary')} mb-3 mt-6`}>
+                  Precios
+                </h4>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Costo *
+                </label>
+                <input
+                  type="number"
+                  name="cost"
+                  value={formData.cost}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="0.01"
+                  required
+                  className="form-input"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Precio de Venta *
+                </label>
+                <input
+                  type="number"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleInputChange}
+                  min="0"
+                  step="0.01"
+                  required
+                  className="form-input"
+                />
+              </div>
+
+              {/* Información adicional */}
+              <div className="md:col-span-2">
+                <h4 className={`text-md font-medium ${getThemeClasses('text.primary')} mb-3 mt-6`}>
+                  Información Adicional
+                </h4>
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Número de Lote
+                </label>
+                <input
+                  type="text"
+                  name="batchNumber"
+                  value={formData.batchNumber}
+                  onChange={handleInputChange}
+                  className="form-input"
+                />
+              </div>
+
+              <div>
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Compuesto Activo
+                </label>
+                <input
+                  type="text"
+                  name="activeCompound"
+                  value={formData.activeCompound}
+                  onChange={handleInputChange}
+                  className="form-input"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                  Notas Especiales
+                </label>
+                <textarea
+                  name="specialNotes"
+                  value={formData.specialNotes}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="form-input"
+                />
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 mt-6">
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={loading}
+                className="btn-secondary order-2 sm:order-1"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary order-1 sm:order-2"
+              >
+                {loading ? 'Actualizando...' : 'Actualizar Producto'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

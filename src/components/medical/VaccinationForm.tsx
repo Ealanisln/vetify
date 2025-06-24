@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { vaccinationSchema, COMMON_VACCINES, type VaccinationFormData } from '@/lib/medical-validation';
 import { TreatmentType, VaccinationStage } from '@prisma/client';
+import { getThemeClasses } from '@/utils/theme-colors';
 
 interface VaccinationFormProps {
   petId: string;
@@ -84,18 +85,18 @@ export function VaccinationForm({ petId, tenantId, onSuccess, onCancel }: Vaccin
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
       {/* Información de la Vacuna */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-          <span className="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
+      <div className={`card p-4 md:p-6 space-y-4 ${getThemeClasses('background.card', 'border.card')}`}>
+        <h3 className={`text-base md:text-lg font-semibold ${getThemeClasses('text.primary')} flex items-center`}>
+          <span className={`w-6 h-6 md:w-8 md:h-8 bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400 rounded-full flex items-center justify-center text-xs md:text-sm font-bold mr-3`}>
             1
           </span>
           Información de la Vacuna
         </h3>
         
         <div>
-          <label htmlFor="vaccine_brand" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="vaccine_brand" className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-2`}>
             Tipo/Marca de vacuna *
           </label>
           <input
@@ -103,7 +104,7 @@ export function VaccinationForm({ petId, tenantId, onSuccess, onCancel }: Vaccin
             id="vaccine_brand"
             {...register('vaccine_brand')}
             list="vaccines"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            className="form-input"
             placeholder="Ej: DHPPI, Antirrábica..."
           />
           <datalist id="vaccines">

@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { consultationSchema, COMMON_SYMPTOMS, type ConsultationFormData } from '@/lib/medical-validation';
 import { MedicalHistory } from '@prisma/client';
+import { getThemeClasses } from '@/utils/theme-colors';
 
 interface ConsultationFormProps {
   petId: string;
@@ -107,25 +108,25 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
       {/* Motivo de la Consulta */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-          <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
+      <div className={`card p-4 md:p-6 space-y-4 ${getThemeClasses('background.card', 'border.card')}`}>
+        <h3 className={`text-base md:text-lg font-semibold ${getThemeClasses('text.primary')} flex items-center`}>
+          <span className={`w-6 h-6 md:w-8 md:h-8 ${getThemeClasses('background.accent')} text-white rounded-full flex items-center justify-center text-xs md:text-sm font-bold mr-3`}>
             1
           </span>
           Motivo de la Consulta
         </h3>
         
         <div>
-          <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="reason" className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-2`}>
             Describe el motivo de la visita *
           </label>
           <textarea
             id="reason"
             {...register('reason')}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="form-input"
             placeholder="Ej: Revisión de rutina, síntomas específicos, seguimiento de tratamiento..."
           />
           {errors.reason && (
@@ -135,22 +136,22 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
       </div>
 
       {/* Síntomas Observados */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-          <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
+      <div className={`card p-4 md:p-6 space-y-4 ${getThemeClasses('background.card', 'border.card')}`}>
+        <h3 className={`text-base md:text-lg font-semibold ${getThemeClasses('text.primary')} flex items-center`}>
+          <span className={`w-6 h-6 md:w-8 md:h-8 ${getThemeClasses('background.accent')} text-white rounded-full flex items-center justify-center text-xs md:text-sm font-bold mr-3`}>
             2
           </span>
           Síntomas Observados
         </h3>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {COMMON_SYMPTOMS.map((symptom) => (
             <label
               key={symptom}
-              className={`flex items-center p-3 rounded-lg border cursor-pointer transition-all ${
+              className={`flex items-center p-2 md:p-3 rounded-lg border cursor-pointer transition-all ${
                 selectedSymptoms.includes(symptom)
-                  ? 'bg-blue-50 border-blue-200 text-blue-900'
-                  : 'bg-white border-gray-200 hover:bg-gray-50'
+                  ? `${getThemeClasses('background.accent')} bg-opacity-10 ${getThemeClasses('border.accent')} text-[#75a99c] dark:text-[#9ed3c4]`
+                  : `${getThemeClasses('background.card', 'border.card')} ${getThemeClasses('hover.card')}`
               }`}
             >
               <input
@@ -159,27 +160,28 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
                 onChange={() => handleSymptomToggle(symptom)}
                 className="sr-only"
               />
-              <span className="text-sm font-medium">{symptom}</span>
+              <span className="text-xs md:text-sm font-medium">{symptom}</span>
             </label>
           ))}
         </div>
 
         {/* Custom Symptom Input */}
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             type="text"
             value={customSymptom}
             onChange={(e) => setCustomSymptom(e.target.value)}
             placeholder="Agregar síntoma personalizado..."
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="form-input flex-1"
             onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCustomSymptom())}
           />
           <button
             type="button"
             onClick={handleAddCustomSymptom}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="btn-primary px-4 py-2 whitespace-nowrap"
           >
-            Agregar
+            <span className="hidden sm:inline">Agregar</span>
+            <span className="sm:hidden">+</span>
           </button>
         </div>
 

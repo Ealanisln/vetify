@@ -1,5 +1,6 @@
 import { Pet, Customer } from '@prisma/client';
 import { differenceInYears, differenceInMonths } from 'date-fns';
+import { getThemeClasses } from '@/utils/theme-colors';
 
 type PetWithOwner = Pet & { customer: Customer };
 
@@ -10,16 +11,18 @@ interface PetHeaderProps {
 // Temporary button components
 function EditPetButton() {
   return (
-    <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-      ✏️ Editar
+    <button className="btn-secondary">
+      <span className="hidden sm:inline">✏️ Editar</span>
+      <span className="sm:hidden">✏️</span>
     </button>
   );
 }
 
 function NewAppointmentButton() {
   return (
-    <button className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-      📅 Nueva Cita
+    <button className="btn-primary">
+      <span className="hidden sm:inline">📅 Nueva Cita</span>
+      <span className="sm:hidden">📅</span>
     </button>
   );
 }
@@ -43,56 +46,57 @@ export function PetHeader({ pet }: PetHeaderProps) {
   };
 
   return (
-    <div className="bg-white shadow-sm rounded-lg border border-gray-200">
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-              <span className="text-3xl">{getSpeciesIcon(pet.species)}</span>
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h1 className="text-2xl font-bold text-gray-900">{pet.name}</h1>
+    <div className={`card p-4 md:p-6 ${getThemeClasses('background.card', 'border.card')}`}>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+          <div className={`h-16 w-16 rounded-full ${getThemeClasses('background.muted')} flex items-center justify-center`}>
+            <span className="text-3xl">{getSpeciesIcon(pet.species)}</span>
+          </div>
+          <div className="flex-1">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <h1 className={`text-xl md:text-2xl font-bold ${getThemeClasses('text.primary')}`}>{pet.name}</h1>
+              <div className="flex flex-wrap gap-2">
                 {pet.isDeceased && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                    ${getThemeClasses('background.muted')} ${getThemeClasses('text.secondary')}`}>
                     🕊️ Fallecido
                   </span>
                 )}
                 {pet.isNeutered && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
                     ✂️ Esterilizado
                   </span>
                 )}
               </div>
-              <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
-                <span className="capitalize">{pet.species}</span>
-                {pet.breed && (
-                  <>
-                    <span>•</span>
-                    <span>{pet.breed}</span>
-                  </>
-                )}
-                <span>•</span>
-                <span>{pet.gender === 'male' ? 'Macho' : 'Hembra'}</span>
-                <span>•</span>
-                <span>{displayAge}</span>
-                {pet.weight && (
-                  <>
-                    <span>•</span>
-                    <span>{pet.weight.toString()}{pet.weightUnit}</span>
-                  </>
-                )}
-              </div>
-              <p className="text-sm text-gray-600 mt-1">
-                <span className="font-medium">Dueño:</span> {pet.customer?.name || pet.customer?.email || 'Sin datos'}
-              </p>
             </div>
+            <div className={`flex flex-wrap items-center gap-2 text-sm ${getThemeClasses('text.tertiary')} mt-1`}>
+              <span className="capitalize">{pet.species}</span>
+              {pet.breed && (
+                <>
+                  <span>•</span>
+                  <span>{pet.breed}</span>
+                </>
+              )}
+              <span>•</span>
+              <span>{pet.gender === 'male' ? 'Macho' : 'Hembra'}</span>
+              <span>•</span>
+              <span>{displayAge}</span>
+              {pet.weight && (
+                <>
+                  <span>•</span>
+                  <span>{pet.weight.toString()}{pet.weightUnit}</span>
+                </>
+              )}
+            </div>
+            <p className={`text-sm ${getThemeClasses('text.secondary')} mt-1`}>
+              <span className="font-medium">Dueño:</span> {pet.customer?.name || pet.customer?.email || 'Sin datos'}
+            </p>
           </div>
-          
-          <div className="flex space-x-3">
-            <EditPetButton />
-            <NewAppointmentButton />
-          </div>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-3">
+          <EditPetButton />
+          <NewAppointmentButton />
         </div>
       </div>
     </div>

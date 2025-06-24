@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { InventoryItemWithStock } from '@/types';
 
+
 interface LowStockAlertProps {
   tenantId: string;
 }
@@ -44,7 +45,7 @@ export function LowStockAlert({ tenantId }: LowStockAlertProps) {
         <div className="flex-shrink-0">
           <ExclamationTriangleIcon className="h-5 w-5 text-yellow-400" />
         </div>
-        <div className="ml-3 flex-1">
+        <div className="ml-3 flex-1 min-w-0">
           <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
             ⚠️ Alerta de Inventario
           </h3>
@@ -52,25 +53,29 @@ export function LowStockAlert({ tenantId }: LowStockAlertProps) {
             {criticalItems.length > 0 && (
               <div className="mb-2">
                 <strong>Sin stock ({criticalItems.length}):</strong>{' '}
-                {criticalItems.slice(0, 3).map((item, index) => (
-                  <span key={item.id}>
-                    {item.name}
-                    {index < Math.min(criticalItems.length, 3) - 1 ? ', ' : ''}
-                  </span>
-                ))}
-                {criticalItems.length > 3 && ` y ${criticalItems.length - 3} más`}
+                <span className="break-words">
+                  {criticalItems.slice(0, 3).map((item, index) => (
+                    <span key={item.id}>
+                      {item.name}
+                      {index < Math.min(criticalItems.length, 3) - 1 ? ', ' : ''}
+                    </span>
+                  ))}
+                  {criticalItems.length > 3 && ` y ${criticalItems.length - 3} más`}
+                </span>
               </div>
             )}
             {lowItems.length > 0 && (
               <div>
                 <strong>Stock bajo ({lowItems.length}):</strong>{' '}
-                {lowItems.slice(0, 3).map((item, index) => (
-                  <span key={item.id}>
-                    {item.name} ({Number(item.quantity)})
-                    {index < Math.min(lowItems.length, 3) - 1 ? ', ' : ''}
-                  </span>
-                ))}
-                {lowItems.length > 3 && ` y ${lowItems.length - 3} más`}
+                <span className="break-words">
+                  {lowItems.slice(0, 3).map((item, index) => (
+                    <span key={item.id}>
+                      {item.name} ({Number(item.quantity)})
+                      {index < Math.min(lowItems.length, 3) - 1 ? ', ' : ''}
+                    </span>
+                  ))}
+                  {lowItems.length > 3 && ` y ${lowItems.length - 3} más`}
+                </span>
               </div>
             )}
           </div>

@@ -3,6 +3,7 @@
 import { Pet, Customer } from '@prisma/client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getThemeClasses } from '@/utils/theme-colors';
 
 type PetWithCustomer = Pet & { customer: Customer };
 
@@ -104,90 +105,88 @@ export function QuickActionsCard({ pet }: QuickActionsCardProps) {
 
   const getActionStyles = (action: typeof actions[0]) => {
     if (action.primary) {
-      return 'bg-blue-50 border-2 border-blue-200 hover:bg-blue-100';
+      return `${getThemeClasses('background.card')} border-2 border-[#75a99c] dark:border-[#95c9bc] hover:${getThemeClasses('background.hover')}`;
     }
     
     switch (action.color) {
       case 'green':
-        return 'border border-gray-200 hover:bg-green-50 hover:border-green-200';
+        return `${getThemeClasses('background.card', 'border.card')} hover:bg-green-50 dark:hover:bg-green-900/20 hover:border-green-200 dark:hover:border-green-700`;
       case 'purple':
-        return 'border border-gray-200 hover:bg-purple-50 hover:border-purple-200';
+        return `${getThemeClasses('background.card', 'border.card')} hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:border-purple-200 dark:hover:border-purple-700`;
       case 'orange':
-        return 'border border-gray-200 hover:bg-orange-50 hover:border-orange-200';
+        return `${getThemeClasses('background.card', 'border.card')} hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:border-orange-200 dark:hover:border-orange-700`;
       default:
-        return 'border border-gray-200 hover:bg-gray-50';
+        return `${getThemeClasses('background.card', 'border.card')} hover:${getThemeClasses('background.hover')}`;
     }
   };
 
   const getTextStyles = (action: typeof actions[0]) => {
     if (action.primary) {
       return {
-        name: 'text-blue-900',
-        description: 'text-blue-700'
+        name: 'text-[#75a99c] dark:text-[#95c9bc]',
+        description: 'text-[#5f8c7f] dark:text-[#7bb3a5]'
       };
     }
     
     switch (action.color) {
       case 'green':
         return {
-          name: 'text-gray-900 group-hover:text-green-900',
-          description: 'text-gray-500 group-hover:text-green-700'
+          name: `${getThemeClasses('text.primary')} group-hover:text-green-900 dark:group-hover:text-green-200`,
+          description: `${getThemeClasses('text.tertiary')} group-hover:text-green-700 dark:group-hover:text-green-300`
         };
       case 'purple':
         return {
-          name: 'text-gray-900 group-hover:text-purple-900',
-          description: 'text-gray-500 group-hover:text-purple-700'
+          name: `${getThemeClasses('text.primary')} group-hover:text-purple-900 dark:group-hover:text-purple-200`,
+          description: `${getThemeClasses('text.tertiary')} group-hover:text-purple-700 dark:group-hover:text-purple-300`
         };
       case 'orange':
         return {
-          name: 'text-gray-900 group-hover:text-orange-900',
-          description: 'text-gray-500 group-hover:text-orange-700'
+          name: `${getThemeClasses('text.primary')} group-hover:text-orange-900 dark:group-hover:text-orange-200`,
+          description: `${getThemeClasses('text.tertiary')} group-hover:text-orange-700 dark:group-hover:text-orange-300`
         };
       default:
         return {
-          name: 'text-gray-900',
-          description: 'text-gray-500'
+          name: getThemeClasses('text.primary'),
+          description: getThemeClasses('text.tertiary')
         };
     }
   };
 
   return (
-    <div className="bg-white shadow rounded-lg border border-gray-200">
-      <div className="px-4 py-5 sm:p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
-          Acciones Rápidas
-        </h3>
-        
-        <div className="grid grid-cols-1 gap-3">
-          {actions.map((action) => {
-            const textStyles = getTextStyles(action);
-            return (
-              <button
-                key={action.id}
-                onClick={() => handleAction(action.id)}
-                disabled={isLoading === action.id}
-                className={`group relative rounded-lg p-3 text-left transition-all duration-200 ${getActionStyles(action)} ${
-                  isLoading === action.id ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-sm'
-                }`}
-              >
-                <div className="flex items-center space-x-3">
-                  <span className="text-xl">{action.icon}</span>
-                  <div className="flex-1">
-                    <p className={`text-sm font-medium transition-colors ${textStyles.name}`}>
-                      {action.name}
-                    </p>
-                    <p className={`text-xs transition-colors ${textStyles.description}`}>
-                      {action.description}
-                    </p>
-                  </div>
-                  {isLoading === action.id && (
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-blue-600"></div>
-                  )}
+    <div className={`card p-4 md:p-6 ${getThemeClasses('background.card', 'border.card')}`}>
+      <h3 className={`text-base md:text-lg font-medium ${getThemeClasses('text.primary')} mb-4`}>
+        Acciones Rápidas
+      </h3>
+      
+      <div className="grid grid-cols-1 gap-3">
+        {actions.map((action) => {
+          const textStyles = getTextStyles(action);
+          return (
+            <button
+              key={action.id}
+              onClick={() => handleAction(action.id)}
+              disabled={isLoading === action.id}
+              className={`group relative rounded-lg p-3 text-left transition-all duration-200 ${getActionStyles(action)} ${
+                isLoading === action.id ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-sm'
+              }`}
+            >
+              <div className="flex items-center space-x-3">
+                <span className="text-xl">{action.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium transition-colors ${textStyles.name} truncate`}>
+                    {action.name}
+                  </p>
+                  <p className={`text-xs transition-colors ${textStyles.description} truncate`}>
+                    {action.description}
+                  </p>
                 </div>
-              </button>
-            );
-          })}
-        </div>
+                {isLoading === action.id && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-[#75a99c]"></div>
+                )}
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
