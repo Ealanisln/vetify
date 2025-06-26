@@ -10,6 +10,33 @@ interface PlanGuardProps {
   showUpgrade?: boolean;
 }
 
+interface PlanStatus {
+  limits: {
+    maxPets?: number;
+    maxUsers?: number;
+    maxMonthlyWhatsApp?: number;
+    canUseAutomations?: boolean;
+    canUseAdvancedReports?: boolean;
+    canUseMultiDoctor?: boolean;
+    canUseSMSReminders?: boolean;
+  };
+  usage: {
+    currentPets?: number;
+    currentUsers?: number;
+    currentMonthlyWhatsApp?: number;
+  };
+  percentages: {
+    pets?: number;
+    users?: number;
+    whatsapp?: number;
+  };
+  plan: {
+    name?: string;
+    isTrialPeriod?: boolean;
+  };
+  warnings: Record<string, unknown>;
+}
+
 /**
  * Server Component that guards features based on plan limits
  * Used to conditionally render features based on tenant's subscription plan
@@ -43,13 +70,7 @@ export async function PlanGuard({
  * Use this in Client Components when you need reactive plan checking
  */
 export function usePlanGuard(tenantId: string) {
-  const [planStatus, setPlanStatus] = React.useState<{
-    limits?: Record<string, unknown>;
-    usage?: Record<string, unknown>;
-    percentages?: Record<string, unknown>;
-    plan?: Record<string, unknown>;
-    warnings?: Record<string, unknown>;
-  } | null>(null);
+  const [planStatus, setPlanStatus] = React.useState<PlanStatus | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -69,54 +90,65 @@ export function usePlanGuard(tenantId: string) {
   }, [tenantId]);
 
   const checkFeature = React.useCallback((feature: string) => {
-    if (!planStatus) return false;
+    if (!planStatus?.limits) return false;
     
     switch (feature) {
       case 'automations':
-        return planStatus.limits?.canUseAutomations || false;
+        return planStatus.limits.canUseAutomations || false;
       case 'advancedReports':
-        return planStatus.limits?.canUseAdvancedReports || false;
+        return planStatus.limits.canUseAdvancedReports || false;
       case 'multiDoctor':
-        return planStatus.limits?.canUseMultiDoctor || false;
+        return planStatus.limits.canUseMultiDoctor || false;
       case 'smsReminders':
-        return planStatus.limits?.canUseSMSReminders || false;
+        return planStatus.limits.canUseSMSReminders || false;
       default:
         return false;
     }
   }, [planStatus]);
 
   const checkLimit = React.useCallback((limitType: 'pets' | 'users' | 'whatsapp') => {
-    if (!planStatus) return { canAdd: false, remaining: 0, percentage: 0 };
+    if (!planStatus) {
+      return { canAdd: false, remaining: 0, percentage: 0, current: 0, limit: 0 };
+    }
     
     const usage = planStatus.usage || {};
     const limits = planStatus.limits || {};
     const percentages = planStatus.percentages || {};
     
     switch (limitType) {
-      case 'pets':
+      case 'pets': {
+        const current = usage.currentPets || 0;
+        const limit = limits.maxPets || 0;
         return {
-          canAdd: usage.currentPets < limits.maxPets,
-          remaining: Math.max(0, limits.maxPets - usage.currentPets),
+          canAdd: current < limit,
+          remaining: Math.max(0, limit - current),
           percentage: percentages.pets || 0,
-          current: usage.currentPets || 0,
-          limit: limits.maxPets || 0
+          current,
+          limit
         };
-      case 'users':
+      }
+      case 'users': {
+        const current = usage.currentUsers || 0;
+        const limit = limits.maxUsers || 0;
         return {
-          canAdd: usage.currentUsers < limits.maxUsers,
-          remaining: Math.max(0, limits.maxUsers - usage.currentUsers),
+          canAdd: current < limit,
+          remaining: Math.max(0, limit - current),
           percentage: percentages.users || 0,
-          current: usage.currentUsers || 0,
-          limit: limits.maxUsers || 0
+          current,
+          limit
         };
-      case 'whatsapp':
+      }
+      case 'whatsapp': {
+        const current = usage.currentMonthlyWhatsApp || 0;
+        const limit = limits.maxMonthlyWhatsApp || 0;
         return {
-          canAdd: usage.currentMonthlyWhatsApp < limits.maxMonthlyWhatsApp,
-          remaining: Math.max(0, limits.maxMonthlyWhatsApp - usage.currentMonthlyWhatsApp),
+          canAdd: current < limit,
+          remaining: Math.max(0, limit - current),
           percentage: percentages.whatsapp || 0,
-          current: usage.currentMonthlyWhatsApp || 0,
-          limit: limits.maxMonthlyWhatsApp || 0
+          current,
+          limit
         };
+      }
       default:
         return { canAdd: false, remaining: 0, percentage: 0, current: 0, limit: 0 };
     }

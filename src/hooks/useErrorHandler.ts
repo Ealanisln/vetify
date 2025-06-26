@@ -11,16 +11,31 @@ export function useErrorHandler() {
   const [error, setError] = useState<ErrorInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleError = useCallback((error: unknown) => {
-    const isErrorWithMessage = (error: unknown): error is { message: string; code?: string; details?: unknown } => {
-      return typeof error === 'object' && error !== null && 'message' in error;
-    };
+  const handleError = useCallback((err: unknown) => {
+    let message = 'Ocurrió un error inesperado';
+    let code: string | undefined;
+    let details: unknown;
 
-    const errorInfo: ErrorInfo = {
-      message: isErrorWithMessage(error) ? error.message : 'Ocurrió un error inesperado',
-      code: isErrorWithMessage(error) ? error.code : undefined,
-      details: isErrorWithMessage(error) ? error.details : error
-    };
+    if (err instanceof Error) {
+      message = err.message;
+      details = err;
+    } else if (typeof err === 'object' && err !== null) {
+      const errorObj = err as Record<string, unknown>;
+      if (typeof errorObj.message === 'string') {
+        message = errorObj.message;
+      }
+      if (typeof errorObj.code === 'string') {
+        code = errorObj.code;
+      }
+      details = err;
+    } else if (typeof err === 'string') {
+      message = err;
+      details = err;
+    } else {
+      details = err;
+    }
+
+    const errorInfo: ErrorInfo = { message, code, details };
 
     setError(errorInfo);
     
