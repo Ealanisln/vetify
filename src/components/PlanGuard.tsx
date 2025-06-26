@@ -12,29 +12,39 @@ interface PlanGuardProps {
 
 interface PlanStatus {
   limits: {
-    maxPets?: number;
-    maxUsers?: number;
-    maxMonthlyWhatsApp?: number;
-    canUseAutomations?: boolean;
-    canUseAdvancedReports?: boolean;
-    canUseMultiDoctor?: boolean;
-    canUseSMSReminders?: boolean;
+    maxPets: number;
+    maxUsers: number;
+    maxMonthlyWhatsApp: number;
+    maxStorageGB: number;
+    canUseAutomations: boolean;
+    canUseAdvancedReports: boolean;
+    canUseMultiDoctor: boolean;
+    canUseSMSReminders: boolean;
   };
   usage: {
-    currentPets?: number;
-    currentUsers?: number;
-    currentMonthlyWhatsApp?: number;
+    currentPets: number;
+    currentUsers: number;
+    currentMonthlyWhatsApp: number;
+    currentStorageBytes: number;
   };
   percentages: {
-    pets?: number;
-    users?: number;
-    whatsapp?: number;
+    pets: number;
+    users: number;
+    whatsapp: number;
+    storage: number;
   };
   plan: {
-    name?: string;
-    isTrialPeriod?: boolean;
+    name: string;
+    key: string;
+    isTrialPeriod: boolean;
+    trialEndsAt?: string;
   };
-  warnings: Record<string, unknown>;
+  warnings: {
+    pets: boolean;
+    users: boolean;
+    whatsapp: boolean;
+    storage: boolean;
+  };
 }
 
 /**
