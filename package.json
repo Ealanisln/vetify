@@ -18,6 +18,7 @@
     "vercel:env:help": "node scripts/vercel-env-export.mjs help"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.0.1",
     "@kinde-oss/kinde-auth-nextjs": "2.8.0",
@@ -35,7 +36,9 @@
     "react-day-picker": "^9.7.0",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.56.4",
+    "sonner": "^2.0.5",
     "square": "42.3.0",
+    "stripe": "^16.12.0",
     "tailwind-merge": "^3.3.1",
     "zod": "^3.25.36"
   },

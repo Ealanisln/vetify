@@ -78,6 +78,26 @@ export async function checkUserNeedsOnboarding() {
 }
 
 /**
+ * Check if user is a super admin (Vetify employee)
+ */
+export function isAdmin(email: string): boolean {
+  return email.endsWith('@vetify.pro') || email.endsWith('@vetify.com');
+}
+
+/**
+ * Require super admin access
+ */
+export async function requireAdmin() {
+  const user = await getAuthenticatedUser();
+  
+  if (!isAdmin(user.email)) {
+    throw new Error('Access denied. Admin privileges required.');
+  }
+  
+  return { user };
+}
+
+/**
  * Require authentication and tenant. If user doesn't have a tenant, redirect to onboarding.
  */
 export async function requireAuth() {
