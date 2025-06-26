@@ -1,62 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useAppointmentStats } from '@/hooks/useAppointments';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   CalendarCheck, 
   Clock, 
-  CheckCircle,
   TrendingUp,
-  Users
+  Users,
+  AlertCircle
 } from 'lucide-react';
 
-interface AppointmentStatsProps {
-  tenantId: string;
-}
-
-interface StatsData {
-  todayTotal: number;
-  todayCompleted: number;
-  todayPending: number;
-  todayCancelled: number;
-  weekTotal: number;
-  monthTotal: number;
-  avgDuration: number;
-  totalClients: number;
-}
-
-export function AppointmentStats({ tenantId }: AppointmentStatsProps) {
-  const [stats, setStats] = useState<StatsData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      setLoading(true);
-      try {
-        // TODO: Reemplazar con llamada real a la API
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        const mockStats: StatsData = {
-          todayTotal: 8,
-          todayCompleted: 5,
-          todayPending: 2,
-          todayCancelled: 1,
-          weekTotal: 42,
-          monthTotal: 165,
-          avgDuration: 35,
-          totalClients: 147
-        };
-        
-        setStats(mockStats);
-      } catch (error) {
-        console.error('Error fetching appointment stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStats();
-  }, [tenantId]);
+export function AppointmentStats() {
+  const { 
+    today, 
+    thisWeek, 
+    thisMonth, 
+    completionRate, 
+    loading, 
+    error, 
+    refresh 
+  } = useAppointmentStats();
 
   if (loading) {
     return (
@@ -77,9 +40,25 @@ export function AppointmentStats({ tenantId }: AppointmentStatsProps) {
     );
   }
 
-  if (!stats) return null;
-
-  const completionRate = stats.todayTotal > 0 ? (stats.todayCompleted / stats.todayTotal) * 100 : 0;
+  if (error) {
+    return (
+      <Card className="col-span-full">
+        <CardContent className="flex items-center justify-center p-6">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-red-700 mb-2">Error al cargar estadísticas</h3>
+            <p className="text-sm text-gray-600 mb-4">{error}</p>
+            <button 
+              onClick={refresh}
+              className="text-sm bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700"
+            >
+              Reintentar
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -90,26 +69,23 @@ export function AppointmentStats({ tenantId }: AppointmentStatsProps) {
           <CalendarCheck className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-blue-600">{stats.todayTotal}</div>
-          <div className="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
-            <span className="flex items-center">
-              <CheckCircle className="h-3 w-3 text-green-500 mr-1" />
-              {stats.todayCompleted} completadas
-            </span>
-          </div>
+          <div className="text-2xl font-bold text-blue-600">{today}</div>
+          <p className="text-xs text-muted-foreground">
+            Programadas para hoy
+          </p>
         </CardContent>
       </Card>
 
-      {/* Pendientes */}
+      {/* Esta Semana */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pendientes</CardTitle>
+          <CardTitle className="text-sm font-medium">Esta Semana</CardTitle>
           <Clock className="h-4 w-4 text-orange-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-orange-600">{stats.todayPending}</div>
+          <div className="text-2xl font-bold text-orange-600">{thisWeek}</div>
           <p className="text-xs text-muted-foreground">
-            Por confirmar hoy
+            Citas programadas
           </p>
         </CardContent>
       </Card>
@@ -121,77 +97,26 @@ export function AppointmentStats({ tenantId }: AppointmentStatsProps) {
           <TrendingUp className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">{completionRate.toFixed(0)}%</div>
+          <div className="text-2xl font-bold text-green-600">{completionRate}%</div>
           <p className="text-xs text-muted-foreground">
-            Citas completadas hoy
+            Citas completadas este mes
           </p>
         </CardContent>
       </Card>
 
-      {/* Total Clientes */}
+      {/* Este Mes */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Clientes Activos</CardTitle>
+          <CardTitle className="text-sm font-medium">Este Mes</CardTitle>
           <Users className="h-4 w-4 text-purple-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-purple-600">{stats.totalClients}</div>
+          <div className="text-2xl font-bold text-purple-600">{thisMonth}</div>
           <p className="text-xs text-muted-foreground">
-            En la base de datos
+            Total de citas
           </p>
         </CardContent>
       </Card>
-
-      {/* Estadísticas adicionales - pantalla completa */}
-      <div className="col-span-full">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Resumen del Período</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <CalendarCheck className="h-4 w-4 text-blue-600" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Esta Semana</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.weekTotal}</p>
-                  <p className="text-xs text-gray-500">citas programadas</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="h-4 w-4 text-green-600" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Este Mes</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.monthTotal}</p>
-                  <p className="text-xs text-gray-500">citas totales</p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <Clock className="h-4 w-4 text-purple-600" />
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Duración Promedio</p>
-                  <p className="text-2xl font-bold text-purple-600">{stats.avgDuration}m</p>
-                  <p className="text-xs text-gray-500">por consulta</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
-} 
+}

@@ -8,6 +8,7 @@ import {
   CreditCardIcon
 } from '@heroicons/react/24/outline';
 import { CustomerSearchResult, ProductSearchResult, SaleItemForm } from '@/types';
+import { toast } from 'sonner';
 
 interface SalesPageClientProps {
   tenantId: string;
@@ -116,7 +117,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
   // Procesar venta
   const processSale = async () => {
     if (!selectedCustomer || cartItems.length === 0) {
-      alert('Selecciona un cliente y agrega productos');
+      toast.error('Selecciona un cliente y agrega productos');
       return;
     }
 
@@ -148,15 +149,37 @@ export default function SalesPageClient({}: SalesPageClientProps) {
         setCartItems([]);
         setCustomerQuery('');
         
-        alert(`Venta procesada exitosamente. Número: ${sale.saleNumber}`);
+        toast.success(`🎉 Venta procesada exitosamente`, {
+          description: `Número de venta: ${sale.saleNumber}`,
+          duration: 5000,
+        });
         
         // Aquí podrías abrir una ventana de impresión o generar un PDF
       } else {
-        throw new Error('Error procesando la venta');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || 'Error procesando la venta';
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error procesando la venta');
+      const errorMessage = error instanceof Error ? error.message : 'Error procesando la venta';
+      
+      // Mostrar error específico para caja cerrada
+      if (errorMessage.includes('caja abierta')) {
+        toast.error('💰 Caja cerrada', {
+          description: errorMessage,
+          duration: 6000,
+          action: {
+            label: 'Ir a Caja',
+            onClick: () => window.location.href = '/dashboard/caja'
+          }
+        });
+      } else {
+        toast.error('❌ Error procesando la venta', {
+          description: errorMessage,
+          duration: 4000,
+        });
+      }
     } finally {
       setIsProcessing(false);
     }

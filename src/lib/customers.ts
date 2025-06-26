@@ -94,6 +94,10 @@ export async function getCustomerById(customerId: string, tenantId: string) {
     }
   });
 
+  if (!customer) {
+    return null;
+  }
+
   return serializeCustomer(customer);
 }
 

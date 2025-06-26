@@ -99,6 +99,15 @@ export async function POST(request: Request) {
     return NextResponse.json(sale, { status: 201 });
   } catch (error) {
     console.error('Error en POST /api/sales:', error);
+    
+    // Si es un error de validación de caja, devolver mensaje específico
+    if (error instanceof Error && error.message.includes('caja abierta')) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

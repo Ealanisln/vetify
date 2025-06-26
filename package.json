@@ -18,6 +18,12 @@
     "vercel:env:help": "node scripts/vercel-env-export.mjs help"
   },
   "dependencies": {
+    "@fullcalendar/core": "^6.1.17",
+    "@fullcalendar/daygrid": "^6.1.17",
+    "@fullcalendar/interaction": "^6.1.17",
+    "@fullcalendar/list": "^6.1.17",
+    "@fullcalendar/react": "^6.1.17",
+    "@fullcalendar/timegrid": "^6.1.17",
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^5.0.1",
@@ -27,6 +33,7 @@
     "@supabase/supabase-js": "^2.49.4",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "date-fns-tz": "^3.2.0",
     "framer-motion": "^12.6.3",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.487.0",
