@@ -3,12 +3,15 @@ import { requireAuth } from '@/lib/auth';
 import { createPet, createPetSchema, getPetsByTenant } from '@/lib/pets';
 import { n8nService } from '@/lib/n8n';
 import { prisma } from '@/lib/prisma';
-// import { prisma } from '@/lib/prisma'; // TODO: Uncomment after running prisma db push
+import { validatePlanAction, PlanLimitError } from '@/lib/plan-limits';
 
 export async function POST(request: NextRequest) {
   try {
     const { tenant } = await requireAuth();
     const body = await request.json();
+    
+    // Check plan limits before creating pet
+    await validatePlanAction(tenant.id, 'addPet');
     
     // Convert dateOfBirth string to Date object if needed
     if (body.dateOfBirth && typeof body.dateOfBirth === 'string') {
@@ -66,6 +69,20 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating pet:', error);
+    
+    // Handle plan limit errors with specific messaging
+    if (error instanceof PlanLimitError) {
+      return NextResponse.json(
+        { 
+          error: 'plan_limit_exceeded',
+          message: error.message,
+          limitType: error.limitType,
+          current: error.current,
+          limit: error.limit
+        },
+        { status: 403 }
+      );
+    }
     
     if (error instanceof Error) {
       return NextResponse.json(

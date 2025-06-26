@@ -9,6 +9,7 @@ import type { Viewport } from 'next'
 import { Metadata } from 'next'
 import {AuthProvider} from '../AuthProvider';
 import { ConditionalLayout } from '../components/ConditionalLayout';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -104,13 +105,15 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
-        <AuthProvider>
-          <Providers>
-            <ConditionalLayout>
-              {children}
-            </ConditionalLayout>
-          </Providers>
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            <Providers>
+              <ConditionalLayout>
+                {children}
+              </ConditionalLayout>
+            </Providers>
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )
