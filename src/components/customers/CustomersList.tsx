@@ -171,8 +171,8 @@ export function CustomersList({ customers }: CustomersListProps) {
                               <EyeIcon className="h-4 w-4" />
                             </Button>
                           </Link>
-                          <Link href={`/dashboard/customers/${customer.id}/edit`}>
-                            <Button variant="ghost" size="sm">
+                          <Link href={`/dashboard/customers/${customer.id}`}>
+                            <Button variant="ghost" size="sm" title="Editar cliente">
                               <PencilIcon className="h-4 w-4" />
                             </Button>
                           </Link>

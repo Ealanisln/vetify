@@ -240,20 +240,22 @@ export async function createSale(
         }
       });
 
-      if (currentDrawer) {
-        // Crear transacción de caja
-        const cashTransaction = await tx.cashTransaction.create({
-          data: {
-            drawerId: currentDrawer.id,
-            amount: saleData.amountPaid,
-            type: 'SALE_CASH',
-            description: `Venta ${saleNumber}`,
-            relatedId: newSale.id,
-            relatedType: 'SALE'
-          }
-        });
-        cashTransactionId = cashTransaction.id;
+      if (!currentDrawer) {
+        throw new Error('No se puede procesar una venta en efectivo sin tener la caja abierta. Por favor, abra la caja primero.');
       }
+
+      // Crear transacción de caja
+      const cashTransaction = await tx.cashTransaction.create({
+        data: {
+          drawerId: currentDrawer.id,
+          amount: saleData.amountPaid,
+          type: 'SALE_CASH',
+          description: `Venta ${saleNumber}`,
+          relatedId: newSale.id,
+          relatedType: 'SALE'
+        }
+      });
+      cashTransactionId = cashTransaction.id;
     }
 
     // Crear el pago

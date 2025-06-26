@@ -1,45 +1,47 @@
 import { requireAuth } from '@/lib/auth';
-import { AppointmentCalendar } from '@/components/appointments/AppointmentCalendar';
-import { AppointmentStats } from '@/components/appointments/AppointmentStats';
-import { TodayAppointments } from '@/components/appointments/TodayAppointments';
-import { Button } from '@/components/ui/button';
-import { PlusIcon } from '@heroicons/react/24/outline';
-import Link from 'next/link';
+import { AppointmentsPageClient } from './AppointmentsPageClient';
+import { getCustomersByTenant } from '@/lib/customers';
+import { getPetsByTenant } from '@/lib/pets';
+import { getStaffMembers } from '@/lib/medical';
+// Serializers not needed for this simple data transformation
 
 export default async function AppointmentsPage() {
   const { tenant } = await requireAuth();
   
+  // Fetch all necessary data for the appointments page
+  const [customers, pets, staff] = await Promise.all([
+    getCustomersByTenant(tenant.id),
+    getPetsByTenant(tenant.id),
+    getStaffMembers(tenant.id),
+  ]);
+
+  // Serialize data for client components
+  const serializedCustomers = customers.map((customer: { id: string; name: string; email?: string; phone?: string }) => ({
+    id: customer.id,
+    name: customer.name,
+    email: customer.email,
+    phone: customer.phone,
+  }));
+
+  const serializedPets = pets.map((pet: { id: string; name: string; species: string; breed?: string; customerId: string }) => ({
+    id: pet.id,
+    name: pet.name,
+    species: pet.species,
+    breed: pet.breed,
+    customerId: pet.customerId,
+  }));
+
+  const serializedStaff = staff.map((member: { id: string; name: string; position: string }) => ({
+    id: member.id,
+    name: member.name,  
+    position: member.position,
+  }));
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Calendario de Citas</h1>
-          <p className="text-gray-500">Gestiona las citas y horarios de tu clínica</p>
-        </div>
-        <Link href="/dashboard/appointments/new">
-          <Button className="inline-flex items-center">
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Nueva Cita
-          </Button>
-        </Link>
-      </div>
-
-      {/* Stats */}
-      <AppointmentStats tenantId={tenant.id} />
-
-      {/* Calendar and Today's Appointments */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Calendar */}
-        <div className="lg:col-span-2">
-          <AppointmentCalendar tenantId={tenant.id} />
-        </div>
-        
-        {/* Today's Appointments */}
-        <div>
-          <TodayAppointments tenantId={tenant.id} />
-        </div>
-      </div>
-    </div>
+    <AppointmentsPageClient 
+      customers={serializedCustomers}
+      pets={serializedPets}
+      staff={serializedStaff}
+    />
   );
-} 
+}
