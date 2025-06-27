@@ -46,7 +46,7 @@ export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
     return {
       maxPets: 50,
       maxUsers: 1,
-      maxMonthlyWhatsApp: 25,
+      maxMonthlyWhatsApp: 50, // Updated from 25 to 50
       maxStorageGB: 1,
       canUseAutomations: false,
       canUseAdvancedReports: false,

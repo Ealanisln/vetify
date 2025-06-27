@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Check, Star, Zap, Users, Building, Crown } from 'lucide-react';
 import { useThemeAware, getThemeClass } from "@/hooks/useThemeAware";
+import { COMPLETE_PLANS, formatPrice } from '@/lib/pricing-config';
 
 interface PricingFeature {
   name: string;
@@ -30,111 +31,30 @@ const PricingPage: React.FC = () => {
   const [isYearly, setIsYearly] = useState(false);
   const { mounted, theme } = useThemeAware();
 
-  const plans: PricingPlan[] = [
-    {
-      id: 'free',
-      name: 'Plan Gratis',
-      description: 'Ideal para veterinarios independientes o consultorios muy pequeños.',
-      monthlyPrice: 0,
-      yearlyPrice: 0,
-      badge: 'GRATIS',
-      badgeColor: 'bg-vetify-success',
-      icon: <Star className="h-6 w-6" />,
-      features: [
-        { name: 'Mascotas Activas: 50', included: true, highlight: true },
-        { name: 'Usuarios Veterinarios: 1', included: true },
-        { name: 'WhatsApp Básico: 50 msg/mes', included: true, highlight: true },
-        { name: 'Soporte: Soporte comunidad', included: true },
-        { name: 'Expedientes básicos', included: true },
-        { name: 'Citas básicas', included: true },
-        { name: 'Automatización', included: false },
-        { name: 'Inventario', included: false },
-        { name: 'Reportes avanzados', included: false },
-        { name: 'Multi-sucursal', included: false },
-      ],
-      cta: 'Comenzar Gratis',
-    },
-    {
-      id: 'basic',
-      name: 'Plan Básico',
-      description: 'Ideal para clínicas pequeñas o que recién comienzan.',
-      monthlyPrice: 674,
-      yearlyPrice: 449,
-      originalMonthlyPrice: 899,
-      originalYearlyPrice: 599,
-      badge: 'BÁSICO',
-      badgeColor: 'bg-vetify-primary-500',
-      icon: <Users className="h-6 w-6" />,
-      features: [
-        { name: 'Mascotas Activas: 500', included: true, highlight: true },
-        { name: 'Usuarios Veterinarios: 3', included: true },
-        { name: 'Automatización: Automatización completa', included: true, highlight: true },
-        { name: 'Inventario: Inventario básico', included: true, highlight: true },
-        { name: 'WhatsApp ilimitado', included: true },
-        { name: 'Expedientes completos', included: true },
-        { name: 'Citas avanzadas', included: true },
-        { name: 'Soporte por email', included: true },
-        { name: 'Reportes básicos', included: true },
-        { name: 'Multi-sucursal', included: false },
-      ],
-      cta: 'Elegir Plan',
-    },
-    {
-      id: 'professional',
-      name: 'Plan Profesional',
-      description: 'Perfecto para clínicas establecidas con múltiples veterinarios.',
-      monthlyPrice: 1349,
-      yearlyPrice: 749,
-      originalMonthlyPrice: 1799,
-      originalYearlyPrice: 999,
-      badge: 'MÁS POPULAR',
-      badgeColor: 'bg-vetify-accent-500',
-      popular: true,
-      icon: <Building className="h-6 w-6" />,
-      features: [
-        { name: 'Mascotas Activas: 2000', included: true, highlight: true },
-        { name: 'Usuarios Veterinarios: 8', included: true },
-        { name: 'Reportes Avanzados: Reportes avanzados', included: true, highlight: true },
-        { name: 'Multi-sucursal: Multi-sucursal', included: true, highlight: true },
-        { name: 'Todo del plan Básico', included: true },
-        { name: 'Automatización avanzada', included: true },
-        { name: 'Inventario completo', included: true },
-        { name: 'Analytics y métricas', included: true },
-        { name: 'Soporte prioritario', included: true },
-        { name: 'Integraciones avanzadas', included: true },
-      ],
-      cta: 'Elegir Plan',
-    },
-    {
-      id: 'enterprise',
-      name: 'Plan Corporativo',
-      description: 'Para grandes clínicas y cadenas veterinarias que necesitan máxima funcionalidad.',
-      monthlyPrice: 0,
-      yearlyPrice: 0,
-      badge: 'CORPORATIVO',
-      badgeColor: 'bg-vetify-slate-500',
-      icon: <Crown className="h-6 w-6" />,
-      features: [
-        { name: 'Mascotas Activas: Ilimitado', included: true, highlight: true },
-        { name: 'Equipos Grandes: Equipos grandes', included: true, highlight: true },
-        { name: 'API Completa: API completa', included: true, highlight: true },
-        { name: 'Sin Marca: Sin marca', included: true, highlight: true },
-        { name: 'Todo de planes anteriores', included: true },
-        { name: 'Soporte 24/7', included: true },
-        { name: 'Implementación personalizada', included: true },
-        { name: 'Capacitación incluida', included: true },
-        { name: 'SLA garantizado', included: true },
-        { name: 'Desarrollo a medida', included: true },
-      ],
-      cta: 'Contactar Ventas',
-    },
-  ];
+  // Convert COMPLETE_PLANS to the expected format with proper icons
+  const plans: PricingPlan[] = Object.values(COMPLETE_PLANS).map(plan => ({
+    id: plan.key.toLowerCase(),
+    name: plan.name,
+    description: plan.description,
+    monthlyPrice: plan.monthlyPrice,
+    yearlyPrice: plan.yearlyPrice,
+    originalMonthlyPrice: 'originalMonthlyPrice' in plan ? plan.originalMonthlyPrice : undefined,
+    originalYearlyPrice: 'originalYearlyPrice' in plan ? plan.originalYearlyPrice : undefined,
+    badge: plan.badge,
+    badgeColor: plan.badgeColor,
+    popular: plan.popular || false,
+    icon: plan.icon === 'Star' ? <Star className="h-6 w-6" /> :
+          plan.icon === 'Users' ? <Users className="h-6 w-6" /> :
+          plan.icon === 'Building' ? <Building className="h-6 w-6" /> :
+          plan.icon === 'Crown' ? <Crown className="h-6 w-6" /> :
+          <Star className="h-6 w-6" />,
+    features: plan.features,
+    cta: plan.cta
+  }));
 
   const handlePlanSelect = (planId: string) => {
     if (planId === 'free') {
       window.location.href = '/sign-up';
-    } else if (planId === 'enterprise') {
-      window.location.href = '/contacto';
     } else {
       window.location.href = `/sign-up?plan=${planId}&billing=${isYearly ? 'yearly' : 'monthly'}`;
     }
@@ -142,8 +62,8 @@ const PricingPage: React.FC = () => {
 
   // Theme-aware class helpers
   const backgroundClass = getThemeClass(
-    "bg-gradient-to-b from-vetify-primary-50 to-white",
-    "bg-gradient-to-b from-vetify-primary-900/20 to-vetify-slate-900",
+    "bg-gradient-to-br from-vetify-accent-50 via-white to-vetify-blush-50",
+    "bg-gradient-to-br from-vetify-slate-900 via-gray-900 to-vetify-primary-900",
     mounted,
     theme
   );
@@ -178,60 +98,60 @@ const PricingPage: React.FC = () => {
 
       {/* Decoración de fondo */}
       <div className="absolute inset-0 z-0">
-        <div className="absolute -top-24 -right-20 w-96 h-96 rounded-full bg-vetify-accent-200 blur-3xl opacity-30 dark:opacity-10"></div>
-        <div className="absolute top-1/3 left-10 w-72 h-72 rounded-full bg-vetify-blush-100 blur-3xl opacity-20 dark:opacity-5"></div>
-        <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-vetify-primary-100 blur-3xl opacity-20 dark:opacity-5"></div>
+        <div className="absolute -top-24 -right-20 w-96 h-96 rounded-full bg-gradient-to-br from-vetify-accent-300 to-vetify-accent-100 blur-3xl opacity-30 dark:opacity-10"></div>
+        <div className="absolute top-1/3 left-10 w-72 h-72 rounded-full bg-gradient-to-br from-vetify-blush-300 to-vetify-blush-100 blur-3xl opacity-25 dark:opacity-8"></div>
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 rounded-full bg-gradient-to-br from-vetify-primary-300 to-vetify-primary-100 blur-3xl opacity-20 dark:opacity-5"></div>
       </div>
 
       {/* Contenido */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-24">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-20">
         {/* Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center px-4 py-2 bg-vetify-blush-50 dark:bg-vetify-blush-900/30 rounded-full mb-6">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center px-4 py-2 bg-vetify-blush-50 dark:bg-vetify-blush-900/30 rounded-full mb-4">
             <Zap className="h-4 w-4 text-vetify-blush-600 dark:text-vetify-blush-300 mr-2" />
             <span className="text-sm font-medium text-vetify-blush-600 dark:text-vetify-blush-300">¡Oferta de lanzamiento!</span>
           </div>
           
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight mb-6">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight mb-4">
             Planes que se adaptan a tu <span className="text-vetify-accent-500 dark:text-vetify-accent-300">clínica</span>
           </h1>
           
-          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
+          <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-6">
             Desde veterinarios independientes hasta grandes cadenas. Encuentra el plan perfecto para automatizar tu clínica veterinaria.
           </p>
 
-          {/* Oferta especial */}
-          <div className="bg-gradient-to-r from-vetify-blush-500 to-vetify-accent-500 text-white rounded-2xl p-6 mb-8 max-w-2xl mx-auto">
+          {/* Oferta especial MVP */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl p-5 mb-6 max-w-2xl mx-auto shadow-md border border-blue-200/20">
             <div className="flex items-center justify-center mb-2">
-              <Star className="h-5 w-5 mr-2" />
-              <span className="font-bold text-lg">25% de DESCUENTO en todos los planes</span>
+              <Star className="h-4 w-4 mr-2" />
+              <span className="font-bold text-base">🚀 25% de DESCUENTO - Oferta MVP</span>
             </div>
-            <p className="text-sm opacity-90">Aprovecha esta oferta por tiempo limitado y comienza a transformar tu clínica veterinaria</p>
-            <p className="text-xs mt-2 font-medium">Termina en 30 días</p>
+            <p className="text-sm opacity-90">Precios especiales para early adopters. ¡Transforma tu clínica veterinaria con el nuevo pricing!</p>
+            <p className="text-xs mt-2 font-medium opacity-80">Válida hasta agosto 2025 - Nuevos precios competitivos</p>
           </div>
 
           {/* Toggle anual/mensual */}
-          <div className="flex items-center justify-center space-x-4">
-            <span className={`text-sm font-medium ${!isYearly ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+          <div className="flex items-center justify-center space-x-4 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg">
+            <span className={`text-sm font-medium transition-colors ${!isYearly ? 'text-vetify-accent-600 dark:text-vetify-accent-300' : 'text-gray-500 dark:text-gray-400'}`}>
               Mensual
             </span>
             <button
               onClick={() => setIsYearly(!isYearly)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-vetify-accent-500 focus:ring-offset-2 ${
-                isYearly ? 'bg-vetify-accent-500' : 'bg-gray-200 dark:bg-gray-700'
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-vetify-accent-500 focus:ring-offset-2 ${
+                isYearly ? 'bg-gradient-to-r from-vetify-accent-500 to-vetify-primary-500' : 'bg-gray-200 dark:bg-gray-700'
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 shadow-lg ${
                   isYearly ? 'translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>
-            <span className={`text-sm font-medium ${isYearly ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+            <span className={`text-sm font-medium transition-colors ${isYearly ? 'text-vetify-accent-600 dark:text-vetify-accent-300' : 'text-gray-500 dark:text-gray-400'}`}>
               Anual
             </span>
             {isYearly && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-vetify-success text-white">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-vetify-success to-emerald-500 text-white shadow-sm">
                 Ahorra 25%
               </span>
             )}
@@ -239,7 +159,7 @@ const PricingPage: React.FC = () => {
         </div>
 
         {/* Planes */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
           {plans.map((plan, index) => (
             <div
               key={plan.id}
@@ -284,14 +204,16 @@ const PricingPage: React.FC = () => {
                     <div>
                       <div className="flex items-baseline">
                         <span className="text-4xl font-bold text-gray-900 dark:text-white">
-                          ${isYearly ? plan.yearlyPrice : plan.monthlyPrice}
+                          {formatPrice(isYearly ? plan.yearlyPrice : plan.monthlyPrice)}
                         </span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">MXN</span>
                       </div>
                       {(plan.originalMonthlyPrice || plan.originalYearlyPrice) && (
                         <div className="flex items-center mt-1">
                           <span className="text-lg text-gray-400 dark:text-gray-500 line-through mr-2">
-                            ${isYearly ? plan.originalYearlyPrice : plan.originalMonthlyPrice} MXN
+                            {formatPrice(isYearly ? plan.originalYearlyPrice || 0 : plan.originalMonthlyPrice || 0)}
+                          </span>
+                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300">
+                            25% OFF
                           </span>
                         </div>
                       )}
@@ -329,12 +251,12 @@ const PricingPage: React.FC = () => {
                 {/* CTA */}
                 <button
                   onClick={() => handlePlanSelect(plan.id)}
-                  className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 ${
+                  className={`w-full py-3 px-4 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
                     plan.popular
-                      ? 'bg-vetify-accent-500 hover:bg-vetify-accent-600 text-white shadow-lg hover:shadow-xl'
+                      ? 'bg-gradient-to-r from-vetify-blush-400 to-vetify-blush-500 hover:from-vetify-blush-500 hover:to-vetify-blush-600 text-white shadow-lg hover:shadow-xl'
                       : plan.id === 'free'
-                      ? 'bg-vetify-success hover:bg-green-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white'
+                      ? 'bg-gradient-to-r from-vetify-accent-500 to-vetify-accent-600 hover:from-vetify-accent-600 hover:to-vetify-accent-700 text-white shadow-lg hover:shadow-xl'
+                      : 'bg-gradient-to-r from-vetify-slate-500 to-vetify-slate-600 hover:from-vetify-slate-600 hover:to-vetify-slate-700 text-white shadow-md hover:shadow-lg'
                   }`}
                 >
                   {plan.cta}
@@ -351,8 +273,8 @@ const PricingPage: React.FC = () => {
         </div>
 
         {/* Comparación detallada */}
-        <div className="mt-20">
-          <div className="text-center mb-12">
+        <div className="mt-16">
+          <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               Comparación detallada de características
             </h2>
@@ -378,23 +300,19 @@ const PricingPage: React.FC = () => {
                     <th className="px-6 py-4 text-center text-sm font-medium text-gray-900 dark:text-white">
                       Profesional
                     </th>
-                    <th className="px-6 py-4 text-center text-sm font-medium text-gray-900 dark:text-white">
-                      Corporativo
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {[
-                    { feature: 'Mascotas activas', free: '50', basic: '500', pro: '2,000', enterprise: 'Ilimitado' },
-                    { feature: 'Usuarios veterinarios', free: '1', basic: '3', pro: '8', enterprise: 'Ilimitado' },
-                    { feature: 'WhatsApp automático', free: '50 msg/mes', basic: 'Ilimitado', pro: 'Ilimitado', enterprise: 'Ilimitado' },
-                    { feature: 'Automatización completa', free: '❌', basic: '✅', pro: '✅', enterprise: '✅' },
-                    { feature: 'Inventario', free: '❌', basic: 'Básico', pro: 'Completo', enterprise: 'Avanzado' },
-                    { feature: 'Reportes avanzados', free: '❌', basic: '❌', pro: '✅', enterprise: '✅' },
-                    { feature: 'Multi-sucursal', free: '❌', basic: '❌', pro: '✅', enterprise: '✅' },
-                    { feature: 'API completa', free: '❌', basic: '❌', pro: 'Limitada', enterprise: '✅' },
-                    { feature: 'Soporte', free: 'Comunidad', basic: 'Email', pro: 'Prioritario', enterprise: '24/7' },
-                    { feature: 'Sin marca Vetify', free: '❌', basic: '❌', pro: '❌', enterprise: '✅' },
+                    { feature: 'Mascotas activas', free: '50', basic: '300', pro: '1,000' },
+                    { feature: 'Usuarios veterinarios', free: '1', basic: '3', pro: '8' },
+                    { feature: 'WhatsApp automático', free: '50 msg/mes', basic: 'Ilimitado', pro: 'Ilimitado' },
+                    { feature: 'Automatización completa', free: '❌', basic: '✅', pro: '✅' },
+                    { feature: 'Inventario', free: '❌', basic: 'Básico', pro: 'Completo' },
+                    { feature: 'Reportes avanzados', free: '❌', basic: '❌', pro: '✅' },
+                    { feature: 'Multi-sucursal', free: '❌', basic: '❌', pro: '✅' },
+                    { feature: 'API completa', free: '❌', basic: '❌', pro: 'Limitada' },
+                    { feature: 'Soporte', free: 'Comunidad', basic: 'Email', pro: 'Prioritario' },
                   ].map((row, index) => (
                     <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
@@ -409,9 +327,6 @@ const PricingPage: React.FC = () => {
                       <td className="px-6 py-4 text-sm text-center text-gray-600 dark:text-gray-300">
                         {row.pro}
                       </td>
-                      <td className="px-6 py-4 text-sm text-center text-gray-600 dark:text-gray-300">
-                        {row.enterprise}
-                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -421,8 +336,8 @@ const PricingPage: React.FC = () => {
         </div>
 
         {/* FAQ Section */}
-        <div className="mt-20">
-          <div className="text-center mb-12">
+        <div className="mt-16">
+          <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               Preguntas frecuentes
             </h2>
@@ -466,25 +381,25 @@ const PricingPage: React.FC = () => {
         </div>
 
         {/* CTA Final */}
-        <div className="mt-20 text-center">
-          <div className={`rounded-2xl p-12 ${ctaClass}`}>
+        <div className="mt-16 text-center">
+          <div className={`rounded-2xl p-8 ${ctaClass}`}>
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               ¿Listo para transformar tu clínica?
             </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-600 dark:text-gray-300 mb-6 max-w-2xl mx-auto">
               Únete a cientos de veterinarios que ya automatizaron sus clínicas con Vetify. 
               Comienza gratis y ve la diferencia desde el primer día.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
                 onClick={() => handlePlanSelect('free')}
-                className="px-8 py-3 bg-vetify-success hover:bg-green-600 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="px-8 py-3 bg-gradient-to-r from-vetify-accent-500 to-vetify-accent-600 hover:from-vetify-accent-600 hover:to-vetify-accent-700 text-white font-medium rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 Comenzar Gratis
               </button>
               <button
                 onClick={() => handlePlanSelect('professional')}
-                className="px-8 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 text-white font-medium rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="px-8 py-3 bg-gradient-to-r from-vetify-blush-400 to-vetify-blush-500 hover:from-vetify-blush-500 hover:to-vetify-blush-600 text-white font-medium rounded-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 Ver Plan Profesional
               </button>
