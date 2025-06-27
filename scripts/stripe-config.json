@@ -1,0 +1,71 @@
+{
+  "products": {
+    "free": {
+      "id": "prod_SZe4GCWqiEsIEf",
+      "name": "Plan Gratis Vetify",
+      "description": "Plan gratuito ideal para veterinarios independientes o consultorios muy pequeños"
+    },
+    "basic": {
+      "id": "prod_SZe4NA8cu4P54h", 
+      "name": "Plan Básico Vetify",
+      "description": "Plan ideal para clínicas pequeñas que recién comienzan"
+    },
+    "professional": {
+      "id": "prod_SZe4xMYFaIBERq",
+      "name": "Plan Profesional Vetify", 
+      "description": "Plan perfecto para clínicas establecidas con múltiples veterinarios"
+    }
+  },
+  "prices": {
+    "free": {
+      "id": "price_1ReUmePwxz1bHxlHqTl0hRlY",
+      "amount": 0,
+      "currency": "MXN",
+      "type": "one_time"
+    },
+    "basic": {
+      "monthly": {
+        "id": "price_1ReUmfPwxz1bHxlHW0hxRpbS",
+        "amount": 44900,
+        "currency": "MXN",
+        "formatted": "$449"
+      },
+      "yearly": {
+        "id": "price_1ReUmgPwxz1bHxlHqPtryKmj", 
+        "amount": 34900,
+        "currency": "MXN",
+        "formatted": "$349"
+      }
+    },
+    "professional": {
+      "monthly": {
+        "id": "price_1ReUmhPwxz1bHxlHeIXwcnKA",
+        "amount": 89900,
+        "currency": "MXN", 
+        "formatted": "$899"
+      },
+      "yearly": {
+        "id": "price_1ReUmhPwxz1bHxlH0fWaKCKc",
+        "amount": 64900,
+        "currency": "MXN",
+        "formatted": "$649"
+      }
+    }
+  },
+  "environment_variables": {
+    "STRIPE_PRODUCT_FREE": "prod_SZe4GCWqiEsIEf",
+    "STRIPE_PRODUCT_BASIC": "prod_SZe4NA8cu4P54h", 
+    "STRIPE_PRODUCT_PROFESSIONAL": "prod_SZe4xMYFaIBERq",
+    "STRIPE_PRICE_FREE": "price_1ReUmePwxz1bHxlHqTl0hRlY",
+    "STRIPE_PRICE_BASIC_MONTHLY": "price_1ReUmfPwxz1bHxlHW0hxRpbS",
+    "STRIPE_PRICE_BASIC_YEARLY": "price_1ReUmgPwxz1bHxlHqPtryKmj",
+    "STRIPE_PRICE_PROFESSIONAL_MONTHLY": "price_1ReUmhPwxz1bHxlHeIXwcnKA", 
+    "STRIPE_PRICE_PROFESSIONAL_YEARLY": "price_1ReUmhPwxz1bHxlH0fWaKCKc"
+  },
+  "created_at": "2025-01-28T02:31:48.000Z",
+  "notes": [
+    "Productos y precios creados usando Stripe MCP",
+    "Precios en centavos mexicanos (MXN)",
+    "Configuración promocional MVP con 25% de descuento aplicado"
+  ]
+} 
