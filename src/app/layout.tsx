@@ -1,5 +1,6 @@
 // app/layout.tsx
 import { Inter } from 'next/font/google'
+import Script from 'next/script'
 
 // Force dynamic rendering for all pages to prevent static generation issues with Kinde Auth
 export const dynamic = 'force-dynamic'
@@ -114,6 +115,13 @@ export default function RootLayout({
             </Providers>
           </AuthProvider>
         </ErrorBoundary>
+        
+        {/* Umami Analytics */}
+        <Script
+          src="https://analytics.alanis.dev/script.js"
+          data-website-id="a8982b40-5dc3-4a51-a17f-1cf53a2aecc4"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   )

@@ -2,27 +2,70 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import { addMinutes, format, isWithinInterval, parseISO } from 'date-fns';
+import { addMinutes, format, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const availabilitySchema = z.object({
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: "Invalid date format"
   }),
-  duration: z.number().min(15).max(300).default(30),
-  staffId: z.string().optional(),
-  excludeAppointmentId: z.string().optional(), // Para edición de citas
+  duration: z.string()
+    .nullable()
+    .optional()
+    .transform(val => val ? parseInt(val) : 30)
+    .refine(val => val >= 15 && val <= 300, {
+      message: "Duration must be between 15 and 300 minutes"
+    }),
+  staffId: z.string().nullable().optional(),
+  excludeAppointmentId: z.string().nullable().optional(), // Para edición de citas
 });
 
-// Configuración de horarios de trabajo (esto podría venir de la base de datos)
-const BUSINESS_HOURS = {
-  start: 8, // 8:00 AM
-  end: 18,  // 6:00 PM
-  lunchStart: 13, // 1:00 PM
-  lunchEnd: 14,   // 2:00 PM
-  slotDuration: 15, // 15 minutos
-  workingDays: [1, 2, 3, 4, 5, 6], // Lunes a Sábado
-};
+// Helper function to get business hours from database
+async function getBusinessHours(tenantId: string, dayOfWeek: number) {
+  try {
+    const tenantSettings = await prisma.tenantSettings.findUnique({
+      where: { tenantId },
+      include: {
+        businessHours: {
+          where: { dayOfWeek }
+        }
+      }
+    });
+
+    const dayBusinessHours = tenantSettings?.businessHours?.[0];
+    
+    // Return parsed business hours or null if not a working day
+    if (!dayBusinessHours?.isWorkingDay) {
+      return null;
+    }
+
+    return {
+      start: parseInt(dayBusinessHours.startTime.split(':')[0]),
+      startMinute: parseInt(dayBusinessHours.startTime.split(':')[1]),
+      end: parseInt(dayBusinessHours.endTime.split(':')[0]),
+      endMinute: parseInt(dayBusinessHours.endTime.split(':')[1]),
+      lunchStart: dayBusinessHours.lunchStart ? parseInt(dayBusinessHours.lunchStart.split(':')[0]) : null,
+      lunchStartMinute: dayBusinessHours.lunchStart ? parseInt(dayBusinessHours.lunchStart.split(':')[1]) : 0,
+      lunchEnd: dayBusinessHours.lunchEnd ? parseInt(dayBusinessHours.lunchEnd.split(':')[0]) : null,
+      lunchEndMinute: dayBusinessHours.lunchEnd ? parseInt(dayBusinessHours.lunchEnd.split(':')[1]) : 0,
+      slotDuration: dayBusinessHours.slotDuration || tenantSettings?.defaultSlotDuration || 15,
+    };
+  } catch (error) {
+    console.error('Error fetching business hours:', error);
+    // Fallback to default hours
+    return {
+      start: 8,
+      startMinute: 0,
+      end: 18,
+      endMinute: 0,
+      lunchStart: 13,
+      lunchStartMinute: 0,
+      lunchEnd: 14,
+      lunchEndMinute: 0,
+      slotDuration: 15,
+    };
+  }
+}
 
 export async function GET(request: Request) {
   try {
@@ -30,7 +73,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     
     const date = searchParams.get('date');
-    const duration = parseInt(searchParams.get('duration') || '30');
+    const duration = searchParams.get('duration');
     const staffId = searchParams.get('staffId');
     const excludeAppointmentId = searchParams.get('excludeAppointmentId');
 
@@ -48,23 +91,53 @@ export async function GET(request: Request) {
       excludeAppointmentId
     });
 
-    const targetDate = parseISO(validatedData.date);
+    // Parse the date and ensure it's in local timezone
+    let targetDate: Date;
+    try {
+      if (validatedData.date.includes('T')) {
+        // If it's an ISO string with time
+        targetDate = new Date(validatedData.date);
+      } else {
+        // If it's just a date string (YYYY-MM-DD), parse as local date
+        // Split the date to avoid timezone issues
+        const [year, month, day] = validatedData.date.split('-').map(Number);
+        targetDate = new Date(year, month - 1, day); // month is 0-indexed
+      }
+      
+      if (isNaN(targetDate.getTime())) {
+        throw new Error('Invalid date');
+      }
+    } catch {
+      return NextResponse.json(
+        { success: false, error: 'Formato de fecha inválido' },
+        { status: 400 }
+      );
+    }
+
     const dayOfWeek = targetDate.getDay();
 
-    // Verificar si es día laborable
-    if (!BUSINESS_HOURS.workingDays.includes(dayOfWeek)) {
+    // Get business hours from database
+    const businessHours = await getBusinessHours(tenant.id, dayOfWeek);
+
+    // Check if it's a working day
+    if (!businessHours) {
       return NextResponse.json({
         success: true,
         data: {
           date: validatedData.date,
+          duration: validatedData.duration,
           availableSlots: [],
+          totalSlots: 0,
+          availableCount: 0,
+          occupiedCount: 0,
+          workingDay: false,
           message: 'Día no laborable'
         }
       });
     }
 
     // Generar slots disponibles del día
-    const slots = generateDaySlots(targetDate);
+    const slots = generateDaySlots(targetDate, businessHours);
 
     // Obtener citas existentes del día
     const startOfDay = new Date(targetDate);
@@ -139,7 +212,8 @@ export async function GET(request: Request) {
         totalSlots: slots.length,
         availableCount: availableSlots.length,
         occupiedCount: slots.length - availableSlots.length,
-        businessHours: BUSINESS_HOURS,
+        workingDay: true,
+        businessHours: businessHours,
         staffStats
       }
     });
@@ -160,15 +234,36 @@ export async function GET(request: Request) {
   }
 }
 
-function generateDaySlots(date: Date) {
+interface BusinessHours {
+  start: number;
+  startMinute: number;
+  end: number;
+  endMinute: number;
+  lunchStart: number | null;
+  lunchStartMinute: number;
+  lunchEnd: number | null;
+  lunchEndMinute: number;
+  slotDuration: number;
+}
+
+function generateDaySlots(date: Date, businessHours: BusinessHours) {
   const slots = [];
-  const baseDate = new Date(date);
   
-  // Slots de la mañana (8:00 - 13:00)
-  for (let hour = BUSINESS_HOURS.start; hour < BUSINESS_HOURS.lunchStart; hour++) {
-    for (let minute = 0; minute < 60; minute += BUSINESS_HOURS.slotDuration) {
-      const slotTime = new Date(baseDate);
-      slotTime.setHours(hour, minute, 0, 0);
+  // Create a new date using the exact year, month, day to avoid timezone issues
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+  
+  // Morning slots (start - lunch or end if no lunch)
+  const morningEnd = businessHours.lunchStart ? businessHours.lunchStart : businessHours.end;
+  for (let hour = businessHours.start; hour < morningEnd; hour++) {
+    const startMinute = hour === businessHours.start ? businessHours.startMinute : 0;
+    // For morning slots, always go to full hour unless it's the last hour before lunch
+    const endMinute = 60;
+    
+    for (let minute = startMinute; minute < endMinute; minute += businessHours.slotDuration) {
+      // Create slot time with explicit year, month, day to maintain local timezone
+      const slotTime = new Date(year, month, day, hour, minute, 0, 0);
       
       slots.push({
         dateTime: slotTime,
@@ -177,16 +272,23 @@ function generateDaySlots(date: Date) {
     }
   }
   
-  // Slots de la tarde (14:00 - 18:00)
-  for (let hour = BUSINESS_HOURS.lunchEnd; hour < BUSINESS_HOURS.end; hour++) {
-    for (let minute = 0; minute < 60; minute += BUSINESS_HOURS.slotDuration) {
-      const slotTime = new Date(baseDate);
-      slotTime.setHours(hour, minute, 0, 0);
+  // Afternoon slots (lunch end - end) - only if there's a lunch break
+  if (businessHours.lunchStart && businessHours.lunchEnd) {
+    for (let hour = businessHours.lunchEnd; hour < businessHours.end; hour++) {
+      const startMinute = hour === businessHours.lunchEnd ? businessHours.lunchEndMinute : 0;
+      // For afternoon slots, always go to full hour except for the last hour
+      // If endMinute is 0 (meaning end at the top of the hour), treat it as if it goes to the full previous hour
+      const endMinute = hour === businessHours.end - 1 ? (businessHours.endMinute || 60) : 60;
       
-      slots.push({
-        dateTime: slotTime,
-        period: 'afternoon'
-      });
+      for (let minute = startMinute; minute < endMinute; minute += businessHours.slotDuration) {
+        // Create slot time with explicit year, month, day to maintain local timezone
+        const slotTime = new Date(year, month, day, hour, minute, 0, 0);
+        
+        slots.push({
+          dateTime: slotTime,
+          period: 'afternoon'
+        });
+      }
     }
   }
   
@@ -215,7 +317,10 @@ export async function POST(request: Request) {
     const hour = targetDateTime.getHours();
     const dayOfWeek = targetDateTime.getDay();
     
-    if (!BUSINESS_HOURS.workingDays.includes(dayOfWeek)) {
+    // Get business hours for this day
+    const businessHours = await getBusinessHours(tenant.id, dayOfWeek);
+    
+    if (!businessHours) {
       return NextResponse.json({
         success: false,
         available: false,
@@ -223,8 +328,9 @@ export async function POST(request: Request) {
       });
     }
 
-    if (hour < BUSINESS_HOURS.start || hour >= BUSINESS_HOURS.end || 
-        (hour >= BUSINESS_HOURS.lunchStart && hour < BUSINESS_HOURS.lunchEnd)) {
+    if (hour < businessHours.start || hour >= businessHours.end || 
+        (businessHours.lunchStart && businessHours.lunchEnd && 
+         hour >= businessHours.lunchStart && hour < businessHours.lunchEnd)) {
       return NextResponse.json({
         success: false,
         available: false,
