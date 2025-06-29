@@ -172,3 +172,173 @@
     --cell-size: 2.8rem;
   }
 }
+
+/* Time slots styling for appointment form */
+.time-slots-container {
+  /* Custom scrollbar for time slots */
+  scrollbar-width: thin;
+  scrollbar-color: #e5e7eb #f9fafb;
+}
+
+.time-slots-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.time-slots-container::-webkit-scrollbar-track {
+  background: #f9fafb;
+  border-radius: 3px;
+}
+
+.time-slots-container::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 3px;
+}
+
+.time-slots-container::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
+}
+
+/* Improve time slot buttons on mobile */
+@media (max-width: 640px) {
+  .time-slot-button {
+    min-height: 2.5rem;
+    font-size: 0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .time-slots-grid {
+    gap: 0.5rem;
+  }
+}
+
+/* Smooth transitions for time slot selection */
+.time-slot-button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.time-slot-button:active {
+  transform: scale(0.95);
+}
+
+/* Better mobile responsive design for appointment form */
+@media (max-width: 1279px) {
+  .appointment-form-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .appointment-form-grid .calendar-section {
+    order: 1;
+  }
+  
+  .appointment-form-grid .time-slots-section {
+    order: 2;
+  }
+}
+
+/* Mobile-optimized calendar styles */
+.mobile-calendar {
+  --mobile-calendar-height: 500px;
+}
+
+@media (max-width: 640px) {
+  .mobile-calendar {
+    --mobile-calendar-height: 450px;
+  }
+  
+  /* Improve FullCalendar mobile experience */
+  .mobile-calendar .fc-header-toolbar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .mobile-calendar .fc-toolbar-chunk {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .mobile-calendar .fc-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: 0.375rem;
+  }
+  
+  .mobile-calendar .fc-button-group {
+    display: flex;
+    gap: 0.25rem;
+  }
+  
+  .mobile-calendar .fc-daygrid-event {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.25rem;
+  }
+  
+  .mobile-calendar .fc-timegrid-event {
+    font-size: 0.75rem;
+    padding: 0.125rem 0.25rem;
+  }
+  
+  .mobile-calendar .fc-col-header-cell {
+    font-size: 0.75rem;
+    padding: 0.25rem;
+  }
+  
+  .mobile-calendar .fc-timegrid-slot {
+    height: 1.5rem;
+  }
+  
+  .mobile-calendar .fc-timegrid-slot-label {
+    font-size: 0.75rem;
+  }
+  
+  .mobile-calendar .fc-event-title {
+    font-size: 0.75rem;
+    line-height: 1.1;
+  }
+  
+  .mobile-calendar .fc-event-time {
+    font-size: 0.625rem;
+    font-weight: 600;
+  }
+  
+  /* Better touch targets for mobile */
+  .mobile-calendar .fc-daygrid-day,
+  .mobile-calendar .fc-timegrid-slot {
+    cursor: pointer;
+  }
+  
+  .mobile-calendar .fc-daygrid-day:hover,
+  .mobile-calendar .fc-timegrid-slot:hover {
+    background-color: #f3f4f6;
+  }
+  
+  /* Improve month view on mobile */
+  .mobile-calendar .fc-daygrid-day-number {
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  
+  .mobile-calendar .fc-daygrid-day-top {
+    flex-direction: row;
+    align-items: center;
+    padding: 0.25rem;
+  }
+}
+
+/* Tablet optimization */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .mobile-calendar {
+    --mobile-calendar-height: 550px;
+  }
+  
+  .mobile-calendar .fc-button {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .mobile-calendar .fc-timegrid-slot {
+    height: 1.75rem;
+  }
+}

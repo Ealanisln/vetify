@@ -153,20 +153,21 @@ export function AppointmentsPageClient({
       <AppointmentStats />
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-4">
-        {/* Calendar - Takes up 3 columns */}
-        <div className="lg:col-span-3">
+      <div className="grid grid-cols-1 gap-4 lg:gap-6 lg:grid-cols-4">
+        {/* Calendar - Takes up 3 columns, full width on mobile */}
+        <div className="lg:col-span-3 order-2 lg:order-1">
           <FullCalendarView
             onEventClick={handleEventClick}
             onDateSelect={handleDateSelect}
             defaultView="timeGridWeek"
             editable={true}
             selectable={true}
+            className="mobile-calendar"
           />
         </div>
         
-        {/* Today's Appointments Sidebar - Takes up 1 column */}
-        <div className="lg:col-span-1">
+        {/* Today's Appointments Sidebar - Takes up 1 column, shows first on mobile */}
+        <div className="lg:col-span-1 order-1 lg:order-2">
           <TodayAppointments 
             onQuickAction={handleQuickAction}
             onWhatsApp={handleWhatsApp}

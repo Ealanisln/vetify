@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -46,6 +46,7 @@ export function FullCalendarView({
   const calendarRef = useRef<FullCalendar>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventApi | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   const { 
     events, 
@@ -57,6 +58,18 @@ export function FullCalendarView({
     setCurrentView,
     refresh 
   } = useCalendar(defaultView);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   const { updateAppointment } = useAppointments();
   const calendarConfig = useCalendarConfig();
@@ -190,7 +203,75 @@ export function FullCalendarView({
     <Card className={cn("w-full", className)}>
       {showToolbar && (
         <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
+          {/* Mobile header - Stack vertically */}
+          <div className="block sm:hidden">
+            <CardTitle className="flex items-center gap-2 mb-3">
+              <Calendar className="h-5 w-5" />
+              Calendario de Citas
+              {loading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
+            </CardTitle>
+            
+            {/* Mobile navigation */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleNavigation('prev')}
+                  className="px-2"
+                >
+                  ‹
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleNavigation('today')}
+                  className="px-3 text-xs"
+                >
+                  Hoy
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleNavigation('next')}
+                  className="px-2"
+                >
+                  ›
+                </Button>
+              </div>
+            </div>
+            
+            {/* Mobile view selector */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant={currentView === 'dayGridMonth' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleViewChange('dayGridMonth')}
+                className="flex-1 text-xs"
+              >
+                Mes
+              </Button>
+              <Button
+                variant={currentView === 'timeGridWeek' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleViewChange('timeGridWeek')}
+                className="flex-1 text-xs"
+              >
+                Semana
+              </Button>
+              <Button
+                variant={currentView === 'timeGridDay' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleViewChange('timeGridDay')}
+                className="flex-1 text-xs"
+              >
+                Día
+              </Button>
+            </div>
+          </div>
+
+          {/* Desktop header - Keep existing layout */}
+          <div className="hidden sm:flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
               Calendario de Citas
@@ -251,8 +332,8 @@ export function FullCalendarView({
         </CardHeader>
       )}
       
-      <CardContent className="p-2">
-        <div className="h-[600px]">
+      <CardContent className="p-1 sm:p-2">
+        <div className="h-[500px] sm:h-[600px]">
           {/* @ts-expect-error - FullCalendar types are complex and this works fine */}
           <FullCalendar
             ref={calendarRef}
@@ -281,6 +362,17 @@ export function FullCalendarView({
             nowIndicator={true}
             scrollTime="08:00:00"
             slotLabelInterval="01:00:00"
+            // Mobile optimizations
+            dayMaxEventRows={isMobile ? 2 : 3}
+            moreLinkClick="popover"
+            handleWindowResize={true}
+            aspectRatio={isMobile ? 0.75 : 1.35}
+            contentHeight={isMobile ? 400 : 600}
+            expandRows={true}
+            // Touch optimizations
+            longPressDelay={1000}
+            eventLongPressDelay={1000}
+            selectLongPressDelay={1000}
             eventContent={(eventInfo) => (
               <EventContent event={eventInfo} />
             )}
