@@ -32,31 +32,66 @@ const PricingPage: React.FC = () => {
   const { mounted, theme } = useThemeAware();
 
   // Convert COMPLETE_PLANS to the expected format with proper icons
-  const plans: PricingPlan[] = Object.values(COMPLETE_PLANS).map(plan => ({
-    id: plan.key.toLowerCase(),
-    name: plan.name,
-    description: plan.description,
-    monthlyPrice: plan.monthlyPrice,
-    yearlyPrice: plan.yearlyPrice,
-    originalMonthlyPrice: 'originalMonthlyPrice' in plan ? plan.originalMonthlyPrice : undefined,
-    originalYearlyPrice: 'originalYearlyPrice' in plan ? plan.originalYearlyPrice : undefined,
-    badge: plan.badge,
-    badgeColor: plan.badgeColor,
-    popular: plan.popular || false,
-    icon: plan.icon === 'Star' ? <Star className="h-6 w-6" /> :
-          plan.icon === 'Users' ? <Users className="h-6 w-6" /> :
-          plan.icon === 'Building' ? <Building className="h-6 w-6" /> :
-          plan.icon === 'Crown' ? <Crown className="h-6 w-6" /> :
-          <Star className="h-6 w-6" />,
-    features: plan.features,
-    cta: plan.cta
-  }));
+  const plans: PricingPlan[] = Object.values(COMPLETE_PLANS).map(plan => {
+    let iconElement: React.ReactNode;
+    
+    switch (plan.icon) {
+      case 'Star':
+        iconElement = <Star className="h-6 w-6" />;
+        break;
+      case 'Users':
+        iconElement = <Users className="h-6 w-6" />;
+        break;
+      case 'Building':
+        iconElement = <Building className="h-6 w-6" />;
+        break;
+      case 'Crown':
+        iconElement = <Crown className="h-6 w-6" />;
+        break;
+      default:
+        iconElement = <Star className="h-6 w-6" />;
+    }
+    
+    // Debug logging to catch any object values
+    if (typeof plan.badgeColor === 'object') {
+      console.error('badgeColor is an object:', plan.badgeColor);
+    }
+    if (typeof plan.badge === 'object') {
+      console.error('badge is an object:', plan.badge);
+    }
+    if (typeof plan.name === 'object') {
+      console.error('name is an object:', plan.name);
+    }
+    
+    return {
+      id: plan.key.toLowerCase(),
+      name: plan.name,
+      description: plan.description,
+      monthlyPrice: plan.monthlyPrice,
+      yearlyPrice: plan.yearlyPrice,
+      originalMonthlyPrice: 'originalMonthlyPrice' in plan ? plan.originalMonthlyPrice : undefined,
+      originalYearlyPrice: 'originalYearlyPrice' in plan ? plan.originalYearlyPrice : undefined,
+      badge: plan.badge,
+      badgeColor: plan.badgeColor,
+      popular: plan.popular || false,
+      icon: iconElement,
+      features: plan.features,
+      cta: plan.cta
+    };
+  });
 
   const handlePlanSelect = (planId: string) => {
-    if (planId === 'free') {
-      window.location.href = '/sign-up';
-    } else {
-      window.location.href = `/sign-up?plan=${planId}&billing=${isYearly ? 'yearly' : 'monthly'}`;
+    try {
+      if (planId === 'free') {
+        window.location.href = '/sign-up';
+      } else {
+        const billing = isYearly ? 'yearly' : 'monthly';
+        const url = `/sign-up?plan=${encodeURIComponent(planId)}&billing=${encodeURIComponent(billing)}`;
+        console.log('Navigating to:', url);
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error('Error during navigation:', error);
     }
   };
 
@@ -172,7 +207,7 @@ const PricingPage: React.FC = () => {
             >
               {/* Badge */}
               {plan.badge && (
-                <div className={`absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold text-white ${plan.badgeColor}`}>
+                <div className={`absolute -top-3 left-1/2 transform -translate-x-1/2 px-4 py-1 rounded-full text-xs font-bold text-white ${plan.badgeColor || ''}`}>
                   {plan.badge}
                 </div>
               )}
@@ -180,7 +215,7 @@ const PricingPage: React.FC = () => {
               <div className="p-8">
                 {/* Icono y nombre */}
                 <div className="flex items-center mb-4">
-                  <div className={`p-2 rounded-lg ${plan.badgeColor} text-white mr-3`}>
+                  <div className={`p-2 rounded-lg ${plan.badgeColor || ''} text-white mr-3`}>
                     {plan.icon}
                   </div>
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white">{plan.name}</h3>

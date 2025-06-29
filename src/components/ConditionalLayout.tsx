@@ -25,11 +25,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
       {children}
       {/* {!shouldHideNavAndFooter && <Footer />} */}
       
-      {/* Debug info */}
-      <div style={{padding: '10px', background: '#f0f0f0', fontSize: '12px'}}>
-        <p>Path: {pathname}</p>
-        <p>Should hide nav/footer: {shouldHideNavAndFooter.toString()}</p>
-      </div>
+
     </>
   );
 } 

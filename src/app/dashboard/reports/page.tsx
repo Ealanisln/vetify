@@ -1,251 +1,121 @@
-
 import { Suspense } from 'react';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
-import SalesReportsClient from './SalesReportsClient';
+import { getFullReportsData } from '@/lib/reports';
+import EnhancedReportsClient from '@/components/reports/EnhancedReportsClient';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-async function getSalesData(tenantId: string) {
-  const today = new Date();
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const startOfWeek = new Date(today);
-  startOfWeek.setDate(today.getDate() - today.getDay());
-  
-  // Ventas del día
-  const todayStart = new Date(today);
-  todayStart.setHours(0, 0, 0, 0);
-  const todayEnd = new Date(today);
-  todayEnd.setHours(23, 59, 59, 999);
+async function getReportsData(tenantId: string) {
+  try {
+    const reportsData = await getFullReportsData(tenantId);
+    return reportsData;
+  } catch (error) {
+    console.error('Error fetching reports data:', error);
+    throw error;
+  }
+}
 
-  // Ventas de la semana
-  const weekStart = new Date(startOfWeek);
-  weekStart.setHours(0, 0, 0, 0);
-
-  // Ventas del mes
-  const monthStart = new Date(startOfMonth);
-  monthStart.setHours(0, 0, 0, 0);
-
-  const [todaySales, weekSales, monthSales, recentSales, topServices, topProducts] = await Promise.all([
-    // Ventas del día
-    prisma.sale.aggregate({
-      where: {
-        tenantId,
-        status: { in: ['COMPLETED', 'PAID'] },
-        createdAt: { gte: todayStart, lte: todayEnd }
-      },
-      _sum: { total: true },
-      _count: { id: true }
-    }),
-
-    // Ventas de la semana
-    prisma.sale.aggregate({
-      where: {
-        tenantId,
-        status: { in: ['COMPLETED', 'PAID'] },
-        createdAt: { gte: weekStart }
-      },
-      _sum: { total: true },
-      _count: { id: true }
-    }),
-
-    // Ventas del mes
-    prisma.sale.aggregate({
-      where: {
-        tenantId,
-        status: { in: ['COMPLETED', 'PAID'] },
-        createdAt: { gte: monthStart }
-      },
-      _sum: { total: true },
-      _count: { id: true }
-    }),
-
-    // Ventas recientes
-    prisma.sale.findMany({
-      where: {
-        tenantId,
-        status: { in: ['COMPLETED', 'PAID'] }
-      },
-      include: {
-        customer: { select: { name: true } },
-        items: {
-          include: {
-            service: { select: { name: true } },
-            inventoryItem: { select: { name: true } }
-          }
-        },
-        payments: { select: { paymentMethod: true, amount: true } }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 20
-    }),
-
-    // Servicios más vendidos
-    prisma.saleItem.groupBy({
-      by: ['serviceId'],
-      where: {
-        serviceId: { not: null },
-        sale: {
-          tenantId,
-          status: { in: ['COMPLETED', 'PAID'] },
-          createdAt: { gte: monthStart }
-        }
-      },
-      _sum: { quantity: true, total: true },
-      _count: { id: true },
-      orderBy: { _sum: { total: 'desc' } },
-      take: 10
-    }),
-
-    // Productos más vendidos
-    prisma.saleItem.groupBy({
-      by: ['itemId'],
-      where: {
-        itemId: { not: null },
-        sale: {
-          tenantId,
-          status: { in: ['COMPLETED', 'PAID'] },
-          createdAt: { gte: monthStart }
-        }
-      },
-      _sum: { quantity: true, total: true },
-      _count: { id: true },
-      orderBy: { _sum: { total: 'desc' } },
-      take: 10
-    })
-  ]);
-
-  // Obtener nombres de servicios
-  const serviceIds = topServices.map(s => s.serviceId).filter(Boolean) as string[];
-  const services = serviceIds.length > 0 ? await prisma.service.findMany({
-    where: { id: { in: serviceIds } },
-    select: { id: true, name: true }
-  }) : [];
-
-  // Obtener nombres de productos
-  const productIds = topProducts.map(p => p.itemId).filter(Boolean) as string[];
-  const products = productIds.length > 0 ? await prisma.inventoryItem.findMany({
-    where: { id: { in: productIds } },
-    select: { id: true, name: true }
-  }) : [];
-
-  // Ventas por día de los últimos 30 días
-  const last30Days = new Date(today);
-  last30Days.setDate(today.getDate() - 30);
-  
-  const dailySales = await prisma.sale.groupBy({
-    by: ['createdAt'],
-    where: {
-      tenantId,
-      status: { in: ['COMPLETED', 'PAID'] },
-      createdAt: { gte: last30Days }
-    },
-    _sum: { total: true },
-    _count: { id: true }
-  });
-
-  // Agrupar por día
-  const salesByDay = dailySales.reduce((acc, sale) => {
-    const date = sale.createdAt.toISOString().split('T')[0];
-    if (!acc[date]) {
-      acc[date] = { date, total: 0, count: 0 };
-    }
-    acc[date].total += Number(sale._sum.total || 0);
-    acc[date].count += sale._count.id;
-    return acc;
-  }, {} as Record<string, { date: string; total: number; count: number }>);
-
-  return {
-    todaySales: {
-      total: Number(todaySales._sum.total || 0),
-      count: todaySales._count.id
-    },
-    weekSales: {
-      total: Number(weekSales._sum.total || 0),
-      count: weekSales._count.id
-    },
-    monthSales: {
-      total: Number(monthSales._sum.total || 0),
-      count: monthSales._count.id
-    },
-    recentSales: recentSales.map(sale => ({
-      id: sale.id,
-      saleNumber: sale.saleNumber,
-      customerName: sale.customer.name,
-      total: Number(sale.total),
-      itemCount: sale.items.length,
-      paymentMethod: sale.payments[0]?.paymentMethod || 'CASH',
-      createdAt: sale.createdAt,
-      items: sale.items.map(item => ({
-        description: item.description,
-        quantity: Number(item.quantity),
-        total: Number(item.total)
-      }))
-    })),
-    topServices: topServices.map(item => {
-      const service = services.find(s => s.id === item.serviceId);
-      return {
-        name: service?.name || 'Servicio desconocido',
-        quantity: Number(item._sum.quantity || 0),
-        total: Number(item._sum.total || 0),
-        count: item._count.id
-      };
-    }),
-    topProducts: topProducts.map(item => {
-      const product = products.find(p => p.id === item.itemId);
-      return {
-        name: product?.name || 'Producto desconocido',
-        quantity: Number(item._sum.quantity || 0),
-        total: Number(item._sum.total || 0),
-        count: item._count.id
-      };
-    }),
-    dailySales: Object.values(salesByDay).sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    )
-  };
+function ReportsLoading() {
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">Reportes y Análisis</h1>
+          <p className="text-muted-foreground">Cargando datos de análisis...</p>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[...Array(4)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-gray-200 rounded animate-pulse mb-2"></div>
+              <div className="h-3 bg-gray-100 rounded animate-pulse w-2/3"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        {[...Array(2)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader>
+              <div className="h-6 bg-gray-200 rounded animate-pulse w-1/3"></div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-64 bg-gray-100 rounded animate-pulse"></div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default async function ReportsPage() {
   const { getUser } = getKindeServerSession();
   const user = await getUser();
 
-  if (!user?.id) {
+  if (!user) {
     redirect('/sign-in');
   }
 
-  const userWithTenant = await prisma.user.findUnique({
-    where: { id: user.id },
-    include: { tenant: true }
-  });
-
-  if (!userWithTenant?.tenant) {
-    redirect('/onboarding');
-  }
-
-  const salesData = await getSalesData(userWithTenant.tenant.id);
+  // Get tenant info from user metadata
+  const tenantId = user.email?.split('@')[0] || 'default';
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Reportes de Ventas
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Análisis detallado del rendimiento de ventas de tu clínica
-        </p>
-      </div>
-
-      <Suspense fallback={
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-3">Cargando reportes...</span>
-        </div>
-      }>
-        <SalesReportsClient salesData={salesData} />
+    <div className="container mx-auto px-4 py-6">
+      <Suspense fallback={<ReportsLoading />}>
+        <ReportsContent tenantId={tenantId} />
       </Suspense>
     </div>
   );
+}
+
+async function ReportsContent({ tenantId }: { tenantId: string }) {
+  try {
+    const reportsData = await getReportsData(tenantId);
+    
+    return <EnhancedReportsClient reportsData={reportsData} />;
+  } catch (error) {
+    console.error('Error in ReportsContent:', error);
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold">Reportes y Análisis</h1>
+            <p className="text-muted-foreground">Error al cargar los datos</p>
+          </div>
+        </div>
+        
+        <Card>
+          <CardContent className="py-12">
+            <div className="text-center">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                Error al cargar reportes
+              </h3>
+              <p className="text-gray-500 mb-4">
+                No se pudieron cargar los datos de análisis. Por favor, intenta recargar la página.
+              </p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                Recargar página
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 } 
