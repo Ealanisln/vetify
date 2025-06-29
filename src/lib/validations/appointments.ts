@@ -150,9 +150,9 @@ export const validateAppointmentTime = (dateTime: Date) => {
     throw new Error('Las citas deben ser entre 8:00 AM y 6:00 PM');
   }
   
-  // Verificar hora de almuerzo
+  // Verificar hora de comida
   if (hour >= 13 && hour < 14) {
-    throw new Error('No se pueden agendar citas durante la hora de almuerzo (1:00 PM - 2:00 PM)');
+    throw new Error('No se pueden agendar citas durante la hora de comida (1:00 PM - 2:00 PM)');
   }
   
   return true;

@@ -1,7 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppointmentWithDetails } from './useAppointments';
-import { startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
-import { es } from 'date-fns/locale';
 
 export interface CalendarEvent {
   id: string;
@@ -67,49 +65,47 @@ export const useCalendar = (initialView: CalendarView = 'timeGridWeek'): UseCale
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [currentView, setCurrentView] = useState<CalendarView>(initialView);
 
   const getViewDateRange = useCallback((date: Date, view: CalendarView) => {
+    const start = new Date(date);
+    const end = new Date(date);
+
     switch (view) {
       case 'dayGridMonth':
-        return {
-          start: startOfMonth(date),
-          end: endOfMonth(date),
-        };
+        start.setDate(1);
+        end.setMonth(end.getMonth() + 1, 0);
+        break;
       case 'timeGridWeek':
       case 'listWeek':
-        return {
-          start: startOfWeek(date, { locale: es }),
-          end: endOfWeek(date, { locale: es }),
-        };
+        const dayOfWeek = start.getDay();
+        start.setDate(start.getDate() - dayOfWeek);
+        end.setDate(start.getDate() + 6);
+        break;
       case 'timeGridDay':
-        const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
-        return {
-          start: startOfDay,
-          end: endOfDay,
-        };
+        end.setDate(start.getDate());
+        break;
       default:
-        return {
-          start: startOfWeek(date, { locale: es }),
-          end: endOfWeek(date, { locale: es }),
-        };
+        break;
     }
+
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
   }, []);
 
   const getStatusColor = useCallback((status: string) => {
     const colors = {
-      SCHEDULED: { bg: '#3b82f6', border: '#2563eb', text: '#ffffff' },
-      CONFIRMED: { bg: '#10b981', border: '#059669', text: '#ffffff' },
-      CHECKED_IN: { bg: '#8b5cf6', border: '#7c3aed', text: '#ffffff' },
-      IN_PROGRESS: { bg: '#f59e0b', border: '#d97706', text: '#ffffff' },
-      COMPLETED: { bg: '#059669', border: '#047857', text: '#ffffff' },
-      CANCELLED_CLIENT: { bg: '#ef4444', border: '#dc2626', text: '#ffffff' },
-      CANCELLED_CLINIC: { bg: '#ef4444', border: '#dc2626', text: '#ffffff' },
-      NO_SHOW: { bg: '#6b7280', border: '#4b5563', text: '#ffffff' },
+      SCHEDULED: { bg: '#e3f2fd', border: '#2196f3', text: '#1976d2' },
+      CONFIRMED: { bg: '#e8f5e8', border: '#4caf50', text: '#388e3c' },
+      CHECKED_IN: { bg: '#fff3e0', border: '#ff9800', text: '#f57c00' },
+      IN_PROGRESS: { bg: '#f3e5f5', border: '#9c27b0', text: '#7b1fa2' },
+      COMPLETED: { bg: '#e0f2f1', border: '#009688', text: '#00695c' },
+      CANCELLED_CLIENT: { bg: '#ffebee', border: '#f44336', text: '#d32f2f' },
+      CANCELLED_CLINIC: { bg: '#ffebee', border: '#f44336', text: '#d32f2f' },
+      NO_SHOW: { bg: '#fafafa', border: '#9e9e9e', text: '#616161' },
     };
 
     return colors[status as keyof typeof colors] || colors.SCHEDULED;
@@ -184,10 +180,9 @@ export const useCalendar = (initialView: CalendarView = 'timeGridWeek'): UseCale
     await fetchEvents();
   }, [fetchEvents]);
 
-  // Cargar eventos cuando cambia la fecha o vista
   useEffect(() => {
     fetchEvents();
-  }, [fetchEvents]);
+  }, [fetchEvents, currentDate, currentView]);
 
   return {
     events,
@@ -202,7 +197,6 @@ export const useCalendar = (initialView: CalendarView = 'timeGridWeek'): UseCale
   };
 };
 
-// Hook para disponibilidad de horarios
 export const useAvailability = () => {
   const [availability, setAvailability] = useState<AvailabilityData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -292,7 +286,6 @@ export const useAvailability = () => {
   };
 };
 
-// Utilidades
 function getPriority(reason: string): 'low' | 'medium' | 'high' | 'emergency' {
   const emergencyKeywords = ['emergencia', 'urgente', 'accidente', 'grave'];
   const highKeywords = ['cirugía', 'operación', 'consulta especial'];
@@ -313,12 +306,11 @@ function getPriority(reason: string): 'low' | 'medium' | 'high' | 'emergency' {
   return 'medium';
 }
 
-// Hook para configuración del calendario
 export const useCalendarConfig = () => {
   return {
     locale: 'es',
     businessHours: {
-      daysOfWeek: [1, 2, 3, 4, 5, 6], // Lunes a Sábado
+      daysOfWeek: [1, 2, 3, 4, 5, 6],
       startTime: '08:00',
       endTime: '18:00'
     },

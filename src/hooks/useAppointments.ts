@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppointmentFormData, AppointmentQuery, AppointmentStatus } from '@/lib/validations/appointments';
 
 export interface AppointmentWithDetails {
@@ -45,7 +45,7 @@ export const useAppointments = (initialQuery?: Partial<AppointmentQuery>): UseAp
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentQuery, setCurrentQuery] = useState<Partial<AppointmentQuery>>(initialQuery || {});
+  const currentQueryRef = useRef<Partial<AppointmentQuery>>(initialQuery || {});
 
   const fetchAppointments = useCallback(async (query?: Partial<AppointmentQuery>) => {
     setLoading(true);
@@ -53,7 +53,7 @@ export const useAppointments = (initialQuery?: Partial<AppointmentQuery>): UseAp
 
     try {
       const queryParams = new URLSearchParams();
-      const finalQuery = { ...currentQuery, ...query };
+      const finalQuery = { ...currentQueryRef.current, ...query };
 
       Object.entries(finalQuery).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -77,14 +77,14 @@ export const useAppointments = (initialQuery?: Partial<AppointmentQuery>): UseAp
       }));
 
       setAppointments(appointmentsWithDates);
-      setCurrentQuery(finalQuery);
+      currentQueryRef.current = finalQuery;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error desconocido');
       console.error('Error fetching appointments:', err);
     } finally {
       setLoading(false);
     }
-  }, [currentQuery]);
+  }, []);
 
   const createAppointment = useCallback(async (data: AppointmentFormData): Promise<AppointmentWithDetails> => {
     setLoading(true);
@@ -231,10 +231,10 @@ export const useAppointments = (initialQuery?: Partial<AppointmentQuery>): UseAp
     await fetchAppointments();
   }, [fetchAppointments]);
 
-  // Cargar citas inicialmente
+  // Cargar citas inicialmente - only once on mount
   useEffect(() => {
     fetchAppointments();
-  }, [fetchAppointments]);
+  }, [fetchAppointments]); // Empty dependency array to run only once
 
   return {
     appointments,
