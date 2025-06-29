@@ -14,7 +14,8 @@ import {
   XMarkIcon,
   CreditCardIcon,
   DocumentTextIcon,
-  CurrencyDollarIcon
+  CurrencyDollarIcon,
+  UsersIcon
 } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
 
@@ -27,6 +28,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon },
   { name: 'Mascotas', href: '/dashboard/pets', icon: UserGroupIcon },
+  { name: 'Personal', href: '/dashboard/staff', icon: UsersIcon },
   { name: 'Punto de Venta', href: '/dashboard/sales', icon: CreditCardIcon },
   { name: 'Caja', href: '/dashboard/caja', icon: CurrencyDollarIcon },
   { name: 'Inventario', href: '/dashboard/inventory', icon: CubeIcon },

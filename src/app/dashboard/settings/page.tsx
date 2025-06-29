@@ -40,58 +40,125 @@ export default async function SettingsPage() {
         <ServiceManagement tenantId={tenant.id} />
       </div>
 
-      {/* Configuración Futura - Mantenemos el preview */}
+      {/* Configuración de Clínica */}
       <div className="bg-white dark:bg-gray-800 shadow-card rounded-lg border border-[#d5e3df] dark:border-gray-700">
-        <div className="px-4 py-8 sm:px-6 lg:px-8">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center">
+              <span className="text-white text-xl">🏢</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Configuración de Clínica
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Información básica y horarios de atención
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-6">
           <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-gradient-to-r from-[#75a99c] to-[#5b9788] mb-4">
-              <span className="text-2xl">⚙️</span>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-              Más Configuraciones Próximamente
-            </h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-xl mx-auto">
-              Estamos desarrollando más opciones de configuración para optimizar tu clínica.
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Configura los datos de tu clínica, horarios de atención y información de contacto.
             </p>
-            
-            {/* Feature Preview */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-8 max-w-3xl mx-auto">
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                <div className="h-10 w-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-3">
-                  <span className="text-lg">👤</span>
-                </div>
-                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1 text-sm">
-                  Perfil de Usuario
-                </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Datos personales y preferencias
-                </p>
-              </div>
-              
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                <div className="h-10 w-10 rounded-lg bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mx-auto mb-3">
-                  <span className="text-lg">🔔</span>
-                </div>
-                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1 text-sm">
-                  Notificaciones
-                </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  WhatsApp, email y recordatorios
-                </p>
-              </div>
-              
-              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                <div className="h-10 w-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center mx-auto mb-3">
-                  <span className="text-lg">🎨</span>
-                </div>
-                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1 text-sm">
-                  Personalización
-                </h3>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Tema, colores y configuración
-                </p>
-              </div>
+            <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800">
+              Configurar Clínica
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Notificaciones */}
+      <div className="bg-white dark:bg-gray-800 shadow-card rounded-lg border border-[#d5e3df] dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-purple-500 to-purple-600 flex items-center justify-center">
+              <span className="text-white text-xl">🔔</span>
             </div>
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Notificaciones
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                WhatsApp, recordatorios y plantillas de mensajes
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <div className="text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Configura las notificaciones automáticas y personaliza las plantillas de mensajes.
+            </p>
+            <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800">
+              Configurar Notificaciones
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Roles y Permisos */}
+      <div className="bg-white dark:bg-gray-800 shadow-card rounded-lg border border-[#d5e3df] dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 flex items-center justify-center">
+              <span className="text-white text-xl">👥</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Roles y Permisos
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Gestiona los roles del personal y sus permisos
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <div className="text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Define roles personalizados y asigna permisos específicos a cada miembro del equipo.
+            </p>
+            <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 dark:bg-orange-700 dark:hover:bg-orange-800">
+              Gestionar Roles
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Recordatorios de Tratamiento */}
+      <div className="bg-white dark:bg-gray-800 shadow-card rounded-lg border border-[#d5e3df] dark:border-gray-700">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center space-x-3">
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center">
+              <span className="text-white text-xl">💉</span>
+            </div>
+            <div>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Recordatorios de Tratamiento
+              </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Automatiza vacunas, desparasitaciones y tratamientos
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <div className="text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Configura recordatorios automáticos para tratamientos preventivos y vacunaciones.
+            </p>
+            <Link
+              href="/dashboard/pets?tab=treatment-reminders"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800"
+            >
+              Ver Recordatorios
+            </Link>
           </div>
         </div>
       </div>
