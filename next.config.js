@@ -14,6 +14,14 @@ const nextConfig = {
   
   // Add transpilation for problematic ESM packages
   transpilePackages: ['jose'],
+  
+  // Configure allowed dev origins for local development
+  allowedDevOrigins: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://192.168.1.4:3000', // Allow access from local network IP
+    'http://0.0.0.0:3000'
+  ],
 
   webpack: (config, { isServer }) => {
     if (!isServer) {

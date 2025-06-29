@@ -8,7 +8,7 @@ import { useAvailability } from '@/hooks/useCalendar';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, Clock, AlertCircle, CheckCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -207,37 +207,47 @@ export function AppointmentForm({
       </div>
 
       {/* Date and Time Selection */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Calendar - Takes more space */}
-        <div className="lg:col-span-2">
+      <div className="appointment-form-grid grid grid-cols-1 xl:grid-cols-5 gap-4">
+        {/* Calendar - Responsive sizing */}
+        <div className="calendar-section xl:col-span-2">
           <Card className="h-full">
-            <CardHeader>
-              <CardTitle className="text-lg">Seleccionar Fecha</CardTitle>
+            <CardHeader className="pb-3">
+                             <CardTitle className="text-lg flex items-center gap-2">
+                 <CalendarIcon className="h-5 w-5" />
+                 Seleccionar Fecha
+               </CardTitle>
             </CardHeader>
             <CardContent className="p-3">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateSelect}
-                disabled={{ before: new Date() }}
-                locale={es}
-                className="appointment-calendar w-full"
-                showOutsideDays={true}
-                fixedWeeks={true}
-              />
+              <div className="flex justify-center">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={handleDateSelect}
+                  disabled={{ before: new Date() }}
+                  locale={es}
+                  className="appointment-calendar w-full max-w-sm"
+                  showOutsideDays={true}
+                  fixedWeeks={true}
+                />
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Time Slots - Takes remaining space */}
-        <div className="lg:col-span-1">
+        {/* Time Slots - Now takes more space */}
+        <div className="time-slots-section xl:col-span-3">
           <Card className="h-full">
-            <CardHeader>
+            <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Clock className="h-5 w-5" />
                 Horarios Disponibles
-                {availabilityLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {availabilityLoading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
               </CardTitle>
+              {selectedDate && (
+                <p className="text-sm text-gray-500">
+                  {format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
+                </p>
+              )}
             </CardHeader>
             <CardContent className="p-3">
               {!selectedDate ? (
@@ -252,58 +262,86 @@ export function AppointmentForm({
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
               ) : availability && availability.availableSlots.length > 0 ? (
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  <div className="grid gap-3">
-                    <div className="text-sm font-medium text-gray-700">Mañana</div>
-                     <div className="grid grid-cols-2 gap-2">
-                       {availability.availableSlots
-                         .filter(slot => slot.period === 'morning')
-                         .slice(0, 8)
-                         .map((slot) => (
-                         <Button
-                           key={slot.dateTime}
-                           type="button"
-                           variant={watch('dateTime')?.toISOString() === slot.dateTime ? 'default' : 'outline'}
-                           size="sm"
-                           onClick={() => handleTimeSlotSelect(slot.dateTime)}
-                           className="h-10 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
-                         >
-                           {slot.time}
-                         </Button>
-                       ))}
-                     </div>
-                  </div>
+                <div className="time-slots-container space-y-4 max-h-[500px] overflow-y-auto">
+                  {/* Morning slots */}
+                  {availability.availableSlots.filter(slot => slot.period === 'morning').length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                          🌅 Mañana
+                        </div>
+                        <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          {availability.availableSlots.filter(slot => slot.period === 'morning').length} disponibles
+                        </div>
+                      </div>
+                      <div className="time-slots-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 gap-2">
+                        {availability.availableSlots
+                          .filter(slot => slot.period === 'morning')
+                          .map((slot) => (
+                          <Button
+                            key={slot.dateTime}
+                            type="button"
+                            variant={watch('dateTime')?.toISOString() === slot.dateTime ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => handleTimeSlotSelect(slot.dateTime)}
+                            className="time-slot-button h-9 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-[1.02] border-gray-200 hover:border-primary"
+                          >
+                            {slot.time}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
-                  <div className="grid gap-3">
-                    <div className="text-sm font-medium text-gray-700">Tarde</div>
-                     <div className="grid grid-cols-2 gap-2">
-                       {availability.availableSlots
-                         .filter(slot => slot.period === 'afternoon')
-                         .slice(0, 8)
-                         .map((slot) => (
-                         <Button
-                           key={slot.dateTime}
-                           type="button"
-                           variant={watch('dateTime')?.toISOString() === slot.dateTime ? 'default' : 'outline'}
-                           size="sm"
-                           onClick={() => handleTimeSlotSelect(slot.dateTime)}
-                           className="h-10 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-105"
-                         >
-                           {slot.time}
-                         </Button>
-                       ))}
-                     </div>
-                  </div>
+                  {/* Afternoon slots */}
+                  {availability.availableSlots.filter(slot => slot.period === 'afternoon').length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                          🌆 Tarde
+                        </div>
+                        <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          {availability.availableSlots.filter(slot => slot.period === 'afternoon').length} disponibles
+                        </div>
+                      </div>
+                      <div className="time-slots-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 gap-2">
+                        {availability.availableSlots
+                          .filter(slot => slot.period === 'afternoon')
+                          .map((slot) => (
+                          <Button
+                            key={slot.dateTime}
+                            type="button"
+                            variant={watch('dateTime')?.toISOString() === slot.dateTime ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => handleTimeSlotSelect(slot.dateTime)}
+                            className="time-slot-button h-9 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-[1.02] border-gray-200 hover:border-primary"
+                          >
+                            {slot.time}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   
-                  <div className="text-xs text-gray-500 pt-2 border-t">
-                    📅 {availability.availableCount} espacios disponibles de {availability.totalSlots}
+                  {/* Summary stats */}
+                  <div className="text-xs text-gray-500 pt-3 border-t border-gray-100 bg-gray-50 -mx-3 px-3 py-2 rounded-b-lg">
+                    <div className="flex items-center justify-between">
+                      <span>📅 {availability.availableCount} espacios disponibles</span>
+                      <span className="text-gray-400">de {availability.totalSlots} total</span>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8">
+                <div className="text-center py-8 px-4">
                   <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-3" />
                   <p className="text-sm text-gray-600 mb-2">No hay horarios disponibles para esta fecha</p>
-                  <p className="text-xs text-gray-500">Intenta seleccionar otra fecha</p>
+                  <p className="text-xs text-gray-500">Intenta seleccionar otra fecha o revisa la configuración de horarios</p>
+                  {availability && (
+                    <div className="mt-3 text-xs text-gray-400">
+                      <p>• Horarios configurados: {availability.totalSlots} espacios</p>
+                      <p>• Ocupados: {availability.occupiedCount}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

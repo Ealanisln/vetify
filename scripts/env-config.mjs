@@ -27,6 +27,18 @@ const ENVIRONMENTS = {
       NEXT_PUBLIC_N8N_WEBHOOK_URL: 'http://localhost:3000/api/webhooks/n8n'
     }
   },
+  localip: {
+    name: 'Local Development (192.168.1.4:3000) - Safari Compatible',
+    config: {
+      KINDE_SITE_URL: 'http://192.168.1.4:3000',
+      KINDE_POST_LOGOUT_REDIRECT_URL: 'http://192.168.1.4:3000',
+      KINDE_POST_LOGIN_REDIRECT_URL: 'http://192.168.1.4:3000/dashboard',
+      VETIFY_API_URL: 'http://192.168.1.4:3000',
+      NEXT_PUBLIC_APP_URL: 'http://192.168.1.4:3000',
+      NEXT_PUBLIC_BASE_URL: 'http://192.168.1.4:3000',
+      NEXT_PUBLIC_N8N_WEBHOOK_URL: 'http://192.168.1.4:3000/api/webhooks/n8n'
+    }
+  },
   development: {
     name: 'Development Deployment (development.vetify.pro)',
     config: {
@@ -103,10 +115,13 @@ function showCurrentConfig() {
   
   // Check which environment is currently configured
   const isLocalhost = env.KINDE_SITE_URL?.includes('localhost');
+  const isLocalIP = env.KINDE_SITE_URL?.includes('192.168.1.4');
   const isDevelopment = env.KINDE_SITE_URL?.includes('development.vetify.pro');
   
   if (isLocalhost) {
     console.log('📍 Currently configured for: LOCAL DEVELOPMENT (localhost:3000)');
+  } else if (isLocalIP) {
+    console.log('📍 Currently configured for: LOCAL DEVELOPMENT (192.168.1.4:3000) - Safari Compatible');
   } else if (isDevelopment) {
     console.log('📍 Currently configured for: DEVELOPMENT DEPLOYMENT (development.vetify.pro)');
   } else {
@@ -172,6 +187,11 @@ function main() {
       switchEnvironment('localhost');
       break;
       
+    case 'localip':
+    case 'safari':
+      switchEnvironment('localip');
+      break;
+      
     case 'development':
     case 'dev':
       switchEnvironment('development');
@@ -187,11 +207,13 @@ function main() {
       console.log('\nCommands:');
       console.log('  show, status     Show current environment configuration');
       console.log('  localhost, local Switch to localhost:3000 configuration');
+      console.log('  localip, safari  Switch to 192.168.1.4:3000 (Safari compatible)');
       console.log('  development, dev Switch to development.vetify.pro configuration');
       console.log('  help             Show this help message');
       console.log('\nExamples:');
       console.log('  pnpm env:show        # Show current configuration');
       console.log('  pnpm env:localhost   # Switch to localhost:3000');
+      console.log('  pnpm env:localip     # Switch to 192.168.1.4:3000 (Safari fix)');
       console.log('  pnpm env:development # Switch to development.vetify.pro');
       break;
       

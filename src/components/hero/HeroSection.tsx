@@ -2,28 +2,26 @@
 
 import { useState } from 'react';
 import { Check, Zap, MessageCircle, Shield } from 'lucide-react';
-import { useTheme } from "next-themes";
+import { useThemeAware } from "@/hooks/useThemeAware";
 
 const HeroSection: React.FC = () => {
   const [email, setEmail] = useState('');
-  const { resolvedTheme } = useTheme();
+  const { mounted, isDark } = useThemeAware();
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     window.location.href = `/registro?email=${encodeURIComponent(email)}`;
   };
 
+  // Safe theme-aware class selection
+  const backgroundClass = mounted && isDark
+    ? "bg-gradient-to-b from-vetify-primary-800/30 to-vetify-slate-900/50"
+    : "bg-gradient-to-b from-vetify-primary-50 to-white";
+
   return (
     <div className="relative overflow-hidden">
       {/* Fondo con gradiente adaptado a light/dark mode */}
-      <div 
-        className={`absolute inset-0 z-0 
-        ${
-          resolvedTheme === "dark"
-            ? "bg-gradient-to-b from-vetify-primary-800/30 to-vetify-slate-900/50"
-            : "bg-gradient-to-b from-vetify-primary-50 to-white"
-        }`}
-      />
+      <div className={`absolute inset-0 z-0 ${backgroundClass}`} />
       
       {/* Decoración de fondo */}
       <div className="absolute inset-0 z-0">
