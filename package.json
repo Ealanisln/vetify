@@ -17,7 +17,14 @@
     "vercel:env": "node scripts/vercel-env-export.mjs development",
     "vercel:env:dev": "node scripts/vercel-env-export.mjs development",
     "vercel:env:prod": "node scripts/vercel-env-export.mjs production",
-    "vercel:env:help": "node scripts/vercel-env-export.mjs help"
+    "vercel:env:help": "node scripts/vercel-env-export.mjs help",
+    "mvp:checklist": "node scripts/mvp-launch-checklist.mjs",
+    "mvp:setup": "node scripts/mvp-production-setup.mjs",
+    "build:production": "NODE_ENV=production prisma generate && prisma migrate deploy && next build",
+    "start:production": "NODE_ENV=production next start",
+    "db:migrate:production": "prisma migrate deploy",
+    "health:check": "node scripts/health-check.mjs",
+    "db:seed:production": "node scripts/seed-production.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.17",
