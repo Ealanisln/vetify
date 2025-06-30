@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserWithTenant } from '@/types';
+import { themeColors } from '@/utils/theme-colors';
 
 interface OnboardingFormProps {
   user: UserWithTenant;
@@ -152,26 +153,26 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
   };
 
   const getSlugInputClassName = () => {
-    const baseClass = "flex-1 block w-full border rounded-none rounded-r-md px-3 py-2 focus:outline-none focus:ring-green-500 focus:border-green-500";
+    const baseClass = `flex-1 block w-full border rounded-none rounded-r-md px-3 py-2 ${themeColors.input.base} transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#75a99c] focus:border-[#75a99c]`;
     
     if (slugValidation.isChecking) {
-      return `${baseClass} border-yellow-300`;
+      return `${baseClass} border-yellow-300 dark:border-yellow-600`;
     } else if (slugValidation.isAvailable === true) {
-      return `${baseClass} border-green-300`;
+      return `${baseClass} border-green-300 dark:border-green-600`;
     } else if (slugValidation.isAvailable === false) {
-      return `${baseClass} border-red-300`;
+      return `${baseClass} border-red-300 dark:border-red-600`;
     }
     
-    return `${baseClass} border-gray-300`;
+    return `${baseClass} ${themeColors.border.secondary}`;
   };
 
   const getSlugStatusIcon = () => {
     if (slugValidation.isChecking) {
-      return <span className="text-yellow-500">⏳</span>;
+      return <span className="text-yellow-500 dark:text-yellow-400">⏳</span>;
     } else if (slugValidation.isAvailable === true) {
-      return <span className="text-green-500">✅</span>;
+      return <span className="text-green-500 dark:text-green-400">✅</span>;
     } else if (slugValidation.isAvailable === false) {
-      return <span className="text-red-500">❌</span>;
+      return <span className="text-red-500 dark:text-red-400">❌</span>;
     }
     return null;
   };
@@ -184,13 +185,13 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <p className="text-sm text-red-600">{error}</p>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4 transition-colors duration-200">
+          <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
         </div>
       )}
 
       <div>
-        <label htmlFor="clinicName" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="clinicName" className={`block text-sm font-medium ${themeColors.text.primary} transition-colors duration-200`}>
           Nombre de la Clínica *
         </label>
         <input
@@ -199,17 +200,17 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
           required
           value={formData.clinicName}
           onChange={handleClinicNameChange}
-          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+          className={`mt-1 block w-full ${themeColors.input.base} ${themeColors.border.secondary} rounded-md px-3 py-2 shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#75a99c] focus:border-[#75a99c]`}
           placeholder="Ej: Clínica Veterinaria San Martín"
         />
       </div>
 
       <div>
-        <label htmlFor="slug" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="slug" className={`block text-sm font-medium ${themeColors.text.primary} transition-colors duration-200`}>
           URL de la Clínica *
         </label>
         <div className="mt-1 flex rounded-md shadow-sm">
-          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+          <span className={`inline-flex items-center px-3 rounded-l-md border border-r-0 ${themeColors.border.secondary} ${themeColors.background.secondary} ${themeColors.text.secondary} text-sm transition-colors duration-200`}>
             vetify.app/
           </span>
           <input
@@ -223,27 +224,27 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
             minLength={3}
           />
           {formData.slug && (
-            <div className="inline-flex items-center px-3 border border-l-0 border-gray-300 bg-gray-50">
+            <div className={`inline-flex items-center px-3 border border-l-0 ${themeColors.border.secondary} ${themeColors.background.secondary} transition-colors duration-200`}>
               {getSlugStatusIcon()}
             </div>
           )}
         </div>
         {slugValidation.message && (
-          <p className={`mt-1 text-xs ${
-            slugValidation.isAvailable === true ? 'text-green-600' : 
-            slugValidation.isAvailable === false ? 'text-red-600' : 
-            'text-yellow-600'
+          <p className={`mt-1 text-xs transition-colors duration-200 ${
+            slugValidation.isAvailable === true ? 'text-green-600 dark:text-green-400' : 
+            slugValidation.isAvailable === false ? 'text-red-600 dark:text-red-400' : 
+            'text-yellow-600 dark:text-yellow-400'
           }`}>
             {slugValidation.message}
           </p>
         )}
-        <p className="mt-1 text-xs text-gray-500">
+        <p className={`mt-1 text-xs ${themeColors.text.secondary} transition-colors duration-200`}>
           Solo letras minúsculas, números y guiones. Mínimo 3 caracteres.
         </p>
       </div>
 
       <div>
-        <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="phone" className={`block text-sm font-medium ${themeColors.text.primary} transition-colors duration-200`}>
           Teléfono
         </label>
         <input
@@ -251,13 +252,13 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
           id="phone"
           value={formData.phone}
           onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+          className={`mt-1 block w-full ${themeColors.input.base} ${themeColors.border.secondary} rounded-md px-3 py-2 shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#75a99c] focus:border-[#75a99c]`}
           placeholder="+1 234 567 8900"
         />
       </div>
 
       <div>
-        <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+        <label htmlFor="address" className={`block text-sm font-medium ${themeColors.text.primary} transition-colors duration-200`}>
           Dirección
         </label>
         <textarea
@@ -265,24 +266,24 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
           rows={3}
           value={formData.address}
           onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-          className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+          className={`mt-1 block w-full ${themeColors.input.base} ${themeColors.border.secondary} rounded-md px-3 py-2 shadow-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#75a99c] focus:border-[#75a99c]`}
           placeholder="Calle Principal 123, Ciudad, País"
         />
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4 transition-colors duration-200">
         <div className="flex">
           <div className="flex-shrink-0">
-            <span className="text-blue-400">ℹ️</span>
+            <span className="text-blue-400 dark:text-blue-300">ℹ️</span>
           </div>
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">
+            <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 transition-colors duration-200">
               Plan Gratuito
             </h3>
-            <p className="mt-1 text-sm text-blue-700">
+            <p className="mt-1 text-sm text-blue-700 dark:text-blue-300 transition-colors duration-200">
               Comenzarás con nuestro plan gratuito que incluye:
             </p>
-            <ul className="mt-2 text-sm text-blue-700 list-disc list-inside">
+            <ul className="mt-2 text-sm text-blue-700 dark:text-blue-300 list-disc list-inside transition-colors duration-200">
               <li>Hasta 50 mascotas</li>
               <li>1 usuario</li>
               <li>1GB de almacenamiento</li>
@@ -295,9 +296,16 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
       <button
         type="submit"
         disabled={isLoading || !isFormValid}
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#75a99c] hover:bg-[#5b9788] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
       >
-        {isLoading ? 'Configurando...' : 'Crear Mi Clínica'}
+        {isLoading ? (
+          <div className="flex items-center">
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            Configurando...
+          </div>
+        ) : (
+          'Crear Mi Clínica'
+        )}
       </button>
     </form>
   );

@@ -23,6 +23,51 @@ const nextConfig = {
     'http://0.0.0.0:3000'
   ],
 
+  // Production security headers
+  async headers() {
+    const headers = [];
+    
+    // Security headers for all routes
+    headers.push({
+      source: '/(.*)',
+      headers: [
+        {
+          key: 'X-Content-Type-Options',
+          value: 'nosniff',
+        },
+        {
+          key: 'X-Frame-Options',
+          value: 'DENY',
+        },
+        {
+          key: 'X-XSS-Protection',
+          value: '1; mode=block',
+        },
+        {
+          key: 'Referrer-Policy',
+          value: 'strict-origin-when-cross-origin',
+        },
+        {
+          key: 'Permissions-Policy',
+          value: 'camera=(), microphone=(), geolocation=()',
+        },
+      ],
+    });
+
+    // Specific headers for API routes
+    headers.push({
+      source: '/api/(.*)',
+      headers: [
+        {
+          key: 'Cache-Control',
+          value: 'no-store, max-age=0',
+        },
+      ],
+    });
+
+    return headers;
+  },
+
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -45,6 +90,13 @@ const nextConfig = {
     ];
     return config;
   },
+
+  // Production optimizations
+  ...(process.env.NODE_ENV === 'production' && {
+    compress: true,
+    poweredByHeader: false,
+    generateEtags: true,
+  }),
 };
 
 export default nextConfig; 

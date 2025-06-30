@@ -79,13 +79,15 @@ export async function checkUserNeedsOnboarding() {
 
 /**
  * Check if user is a super admin (Vetify employee)
+ * @deprecated Use isSuperAdmin from super-admin.ts instead
  */
 export function isAdmin(email: string): boolean {
-  return email.endsWith('@vetify.pro') || email.endsWith('@vetify.com');
+  return email.endsWith('@vetify.pro') || email.endsWith('@vetify.com') || email.endsWith('@alanis.dev');
 }
 
 /**
  * Require super admin access
+ * @deprecated Use requireSuperAdmin from super-admin.ts instead
  */
 export async function requireAdmin() {
   const user = await getAuthenticatedUser();

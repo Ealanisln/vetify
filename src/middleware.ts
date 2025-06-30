@@ -21,9 +21,9 @@ export default withAuth(
       return response;
     }
     
-    // Skip middleware for API routes, static files, and auth routes
+    // Skip middleware for API routes (except admin APIs), static files, and auth routes
     if (
-      pathname.startsWith('/api/') ||
+      (pathname.startsWith('/api/') && !pathname.startsWith('/api/admin/')) ||
       pathname.startsWith('/_next/') ||
       pathname.startsWith('/static/') ||
       pathname.includes('.') ||
@@ -67,6 +67,25 @@ export default withAuth(
       }
     }
 
+    // For admin routes, ensure user is authenticated
+    if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
+      try {
+        const { getUser } = getKindeServerSession();
+        const kindeUser = await getUser();
+        
+        if (!kindeUser) {
+          // Not authenticated, redirect to sign in
+          return NextResponse.redirect(new URL('/api/auth/login', req.url));
+        }
+        
+        // Let the admin layout/API handle the super admin check
+        return NextResponse.next();
+      } catch (error) {
+        console.error('Admin middleware error:', error);
+        return NextResponse.redirect(new URL('/api/auth/login', req.url));
+      }
+    }
+
     return NextResponse.next();
   }
 );
@@ -79,9 +98,10 @@ export const config = {
      * Match all request paths within the /dashboard route and onboarding.
      * Webhooks (/api/webhooks/*) are intentionally excluded to remain public.
      * Add any other routes that should be protected here.
-     * Example: '/admin/:path*'
      */
     '/dashboard/:path*',
     '/onboarding',
+    '/admin/:path*',
+    '/api/admin/:path*',
   ],
 };

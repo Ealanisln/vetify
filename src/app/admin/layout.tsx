@@ -1,4 +1,4 @@
-import { requireAdmin } from '@/lib/auth';
+import { requireSuperAdmin } from '@/lib/super-admin';
 import { AdminSidebar } from '@/components/admin/AdminSidebar';
 import { AdminHeader } from '@/components/admin/AdminHeader';
 import { Metadata } from 'next';
@@ -13,7 +13,7 @@ interface AdminLayoutProps {
 }
 
 export default async function AdminLayout({ children }: AdminLayoutProps) {
-  const { user } = await requireAdmin();
+  const { user } = await requireSuperAdmin();
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
