@@ -3,6 +3,8 @@ import { getDashboardStats } from '@/lib/dashboard';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { RecentPetsCard } from '@/components/dashboard/RecentPetsCard';
 import { UpcomingAppointmentsCard } from '@/components/dashboard/UpcomingAppointmentsCard';
+import { SubscriptionNotifications } from '@/components/dashboard/SubscriptionNotifications';
+import { PlanLimitsDisplay } from '@/components/subscription';
 import Link from 'next/link';
 
 // Force dynamic rendering
@@ -22,6 +24,9 @@ export default async function DashboardPage() {
           Aquí tienes un resumen de {tenant.name}
         </p>
       </div>
+
+      {/* Subscription Notifications */}
+      <SubscriptionNotifications tenant={tenant} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -48,38 +53,36 @@ export default async function DashboardPage() {
         />
       </div>
 
-      {/* Content Grid */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <RecentPetsCard pets={stats.recentPets} />
-        <UpcomingAppointmentsCard appointments={stats.upcomingAppointments} />
-      </div>
-
-      {/* Plan Upgrade Banner */}
-      {tenant.planType === 'BASIC' && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <span className="text-blue-400">🚀</span>
-            </div>
-            <div className="ml-3 flex-1">
-              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                Mejora tu plan para más funcionalidades
-              </h3>
-              <p className="mt-1 text-sm text-blue-700 dark:text-blue-300">
-                Desbloquea más mascotas, automatizaciones y reportes avanzados.
-              </p>
-              <div className="mt-3">
-                <Link
-                  href="/precios"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
-                >
-                  Ver Planes
-                </Link>
-              </div>
-            </div>
+      {/* Plan Limits Display */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          {/* Content Grid */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <RecentPetsCard pets={stats.recentPets} />
+            <UpcomingAppointmentsCard appointments={stats.upcomingAppointments} />
           </div>
         </div>
-      )}
+        
+        <div className="lg:col-span-1">
+          <PlanLimitsDisplay 
+            tenant={{
+              ...tenant,
+              tenantUsageStats: {
+                totalUsers: 1, // Placeholder - would come from actual stats
+                totalPets: stats.totalPets,
+                storageUsedBytes: BigInt(0) // Placeholder
+              },
+              tenantSubscription: {
+                plan: {
+                  maxUsers: stats.planLimits.maxUsers,
+                  maxPets: stats.planLimits.maxPets,
+                  storageGB: stats.planLimits.storageGB
+                }
+              }
+            }}
+          />
+        </div>
+      </div>
 
       {/* Quick Actions */}
       <div className="bg-white dark:bg-gray-800 shadow-card rounded-lg border border-[#d5e3df] dark:border-gray-700">

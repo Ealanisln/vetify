@@ -10,7 +10,7 @@
  * node scripts/setup-stripe-products.mjs
  */
 
-import { createStripeProducts } from '../src/lib/stripe.ts';
+import { createStripeProducts } from '../src/lib/payments/stripe.ts';
 import dotenv from 'dotenv';
 
 // Load environment variables

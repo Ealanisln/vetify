@@ -1,4 +1,97 @@
 import { prisma } from './prisma';
+import type { SubscriptionStatus } from '@prisma/client';
+
+// Types for public pages
+export interface PublicHours {
+  weekdays?: string;
+  saturday?: string;
+  sunday?: string;
+}
+
+export interface PublicImages {
+  hero?: string;
+  gallery?: string[];
+}
+
+export interface PublicSocialMedia {
+  facebook?: string;
+  instagram?: string;
+  twitter?: string;
+  whatsapp?: string;
+}
+
+export interface PublicService {
+  icon?: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  title: string;
+  description: string;
+  price?: string;
+}
+
+export interface PublicTenant {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  publicPageEnabled: boolean;
+  publicDescription: string | null;
+  publicPhone: string | null;
+  publicEmail: string | null;
+  publicAddress: string | null;
+  publicHours: PublicHours | null;
+  publicServices: PublicService[] | null;
+  publicImages: PublicImages | null;
+  publicSocialMedia: PublicSocialMedia | null;
+  publicThemeColor: string | null;
+  publicBookingEnabled: boolean;
+  createdAt: Date;
+  tenantSubscription: {
+    id: string;
+    plan: {
+      id: string;
+      name: string;
+    };
+  } | null;
+}
+
+// Helper function to transform tenant data for public pages
+function transformTenantForPublic(tenant: {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  primaryColor: string | null;
+  secondaryColor: string | null;
+  publicPageEnabled: boolean;
+  publicDescription: string | null;
+  publicPhone: string | null;
+  publicEmail: string | null;
+  publicAddress: string | null;
+  publicHours: unknown;
+  publicServices: unknown;
+  publicImages: unknown;
+  publicSocialMedia: unknown;
+  publicThemeColor: string | null;
+  publicBookingEnabled: boolean;
+  createdAt: Date;
+  tenantSubscription: {
+    id: string;
+    plan: {
+      id: string;
+      name: string;
+    };
+  } | null;
+}): PublicTenant {
+  return {
+    ...tenant,
+    publicHours: tenant.publicHours as PublicHours | null,
+    publicServices: tenant.publicServices as PublicService[] | null,
+    publicImages: tenant.publicImages as PublicImages | null,
+    publicSocialMedia: tenant.publicSocialMedia as PublicSocialMedia | null,
+    tenantSubscription: tenant.tenantSubscription
+  };
+}
 
 /**
  * Create a new tenant with all necessary related records
@@ -190,4 +283,103 @@ export async function generateUniqueSlug(name: string): Promise<string> {
   }
 
   return slug;
+}
+
+export async function getTenantByUserId(userId: string) {
+  return prisma.tenant.findFirst({
+    where: {
+      users: {
+        some: {
+          id: userId
+        }
+      }
+    },
+    include: {
+      tenantSubscription: {
+        include: {
+          plan: true
+        }
+      }
+    }
+  });
+}
+
+export async function updateTenantSubscription(
+  tenantId: string,
+  data: {
+    stripeSubscriptionId?: string | null;
+    stripeProductId?: string | null;
+    planName?: string | null;
+    subscriptionStatus?: SubscriptionStatus;
+    subscriptionEndsAt?: Date | null;
+  }
+) {
+  return prisma.tenant.update({
+    where: { id: tenantId },
+    data
+  });
+}
+
+export async function getTenantWithSubscription(tenantId: string) {
+  return prisma.tenant.findUnique({
+    where: { id: tenantId },
+    include: {
+      tenantSubscription: {
+        include: {
+          plan: true
+        }
+      }
+    }
+  });
+}
+
+export async function createOrUpdateStripeCustomer(
+  tenantId: string,
+  stripeCustomerId: string
+) {
+  return prisma.tenant.update({
+    where: { id: tenantId },
+    data: {
+      stripeCustomerId
+    }
+  });
+}
+
+/**
+ * Get tenant by slug for public pages
+ */
+export async function getTenantBySlug(slug: string): Promise<PublicTenant | null> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { 
+      slug,
+      status: 'ACTIVE'
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      logo: true,
+      primaryColor: true,
+      secondaryColor: true,
+      publicPageEnabled: true,
+      publicDescription: true,
+      publicPhone: true,
+      publicEmail: true,
+      publicAddress: true,
+      publicHours: true,
+      publicServices: true,
+      publicImages: true,
+      publicSocialMedia: true,
+      publicThemeColor: true,
+      publicBookingEnabled: true,
+      createdAt: true,
+      tenantSubscription: {
+        include: {
+          plan: true
+        }
+      }
+    }
+  });
+  
+  return tenant ? transformTenantForPublic(tenant) : null;
 } 

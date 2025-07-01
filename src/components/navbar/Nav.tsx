@@ -2,9 +2,195 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, Settings, LogOut, Building2, ChevronDown } from "lucide-react";
 import Image from "next/image";
 import { useThemeAware } from "@/hooks/useThemeAware";
+import { LogoutLink } from '@kinde-oss/kinde-auth-nextjs/components';
+
+interface User {
+  id: string;
+  email?: string;
+  given_name?: string;
+  family_name?: string;
+  picture?: string;
+}
+
+interface Tenant {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+// Componente separado para la información del usuario que se hidrata después
+function UserSection() {
+  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const userDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    
+    // Función para obtener datos del usuario
+    const fetchUserData = async () => {
+      try {
+        // Obtener información del usuario
+        const userResponse = await fetch('/api/user');
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          setUser(userData);
+          
+          // Si hay usuario, obtener información del tenant
+          const tenantResponse = await fetch('/api/user/tenant');
+          if (tenantResponse.ok) {
+            const tenantData = await tenantResponse.json();
+            setTenant(tenantData.tenant);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setUserDropdownOpen(false);
+      }
+    };
+
+    if (userDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [userDropdownOpen]);
+
+  // No renderizar hasta que esté montado
+  if (!mounted) {
+    return <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>;
+  }
+
+  // Si está cargando
+  if (isLoading) {
+    return <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>;
+  }
+
+  // Si no hay usuario autenticado, mostrar botones de auth
+  if (!user) {
+    return (
+      <div className="flex items-center space-x-4">
+        <Link
+          href="/api/auth/login"
+          className="text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] px-4 py-2 text-lg font-medium transition-colors duration-200 hover:bg-[#e5f1ee]/50 dark:hover:bg-[#2a3630]/30 rounded-lg"
+        >
+          Iniciar sesión
+        </Link>
+        <Link
+          href="/registro"
+          className="bg-[#75a99c] hover:bg-[#5b9788] text-white px-6 py-2 rounded-lg text-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 focus:ring-2 focus:ring-[#75a99c] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+        >
+          Comenzar gratis
+        </Link>
+      </div>
+    );
+  }
+
+  // Si hay usuario autenticado, mostrar dropdown
+  const displayName = user.given_name || user.email?.split('@')[0] || 'Usuario';
+  const clinicName = tenant?.name || 'Sin clínica';
+
+  return (
+    <div className="relative" ref={userDropdownRef}>
+      <button
+        onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+        className="flex items-center space-x-2 px-3 py-2 rounded-lg bg-[#75a99c]/10 hover:bg-[#75a99c]/20 dark:bg-[#2a3630] dark:hover:bg-[#1a2620] transition-all duration-200 focus:ring-2 focus:ring-[#75a99c] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+      >
+        <div className="flex items-center space-x-2">
+          {user.picture ? (
+            <Image
+              src={user.picture}
+              alt={displayName}
+              width={32}
+              height={32}
+              className="rounded-full"
+            />
+          ) : (
+            <div className="w-8 h-8 bg-[#75a99c] rounded-full flex items-center justify-center">
+              <User className="h-4 w-4 text-white" />
+            </div>
+          )}
+          <div className="text-left">
+            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {displayName}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+              <Building2 className="h-3 w-3 mr-1" />
+              {clinicName}
+            </div>
+          </div>
+        </div>
+        <ChevronDown 
+          className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${
+            userDropdownOpen ? 'rotate-180' : ''
+          }`} 
+        />
+      </button>
+
+      {/* Dropdown Menu */}
+      {userDropdownOpen && (
+        <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+          <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              {displayName}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {user.email}
+            </div>
+            <div className="text-xs text-[#75a99c] flex items-center mt-1">
+              <Building2 className="h-3 w-3 mr-1" />
+              {clinicName}
+            </div>
+          </div>
+          
+          <Link
+            href="/dashboard"
+            className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            onClick={() => setUserDropdownOpen(false)}
+          >
+            <User className="h-4 w-4 mr-3" />
+            Dashboard
+          </Link>
+          
+          <Link
+            href="/dashboard/settings"
+            className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            onClick={() => setUserDropdownOpen(false)}
+          >
+            <Settings className="h-4 w-4 mr-3" />
+            Configuración
+          </Link>
+          
+          <div className="border-t border-gray-200 dark:border-gray-700 mt-2 pt-2">
+            <LogoutLink className="flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors w-full text-left">
+              <LogOut className="h-4 w-4 mr-3" />
+              Cerrar sesión
+            </LogoutLink>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Nav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -29,7 +215,6 @@ export default function Nav() {
 
     if (mobileMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      // Prevent body scroll when menu is open
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -44,7 +229,7 @@ export default function Nav() {
   // Close mobile menu on window resize to desktop size
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth >= 640) { // sm breakpoint
+      if (window.innerWidth >= 640) {
         closeMobileMenu();
       }
     };
@@ -131,21 +316,8 @@ export default function Nav() {
                 </span>
               </button>
               
-              {/* Auth buttons */}
-              <div className="flex items-center space-x-4">
-                <Link
-                  href="/api/auth/login"
-                  className="text-gray-800 hover:text-[#5b9788] dark:text-gray-200 dark:hover:text-[#75a99c] px-4 py-2 text-lg font-medium transition-colors duration-200 hover:bg-[#e5f1ee]/50 dark:hover:bg-[#2a3630]/30 rounded-lg"
-                >
-                  Iniciar sesión
-                </Link>
-                <Link
-                  href="/registro"
-                  className="bg-[#75a99c] hover:bg-[#5b9788] text-white px-6 py-2 rounded-lg text-lg font-medium transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 focus:ring-2 focus:ring-[#75a99c] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                >
-                  Comenzar gratis
-                </Link>
-              </div>
+              {/* User Section */}
+              <UserSection />
             </div>
 
             {/* Mobile menu button */}
@@ -237,28 +409,6 @@ export default function Nav() {
                 {theme === "dark" ? "Modo claro" : "Modo oscuro"}
               </span>
             </button>
-            
-            {/* Auth section */}
-            <div className="pt-4 space-y-2">
-              <Link
-                href="/api/auth/login"
-                className="flex items-center px-4 py-3 text-base font-medium text-gray-800 dark:text-gray-200 hover:text-[#5b9788] dark:hover:text-[#75a99c] hover:bg-[#e5f1ee] dark:hover:bg-[#2a3630]/30 rounded-lg transition-all duration-200 group"
-                onClick={closeMobileMenu}
-              >
-                <span className="transform group-hover:translate-x-1 transition-transform duration-200">
-                  Iniciar sesión
-                </span>
-              </Link>
-              <Link
-                href="/registro"
-                className="flex items-center px-4 py-3 text-base font-medium bg-[#75a99c] hover:bg-[#5b9788] text-white rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] mx-2"
-                onClick={closeMobileMenu}
-              >
-                <span className="w-full text-center">
-                  Comenzar gratis
-                </span>
-              </Link>
-            </div>
           </div>
         </div>
       </div>
