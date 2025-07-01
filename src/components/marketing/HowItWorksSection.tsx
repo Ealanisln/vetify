@@ -1,5 +1,6 @@
 import React from 'react';
 import { LayoutDashboard, CalendarClock, FileSearch, Zap } from 'lucide-react';
+import Link from 'next/link';
 
 interface StepProps {
   number: number;
@@ -95,12 +96,12 @@ export const HowItWorksSection: React.FC = () => {
                   </p>
                 </div>
                 <div className="flex-shrink-0">
-                  <a 
+                  <Link 
                     href="/contacto" 
                     className="inline-flex whitespace-nowrap items-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-base font-medium rounded-xl text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-vetify-accent-500 dark:ring-offset-gray-800"
                   >
                     Contactar a soporte
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
