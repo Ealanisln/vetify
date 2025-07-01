@@ -3,6 +3,23 @@ import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
 import type { Tenant, SubscriptionStatus } from '@prisma/client';
 
+/**
+ * CONFIGURACIÓN DE IMPUESTOS PARA MÉXICO
+ * 
+ * Para el IVA del 16% en México, este código utiliza:
+ * 1. `automatic_tax: { enabled: true }` - Stripe calcula automáticamente el IVA
+ * 2. `tax_id_collection: { enabled: true }` - Permite recopilar RFC del cliente
+ * 3. `customer_update: { name: 'auto', address: 'auto' }` - Actualiza datos automáticamente
+ * 
+ * CONFIGURACIÓN REQUERIDA EN STRIPE DASHBOARD:
+ * 1. Ir a Configuración > Impuestos en tu dashboard de Stripe
+ * 2. Habilitar "Automatic tax calculation"
+ * 3. Configurar México como jurisdicción fiscal con 16% de IVA
+ * 4. Configurar productos como "Servicios digitales" que están sujetos a IVA
+ * 
+ * Para más información: https://stripe.com/docs/tax/set-up
+ */
+
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20'
 });
@@ -104,6 +121,13 @@ export async function createCheckoutSession({
     tax_id_collection: {
       enabled: true,
     },
+    customer_update: {
+      name: 'auto', // Permite a Stripe actualizar el nombre del cliente automáticamente
+      address: 'auto' // También permite actualizar la dirección para cálculos de impuestos
+    },
+    automatic_tax: {
+      enabled: true, // Habilita el cálculo automático de impuestos (IVA 16% en México)
+    },
     metadata: {
       tenantId: tenant.id,
       planKey: planKey || 'unknown',
@@ -160,6 +184,13 @@ export async function createCheckoutSessionForAPI({
     locale: 'es-419',
     tax_id_collection: {
       enabled: true,
+    },
+    customer_update: {
+      name: 'auto', // Permite a Stripe actualizar el nombre del cliente automáticamente
+      address: 'auto' // También permite actualizar la dirección para cálculos de impuestos
+    },
+    automatic_tax: {
+      enabled: true, // Habilita el cálculo automático de impuestos (IVA 16% en México)
     },
     metadata: {
       tenantId: tenant.id,
@@ -256,14 +287,19 @@ async function createOrRetrieveCustomer(tenant: Tenant, userId: string) {
 
     if (existingCustomers.data.length > 0) {
       customer = existingCustomers.data[0];
-    } else {
+        } else {
       // Crear nuevo cliente
+      const customerName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 
+                          user.name || 
+                          user.email.split('@')[0];
+      
       customer = await stripe.customers.create({
         email: user.email,
-                 name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+        name: customerName,
         metadata: {
           tenantId: tenant.id,
-          userId: userId
+          userId: userId,
+          clinicName: tenant.name || '' // Agregar nombre de la clínica para contexto
         }
       });
     }
