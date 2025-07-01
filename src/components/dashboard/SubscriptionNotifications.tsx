@@ -1,0 +1,193 @@
+'use client';
+
+import { useSubscription } from '@/hooks/useSubscription';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { 
+  AlertTriangle, 
+  Clock, 
+  CreditCard, 
+  CheckCircle,
+  XCircle,
+  Star,
+  ArrowRight,
+  CalendarX,
+  Zap
+} from 'lucide-react';
+import type { Tenant } from '@prisma/client';
+import { format, differenceInDays } from 'date-fns';
+import { es } from 'date-fns/locale';
+
+interface SubscriptionNotificationsProps {
+  tenant: Tenant;
+}
+
+export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsProps) {
+  const {
+    hasActiveSubscription,
+    isInTrial,
+    isPastDue,
+    isCanceled,
+    planName,
+    subscriptionEndsAt
+  } = useSubscription(tenant);
+
+  // Calcular días restantes
+  const getDaysRemaining = () => {
+    if (!subscriptionEndsAt) return null;
+    return differenceInDays(new Date(subscriptionEndsAt), new Date());
+  };
+
+  const daysRemaining = getDaysRemaining();
+
+  // No mostrar notificaciones si tiene subscripción activa y no está cerca de vencer
+  if (hasActiveSubscription && !isPastDue && (!isInTrial || (daysRemaining && daysRemaining > 3))) {
+    return null;
+  }
+
+  // Configuración de notificaciones según el estado
+  const getNotificationConfig = () => {
+    if (isPastDue) {
+      return {
+        type: 'danger' as const,
+        icon: AlertTriangle,
+        title: '⚠️ Pago Vencido',
+        description: 'Tu subscripción tiene un pago pendiente. Actualiza tu método de pago para continuar.',
+        bgColor: 'bg-red-50 border-red-200',
+        textColor: 'text-red-800',
+        iconColor: 'text-red-600',
+        buttonColor: 'bg-red-600 hover:bg-red-700',
+        buttonText: 'Actualizar Pago',
+        link: '/dashboard/settings?section=subscription'
+      };
+    } else if (isCanceled) {
+      return {
+        type: 'warning' as const,
+        icon: XCircle,
+        title: '📋 Subscripción Cancelada',
+        description: `Tu subscripción termina el ${subscriptionEndsAt ? format(new Date(subscriptionEndsAt), 'dd MMMM yyyy', { locale: es }) : ''}. Renueva para mantener el acceso.`,
+        bgColor: 'bg-orange-50 border-orange-200',
+        textColor: 'text-orange-800',
+        iconColor: 'text-orange-600',
+        buttonColor: 'bg-orange-600 hover:bg-orange-700',
+        buttonText: 'Renovar Subscripción',
+        link: '/precios'
+      };
+    } else if (isInTrial && daysRemaining !== null && daysRemaining <= 3) {
+      return {
+        type: 'trial' as const,
+        icon: Clock,
+        title: `⏰ Trial terminando en ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`,
+        description: 'Tu periodo de prueba está por terminar. Suscríbete ahora para continuar usando todas las funciones.',
+        bgColor: 'bg-blue-50 border-blue-200',
+        textColor: 'text-blue-800',
+        iconColor: 'text-blue-600',
+        buttonColor: 'bg-blue-600 hover:bg-blue-700',
+        buttonText: 'Ver Planes',
+        link: '/precios'
+      };
+    } else if (!hasActiveSubscription) {
+      return {
+        type: 'upgrade' as const,
+        icon: Star,
+        title: '✨ Desbloquea Todo el Potencial',
+        description: 'Accede a todas las funciones premium con una subscripción. Automatiza tu clínica veterinaria.',
+        bgColor: 'bg-purple-50 border-purple-200',
+        textColor: 'text-purple-800',
+        iconColor: 'text-purple-600',
+        buttonColor: 'bg-purple-600 hover:bg-purple-700',
+        buttonText: 'Ver Planes',
+        link: '/precios'
+      };
+    }
+
+    return null;
+  };
+
+  const config = getNotificationConfig();
+
+  if (!config) return null;
+
+  const Icon = config.icon;
+
+  const handleAction = () => {
+    window.location.href = config.link;
+  };
+
+  return (
+    <Card className={`${config.bgColor} border-2 p-6 shadow-lg`}>
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0">
+          <div className={`p-3 rounded-full bg-white/80 ${config.iconColor}`}>
+            <Icon className="h-6 w-6" />
+          </div>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <h3 className={`text-lg font-bold ${config.textColor} mb-1`}>
+                {config.title}
+              </h3>
+              <p className={`text-sm ${config.textColor} opacity-90`}>
+                {config.description}
+              </p>
+            </div>
+            {planName && (
+              <Badge variant="outline" className="text-xs">
+                {planName}
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 mt-4">
+            <Button
+              onClick={handleAction}
+              className={`${config.buttonColor} text-white flex items-center gap-2`}
+              size="sm"
+            >
+              <CreditCard className="h-4 w-4" />
+              {config.buttonText}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+
+            {config.type === 'trial' && daysRemaining !== null && (
+              <div className="flex items-center gap-2 text-sm">
+                <CalendarX className={`h-4 w-4 ${config.iconColor}`} />
+                <span className={config.textColor}>
+                  {daysRemaining === 0 ? 'Termina hoy' : `${daysRemaining} días restantes`}
+                </span>
+              </div>
+            )}
+
+            {config.type === 'upgrade' && (
+              <div className="flex items-center gap-2 text-sm">
+                <Zap className={`h-4 w-4 ${config.iconColor}`} />
+                <span className={config.textColor}>
+                  Prueba gratuita de 14 días
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Beneficios específicos por tipo */}
+          {config.type === 'upgrade' && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {[
+                'WhatsApp automático',
+                'Inventario completo',
+                'Reportes avanzados'
+              ].map((benefit, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  <span className="text-xs text-gray-700">{benefit}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+} 
