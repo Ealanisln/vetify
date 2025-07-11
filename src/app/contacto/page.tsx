@@ -79,7 +79,7 @@ const faqs = [
   },
   {
     question: "¿Qué sucede cuando termina mi periodo de prueba?",
-    answer: "Al finalizar tu periodo de prueba de 14 días, puedes elegir uno de nuestros planes para continuar utilizando Vetify. Si decides no continuar, tus datos se mantendrán seguros por 30 días adicionales en caso de que cambies de opinión."
+    answer: "Al finalizar tu periodo de prueba de 30 días, puedes elegir uno de nuestros planes para continuar utilizando Vetify. Si decides no continuar, tus datos se mantendrán seguros por 30 días adicionales en caso de que cambies de opinión."
   },
   {
     question: "¿Ofrecen capacitación para mi equipo?",

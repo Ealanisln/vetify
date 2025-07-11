@@ -15,7 +15,7 @@ model Tenant {
   logo                 String?
   primaryColor         String?
   secondaryColor       String?
-  planType             PlanType            @default(BASIC)
+  planType             PlanType            @default(PROFESIONAL)
   status               TenantStatus        @default(ACTIVE)
   isTrialPeriod        Boolean             @default(true)
   trialEndsAt          DateTime?
@@ -715,10 +715,9 @@ model TenantUsageStats {
 }
 
 enum PlanType {
-  BASIC
-  STANDARD
-  PREMIUM
-  ENTERPRISE
+  PROFESIONAL
+  CLINICA
+  EMPRESA
 }
 
 enum TenantStatus {

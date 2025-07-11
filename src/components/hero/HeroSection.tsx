@@ -36,7 +36,7 @@ const HeroSection: React.FC = () => {
           <div>
             <div className="inline-flex items-center px-4 py-2 bg-vetify-accent-50 dark:bg-vetify-accent-900/30 rounded-full mb-6">
               <Zap className="h-4 w-4 text-vetify-accent-600 dark:text-vetify-accent-300 mr-2" />
-              <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">El primer software veterinario GRATIS con WhatsApp automático</span>
+              <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">Software veterinario con 30 días gratis y WhatsApp automático</span>
             </div>
             
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight">
@@ -66,7 +66,7 @@ const HeroSection: React.FC = () => {
                   type="submit"
                   className="block w-full rounded-md px-4 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 dark:bg-vetify-accent-600 dark:hover:bg-vetify-accent-700 text-base font-medium text-white shadow hover:shadow-lg transition-all duration-200"
                 >
-                  Comenzar GRATIS
+                  Probar 30 días gratis
                 </button>
               </div>
             </form>
@@ -79,7 +79,7 @@ const HeroSection: React.FC = () => {
               </div>
               <div className="sm:ml-6 flex items-center mb-2 sm:mb-0">
                 <Check className="h-4 w-4 text-vetify-success mr-1" />
-                <span>Sin tarjeta de crédito</span>
+                <span>30 días de prueba</span>
               </div>
               <div className="sm:ml-6 flex items-center">
                 <Check className="h-4 w-4 text-vetify-success mr-1" />

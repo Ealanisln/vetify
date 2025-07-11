@@ -203,7 +203,7 @@ const FuncionalidadesPage: React.FC = () => {
                 href="/registro" 
                 className="inline-flex items-center px-6 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 dark:bg-vetify-accent-600 dark:hover:bg-vetify-accent-700 rounded-xl text-white font-medium transition-all"
               >
-                Comenzar GRATIS <ChevronRight className="ml-2 h-4 w-4" />
+                Probar 30 días gratis <ChevronRight className="ml-2 h-4 w-4" />
               </Link>
               <Link 
                 href="/precios" 
@@ -272,13 +272,13 @@ const FuncionalidadesPage: React.FC = () => {
                   ¿Listo para automatizar tu clínica?
                 </h3>
                 <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-                  Comienza GRATIS hoy. Sin tarjeta de crédito. Setup en 15 minutos.
+                  Comienza con 30 días gratis. Setup en 15 minutos.
                 </p>
                 <Link 
                   href="/registro" 
                   className="inline-flex items-center px-6 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 dark:bg-vetify-accent-600 dark:hover:bg-vetify-accent-700 rounded-xl text-white font-medium transition-all"
                 >
-                  Comenzar GRATIS <Zap className="ml-2 h-4 w-4" />
+                  Probar 30 días gratis <Zap className="ml-2 h-4 w-4" />
                 </Link>
               </div>
             </div>

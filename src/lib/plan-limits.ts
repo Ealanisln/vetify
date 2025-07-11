@@ -7,6 +7,7 @@ interface PlanFeatures {
   advancedReports?: boolean;
   multiDoctor?: boolean;
   smsReminders?: boolean;
+  apiAccess?: boolean;
 }
 
 export interface PlanLimits {
@@ -18,6 +19,7 @@ export interface PlanLimits {
   canUseAdvancedReports: boolean;
   canUseMultiDoctor: boolean;
   canUseSMSReminders: boolean;
+  canUseApiAccess?: boolean;
 }
 
 export interface PlanUsageStats {
@@ -29,7 +31,7 @@ export interface PlanUsageStats {
 
 /**
  * Get plan limits for a tenant
- * Falls back to FREE plan limits if no subscription exists
+ * Falls back to PROFESIONAL plan limits if no subscription exists (30-day trial)
  */
 export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
   const tenant = await prisma.tenant.findUnique({
@@ -41,17 +43,18 @@ export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
     }
   });
 
-  // If no tenant subscription exists, return FREE plan limits
+  // If no tenant subscription exists, return PROFESIONAL plan limits (30-day trial)
   if (!tenant?.tenantSubscription?.plan) {
     return {
-      maxPets: 50,
-      maxUsers: 1,
-      maxMonthlyWhatsApp: 50, // Updated from 25 to 50
-      maxStorageGB: 1,
-      canUseAutomations: false,
+      maxPets: 300,
+      maxUsers: 3,
+      maxMonthlyWhatsApp: -1, // ilimitado
+      maxStorageGB: 5,
+      canUseAutomations: true,
       canUseAdvancedReports: false,
-      canUseMultiDoctor: false,
-      canUseSMSReminders: false
+      canUseMultiDoctor: true,
+      canUseSMSReminders: true,
+      canUseApiAccess: false
     };
   }
 
@@ -59,14 +62,15 @@ export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
   const features = plan.features as PlanFeatures;
   
   return {
-    maxPets: plan.maxPets,
+    maxPets: plan.maxPets === -1 ? Number.MAX_SAFE_INTEGER : plan.maxPets,
     maxUsers: plan.maxUsers,
-    maxMonthlyWhatsApp: features?.whatsappMessages || 0,
+    maxMonthlyWhatsApp: features?.whatsappMessages === -1 ? Number.MAX_SAFE_INTEGER : (features?.whatsappMessages || 0),
     maxStorageGB: plan.storageGB,
     canUseAutomations: features?.automations || false,
     canUseAdvancedReports: features?.advancedReports || false,
     canUseMultiDoctor: features?.multiDoctor || false,
-    canUseSMSReminders: features?.smsReminders || false
+    canUseSMSReminders: features?.smsReminders || false,
+    canUseApiAccess: features?.apiAccess || false
   };
 }
 
@@ -131,6 +135,16 @@ export async function checkPetLimit(tenantId: string): Promise<{
     getPlanUsageStats(tenantId)
   ]);
   
+  // Handle unlimited pets (EMPRESA plan)
+  if (limits.maxPets === Number.MAX_SAFE_INTEGER) {
+    return {
+      canAdd: true,
+      current: usage.currentPets,
+      limit: -1, // Represent unlimited as -1 in response
+      remaining: -1
+    };
+  }
+  
   const remaining = limits.maxPets - usage.currentPets;
   
   return {
@@ -179,6 +193,16 @@ export async function checkWhatsAppLimit(tenantId: string): Promise<{
     getPlanUsageStats(tenantId)
   ]);
   
+  // Handle unlimited WhatsApp messages (all B2B plans)
+  if (limits.maxMonthlyWhatsApp === Number.MAX_SAFE_INTEGER) {
+    return {
+      canSend: true,
+      current: usage.currentMonthlyWhatsApp,
+      limit: -1, // Represent unlimited as -1 in response
+      remaining: -1
+    };
+  }
+  
   const remaining = limits.maxMonthlyWhatsApp - usage.currentMonthlyWhatsApp;
   
   return {
@@ -194,7 +218,7 @@ export async function checkWhatsAppLimit(tenantId: string): Promise<{
  */
 export async function checkFeatureAccess(
   tenantId: string, 
-  feature: 'automations' | 'advancedReports' | 'multiDoctor' | 'smsReminders'
+  feature: 'automations' | 'advancedReports' | 'multiDoctor' | 'smsReminders' | 'apiAccess'
 ): Promise<boolean> {
   const limits = await getPlanLimits(tenantId);
   
@@ -207,6 +231,8 @@ export async function checkFeatureAccess(
       return limits.canUseMultiDoctor;
     case 'smsReminders':
       return limits.canUseSMSReminders;
+    case 'apiAccess':
+      return limits.canUseApiAccess || false;
     default:
       return false;
   }
@@ -234,9 +260,9 @@ export async function getPlanStatus(tenantId: string) {
   
   return {
     plan: {
-      name: plan?.name || 'Plan Gratuito',
-      key: plan?.key || 'FREE',
-      isTrialPeriod: tenant?.isTrialPeriod || false,
+      name: plan?.name || 'Plan Básico',
+      key: plan?.key || 'STARTER',
+      isTrialPeriod: tenant?.isTrialPeriod || true, // Default to trial
       trialEndsAt: tenant?.trialEndsAt
     },
     limits,

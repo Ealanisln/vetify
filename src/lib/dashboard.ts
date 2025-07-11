@@ -61,9 +61,9 @@ export async function getDashboardStats(tenantId: string): Promise<DashboardStat
     recentPets: serializedRecentPets || [],
     upcomingAppointments: serializedUpcomingAppointments || [],
     planLimits: {
-      maxPets: plan?.maxPets || 50, // Default FREE plan
-      maxUsers: plan?.maxUsers || 1,
-      storageGB: plan?.storageGB || 1
+      maxPets: plan?.maxPets || 150, // Default STARTER plan
+      maxUsers: plan?.maxUsers || 2,
+      storageGB: plan?.storageGB || 2
     }
   };
 } 

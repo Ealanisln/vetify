@@ -286,7 +286,7 @@ const {
 - ✅ Alertas específicas por estado de subscripción
 
 ### 📊 Funcionalidades Avanzadas
-- ✅ Períodos de prueba de 14 días automáticos
+- ✅ Períodos de prueba de 30 días automáticos
 - ✅ Límites por plan con visualización en tiempo real
 - ✅ Protección de funciones premium
 - ✅ Estados de subscripción en tiempo real

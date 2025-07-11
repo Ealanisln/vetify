@@ -61,9 +61,9 @@ export function PlanLimitsDisplay({ tenant }: PlanLimitsDisplayProps) {
 
   // Función para obtener el color según el porcentaje de uso
   const getUsageColor = (percentage: number) => {
-    if (percentage >= 90) return 'text-red-600 bg-red-50 border-red-200';
-    if (percentage >= 75) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-    return 'text-green-600 bg-green-50 border-green-200';
+    if (percentage >= 90) return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800';
+    if (percentage >= 75) return 'text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800';
+    return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
   };
 
   // Función para obtener el ícono según el porcentaje de uso
@@ -109,14 +109,14 @@ export function PlanLimitsDisplay({ tenant }: PlanLimitsDisplayProps) {
   ];
 
   return (
-    <Card className="p-6">
+    <Card className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Uso del Plan
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Plan: {planName || 'Plan Básico'}
           </p>
         </div>
@@ -139,13 +139,13 @@ export function PlanLimitsDisplay({ tenant }: PlanLimitsDisplayProps) {
               {/* Item Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Icon className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium text-foreground">
+                  <Icon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                     {item.label}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {item.formatter 
                       ? item.formatter(item.current)
                       : `${item.current}${item.unit}`
@@ -158,7 +158,7 @@ export function PlanLimitsDisplay({ tenant }: PlanLimitsDisplayProps) {
               </div>
 
               {/* Progress Bar */}
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div
                   className={`h-2 rounded-full transition-all duration-300 ${
                     item.percentage >= 90
@@ -186,7 +186,7 @@ export function PlanLimitsDisplay({ tenant }: PlanLimitsDisplayProps) {
 
       {/* Upgrade CTA */}
       {!hasActiveSubscription && (
-        <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+        <div className="mt-6 p-4 bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/40 rounded-lg">
           <div className="text-center">
             <p className="text-sm font-medium text-foreground mb-2">
               ¿Necesitas más capacidad?

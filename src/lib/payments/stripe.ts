@@ -20,60 +20,85 @@ import type { Tenant, SubscriptionStatus } from '@prisma/client';
  * Para más información: https://stripe.com/docs/tax/set-up
  */
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20'
+// Stripe client configuration
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-06-20',
+  typescript: true,
 });
 
-// IDs de precios de Stripe para pesos mexicanos - Precios MVP RECURRENTES
-export const STRIPE_PLANS = {
-  // Plan gratuito recurrente
-  FREE: 'price_1RftdmPwxz1bHxlHvj8h32S6',
-  
-  // Precios promocionales MVP (recurrentes)
-  BASIC_MONTHLY_PROMO: 'price_1RftdkPwxz1bHxlH49ZHb4ZT',
-  BASIC_YEARLY_PROMO: 'price_1RftdlPwxz1bHxlHdr6Ia4pj',
-  PROFESSIONAL_MONTHLY_PROMO: 'price_1RftdlPwxz1bHxlH4oW9dMDZ',
-  PROFESSIONAL_YEARLY_PROMO: 'price_1RftdmPwxz1bHxlH2lDZ07Rw',
-  
-  // Precios regulares (usando los mismos recurrentes)
-  BASIC_MONTHLY: 'price_1RftdkPwxz1bHxlH49ZHb4ZT',
-  BASIC_YEARLY: 'price_1RftdlPwxz1bHxlHdr6Ia4pj', 
-  PROFESSIONAL_MONTHLY: 'price_1RftdlPwxz1bHxlH4oW9dMDZ',
-  PROFESSIONAL_YEARLY: 'price_1RftdmPwxz1bHxlH2lDZ07Rw',
-  
-  // Plan empresarial temporalmente desactivado
-  // ENTERPRISE_MONTHLY_PROMO: 'price_enterprise_monthly_promo_1499',
-  // ENTERPRISE_YEARLY_PROMO: 'price_enterprise_yearly_promo_1199',
-  // ENTERPRISE_MONTHLY: 'price_enterprise_monthly_1799',
-  // ENTERPRISE_YEARLY: 'price_enterprise_yearly_1399',
+// IDs de productos y precios de Stripe - Nueva estructura B2B
+export const STRIPE_PRODUCTS = {
+  PROFESIONAL: 'prod_Seq8I3438TwbPQ',  // Plan Profesional B2B
+  CLINICA: 'prod_Seq84VFkBvXUhI',      // Plan Clínica B2B
+  EMPRESA: 'prod_Seq8KU7nw8WucQ'       // Plan Empresa B2B
 } as const;
 
-// Precios de planes en MXN - Precios MVP actualizados
-export const PLAN_PRICES = {
-  FREE: {
-    monthly: 0,
-    annual: 0,
+export const STRIPE_PRICES = {
+  PROFESIONAL: {
+    monthly: 'price_1RjWSPPwxz1bHxlH60v9GJjX',
+    annual: 'price_1RjWSPPwxz1bHxlHpLCiifxS',
   },
-  BASIC: {
-    monthly: 449, // MXN promocional
-    annual: 349,  // MXN promocional
-    originalMonthly: 599, // MXN regular
-    originalAnnual: 399,  // MXN regular
+  CLINICA: {
+    monthly: 'price_1RjWSQPwxz1bHxlHTcG2kbJA',
+    annual: 'price_1RjWSQPwxz1bHxlHZSALMZUr',
   },
-  PROFESSIONAL: {
-    monthly: 899, // MXN promocional
-    annual: 649,  // MXN promocional
-    originalMonthly: 1199, // MXN regular
-    originalAnnual: 799,   // MXN regular
+  EMPRESA: {
+    monthly: 'price_1RjWSRPwxz1bHxlHHp1pVI43',
+    annual: 'price_1RjWSRPwxz1bHxlHR5zX9CCQ',
   }
-  // Plan empresarial temporalmente desactivado
-  // ENTERPRISE: {
-  //   monthly: 1499, // MXN promocional
-  //   annual: 1199,  // MXN promocional
-  //   originalMonthly: 1799, // MXN regular
-  //   originalAnnual: 1399,  // MXN regular
-  // }
 } as const;
+
+// Precios de planes en MXN - Nueva estructura B2B
+export const PLAN_PRICES = {
+  PROFESIONAL: {
+    monthly: 599, // Plan Profesional B2B
+    annual: 479,  // Plan Profesional B2B anual
+  },
+  CLINICA: {
+    monthly: 999, // Plan Clínica B2B
+    annual: 799,  // Plan Clínica B2B anual
+  },
+  EMPRESA: {
+    monthly: 1799, // Plan Empresa B2B
+    annual: 1439,  // Plan Empresa B2B anual
+  }
+} as const;
+
+// Mapeo de productos/precios para facilitar las operaciones
+export const STRIPE_PLAN_MAPPING = {
+  'PROFESIONAL': {
+    productId: STRIPE_PRODUCTS.PROFESIONAL,
+    prices: STRIPE_PRICES.PROFESIONAL,
+    limits: { pets: 300, users: 3, whatsappMessages: -1 }
+  },
+  'CLINICA': {
+    productId: STRIPE_PRODUCTS.CLINICA,
+    prices: STRIPE_PRICES.CLINICA,
+    limits: { pets: 1000, users: 8, whatsappMessages: -1 }
+  },
+  'EMPRESA': {
+    productId: STRIPE_PRODUCTS.EMPRESA,
+    prices: STRIPE_PRICES.EMPRESA,
+    limits: { pets: -1, users: 20, whatsappMessages: -1 }
+  }
+} as const;
+
+export { stripe };
+
+// Función para obtener precio por lookup key
+export async function getPriceByLookupKey(lookupKey: string): Promise<string | null> {
+  try {
+    const prices = await stripe.prices.list({
+      lookup_keys: [lookupKey],
+      expand: ['data.product']
+    });
+    
+    return prices.data[0]?.id || null;
+  } catch (error) {
+    console.error('Error getting price by lookup key:', error);
+    return null;
+  }
+}
 
 export async function createCheckoutSession({
   tenant,
@@ -109,25 +134,25 @@ export async function createCheckoutSession({
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/precios?canceled=true`,
     allow_promotion_codes: true,
     subscription_data: {
-      trial_period_days: 14,
+      trial_period_days: 30, // Actualizado a 30 días
       metadata: {
         tenantId: tenant.id,
         planKey: planKey || 'unknown',
         userId
       }
     },
-    // Configuración para México
+    // Configuración para México - SIN automatic tax ya que no está soportado en todos los países
     locale: 'es-419',
-    tax_id_collection: {
-      enabled: true,
-    },
-    customer_update: {
-      name: 'auto', // Permite a Stripe actualizar el nombre del cliente automáticamente
-      address: 'auto' // También permite actualizar la dirección para cálculos de impuestos
-    },
-    automatic_tax: {
-      enabled: true, // Habilita el cálculo automático de impuestos (IVA 16% en México)
-    },
+    // tax_id_collection: {
+    //   enabled: true,
+    // },
+    // customer_update: {
+    //   name: 'auto', // Permite a Stripe actualizar el nombre del cliente automáticamente
+    //   address: 'auto' // También permite actualizar la dirección para cálculos de impuestos
+    // },
+    // automatic_tax: {
+    //   enabled: true, // Habilita el cálculo automático de impuestos (IVA 16% en México)
+    // },
     metadata: {
       tenantId: tenant.id,
       planKey: planKey || 'unknown',
@@ -173,25 +198,25 @@ export async function createCheckoutSessionForAPI({
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/precios?canceled=true`,
     allow_promotion_codes: true,
     subscription_data: {
-      trial_period_days: 14,
+      trial_period_days: 30, // Actualizado a 30 días
       metadata: {
         tenantId: tenant.id,
         planKey: planKey || 'unknown',
         userId
       }
     },
-    // Configuración para México
+    // Configuración para México - SIN automatic tax ya que no está soportado en todos los países
     locale: 'es-419',
-    tax_id_collection: {
-      enabled: true,
-    },
-    customer_update: {
-      name: 'auto', // Permite a Stripe actualizar el nombre del cliente automáticamente
-      address: 'auto' // También permite actualizar la dirección para cálculos de impuestos
-    },
-    automatic_tax: {
-      enabled: true, // Habilita el cálculo automático de impuestos (IVA 16% en México)
-    },
+    // tax_id_collection: {
+    //   enabled: true,
+    // },
+    // customer_update: {
+    //   name: 'auto', // Permite a Stripe actualizar el nombre del cliente automáticamente
+    //   address: 'auto' // También permite actualizar la dirección para cálculos de impuestos
+    // },
+    // automatic_tax: {
+    //   enabled: true, // Habilita el cálculo automático de impuestos (IVA 16% en México)
+    // },
     metadata: {
       tenantId: tenant.id,
       planKey: planKey || 'unknown',
@@ -518,33 +543,29 @@ export async function createStripeProducts() {
   return createdProducts;
 }
 
-// Obtener precio por clave de plan y intervalo
-export function getPriceIdByPlan(planKey: string, interval: 'monthly' | 'annual', usePromo = true): string | null {
+// Obtener price ID por clave de plan y intervalo - Nueva estructura B2B
+export function getPriceIdByPlan(planKey: string, interval: 'monthly' | 'annual'): string | null {
   const planType = planKey.toUpperCase();
   
-  if (planType === 'FREE') {
-    return STRIPE_PLANS.FREE;
-  } else if (planType === 'BASIC') {
-    if (interval === 'annual') {
-      return usePromo ? STRIPE_PLANS.BASIC_YEARLY_PROMO : STRIPE_PLANS.BASIC_YEARLY;
-    } else {
-      return usePromo ? STRIPE_PLANS.BASIC_MONTHLY_PROMO : STRIPE_PLANS.BASIC_MONTHLY;
-    }
-  } else if (planType === 'PROFESSIONAL') {
-    if (interval === 'annual') {
-      return usePromo ? STRIPE_PLANS.PROFESSIONAL_YEARLY_PROMO : STRIPE_PLANS.PROFESSIONAL_YEARLY;
-    } else {
-      return usePromo ? STRIPE_PLANS.PROFESSIONAL_MONTHLY_PROMO : STRIPE_PLANS.PROFESSIONAL_MONTHLY;
-    }
+  if (planType === 'PROFESIONAL') {
+    return interval === 'annual' 
+      ? STRIPE_PRICES.PROFESIONAL.annual 
+      : STRIPE_PRICES.PROFESIONAL.monthly;
+  } else if (planType === 'CLINICA') {
+    return interval === 'annual' 
+      ? STRIPE_PRICES.CLINICA.annual 
+      : STRIPE_PRICES.CLINICA.monthly;
+  } else if (planType === 'EMPRESA') {
+    return interval === 'annual' 
+      ? STRIPE_PRICES.EMPRESA.annual 
+      : STRIPE_PRICES.EMPRESA.monthly;
   }
-  // Plan empresarial temporalmente desactivado
-  // else if (planType === 'ENTERPRISE') {
-  //   if (interval === 'annual') {
-  //     return usePromo ? STRIPE_PLANS.ENTERPRISE_YEARLY_PROMO : STRIPE_PLANS.ENTERPRISE_YEARLY;
-  //   } else {
-  //     return usePromo ? STRIPE_PLANS.ENTERPRISE_MONTHLY_PROMO : STRIPE_PLANS.ENTERPRISE_MONTHLY;
-  //   }
-  // }
   
   return null;
+}
+
+// Obtener mapeo de plan B2B
+export function getPlanMapping(planKey: string) {
+  const planType = planKey.toUpperCase();
+  return STRIPE_PLAN_MAPPING[planType as keyof typeof STRIPE_PLAN_MAPPING] || null;
 } 

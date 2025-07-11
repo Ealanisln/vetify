@@ -34,7 +34,7 @@ const steps = [
   {
     number: 1,
     title: "Regístrate para una prueba gratuita",
-    description: "Comienza con una prueba de 14 días sin compromiso y sin tarjeta de crédito. Configura tu perfil de clínica en minutos.",
+    description: "Comienza con una prueba de 30 días sin compromiso y sin tarjeta de crédito. Configura tu perfil de clínica en minutos.",
     icon: <LayoutDashboard className="h-6 w-6" />,
   },
   {
