@@ -54,9 +54,9 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
         icon: AlertTriangle,
         title: '⚠️ Pago Vencido',
         description: 'Tu subscripción tiene un pago pendiente. Actualiza tu método de pago para continuar.',
-        bgColor: 'bg-red-50 border-red-200',
-        textColor: 'text-red-800',
-        iconColor: 'text-red-600',
+        bgColor: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700',
+        textColor: 'text-red-800 dark:text-red-400',
+        iconColor: 'text-red-600 dark:text-red-400',
         buttonColor: 'bg-red-600 hover:bg-red-700',
         buttonText: 'Actualizar Pago',
         link: '/dashboard/settings?section=subscription'
@@ -67,9 +67,9 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
         icon: XCircle,
         title: '📋 Subscripción Cancelada',
         description: `Tu subscripción termina el ${subscriptionEndsAt ? format(new Date(subscriptionEndsAt), 'dd MMMM yyyy', { locale: es }) : ''}. Renueva para mantener el acceso.`,
-        bgColor: 'bg-orange-50 border-orange-200',
-        textColor: 'text-orange-800',
-        iconColor: 'text-orange-600',
+        bgColor: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-700',
+        textColor: 'text-orange-800 dark:text-orange-400',
+        iconColor: 'text-orange-600 dark:text-orange-400',
         buttonColor: 'bg-orange-600 hover:bg-orange-700',
         buttonText: 'Renovar Subscripción',
         link: '/precios'
@@ -80,9 +80,9 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
         icon: Clock,
         title: `⏰ Trial terminando en ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`,
         description: 'Tu periodo de prueba está por terminar. Suscríbete ahora para continuar usando todas las funciones.',
-        bgColor: 'bg-blue-50 border-blue-200',
-        textColor: 'text-blue-800',
-        iconColor: 'text-blue-600',
+        bgColor: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700',
+        textColor: 'text-blue-800 dark:text-blue-400',
+        iconColor: 'text-blue-600 dark:text-blue-400',
         buttonColor: 'bg-blue-600 hover:bg-blue-700',
         buttonText: 'Ver Planes',
         link: '/precios'
@@ -93,9 +93,9 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
         icon: Star,
         title: '✨ Desbloquea Todo el Potencial',
         description: 'Accede a todas las funciones premium con una subscripción. Automatiza tu clínica veterinaria.',
-        bgColor: 'bg-purple-50 border-purple-200',
-        textColor: 'text-purple-800',
-        iconColor: 'text-purple-600',
+        bgColor: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700',
+        textColor: 'text-purple-800 dark:text-purple-400',
+        iconColor: 'text-purple-600 dark:text-purple-400',
         buttonColor: 'bg-purple-600 hover:bg-purple-700',
         buttonText: 'Ver Planes',
         link: '/precios'
@@ -165,7 +165,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
               <div className="flex items-center gap-2 text-sm">
                 <Zap className={`h-4 w-4 ${config.iconColor}`} />
                 <span className={config.textColor}>
-                  Prueba gratuita de 14 días
+                  Prueba gratuita de 30 días
                 </span>
               </div>
             )}
@@ -181,7 +181,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
               ].map((benefit, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <CheckCircle className="h-3 w-3 text-green-600" />
-                  <span className="text-xs text-gray-700">{benefit}</span>
+                  <span className="text-xs text-gray-700 dark:text-gray-300">{benefit}</span>
                 </div>
               ))}
             </div>

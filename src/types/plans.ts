@@ -1,11 +1,12 @@
-// Tipos
-type PlanType = 'BASIC' | 'STANDARD';
+// Tipos B2B
+type PlanType = 'PROFESIONAL' | 'CLINICA' | 'EMPRESA';
 
 interface PlanFeature {
   name: string;
   description: string;
-  basic: string | number | boolean;
-  standard: string | number | boolean;
+  profesional: string | number | boolean;
+  clinica: string | number | boolean;
+  empresa: string | number | boolean;
 }
 
 interface PlanPricing {
@@ -22,95 +23,123 @@ export interface Plan {
   recommended?: boolean;
 }
 
-// Datos de planes
+// Datos de planes B2B
 const planFeatures: PlanFeature[] = [
   {
     name: 'Usuarios Staff',
     description: 'Número de usuarios de staff que pueden acceder al sistema',
-    basic: 2,
-    standard: 5
+    profesional: 3,
+    clinica: 8,
+    empresa: 20
   },
   {
     name: 'Mascotas Activas',
     description: 'Número máximo de mascotas activas en el sistema',
-    basic: 500,
-    standard: 2000
+    profesional: 300,
+    clinica: 1000,
+    empresa: 'Ilimitado'
   },
   {
-    name: 'Historial Médico',
-    description: 'Registro de historial médico de mascotas',
-    basic: true,
-    standard: true
+    name: 'WhatsApp',
+    description: 'Mensajes de WhatsApp para comunicación con clientes',
+    profesional: 'Ilimitado',
+    clinica: 'Ilimitado',
+    empresa: 'Ilimitado'
   },
   {
-    name: 'Administración de Inventario',
-    description: 'Control de productos, medicamentos y servicios',
-    basic: 'Básico',
-    standard: 'Completo'
-  },
-  {
-    name: 'Recordatorios',
-    description: 'Recordatorios para clientes sobre citas, vacunas, etc.',
-    basic: 'Email',
-    standard: 'Email + 50 SMS'
-  },
-  {
-    name: 'Gestión de Pagos',
-    description: 'Procesamiento de pagos y facturación',
-    basic: true,
-    standard: true
-  },
-  {
-    name: 'Agenda Multi-Doctor',
-    description: 'Agendamiento para múltiples doctores/staff',
-    basic: false,
-    standard: true
+    name: 'Automatizaciones',
+    description: 'Automatización de recordatorios y procesos',
+    profesional: 'Básica',
+    clinica: 'Completa',
+    empresa: 'Avanzada'
   },
   {
     name: 'Reportes',
     description: 'Reportes de operaciones y finanzas',
-    basic: 'Básicos',
-    standard: 'Avanzados'
+    profesional: 'Básicos',
+    clinica: 'Avanzados',
+    empresa: 'Avanzados'
+  },
+  {
+    name: 'Multi-Doctor',
+    description: 'Gestión de múltiples doctores y staff',
+    profesional: true,
+    clinica: true,
+    empresa: true
+  },
+  {
+    name: 'Recordatorios SMS',
+    description: 'Recordatorios por SMS para clientes',
+    profesional: true,
+    clinica: true,
+    empresa: true
+  },
+  {
+    name: 'Multi-sucursal',
+    description: 'Gestión de múltiples sucursales',
+    profesional: false,
+    clinica: true,
+    empresa: true
+  },
+  {
+    name: 'API Access',
+    description: 'Acceso a API para integraciones personalizadas',
+    profesional: false,
+    clinica: false,
+    empresa: true
   },
   {
     name: 'Almacenamiento',
     description: 'Espacio para archivos e imágenes',
-    basic: '1 GB',
-    standard: '5 GB'
+    profesional: '5 GB',
+    clinica: '20 GB',
+    empresa: '100 GB'
   },
   {
     name: 'Soporte Técnico',
     description: 'Asistencia técnica y atención al cliente',
-    basic: 'Email',
-    standard: 'Email + Chat'
+    profesional: 'Email',
+    clinica: 'Email + Chat',
+    empresa: '24/7'
   }
 ];
 
 const planPricing: Record<PlanType, PlanPricing> = {
-  'BASIC': {
-    monthly: 349,
-    annual: 279,
+  'PROFESIONAL': {
+    monthly: 599,
+    annual: 479,
   },
-  'STANDARD': {
-    monthly: 649,
-    annual: 519,
+  'CLINICA': {
+    monthly: 999,
+    annual: 799,
+  },
+  'EMPRESA': {
+    monthly: 1799,
+    annual: 1439,
   }
 };
 
 export const plans: Plan[] = [
   {
-    type: 'BASIC',
-    name: 'Básico',
-    description: 'Perfecto para clínicas pequeñas o que están comenzando',
-    pricing: planPricing['BASIC'],
+    type: 'PROFESIONAL',
+    name: 'Plan Profesional',
+    description: 'Ideal para clínicas establecidas que buscan profesionalizar su operación',
+    pricing: planPricing['PROFESIONAL'],
     features: planFeatures,
   },
   {
-    type: 'STANDARD',
-    name: 'Estándar',
-    description: 'Ideal para clínicas en crecimiento con múltiples servicios',
-    pricing: planPricing['STANDARD'],
+    type: 'CLINICA',
+    name: 'Plan Clínica',
+    description: 'Perfecto para clínicas en crecimiento con múltiples sucursales',
+    pricing: planPricing['CLINICA'],
     features: planFeatures,
     recommended: true
+  },
+  {
+    type: 'EMPRESA',
+    name: 'Plan Empresa',
+    description: 'Solución integral para grandes organizaciones veterinarias',
+    pricing: planPricing['EMPRESA'],
+    features: planFeatures,
   }
 ];

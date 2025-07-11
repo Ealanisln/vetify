@@ -26,7 +26,8 @@
     "health:check": "node scripts/health-check.mjs",
     "db:seed:production": "node scripts/seed-production.mjs",
     "stripe:verify": "node scripts/stripe-setup-verification.mjs",
-    "stripe:setup": "node scripts/stripe-products-setup.mjs"
+    "stripe:setup": "node scripts/stripe-products-setup.mjs",
+    "pricing:sync": "node scripts/verify-pricing-sync.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.17",

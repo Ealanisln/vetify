@@ -100,15 +100,15 @@ export function PlanLimitsCard({ planStatus }: PlanLimitsCardProps) {
     <Card className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Límites del Plan
           </h3>
           <div className="flex items-center space-x-2 mt-1">
-            <Badge variant="outline" className="font-medium">
+            <Badge variant="outline" className="font-medium dark:border-gray-600 dark:text-gray-300">
               {plan.name}
             </Badge>
             {plan.isTrialPeriod && (
-              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-700">
                 Período de Prueba
               </Badge>
             )}
@@ -131,26 +131,26 @@ export function PlanLimitsCard({ planStatus }: PlanLimitsCardProps) {
                 <div className={item.color}>
                   {item.icon}
                 </div>
-                <span className="text-sm font-medium text-gray-700">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {item.label}
                 </span>
                 {item.warning && (
                   <AlertTriangle className="h-4 w-4 text-amber-500" />
                 )}
               </div>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-gray-600 dark:text-gray-400">
                 {item.current}{item.unit || ''} / {item.limit}{item.unit || ''}
               </span>
             </div>
             
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <div
                 className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(item.percentage, item.warning)}`}
                 style={{ width: `${Math.min(item.percentage, 100)}%` }}
               />
             </div>
             
-            <div className="flex justify-between text-xs text-gray-500">
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
               <span>{item.percentage}% usado</span>
               <span>
                 {item.limit - item.current} {item.unit || ''} restantes
@@ -161,14 +161,14 @@ export function PlanLimitsCard({ planStatus }: PlanLimitsCardProps) {
       </div>
 
       {plan.isTrialPeriod && plan.trialEndsAt && (
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
           <div className="flex items-center space-x-2">
-            <AlertTriangle className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-900">
+            <AlertTriangle className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm font-medium text-blue-900 dark:text-blue-300">
               Período de prueba
             </span>
           </div>
-          <p className="text-sm text-blue-700 mt-1">
+          <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
             Tu período de prueba termina el{' '}
             {new Date(plan.trialEndsAt).toLocaleDateString('es-ES', {
               year: 'numeric',
@@ -185,14 +185,14 @@ export function PlanLimitsCard({ planStatus }: PlanLimitsCardProps) {
       )}
 
       {(warnings.pets || warnings.users || warnings.whatsapp || warnings.storage) && (
-        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
           <div className="flex items-center space-x-2">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <span className="text-sm font-medium text-amber-900">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            <span className="text-sm font-medium text-amber-900 dark:text-amber-300">
               Cerca del límite
             </span>
           </div>
-          <p className="text-sm text-amber-700 mt-1">
+          <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">
             Estás usando más del 80% de algunos límites de tu plan.
             Considera actualizar para evitar interrupciones.
           </p>

@@ -103,37 +103,13 @@ export async function createTenantWithDefaults(data: {
   phone?: string;
   address?: string;
 }) {
-  // Get or create the basic plan
-  let basicPlan = await prisma.plan.findFirst({
-    where: { key: 'basic' }
+  // Get the PROFESIONAL plan (default for trial period)
+  const profesionalPlan = await prisma.plan.findFirst({
+    where: { key: 'PROFESIONAL' }
   });
 
-  if (!basicPlan) {
-    basicPlan = await prisma.plan.create({
-      data: {
-        key: 'basic',
-        name: 'Plan Básico',
-        description: 'Plan gratuito para comenzar',
-        monthlyPrice: 0,
-        annualPrice: 0,
-        features: {
-          pets: 50,
-          users: 1,
-          storage: 1,
-          appointments: true,
-          medicalRecords: true,
-          reminders: false,
-          reports: false,
-          api: false
-        },
-        maxUsers: 1,
-        maxPets: 50,
-        storageGB: 1,
-        isRecommended: false,
-        isActive: true,
-        isMvp: true
-      }
-    });
+  if (!profesionalPlan) {
+    throw new Error('Plan PROFESIONAL no encontrado. Ejecute la migración B2B primero.');
   }
 
   return await prisma.$transaction(async (tx) => {
@@ -142,7 +118,7 @@ export async function createTenantWithDefaults(data: {
       data: {
         name: data.name,
         slug: data.slug,
-        planType: 'BASIC',
+        planType: 'PROFESIONAL',
         status: 'ACTIVE',
         isTrialPeriod: true,
         trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
@@ -153,7 +129,7 @@ export async function createTenantWithDefaults(data: {
     await tx.tenantSubscription.create({
       data: {
         tenantId: tenant.id,
-        planId: basicPlan.id,
+        planId: profesionalPlan.id,
         status: 'TRIALING',
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now

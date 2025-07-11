@@ -1,117 +1,60 @@
 export const PRICING_CONFIG = {
-  // Precios regulares (después del periodo promocional)
-  REGULAR: {
-    BASIC: {
+  // Nueva estructura B2B - 3 planes profesionales sin plan gratuito
+  PLANS: {
+    PROFESIONAL: {
       monthly: 599,
-      yearly: 399, // mensual facturado anualmente
-      features: ['300 mascotas', '3 usuarios', 'WhatsApp ilimitado', 'Automatización completa'],
+      yearly: 479,
+      features: ['300 mascotas', '3 usuarios', 'WhatsApp ilimitado', 'Expedientes completos', 'Automatización básica'],
       limits: { pets: 300, users: 3, whatsappMessages: -1 }
     },
-    PROFESSIONAL: {
-      monthly: 1199,
+    CLINICA: {
+      monthly: 999,
       yearly: 799,
-      features: ['1000 mascotas', '8 usuarios', 'Multi-sucursal', 'Reportes avanzados'],
+      features: ['1,000 mascotas', '8 usuarios', 'WhatsApp ilimitado', 'Automatización completa', 'Multi-sucursal'],
       limits: { pets: 1000, users: 8, whatsappMessages: -1, multiLocation: true }
-    }
-  },
-  
-  // Precios promocionales MVP (primeros 6 meses)
-  PROMOTIONAL: {
-    BASIC: {
-      monthly: 449,
-      yearly: 349,
-      originalMonthly: 599,
-      originalYearly: 399,
-      discount: 25
     },
-    PROFESSIONAL: {
-      monthly: 899,
-      yearly: 649,
-      originalMonthly: 1199,
-      originalYearly: 799,
-      discount: 25
+    EMPRESA: {
+      monthly: 1799,
+      yearly: 1439,
+      features: ['Mascotas ilimitadas', '20 usuarios', 'WhatsApp ilimitado', 'Reportes avanzados', 'API personalizada'],
+      limits: { pets: -1, users: 20, whatsappMessages: -1, multiLocation: true, apiAccess: true }
     }
   },
 
   // Control de feature flags
   FEATURES: {
-    usePromotionalPricing: true,
-    showOriginalPrices: true,
-    promotionEndDate: new Date('2025-08-01'),
+    trialPeriodDays: 30,
+    enableTrialForAllPlans: true,
+    promotionEndDate: new Date('2025-12-31'),
     enableABTesting: false
   }
 };
 
-// Plan completo con todas las características
+// Plan completo con todas las características B2B
 export const COMPLETE_PLANS = {
-  FREE: {
-    key: 'FREE',
-    name: 'Plan Gratis',
-    description: 'Ideal para veterinarios independientes o consultorios muy pequeños.',
-    monthlyPrice: 0,
-    yearlyPrice: 0,
-    badge: 'GRATIS',
+  PROFESIONAL: {
+    key: 'PROFESIONAL',
+    name: 'Plan Profesional',
+    description: 'Ideal para clínicas establecidas que buscan profesionalizar su operación.',
+    monthlyPrice: 599,
+    yearlyPrice: 479,
+    badge: '30 DÍAS GRATIS',
     badgeColor: 'bg-vetify-accent-500 text-white',
     popular: false,
     icon: 'Star',
     features: [
-      { name: 'Mascotas Activas: 50', included: true, highlight: true },
-      { name: 'Usuarios Veterinarios: 1', included: true },
-      { name: 'WhatsApp Básico: 50 msg/mes', included: true, highlight: true },
-      { name: 'Soporte: Soporte comunidad', included: true },
-      { name: 'Expedientes básicos', included: true },
-      { name: 'Citas básicas', included: true },
-      { name: 'Automatización', included: false },
-      { name: 'Inventario', included: false },
-      { name: 'Reportes avanzados', included: false },
-      { name: 'Multi-sucursal', included: false },
-    ],
-    limits: {
-      maxPets: 50,
-      maxUsers: 1,
-      maxMonthlyWhatsApp: 50,
-      maxStorageGB: 1,
-      canUseAutomations: false,
-      canUseAdvancedReports: false,
-      canUseMultiDoctor: false,
-      canUseSMSReminders: false
-    },
-    cta: 'Comenzar Gratis'
-  },
-  BASIC: {
-    key: 'BASIC',
-    name: 'Plan Básico',
-    description: 'Ideal para clínicas pequeñas o que recién comienzan.',
-    monthlyPrice: PRICING_CONFIG.FEATURES.usePromotionalPricing 
-      ? PRICING_CONFIG.PROMOTIONAL.BASIC.monthly 
-      : PRICING_CONFIG.REGULAR.BASIC.monthly,
-    yearlyPrice: PRICING_CONFIG.FEATURES.usePromotionalPricing 
-      ? PRICING_CONFIG.PROMOTIONAL.BASIC.yearly 
-      : PRICING_CONFIG.REGULAR.BASIC.yearly,
-    originalMonthlyPrice: PRICING_CONFIG.FEATURES.usePromotionalPricing 
-      ? PRICING_CONFIG.PROMOTIONAL.BASIC.originalMonthly 
-      : undefined,
-    originalYearlyPrice: PRICING_CONFIG.FEATURES.usePromotionalPricing 
-      ? PRICING_CONFIG.PROMOTIONAL.BASIC.originalYearly 
-      : undefined,
-    discount: PRICING_CONFIG.FEATURES.usePromotionalPricing 
-      ? PRICING_CONFIG.PROMOTIONAL.BASIC.discount 
-      : 0,
-    badge: 'BÁSICO',
-    badgeColor: 'bg-vetify-slate-500 text-white',
-    popular: false,
-    icon: 'Users',
-    features: [
-      { name: 'Mascotas Activas: 300', included: true, highlight: true },
-      { name: 'Usuarios Veterinarios: 3', included: true },
-      { name: 'Automatización: Automatización completa', included: true, highlight: true },
-      { name: 'Inventario: Inventario básico', included: true, highlight: true },
-      { name: 'WhatsApp ilimitado', included: true },
+      { name: 'Hasta 300 mascotas', included: true, highlight: true },
+      { name: '3 usuarios veterinarios', included: true },
+      { name: 'WhatsApp ilimitado', included: true, highlight: true },
       { name: 'Expedientes completos', included: true },
       { name: 'Citas avanzadas', included: true },
-      { name: 'Soporte por email', included: true },
+      { name: 'Inventario profesional', included: true },
+      { name: 'Automatización básica', included: true },
       { name: 'Reportes básicos', included: true },
+      { name: 'Soporte profesional', included: true },
       { name: 'Multi-sucursal', included: false },
+      { name: 'Reportes avanzados', included: false },
+      { name: 'API personalizada', included: false },
     ],
     limits: {
       maxPets: 300,
@@ -120,45 +63,33 @@ export const COMPLETE_PLANS = {
       maxStorageGB: 5,
       canUseAutomations: true,
       canUseAdvancedReports: false,
-      canUseMultiDoctor: false,
+      canUseMultiDoctor: true,
       canUseSMSReminders: true
     },
-    cta: 'Elegir Plan'
+    cta: 'Iniciar prueba gratuita'
   },
-  PROFESSIONAL: {
-    key: 'PROFESSIONAL',
-    name: 'Plan Profesional',
-    description: 'Perfecto para clínicas establecidas con múltiples veterinarios.',
-    monthlyPrice: PRICING_CONFIG.FEATURES.usePromotionalPricing 
-      ? PRICING_CONFIG.PROMOTIONAL.PROFESSIONAL.monthly 
-      : PRICING_CONFIG.REGULAR.PROFESSIONAL.monthly,
-    yearlyPrice: PRICING_CONFIG.FEATURES.usePromotionalPricing 
-      ? PRICING_CONFIG.PROMOTIONAL.PROFESSIONAL.yearly 
-      : PRICING_CONFIG.REGULAR.PROFESSIONAL.yearly,
-    originalMonthlyPrice: PRICING_CONFIG.FEATURES.usePromotionalPricing 
-      ? PRICING_CONFIG.PROMOTIONAL.PROFESSIONAL.originalMonthly 
-      : undefined,
-    originalYearlyPrice: PRICING_CONFIG.FEATURES.usePromotionalPricing 
-      ? PRICING_CONFIG.PROMOTIONAL.PROFESSIONAL.originalYearly 
-      : undefined,
-    discount: PRICING_CONFIG.FEATURES.usePromotionalPricing 
-      ? PRICING_CONFIG.PROMOTIONAL.PROFESSIONAL.discount 
-      : 0,
+  CLINICA: {
+    key: 'CLINICA',
+    name: 'Plan Clínica',
+    description: 'Perfecto para clínicas en crecimiento con múltiples sucursales.',
+    monthlyPrice: 999,
+    yearlyPrice: 799,
     badge: 'MÁS POPULAR',
     badgeColor: 'bg-gradient-to-r from-vetify-blush-400 to-vetify-blush-500 text-white',
     popular: true,
     icon: 'Building',
     features: [
-      { name: 'Mascotas Activas: 1000', included: true, highlight: true },
-      { name: 'Usuarios Veterinarios: 8', included: true },
-      { name: 'Reportes Avanzados: Reportes avanzados', included: true, highlight: true },
-      { name: 'Multi-sucursal: Multi-sucursal', included: true, highlight: true },
-      { name: 'Todo del plan Básico', included: true },
-      { name: 'Automatización avanzada', included: true },
-      { name: 'Inventario completo', included: true },
-      { name: 'Analytics y métricas', included: true },
+      { name: 'Hasta 1,000 mascotas', included: true, highlight: true },
+      { name: '8 usuarios veterinarios', included: true },
+      { name: 'WhatsApp ilimitado', included: true, highlight: true },
+      { name: 'Automatización completa', included: true, highlight: true },
+      { name: 'Multi-sucursal', included: true, highlight: true },
+      { name: 'Inventario avanzado', included: true },
+      { name: 'Expedientes completos', included: true },
+      { name: 'Citas avanzadas', included: true },
+      { name: 'Reportes avanzados', included: true },
       { name: 'Soporte prioritario', included: true },
-      { name: 'Integraciones avanzadas', included: true },
+      { name: 'API personalizada', included: false },
     ],
     limits: {
       maxPets: 1000,
@@ -170,50 +101,80 @@ export const COMPLETE_PLANS = {
       canUseMultiDoctor: true,
       canUseSMSReminders: true
     },
-    cta: 'Elegir Plan'
+    cta: 'Iniciar prueba gratuita'
+  },
+  EMPRESA: {
+    key: 'EMPRESA',
+    name: 'Plan Empresa',
+    description: 'Solución integral para grandes organizaciones veterinarias.',
+    monthlyPrice: 1799,
+    yearlyPrice: 1439,
+    badge: 'EMPRESARIAL',
+    badgeColor: 'bg-vetify-slate-500 text-white',
+    popular: false,
+    icon: 'Users',
+    features: [
+      { name: 'Mascotas ilimitadas', included: true, highlight: true },
+      { name: '20 usuarios veterinarios', included: true },
+      { name: 'WhatsApp ilimitado', included: true, highlight: true },
+      { name: 'API personalizada', included: true, highlight: true },
+      { name: 'Todo del plan Clínica', included: true },
+      { name: 'Automatización avanzada', included: true },
+      { name: 'Inventario empresarial', included: true },
+      { name: 'Analytics empresariales', included: true },
+      { name: 'Soporte 24/7', included: true },
+      { name: 'Integraciones personalizadas', included: true },
+      { name: 'Consultoría especializada', included: true },
+    ],
+    limits: {
+      maxPets: -1, // ilimitado
+      maxUsers: 20,
+      maxMonthlyWhatsApp: -1, // ilimitado
+      maxStorageGB: 100,
+      canUseAutomations: true,
+      canUseAdvancedReports: true,
+      canUseMultiDoctor: true,
+      canUseSMSReminders: true
+    },
+    cta: 'Contactar ventas'
   }
 };
 
 // Helper functions
-export function getCurrentPrice(planKey: 'BASIC' | 'PROFESSIONAL', billingInterval: 'monthly' | 'yearly') {
-  const plan = PRICING_CONFIG.FEATURES.usePromotionalPricing 
-    ? PRICING_CONFIG.PROMOTIONAL[planKey]
-    : PRICING_CONFIG.REGULAR[planKey];
-  
+export function getCurrentPrice(planKey: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA', billingInterval: 'monthly' | 'yearly') {
+  const plan = PRICING_CONFIG.PLANS[planKey];
   return billingInterval === 'yearly' ? plan.yearly : plan.monthly;
 }
 
-export function getOriginalPrice(planKey: 'BASIC' | 'PROFESSIONAL', billingInterval: 'monthly' | 'yearly') {
-  if (!PRICING_CONFIG.FEATURES.usePromotionalPricing) return null;
-  
-  const plan = PRICING_CONFIG.PROMOTIONAL[planKey];
-  return billingInterval === 'yearly' ? plan.originalYearly : plan.originalMonthly;
+export function getDiscountPercentage(planKey: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA') {
+  const plan = PRICING_CONFIG.PLANS[planKey];
+  const monthlyTotal = plan.monthly * 12;
+  const yearlyTotal = plan.yearly * 12;
+  return Math.round((1 - yearlyTotal / monthlyTotal) * 100);
 }
 
-export function getDiscount(planKey: 'BASIC' | 'PROFESSIONAL') {
-  if (!PRICING_CONFIG.FEATURES.usePromotionalPricing) return 0;
-  return PRICING_CONFIG.PROMOTIONAL[planKey].discount;
-}
-
-export function isPromotionActive() {
-  return PRICING_CONFIG.FEATURES.usePromotionalPricing && 
-         new Date() < PRICING_CONFIG.FEATURES.promotionEndDate;
-}
-
-export function formatPrice(price: number) {
+export function formatPrice(amount: number, currency: string = 'MXN') {
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
-    currency: 'MXN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price);
+    currency: currency,
+    minimumFractionDigits: 0
+  }).format(amount);
 }
 
-// Types
-export interface PricingFeature {
-  name: string;
-  included: boolean;
-  highlight?: boolean;
+export function getAvailablePlans() {
+  return Object.keys(COMPLETE_PLANS);
+}
+
+export function getPlanByKey(key: string) {
+  return COMPLETE_PLANS[key as keyof typeof COMPLETE_PLANS];
+}
+
+export function isTrialActive() {
+  return PRICING_CONFIG.FEATURES.enableTrialForAllPlans;
+}
+
+export function getPromotionEndDate() {
+  return PRICING_CONFIG.FEATURES.promotionEndDate;
 }
 
 export interface PricingPlan {
@@ -241,4 +202,26 @@ export interface PricingPlan {
     canUseSMSReminders: boolean;
   };
   cta: string;
-} 
+}
+
+export interface PricingFeature {
+  name: string;
+  included: boolean;
+  highlight?: boolean;
+}
+
+// Mapeo de migración para usuarios existentes
+export const MIGRATION_MAPPING = {
+  'FREE': 'PROFESIONAL',
+  'STARTER': 'PROFESIONAL', 
+  'STANDARD': 'CLINICA',
+  'PROFESSIONAL': 'EMPRESA'
+};
+
+// Precios de grandfathering para usuarios existentes (12 meses)
+export const GRANDFATHER_PRICING = {
+  'FREE': { monthly: 0, yearly: 0 },
+  'STARTER': { monthly: 299, yearly: 239 },
+  'STANDARD': { monthly: 449, yearly: 349 },
+  'PROFESSIONAL': { monthly: 899, yearly: 649 }
+}; 

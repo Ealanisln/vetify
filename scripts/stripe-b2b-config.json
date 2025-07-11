@@ -1,0 +1,76 @@
+{
+  "products": {
+    "profesional": {
+      "id": "prod_Seq8I3438TwbPQ",
+      "name": "Plan Profesional B2B",
+      "description": "Ideal para clínicas establecidas que buscan profesionalizar su operación."
+    },
+    "clinica": {
+      "id": "prod_Seq84VFkBvXUhI",
+      "name": "Plan Clínica B2B",
+      "description": "Perfecto para clínicas en crecimiento con múltiples sucursales."
+    },
+    "empresa": {
+      "id": "prod_Seq8KU7nw8WucQ",
+      "name": "Plan Empresa B2B",
+      "description": "Solución integral para grandes organizaciones veterinarias."
+    }
+  },
+  "prices": {
+    "profesional": {
+      "monthly": {
+        "id": "price_1RjWSPPwxz1bHxlH60v9GJjX",
+        "amount": 59900,
+        "currency": "mxn",
+        "formatted": "$599"
+      },
+      "annual": {
+        "id": "price_1RjWSPPwxz1bHxlHpLCiifxS",
+        "amount": 47900,
+        "currency": "mxn",
+        "formatted": "$479"
+      }
+    },
+    "clinica": {
+      "monthly": {
+        "id": "price_1RjWSQPwxz1bHxlHTcG2kbJA",
+        "amount": 99900,
+        "currency": "mxn",
+        "formatted": "$999"
+      },
+      "annual": {
+        "id": "price_1RjWSQPwxz1bHxlHZSALMZUr",
+        "amount": 79900,
+        "currency": "mxn",
+        "formatted": "$799"
+      }
+    },
+    "empresa": {
+      "monthly": {
+        "id": "price_1RjWSRPwxz1bHxlHHp1pVI43",
+        "amount": 179900,
+        "currency": "mxn",
+        "formatted": "$1799"
+      },
+      "annual": {
+        "id": "price_1RjWSRPwxz1bHxlHR5zX9CCQ",
+        "amount": 143900,
+        "currency": "mxn",
+        "formatted": "$1439"
+      }
+    }
+  },
+  "environment_variables": {
+    "STRIPE_PRODUCT_PROFESIONAL": "prod_Seq8I3438TwbPQ",
+    "STRIPE_PRICE_PROFESIONAL_MONTHLY": "price_1RjWSPPwxz1bHxlH60v9GJjX",
+    "STRIPE_PRICE_PROFESIONAL_ANNUAL": "price_1RjWSPPwxz1bHxlHpLCiifxS",
+    "STRIPE_PRODUCT_CLINICA": "prod_Seq84VFkBvXUhI",
+    "STRIPE_PRICE_CLINICA_MONTHLY": "price_1RjWSQPwxz1bHxlHTcG2kbJA",
+    "STRIPE_PRICE_CLINICA_ANNUAL": "price_1RjWSQPwxz1bHxlHZSALMZUr",
+    "STRIPE_PRODUCT_EMPRESA": "prod_Seq8KU7nw8WucQ",
+    "STRIPE_PRICE_EMPRESA_MONTHLY": "price_1RjWSRPwxz1bHxlHHp1pVI43",
+    "STRIPE_PRICE_EMPRESA_ANNUAL": "price_1RjWSRPwxz1bHxlHR5zX9CCQ"
+  },
+  "created_at": "2025-07-11T02:13:03.851Z",
+  "type": "b2b"
+}
