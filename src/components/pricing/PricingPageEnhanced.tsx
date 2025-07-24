@@ -13,111 +13,59 @@ interface PricingPageEnhancedProps {
   tenant?: Tenant | null;
 }
 
-// Productos B2B sincronizados con la nueva configuración
-const mockProducts = [
-  {
-    id: 'profesional',
-    name: 'Plan Profesional',
-    description: 'Ideal para clínicas establecidas que buscan profesionalizar su operación',
-    features: [
-      'Hasta 300 mascotas',
-      '3 usuarios veterinarios',
-      'WhatsApp ilimitado',
-      'Expedientes completos',
-      'Citas avanzadas',
-      'Inventario profesional',
-      'Automatización básica',
-      'Reportes básicos',
-      'Soporte profesional'
-    ]
-  },
-  {
-    id: 'clinica',
-    name: 'Plan Clínica',
-    description: 'Perfecto para clínicas en crecimiento con múltiples sucursales',
-    features: [
-      'Hasta 1,000 mascotas',
-      '8 usuarios veterinarios',
-      'WhatsApp ilimitado',
-      'Automatización completa',
-      'Multi-sucursal',
-      'Inventario avanzado',
-      'Expedientes completos',
-      'Citas avanzadas',
-      'Reportes avanzados',
-      'Soporte prioritario'
-    ]
-  },
-  {
-    id: 'empresa',
-    name: 'Plan Empresa',
-    description: 'Solución integral para grandes organizaciones veterinarias',
-    features: [
-      'Mascotas ilimitadas',
-      '20 usuarios veterinarios',
-      'WhatsApp ilimitado',
-      'API personalizada',
-      'Todo del plan Clínica',
-      'Automatización avanzada',
-      'Inventario empresarial',
-      'Analytics empresariales',
-      'Soporte 24/7',
-      'Integraciones personalizadas',
-      'Consultoría especializada'
-    ]
-  }
-];
+// Estado para datos dinámicos de pricing desde Stripe
+interface PricingPlan {
+  id: string;
+  name: string;
+  description: string;
+  features: string[];
+  prices: {
+    monthly: {
+      id: string;
+      unitAmount: number;
+      currency: string;
+      interval: string;
+      intervalCount: number;
+    } | null;
+    yearly: {
+      id: string;
+      unitAmount: number;
+      currency: string;
+      interval: string;
+      intervalCount: number;
+    } | null;
+  };
+}
 
-// Precios B2B - usando la configuración real
-const mockPrices = {
-  profesional: {
+// Tipo para los datos que vienen de la API
+interface APIPlan {
+  id: string;
+  name: string;
+  description?: string;
+  features?: string[];
+  prices: {
     monthly: {
-      id: 'price_PROFESIONAL_MONTHLY_B2B',
-      unitAmount: 59900, // $599 MXN
-      currency: 'mxn',
-      interval: 'month',
-      intervalCount: 1
-    },
+      id: string;
+      unitAmount: number;
+      currency: string;
+      interval: string;
+      intervalCount: number;
+    } | null;
     yearly: {
-      id: 'price_PROFESIONAL_ANNUAL_B2B',
-      unitAmount: 47900, // $479 MXN
-      currency: 'mxn',
-      interval: 'year',
-      intervalCount: 1
-    }
-  },
-  clinica: {
-    monthly: {
-      id: 'price_CLINICA_MONTHLY_B2B',
-      unitAmount: 99900, // $999 MXN
-      currency: 'mxn',
-      interval: 'month',
-      intervalCount: 1
-    },
-    yearly: {
-      id: 'price_CLINICA_ANNUAL_B2B',
-      unitAmount: 79900, // $799 MXN
-      currency: 'mxn',
-      interval: 'year',
-      intervalCount: 1
-    }
-  },
-  empresa: {
-    monthly: {
-      id: 'price_EMPRESA_MONTHLY_B2B',
-      unitAmount: 179900, // $1,799 MXN
-      currency: 'mxn',
-      interval: 'month',
-      intervalCount: 1
-    },
-    yearly: {
-      id: 'price_EMPRESA_ANNUAL_B2B',
-      unitAmount: 143900, // $1,439 MXN
-      currency: 'mxn',
-      interval: 'year',
-      intervalCount: 1
-    }
-  }
+      id: string;
+      unitAmount: number;
+      currency: string;
+      interval: string;
+      intervalCount: number;
+    } | null;
+  };
+}
+
+// Mapeo de IDs de Stripe a IDs locales para compatibilidad
+const STRIPE_TO_LOCAL_ID_MAP: Record<string, string> = {
+  'prod_Seq8I3438TwbPQ': 'profesional',
+  'prod_Seq84VFkBvXUhI': 'clinica', 
+  'prod_Seq8KU7nw8WucQ': 'empresa'
 };
 
 export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
@@ -128,6 +76,11 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   const upgradeOptions: string[] = [];
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  
+  // Estados para datos dinámicos de pricing desde Stripe
+  const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
+  const [pricingLoading, setPricingLoading] = useState(true);
+  const [pricingError, setPricingError] = useState<string | null>(null);
   
   // Mantenemos planName por compatibilidad pero no lo usamos directamente
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -214,6 +167,56 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
     checkAuth();
   }, []);
 
+  // Cargar datos de pricing desde la API de Stripe
+  useEffect(() => {
+    const loadPricingData = async () => {
+      try {
+        setPricingLoading(true);
+        setPricingError(null);
+        
+        console.log('Loading pricing data from API...');
+        const response = await fetch('/api/pricing');
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch pricing: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (!data.success || !data.plans) {
+          throw new Error('Invalid pricing data received');
+        }
+        
+        // Transformar datos de la API al formato esperado por el componente
+        const transformedPlans: PricingPlan[] = data.plans.map((plan: APIPlan) => {
+          const localId = STRIPE_TO_LOCAL_ID_MAP[plan.id] || plan.id.toLowerCase();
+          
+          return {
+            id: localId,
+            name: plan.name,
+            description: plan.description || `Plan ${plan.name}`,
+            features: plan.features || [],
+            prices: {
+              monthly: plan.prices.monthly,
+              yearly: plan.prices.yearly
+            }
+          };
+        });
+        
+        console.log('Pricing data loaded successfully:', transformedPlans.length, 'plans');
+        setPricingPlans(transformedPlans);
+        
+      } catch (error) {
+        console.error('Error loading pricing data:', error);
+        setPricingError(error instanceof Error ? error.message : 'Failed to load pricing');
+      } finally {
+        setPricingLoading(false);
+      }
+    };
+
+    loadPricingData();
+  }, []);
+
   // Determinar el estado del plan para cada tarjeta
   const getPlanStatus = (productId: string) => {
     if (!isAuthenticated) {
@@ -229,8 +232,10 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
   // Obtener precios para cada producto según el intervalo seleccionado
   const getProductPrice = (productId: string) => {
-    const productPrices = mockPrices[productId as keyof typeof mockPrices];
-    return isYearly ? productPrices?.yearly : productPrices?.monthly;
+    const plan = pricingPlans.find(p => p.id === productId);
+    if (!plan) return null;
+    
+    return isYearly ? plan.prices.yearly : plan.prices.monthly;
   };
 
   // Formatear precio desde centavos
@@ -240,11 +245,11 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
   // Calcular descuento anual
   const calculateAnnualDiscount = (productId: string) => {
-    const prices = mockPrices[productId as keyof typeof mockPrices];
-    if (!prices) return 0;
+    const plan = pricingPlans.find(p => p.id === productId);
+    if (!plan || !plan.prices.monthly || !plan.prices.yearly) return 0;
     
-    const monthlyTotal = prices.monthly.unitAmount * 12;
-    const yearlyTotal = prices.yearly.unitAmount * 12;
+    const monthlyTotal = plan.prices.monthly.unitAmount * 12;
+    const yearlyTotal = plan.prices.yearly.unitAmount * 12;
     return Math.round((1 - yearlyTotal / monthlyTotal) * 100);
   };
 
@@ -389,9 +394,24 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
         </div>
       </div>
 
+      {/* Estado de carga y error */}
+      {pricingLoading && (
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vetify-accent-500"></div>
+          <span className="ml-3 text-gray-600 dark:text-gray-400">Cargando planes...</span>
+        </div>
+      )}
+      
+      {pricingError && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+          <p className="text-red-600 dark:text-red-400">Error al cargar los planes: {pricingError}</p>
+        </div>
+      )}
+
       {/* Tarjetas de precios */}
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
-        {mockProducts.map((product) => {
+      {!pricingLoading && !pricingError && (
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          {pricingPlans.map((product: PricingPlan) => {
           const price = getProductPrice(product.id);
           const { isCurrentPlan, isUpgrade } = getPlanStatus(product.id);
           const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
@@ -490,7 +510,8 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
 
       {/* Información adicional */}
       <div className="text-center text-sm text-gray-600 dark:text-gray-400">

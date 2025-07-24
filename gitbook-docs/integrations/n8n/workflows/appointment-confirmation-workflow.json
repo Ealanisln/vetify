@@ -1,0 +1,218 @@
+{
+  "name": "vetify-appointment-confirmation",
+  "active": true,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "appointment-confirmation",
+        "httpMethod": "POST",
+        "responseMode": "responseNode"
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [200, 200]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "formattedPhone",
+              "value": "={{($json.ownerPhone.replace(/\\D/g, '').length === 10) ? '52' + $json.ownerPhone.replace(/\\D/g, '') : $json.ownerPhone.replace(/\\D/g, '')}}"
+            },
+            {
+              "name": "confirmationMessage",
+              "value": "✅ *Cita Confirmada*\n\n🐾 *Mascota:* {{$json.petName}}\n👤 *Propietario:* {{$json.ownerName}}\n\n📅 *Fecha:* {{$json.appointmentDate}}\n⏰ *Hora:* {{$json.appointmentTime}}\n👨‍⚕️ *Veterinario:* {{$json.veterinarian}}\n\n📍 *Ubicación:*\n{{$json.clinicName}}\n{{$json.clinicAddress}}\n\n💡 *Recordatorios:*\n• Llegar 10 minutos antes\n• Traer cartilla de vacunación\n• Mantener a la mascota tranquila\n\n¿Necesitas reprogramar? Responde a este mensaje.\n\n_{{$json.clinicName}} - Vetify CRM_"
+            }
+          ]
+        }
+      },
+      "id": "process-data",
+      "name": "Format Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [400, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v18.0/{{$env.WHATSAPP_PHONE_NUMBER_ID}}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.WHATSAPP_ACCESS_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "messaging_product",
+              "value": "whatsapp"
+            },
+            {
+              "name": "to",
+              "value": "={{$('Format Message').item.json.formattedPhone}}"
+            },
+            {
+              "name": "type",
+              "value": "text"
+            },
+            {
+              "name": "text",
+              "value": {
+                "body": "={{$('Format Message').item.json.confirmationMessage}}"
+              }
+            }
+          ]
+        }
+      },
+      "id": "whatsapp-message",
+      "name": "Send WhatsApp Confirmation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [600, 200]
+    },
+    {
+      "parameters": {
+        "url": "{{$env.VETIFY_API_URL}}/api/webhooks/n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "workflowType",
+              "value": "APPOINTMENT_CONFIRMATION"
+            },
+            {
+              "name": "status",
+              "value": "SUCCESS"
+            },
+            {
+              "name": "executionId",
+              "value": "={{$execution.id}}"
+            },
+            {
+              "name": "petName",
+              "value": "={{$('Webhook Trigger').item.json.petName}}"
+            },
+            {
+              "name": "phoneNumber",
+              "value": "={{$('Format Message').item.json.formattedPhone}}"
+            },
+            {
+              "name": "appointmentDate",
+              "value": "={{$('Webhook Trigger').item.json.appointmentDate}}"
+            },
+            {
+              "name": "appointmentTime",
+              "value": "={{$('Webhook Trigger').item.json.appointmentTime}}"
+            }
+          ]
+        }
+      },
+      "id": "log-success",
+      "name": "Log Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [800, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": {
+          "success": true,
+          "message": "Appointment confirmation sent successfully",
+          "executionId": "={{$execution.id}}",
+          "timestamp": "={{new Date().toISOString()}}",
+          "petName": "={{$('Webhook Trigger').item.json.petName}}",
+          "phoneNumber": "={{$('Format Message').item.json.formattedPhone}}",
+          "appointmentDate": "={{$('Webhook Trigger').item.json.appointmentDate}}",
+          "appointmentTime": "={{$('Webhook Trigger').item.json.appointmentTime}}"
+        }
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1000, 200]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Message": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Log Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Success": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z",
+      "id": "vetify",
+      "name": "Vetify"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+} 

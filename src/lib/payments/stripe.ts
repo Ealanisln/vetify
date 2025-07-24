@@ -419,6 +419,7 @@ export async function getStripeProducts() {
     name: product.name,
     description: product.description,
     features: product.metadata.features ? JSON.parse(product.metadata.features) : [],
+    metadata: product.metadata, // Incluir metadata completo para filtros
     defaultPriceId: typeof product.default_price === 'string'
       ? product.default_price
       : product.default_price?.id

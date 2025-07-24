@@ -1,0 +1,33 @@
+# GitBook ignore file
+# Files to ignore when building GitBook
+
+# Node modules
+node_modules/
+
+# Build output
+_book/
+*.pdf
+*.epub
+*.mobi
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+.tmp/
+.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Development files
+organize-docs*.js
+clean-docs.js
