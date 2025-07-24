@@ -1,0 +1,360 @@
+/* Vetify GitBook Documentation Styles */
+
+/* Custom Variables */
+:root {
+  --vetify-primary: #10b981;
+  --vetify-primary-dark: #059669;
+  --vetify-secondary: #3b82f6;
+  --vetify-accent: #f59e0b;
+  --vetify-success: #10b981;
+  --vetify-warning: #f59e0b;
+  --vetify-error: #ef4444;
+  --vetify-text: #1f2937;
+  --vetify-text-light: #6b7280;
+  --vetify-bg: #ffffff;
+  --vetify-bg-secondary: #f9fafb;
+  --vetify-border: #e5e7eb;
+  --vetify-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* Typography */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.6;
+  color: var(--vetify-text);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+}
+
+h1 {
+  font-size: 2.5rem;
+  color: var(--vetify-primary);
+  border-bottom: 3px solid var(--vetify-primary);
+  padding-bottom: 0.5rem;
+}
+
+h2 {
+  font-size: 2rem;
+  color: var(--vetify-text);
+  border-bottom: 2px solid var(--vetify-border);
+  padding-bottom: 0.25rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+  color: var(--vetify-secondary);
+}
+
+/* Code Blocks */
+pre {
+  background-color: #1e293b;
+  border-radius: 8px;
+  padding: 1.5rem;
+  overflow-x: auto;
+  border: 1px solid var(--vetify-border);
+  box-shadow: var(--vetify-shadow);
+}
+
+code {
+  font-family: 'Fira Code', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
+  font-size: 0.9em;
+  background-color: #f1f5f9;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  color: #dc2626;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+  color: #e2e8f0;
+}
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--vetify-shadow);
+}
+
+th {
+  background-color: var(--vetify-primary);
+  color: white;
+  font-weight: 600;
+  padding: 1rem;
+  text-align: left;
+}
+
+td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--vetify-border);
+}
+
+tr:nth-child(even) {
+  background-color: var(--vetify-bg-secondary);
+}
+
+tr:hover {
+  background-color: #f3f4f6;
+}
+
+/* Buttons and Links */
+a {
+  color: var(--vetify-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--vetify-primary-dark);
+  text-decoration: underline;
+}
+
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--vetify-primary);
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background-color: var(--vetify-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-secondary {
+  background-color: var(--vetify-secondary);
+}
+
+.btn-secondary:hover {
+  background-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Alerts and Notifications */
+.alert {
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin: 1.5rem 0;
+  border-left: 4px solid;
+}
+
+.alert-info {
+  background-color: #dbeafe;
+  border-color: var(--vetify-secondary);
+  color: #1e40af;
+}
+
+.alert-success {
+  background-color: #d1fae5;
+  border-color: var(--vetify-success);
+  color: #065f46;
+}
+
+.alert-warning {
+  background-color: #fef3c7;
+  border-color: var(--vetify-warning);
+  color: #92400e;
+}
+
+.alert-error {
+  background-color: #fee2e2;
+  border-color: var(--vetify-error);
+  color: #991b1b;
+}
+
+/* Navigation */
+.book-summary {
+  background-color: var(--vetify-bg-secondary);
+}
+
+.book-summary ul.summary li a {
+  color: var(--vetify-text);
+  font-weight: 500;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  margin: 0.25rem 0;
+  transition: all 0.2s ease;
+}
+
+.book-summary ul.summary li a:hover {
+  background-color: var(--vetify-primary);
+  color: white;
+  text-decoration: none;
+}
+
+.book-summary ul.summary li.active > a {
+  background-color: var(--vetify-primary);
+  color: white;
+}
+
+/* Content Area */
+.book-body {
+  background-color: var(--vetify-bg);
+}
+
+.page-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+/* Sidebar */
+.book-anchor {
+  color: var(--vetify-text-light);
+}
+
+.book-anchor:hover {
+  color: var(--vetify-primary);
+}
+
+/* Search */
+#book-search-input {
+  background-color: var(--vetify-bg);
+  border: 2px solid var(--vetify-border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+}
+
+#book-search-input:focus {
+  outline: none;
+  border-color: var(--vetify-primary);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* Custom Components */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.feature-card {
+  background-color: var(--vetify-bg);
+  border: 1px solid var(--vetify-border);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: var(--vetify-shadow);
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.feature-card h3 {
+  color: var(--vetify-primary);
+  margin-top: 0;
+}
+
+.code-tabs {
+  margin: 2rem 0;
+}
+
+.code-tab {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background-color: var(--vetify-bg-secondary);
+  border: 1px solid var(--vetify-border);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.code-tab.active {
+  background-color: var(--vetify-primary);
+  color: white;
+  border-color: var(--vetify-primary);
+}
+
+.code-content {
+  border: 1px solid var(--vetify-border);
+  border-radius: 0 6px 6px 6px;
+  overflow: hidden;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .page-inner {
+    padding: 1rem;
+  }
+  
+  h1 {
+    font-size: 2rem;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+  }
+  
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  pre {
+    padding: 1rem;
+    font-size: 0.9em;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --vetify-bg: #1f2937;
+    --vetify-bg-secondary: #374151;
+    --vetify-text: #f9fafb;
+    --vetify-text-light: #d1d5db;
+    --vetify-border: #4b5563;
+  }
+  
+  pre {
+    background-color: #111827;
+  }
+  
+  code {
+    background-color: #374151;
+    color: #fbbf24;
+  }
+  
+  pre code {
+    color: #e5e7eb;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .book-summary,
+  .book-anchor,
+  .btn {
+    display: none !important;
+  }
+  
+  .page-inner {
+    padding: 0;
+  }
+  
+  pre {
+    white-space: pre-wrap;
+    border: 1px solid #ccc;
+  }
+} 

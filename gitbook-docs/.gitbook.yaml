@@ -1,0 +1,56 @@
+root: ./
+
+structure:
+  readme: README.md
+  summary: SUMMARY.md
+
+gitbook:
+  version: "3.2.3"
+  plugins:
+    - search
+    - copy-code-button
+    - theme-default
+    - highlight
+    - prism
+    - github
+    - expandable-chapters
+    - back-to-top-button
+    - page-toc-button
+
+pluginsConfig:
+  github:
+    url: https://github.com/your-org/vetify
+  copy-code-button:
+    theme: flat
+    buttonText: "Copy"
+    buttonTextCopied: "Copied!"
+  expandable-chapters:
+    expand: true
+  page-toc-button:
+    maxTocDepth: 3
+    minTocSize: 2
+
+variables:
+  title: "Vetify Documentation"
+  description: "Complete documentation for Vetify - Veterinary Practice Management System"
+  author: "Vetify Team"
+  language: "en"
+  github_url: "https://github.com/your-org/vetify"
+  website_url: "https://vetify.app"
+
+styles:
+  website: "./styles/website.css"
+  pdf: "./styles/pdf.css"
+  epub: "./styles/epub.css"
+  mobi: "./styles/mobi.css"
+
+pdf:
+  pageNumbers: true
+  fontSize: 12
+  paperSize: "a4"
+  margin: {
+    top: 56,
+    bottom: 56,
+    left: 62,
+    right: 62
+  } 

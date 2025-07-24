@@ -1,3 +1,11 @@
+---
+title: "🏥 Vetify - Veterinary Practice Management System"
+description: "> **Complete documentation for Vetify - A modern, cloud-based veterinary practice management system ..."
+category: "Getting Started"
+tags: ["typescript", "nextjs", "react", "postgresql", "stripe", "whatsapp", "n8n", "vercel", "vetify"]
+order: 1
+---
+
 # 🏥 Vetify - Veterinary Practice Management System
 
 > **Complete documentation for Vetify - A modern, cloud-based veterinary practice management system built with Next.js, TypeScript, and PostgreSQL.**
@@ -116,3 +124,8 @@ This project is proprietary software. All rights reserved.
 
 **Ready to get started?** Check out our [Quick Start Guide](docs/getting-started/quick-start.md) or dive into the [Architecture Overview](docs/architecture/system-overview.md).
 
+
+
+---
+
+**Need help?** Check our [Troubleshooting Guide](../troubleshooting/common-issues.md) or [contact support](../../README.md#-support).

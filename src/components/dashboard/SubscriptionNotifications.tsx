@@ -13,7 +13,8 @@ import {
   Star,
   ArrowRight,
   CalendarX,
-  Zap
+  Zap,
+  Gift
 } from 'lucide-react';
 import type { Tenant } from '@prisma/client';
 import { format, differenceInDays } from 'date-fns';
@@ -40,11 +41,6 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
   };
 
   const daysRemaining = getDaysRemaining();
-
-  // No mostrar notificaciones si tiene subscripción activa y no está cerca de vencer
-  if (hasActiveSubscription && !isPastDue && (!isInTrial || (daysRemaining && daysRemaining > 3))) {
-    return null;
-  }
 
   // Configuración de notificaciones según el estado
   const getNotificationConfig = () => {
@@ -76,7 +72,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
       };
     } else if (isInTrial && daysRemaining !== null && daysRemaining <= 3) {
       return {
-        type: 'trial' as const,
+        type: 'trial-ending' as const,
         icon: Clock,
         title: `⏰ Trial terminando en ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`,
         description: 'Tu periodo de prueba está por terminar. Suscríbete ahora para continuar usando todas las funciones.',
@@ -86,6 +82,19 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
         buttonColor: 'bg-blue-600 hover:bg-blue-700',
         buttonText: 'Ver Planes',
         link: '/precios'
+      };
+    } else if (isInTrial && daysRemaining !== null && daysRemaining > 3) {
+      return {
+        type: 'trial-active' as const,
+        icon: Gift,
+        title: '🎉 ¡Tu prueba gratis de 30 días ha comenzado!',
+        description: `Disfruta de todas las funciones premium hasta el ${subscriptionEndsAt ? format(new Date(subscriptionEndsAt), 'dd MMMM yyyy', { locale: es }) : ''}. No se te cobrará nada durante este periodo.`,
+        bgColor: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700',
+        textColor: 'text-green-800 dark:text-green-400',
+        iconColor: 'text-green-600 dark:text-green-400',
+        buttonColor: 'bg-green-600 hover:bg-green-700',
+        buttonText: 'Ver Detalles',
+        link: '/dashboard/settings?section=subscription'
       };
     } else if (!hasActiveSubscription) {
       return {
@@ -152,11 +161,20 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
               <ArrowRight className="h-4 w-4" />
             </Button>
 
-            {config.type === 'trial' && daysRemaining !== null && (
+            {config.type === 'trial-ending' && daysRemaining !== null && (
               <div className="flex items-center gap-2 text-sm">
                 <CalendarX className={`h-4 w-4 ${config.iconColor}`} />
                 <span className={config.textColor}>
                   {daysRemaining === 0 ? 'Termina hoy' : `${daysRemaining} días restantes`}
+                </span>
+              </div>
+            )}
+
+            {config.type === 'trial-active' && daysRemaining !== null && (
+              <div className="flex items-center gap-2 text-sm">
+                <Clock className={`h-4 w-4 ${config.iconColor}`} />
+                <span className={config.textColor}>
+                  {daysRemaining} días restantes
                 </span>
               </div>
             )}
@@ -178,6 +196,22 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
                 'WhatsApp automático',
                 'Inventario completo',
                 'Reportes avanzados'
+              ].map((benefit, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  <span className="text-xs text-gray-700 dark:text-gray-300">{benefit}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Beneficios del trial activo */}
+          {config.type === 'trial-active' && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {[
+                'Acceso completo a todas las funciones',
+                'Sin compromiso - cancela cuando quieras',
+                'Soporte prioritario incluido'
               ].map((benefit, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <CheckCircle className="h-3 w-3 text-green-600" />

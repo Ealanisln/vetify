@@ -27,6 +27,7 @@ export async function GET() {
         name: product.name,
         description: product.description,
         features: product.features,
+        metadata: 'metadata' in product ? (product as {metadata?: Record<string, string>}).metadata : undefined, // Agregamos metadata para filtros
         prices: {
           monthly: monthlyPrice ? {
             id: monthlyPrice.id,
@@ -48,7 +49,13 @@ export async function GET() {
 
     // Filter out free plans and sort by price
     const activePlans = pricingData
-      .filter(plan => plan.prices.monthly && plan.prices.monthly.unitAmount != null && plan.prices.monthly.unitAmount > 0)
+      .filter(plan => {
+        // Solo productos B2B con precios válidos
+        return plan.prices.monthly && 
+               plan.prices.monthly.unitAmount != null &&
+               plan.prices.monthly.unitAmount > 0 &&
+               plan.metadata?.type === 'b2b';  // Filtro B2B
+      })
       .sort((a, b) => {
         const aPrice = a.prices.monthly?.unitAmount || 0;
         const bPrice = b.prices.monthly?.unitAmount || 0;
