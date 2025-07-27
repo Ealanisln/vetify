@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -11,6 +11,17 @@ import type { Tenant } from '@prisma/client';
 
 interface PricingPageEnhancedProps {
   tenant?: Tenant | null;
+}
+
+// Interface for subscription data
+interface SubscriptionData {
+  hasSubscription: boolean;
+  subscriptionStatus: string;
+  planName?: string;
+  subscriptionId?: string;
+  customerId?: string;
+  subscriptionEndsAt?: string;
+  isTrialPeriod?: boolean;
 }
 
 // Estado para datos dinámicos de pricing desde Stripe
@@ -71,11 +82,12 @@ const STRIPE_TO_LOCAL_ID_MAP: Record<string, string> = {
 export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   const [isYearly, setIsYearly] = useState(false);
   
-  // Valores estáticos para testing - necesitamos implementar detección real
-  const userPlan = null;
-  const upgradeOptions: string[] = [];
+  // Subscription state management
+  const [userPlan, setUserPlan] = useState<string | null>(null);
+  const [upgradeOptions, setUpgradeOptions] = useState<string[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   
   // Estados para datos dinámicos de pricing desde Stripe
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
@@ -93,6 +105,39 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
     upgradeOptions: upgradeOptions.length 
   });
 
+  // Function to load subscription data - moved to useCallback to fix dependency issue
+  const loadSubscriptionData = useCallback(async () => {
+    try {
+      console.log('Loading subscription data...');
+      const response = await fetch('/api/subscription/current');
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Subscription data loaded:', data);
+        setSubscriptionData(data);
+        
+        // Determine current plan from subscription
+        if (data.hasSubscription && data.planName) {
+          const planKey = mapPlanNameToKey(data.planName);
+          setUserPlan(planKey);
+          setUpgradeOptions(getAvailableUpgrades(planKey));
+        } else {
+          // No active subscription
+          setUserPlan(null);
+          setUpgradeOptions(['profesional', 'clinica', 'empresa']);
+        }
+      } else {
+        console.log('No subscription data or user not authenticated');
+        setUserPlan(null);
+        setUpgradeOptions([]);
+      }
+    } catch (error) {
+      console.error('Error loading subscription data:', error);
+      setUserPlan(null);
+      setUpgradeOptions([]);
+    }
+  }, []);
+
   // Verificar autenticación al cargar
   useEffect(() => {
     const checkAuth = async () => {
@@ -104,8 +149,11 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
         
         setIsAuthenticated(authenticated);
         
-        // Si está autenticado, verificar checkout pendiente
+        // Si está autenticado, cargar datos de suscripción
         if (authenticated) {
+          await loadSubscriptionData();
+          
+          // Después verificar checkout pendiente
           console.log('User authenticated, checking for pending checkout...');
           const pendingCheckout = localStorage.getItem('pendingCheckout');
           console.log('Pending checkout found:', !!pendingCheckout);
@@ -165,7 +213,32 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
     };
 
     checkAuth();
-  }, []);
+  }, [loadSubscriptionData]);
+
+  // Map Stripe plan name to local plan key
+  const mapPlanNameToKey = (planName: string): string => {
+    const name = planName.toLowerCase();
+    if (name.includes('profesional') || name.includes('professional')) {
+      return 'profesional';
+    } else if (name.includes('clínica') || name.includes('clinica')) {
+      return 'clinica';
+    } else if (name.includes('empresa') || name.includes('enterprise')) {
+      return 'empresa';
+    }
+    return 'profesional'; // default
+  };
+
+  // Get available upgrades based on current plan
+  const getAvailableUpgrades = (currentPlan: string): string[] => {
+    const planHierarchy = ['profesional', 'clinica', 'empresa'];
+    const currentIndex = planHierarchy.indexOf(currentPlan);
+    
+    if (currentIndex === -1) {
+      return planHierarchy;
+    }
+    
+    return planHierarchy.slice(currentIndex + 1);
+  };
 
   // Cargar datos de pricing desde la API de Stripe
   useEffect(() => {
@@ -219,8 +292,17 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
   // Determinar el estado del plan para cada tarjeta
   const getPlanStatus = (productId: string) => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !subscriptionData) {
       return { isCurrentPlan: false, isUpgrade: false, isDowngrade: false };
+    }
+
+    // Check if user has an active subscription
+    const hasActiveSubscription = subscriptionData.hasSubscription && 
+      ['ACTIVE', 'TRIALING'].includes(subscriptionData.subscriptionStatus);
+
+    if (!hasActiveSubscription) {
+      // No active subscription - all plans are available
+      return { isCurrentPlan: false, isUpgrade: true, isDowngrade: false };
     }
 
     const isCurrentPlan = userPlan === productId;
