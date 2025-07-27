@@ -152,7 +152,9 @@ export async function GET(request: NextRequest) {
           const planName = result.subscription && isTenantSubscription(result.subscription) 
             ? result.subscription.planName || 'unknown' 
             : 'unknown';
-          redirect(`/dashboard?success=${successParam}&plan=${planName}`);
+          // URL encode plan name to handle non-ASCII characters
+          const encodedPlanName = encodeURIComponent(planName);
+          redirect(`/dashboard?success=${successParam}&plan=${encodedPlanName}`);
         } else {
           console.error('Checkout: Payment status invalid:', session.payment_status);
           redirect('/precios?error=payment_failed');
@@ -175,14 +177,16 @@ export async function GET(request: NextRequest) {
           redirect(`/dashboard?success=${successParam}&info=manual_sync`);
         } else {
           console.warn('Checkout: Manual sync failed, but session is complete - redirecting with warning');
-          redirect(`/dashboard?success=subscription_created&warning=sync_pending&session_id=${sessionId}`);
+          const encodedSessionId = encodeURIComponent(sessionId);
+          redirect(`/dashboard?success=subscription_created&warning=sync_pending&session_id=${encodedSessionId}`);
         }
       } else {
         // Complete fallback - redirect with warning
         console.warn('Checkout: All sync attempts failed, but session is complete - redirecting with warning');
         const isTrial = session.payment_status === 'no_payment_required' || session.payment_status === null;
         const successParam = isTrial ? 'trial_started' : 'subscription_created';
-        redirect(`/dashboard?success=${successParam}&warning=sync_pending&session_id=${sessionId}`);
+        const encodedSessionId = encodeURIComponent(sessionId);
+        redirect(`/dashboard?success=${successParam}&warning=sync_pending&session_id=${encodedSessionId}`);
       }
     } else {
       console.error('Checkout: Session missing subscription or not subscription mode:', {

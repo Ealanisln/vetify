@@ -249,7 +249,20 @@ export async function createCustomerPortalSession(tenant: Tenant) {
           enabled: true,
           default_allowed_updates: ['price', 'quantity', 'promotion_code'],
           proration_behavior: 'create_prorations',
-          products: []
+          products: [
+            {
+              product: STRIPE_PRODUCTS.PROFESIONAL,
+              prices: Object.values(STRIPE_PRICES.PROFESIONAL)
+            },
+            {
+              product: STRIPE_PRODUCTS.CLINICA,
+              prices: Object.values(STRIPE_PRICES.CLINICA)
+            },
+            {
+              product: STRIPE_PRODUCTS.EMPRESA,
+              prices: Object.values(STRIPE_PRICES.EMPRESA)
+            }
+          ]
         },
         subscription_cancel: {
           enabled: true,
