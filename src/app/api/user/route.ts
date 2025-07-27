@@ -56,5 +56,20 @@ export async function GET() {
     }
   }
 
-  return NextResponse.json(user);
+  // Enhance response with subscription details from tenant
+  const response = {
+    ...user,
+    subscription: user.tenant ? {
+      planName: user.tenant.planName,
+      subscriptionStatus: user.tenant.subscriptionStatus,
+      subscriptionEndsAt: user.tenant.subscriptionEndsAt,
+      isTrialPeriod: user.tenant.isTrialPeriod,
+      stripeSubscriptionId: user.tenant.stripeSubscriptionId,
+      stripeProductId: user.tenant.stripeProductId,
+      // Legacy support for existing components
+      tenantSubscription: user.tenant.tenantSubscription
+    } : null
+  };
+
+  return NextResponse.json(response);
 } 
