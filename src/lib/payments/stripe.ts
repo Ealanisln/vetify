@@ -427,10 +427,37 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
       console.error('updateTenantSubscription: Error retrieving product:', error);
       return;
     }
+
+    // Map Stripe product ID to our Plan record
+    const stripeProductId = plan.product as string;
+    let planKey: string | null = null;
+    
+    // Find the plan key from our mapping
+    for (const [key, mapping] of Object.entries(STRIPE_PLAN_MAPPING)) {
+      if (mapping.productId === stripeProductId) {
+        planKey = key;
+        break;
+      }
+    }
+
+    if (!planKey) {
+      console.error('updateTenantSubscription: No plan mapping found for product:', stripeProductId);
+      return;
+    }
+
+    // Get the Plan record from our database
+    const dbPlan = await prisma.plan.findUnique({
+      where: { key: planKey }
+    });
+
+    if (!dbPlan) {
+      console.error('updateTenantSubscription: Plan not found in database:', planKey);
+      return;
+    }
     
     const updateData = {
       stripeSubscriptionId: subscriptionId,
-      stripeProductId: plan.product as string,
+      stripeProductId: stripeProductId,
       planName: product?.name,
       subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
       subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
@@ -440,35 +467,72 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
 
     console.log('updateTenantSubscription: Updating tenant with active/trialing subscription:', updateData);
 
-    await prisma.tenant.update({
-      where: { id: tenant.id },
-      data: updateData
+    // Update tenant and create/update TenantSubscription in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Update the tenant
+      await tx.tenant.update({
+        where: { id: tenant.id },
+        data: updateData
+      });
+
+      // Create or update TenantSubscription
+      await tx.tenantSubscription.upsert({
+        where: { tenantId: tenant.id },
+        create: {
+          tenantId: tenant.id,
+          planId: dbPlan.id,
+          stripeSubscriptionId: subscriptionId,
+          status: status.toUpperCase() as SubscriptionStatus,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          cancelAtPeriodEnd: subscription.cancel_at_period_end
+        },
+        update: {
+          planId: dbPlan.id, // ✅ This will now update the plan when upgrading
+          stripeSubscriptionId: subscriptionId,
+          status: status.toUpperCase() as SubscriptionStatus,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          cancelAtPeriodEnd: subscription.cancel_at_period_end
+        }
+      });
     });
 
-    console.log('updateTenantSubscription: Successfully updated tenant subscription to active/trialing');
+    console.log('updateTenantSubscription: Successfully updated tenant and subscription to active/trialing');
   } else if (status === 'canceled' || status === 'unpaid' || status === 'past_due') {
+    console.log('updateTenantSubscription: Processing subscription cancellation/failure');
+    
     const updateData = {
-      stripeSubscriptionId: status === 'canceled' ? null : subscriptionId,
-      stripeProductId: status === 'canceled' ? null : (subscription.items.data[0]?.plan?.product as string),
-      planName: status === 'canceled' ? null : undefined,
       subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
-      subscriptionEndsAt: status === 'canceled' 
-        ? new Date(subscription.canceled_at! * 1000) 
-        : new Date(subscription.current_period_end * 1000),
-      isTrialPeriod: false,
-      status: status === 'past_due' ? 'SUSPENDED' as const : 'ACTIVE' as const
+      stripeProductId: status === 'canceled' ? null : (subscription.items.data[0]?.plan?.product as string),
+      planName: status === 'canceled' ? null : undefined
     };
 
-    console.log('updateTenantSubscription: Updating tenant with inactive subscription:', updateData);
+    // Update tenant and TenantSubscription status
+    await prisma.$transaction(async (tx) => {
+      await tx.tenant.update({
+        where: { id: tenant.id },
+        data: updateData
+      });
 
-    await prisma.tenant.update({
-      where: { id: tenant.id },
-      data: updateData
+      // Update TenantSubscription status if it exists
+      const existingSubscription = await tx.tenantSubscription.findUnique({
+        where: { tenantId: tenant.id }
+      });
+
+      if (existingSubscription) {
+        await tx.tenantSubscription.update({
+          where: { tenantId: tenant.id },
+          data: {
+            status: status.toUpperCase() as SubscriptionStatus,
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+            cancelAtPeriodEnd: subscription.cancel_at_period_end
+          }
+        });
+      }
     });
 
-    console.log('updateTenantSubscription: Successfully updated tenant subscription to inactive');
-  } else {
-    console.log('updateTenantSubscription: Unhandled subscription status:', status);
+    console.log('updateTenantSubscription: Successfully updated tenant subscription to:', status);
   }
 }
 

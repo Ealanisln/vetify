@@ -71,13 +71,6 @@ export default async function DashboardPage() {
                 totalUsers: 1, // Placeholder - would come from actual stats
                 totalPets: stats.totalPets,
                 storageUsedBytes: BigInt(0) // Placeholder
-              },
-              tenantSubscription: {
-                plan: {
-                  maxUsers: stats.planLimits.maxUsers,
-                  maxPets: stats.planLimits.maxPets,
-                  storageGB: stats.planLimits.storageGB
-                }
               }
             }}
           />
