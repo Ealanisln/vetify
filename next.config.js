@@ -9,11 +9,11 @@ const nextConfig = {
     // Only run type checking in development
     ignoreBuildErrors: false,
   },
-  // Configure external packages for serverless environment
-  serverExternalPackages: ['@kinde-oss/kinde-auth-nextjs'],
-  
-  // Add transpilation for problematic ESM packages
-  transpilePackages: ['jose'],
+  // Configure external packages for serverless environment (empty for now)
+  serverExternalPackages: [],
+
+  // Add transpilation for ESM packages that need bundling
+  transpilePackages: ['jose', '@kinde-oss/kinde-auth-nextjs'],
   
   // Configure allowed dev origins for local development
   allowedDevOrigins: [

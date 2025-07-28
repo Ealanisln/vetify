@@ -28,61 +28,32 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
   }
 
   try {
-    const user = await prisma.$transaction(async (tx) => {
-      // 1. Check if user already exists
-      const existing = await tx.user.findUnique({
-        where: { id },
-        include: {
-          tenant: {
-            include: {
-              tenantSubscription: { include: { plan: true } },
-            },
-          },
-        },
-      });
-
-      if (existing) {
-        // Update basic profile fields if they changed
-        return tx.user.update({
-          where: { id },
-          data: {
-            email,
-            firstName,
-            lastName,
-            name: name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
-            isActive: true,
-          },
+    const user = await prisma.user.upsert({
+      where: { id },
+      update: {
+        email,
+        firstName,
+        lastName,
+        name: name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
+        isActive: true,
+      },
+      create: {
+        id,
+        email,
+        firstName,
+        lastName,
+        name: name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
+        isActive: true,
+      },
+      include: {
+        tenant: {
           include: {
-            tenant: {
-              include: {
-                tenantSubscription: { include: { plan: true } },
-              },
-            },
-          },
-        });
-      }
-
-      // 2. Create new user
-      return tx.user.create({
-        data: {
-          id,
-          email,
-          firstName,
-          lastName,
-          name: name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
-          isActive: true,
-        },
-        include: {
-          tenant: {
-            include: {
-              tenantSubscription: { include: { plan: true } },
-            },
+            tenantSubscription: { include: { plan: true } },
           },
         },
-      });
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      },
+    });
 
-    // Serialize the user data to convert Decimal fields to numbers
     return serializeUser(user);
   } catch (error) {
     console.error('Error in findOrCreateUser:', error);
