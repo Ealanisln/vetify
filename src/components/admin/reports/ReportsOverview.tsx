@@ -1,19 +1,24 @@
-'use client';
-
+import { prisma } from '@/lib/prisma';
 import { ChartBarIcon, DocumentTextIcon, UsersIcon } from '@heroicons/react/24/outline';
 
-export function ReportsOverview() {
+export async function ReportsOverview() {
+  // Fetch real metrics
+  const [reportsGenerated, activeUsers] = await Promise.all([
+    prisma.adminAuditLog.count(),
+    prisma.user.count({ where: { isActive: true } }),
+  ]);
+
   const reportStats = [
     {
       name: 'Reportes Generados',
-      value: '24',
+      value: reportsGenerated.toLocaleString('es-MX'),
       icon: DocumentTextIcon,
       color: 'text-blue-600',
       bgColor: 'bg-blue-50 dark:bg-blue-900',
     },
     {
       name: 'Usuarios Activos',
-      value: '1,234',
+      value: activeUsers.toLocaleString('es-MX'),
       icon: UsersIcon,
       color: 'text-emerald-600',
       bgColor: 'bg-emerald-50 dark:bg-emerald-900',

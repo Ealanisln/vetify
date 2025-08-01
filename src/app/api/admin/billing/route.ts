@@ -1,18 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/super-admin';
 import { prisma } from '@/lib/prisma';
-import { endOfMonth, startOfMonth, subMonths } from 'date-fns';
+import { subMonths } from 'date-fns';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { user } = await requireSuperAdmin();
+    await requireSuperAdmin();
 
     // Calculate date ranges
     const now = new Date();
-    const currentMonthStart = startOfMonth(now);
-    const currentMonthEnd = endOfMonth(now);
-    const previousMonthStart = startOfMonth(subMonths(now, 1));
-    const previousMonthEnd = endOfMonth(subMonths(now, 1));
 
     // Get all tenant subscriptions
     const subscriptions = await prisma.tenantSubscription.findMany({
@@ -26,7 +22,7 @@ export async function GET(request: NextRequest) {
         plan: {
           select: {
             name: true,
-            price: true
+            monthlyPrice: true
           }
         }
       }
@@ -39,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     const totalRevenue = subscriptions
       .filter(sub => sub.status === 'ACTIVE')
-      .reduce((sum, sub) => sum + (sub.plan?.price || 0), 0);
+      .reduce((sum, sub) => sum + (sub.plan?.monthlyPrice?.toNumber() || 0), 0);
 
     // Calculate monthly revenue (simplified - assumes monthly billing)
     const monthlyRevenue = totalRevenue;

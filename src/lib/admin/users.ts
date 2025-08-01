@@ -534,7 +534,10 @@ async function logAdminAction(data: {
   metadata?: Record<string, unknown>;
 }) {
   await prisma.adminAuditLog.create({
-    data
+    data: {
+      ...data,
+      metadata: data.metadata ? JSON.parse(JSON.stringify(data.metadata)) : undefined
+    }
   });
 }
 

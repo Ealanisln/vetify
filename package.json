@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "implementation:check": "node scripts/update-implementation-status.mjs",
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build",
     "start": "next start",

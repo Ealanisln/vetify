@@ -2,24 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/super-admin';
 import { getUserById, updateUser, deactivateUser, activateUser } from '@/lib/admin/users';
 
-interface RouteParams {
-  params: {
-    userId: string;
-  };
-}
-
 /**
  * GET /api/admin/users/[userId]
  * Get user details by ID
  */
 export async function GET(
   request: NextRequest,
-  { params }: RouteParams
+  context: { params: Promise<{ userId: string }> }
 ) {
   try {
     await requireSuperAdmin();
     
-    const { userId } = params;
+    const { userId } = await context.params;
     
     if (!userId) {
       return NextResponse.json(
@@ -65,12 +59,12 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: RouteParams
+  context: { params: Promise<{ userId: string }> }
 ) {
   try {
     const { user: currentUser } = await requireSuperAdmin();
     
-    const { userId } = params;
+    const { userId } = await context.params;
     const body = await request.json();
     
     if (!userId) {
@@ -149,12 +143,12 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: RouteParams
+  context: { params: Promise<{ userId: string }> }
 ) {
   try {
     const { user: currentUser } = await requireSuperAdmin();
     
-    const { userId } = params;
+    const { userId } = await context.params;
     
     if (!userId) {
       return NextResponse.json(

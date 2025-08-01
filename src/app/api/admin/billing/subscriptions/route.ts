@@ -1,18 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/super-admin';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const { user } = await requireSuperAdmin();
+    await requireSuperAdmin();
 
-    const searchParams = request.nextUrl.searchParams;
+    const url = new URL(request.url);
+    const searchParams = url.searchParams;
     const limit = searchParams.get('limit');
     const offset = searchParams.get('offset') || '0';
     const status = searchParams.get('status');
 
     // Build where clause
-    const where: { status?: string } = {};
+    const where: Record<string, unknown> = {};
     if (status) {
       where.status = status;
     }
@@ -30,8 +31,7 @@ export async function GET(request: NextRequest) {
         plan: {
           select: {
             name: true,
-            price: true,
-            currency: true
+            monthlyPrice: true
           }
         }
       },
@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
       planName: sub.plan?.name || 'N/A',
       status: sub.status,
       currentPeriodEnd: sub.currentPeriodEnd?.toISOString() || new Date().toISOString(),
-      amount: sub.plan?.price || 0,
-      currency: sub.plan?.currency || 'MXN'
+      amount: sub.plan?.monthlyPrice || 0,
+      currency: 'MXN'
     }));
 
     // Get total count for pagination

@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/super-admin';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { user } = await requireSuperAdmin();
+    await requireSuperAdmin();
 
     const plans = await prisma.plan.findMany({
       orderBy: {
-        price: 'asc'
+        monthlyPrice: 'asc'
       }
     });
 
@@ -17,12 +17,11 @@ export async function GET(request: NextRequest) {
       id: plan.id,
       name: plan.name,
       description: plan.description || '',
-      price: plan.price,
+      price: plan.monthlyPrice,
       currency: 'MXN',
       interval: 'month' as const,
       features: Array.isArray(plan.features) ? plan.features : [],
-      isActive: plan.isActive,
-      stripePriceId: plan.stripePriceId
+      isActive: plan.isActive
     }));
 
     return NextResponse.json({
@@ -37,12 +36,12 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const { user } = await requireSuperAdmin();
+    await requireSuperAdmin();
     const body = await request.json();
 
-    const { name, description, price, features, isActive, stripePriceId } = body;
+    const { name, description, price, features, isActive } = body;
 
     // Validate required fields
     if (!name || !price) {
@@ -54,12 +53,16 @@ export async function POST(request: NextRequest) {
 
     const plan = await prisma.plan.create({
       data: {
+        key: name.toLowerCase().replace(/\s+/g, '-'),
         name,
         description: description || '',
-        price: parseFloat(price),
+        monthlyPrice: parseFloat(price),
+        annualPrice: parseFloat(price) * 12,
         features: features || [],
-        isActive: isActive ?? true,
-        stripePriceId
+        maxUsers: 10,
+        maxPets: 100,
+        storageGB: 5,
+        isActive: isActive ?? true
       }
     });
 

@@ -1,12 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/super-admin';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const { user } = await requireSuperAdmin();
+    await requireSuperAdmin();
 
-    const searchParams = request.nextUrl.searchParams;
+    const url = new URL(request.url);
+    const searchParams = url.searchParams;
     const limit = searchParams.get('limit');
     const offset = searchParams.get('offset') || '0';
 
@@ -28,8 +29,7 @@ export async function GET(request: NextRequest) {
         plan: {
           select: {
             name: true,
-            price: true,
-            currency: true
+            monthlyPrice: true
           }
         }
       },
@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
     const payments = subscriptions.map(sub => ({
       id: `payment_${sub.id}`,
       tenantName: sub.tenant?.name || 'N/A',
-      amount: sub.plan?.price || 0,
-      currency: sub.plan?.currency || 'MXN',
+      amount: sub.plan?.monthlyPrice || 0,
+      currency: 'MXN',
       status: sub.status === 'ACTIVE' ? 'succeeded' : 'failed',
       createdAt: sub.updatedAt.toISOString(),
       description: `Pago de suscripción - ${sub.plan?.name || 'Plan'}`

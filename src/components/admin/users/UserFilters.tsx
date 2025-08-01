@@ -181,7 +181,7 @@ export function UserFilters({
                 <input
                   type="date"
                   value={filters.dateFrom ? filters.dateFrom.toISOString().split('T')[0] : ''}
-                  onChange={(e) => handleFilterChange('dateFrom', e.target.value ? new Date(e.target.value) : undefined)}
+                  onChange={(e) => handleFilterChange('dateFrom', e.target.value || undefined)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
                   disabled={loading}
                 />
@@ -195,7 +195,7 @@ export function UserFilters({
                 <input
                   type="date"
                   value={filters.dateTo ? filters.dateTo.toISOString().split('T')[0] : ''}
-                  onChange={(e) => handleFilterChange('dateTo', e.target.value ? new Date(e.target.value) : undefined)}
+                  onChange={(e) => handleFilterChange('dateTo', e.target.value || undefined)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
                   disabled={loading}
                 />

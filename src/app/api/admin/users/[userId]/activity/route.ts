@@ -2,24 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireSuperAdmin } from '@/lib/super-admin';
 import { getUserActivity, getUserById } from '@/lib/admin/users';
 
-interface RouteParams {
-  params: {
-    userId: string;
-  };
-}
-
 /**
  * GET /api/admin/users/[userId]/activity
  * Get user activity history
  */
 export async function GET(
   request: NextRequest,
-  { params }: RouteParams
+  context: { params: Promise<{ userId: string }> }
 ) {
   try {
     await requireSuperAdmin();
     
-    const { userId } = params;
+    const { userId } = await context.params;
     const { searchParams } = new URL(request.url);
     
     if (!userId) {

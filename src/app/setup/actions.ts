@@ -10,5 +10,4 @@ export async function requestSetupTokenAction(formData: FormData) {
   await sendSetupVerificationEmail(email);
   // You could set some flash data or cookies here for success message
   revalidatePath('/setup');
-  return { success: true } as const;
 } 

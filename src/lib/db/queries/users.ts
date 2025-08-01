@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { serializeUser } from "@/lib/serializers";
 import { UserWithTenant } from "@/types";
-import { Prisma } from '@prisma/client';
 
 export interface CreateOrUpdateUserData {
   id: string;
