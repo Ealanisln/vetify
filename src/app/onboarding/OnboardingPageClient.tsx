@@ -41,19 +41,19 @@ export function OnboardingPageClient({ user }: OnboardingPageClientProps) {
         <ThemeToggle />
       </div>
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="sm:mx-auto sm:w-full max-w-md lg:max-w-none">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
+          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 dark:text-gray-100 transition-colors duration-200">
             ¡Bienvenido a Vetify! 🐾
           </h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 transition-colors duration-200">
+          <p className="mt-2 text-sm lg:text-base text-gray-600 dark:text-gray-400 transition-colors duration-200">
             Configuremos tu clínica veterinaria
           </p>
         </div>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow-lg sm:rounded-lg sm:px-10 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
+      <div className="mt-8 sm:mx-auto sm:w-full max-w-md lg:max-w-none lg:px-4 xl:px-8">
+        <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow-lg sm:rounded-lg lg:rounded-2xl sm:px-10 lg:px-8 xl:px-12 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
           <OnboardingForm user={user} />
         </div>
       </div>

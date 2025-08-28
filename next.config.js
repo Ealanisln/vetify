@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -49,7 +51,17 @@ const nextConfig = {
         },
         {
           key: 'Permissions-Policy',
-          value: 'camera=(), microphone=(), geolocation=()',
+          value: 'camera=(), microphone=(), geolocation=(), payment=()',
+        },
+        {
+          key: 'Strict-Transport-Security',
+          value: 'max-age=31536000; includeSubDomains; preload',
+        },
+        {
+          key: 'Content-Security-Policy',
+          value: process.env.NODE_ENV === 'production' 
+            ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com https://m.stripe.network; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.stripe.com https://*.upstash.io https://api.whatsapp.com wss://*.upstash.io; frame-src https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
+            : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com https://m.stripe.network http://localhost:*; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob: http://localhost:*; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.stripe.com https://*.upstash.io https://api.whatsapp.com wss://*.upstash.io http://localhost:* ws://localhost:*; frame-src https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
         },
       ],
     });
@@ -99,4 +111,13 @@ const nextConfig = {
   }),
 };
 
-export default nextConfig; 
+// Sentry configuration
+const sentryWebpackPluginOptions = {
+  silent: process.env.NODE_ENV === 'production',
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+};
+
+// Export with Sentry wrapper
+export default withSentryConfig(nextConfig, sentryWebpackPluginOptions); 

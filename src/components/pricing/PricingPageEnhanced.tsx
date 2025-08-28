@@ -8,69 +8,14 @@ import { COMPLETE_PLANS, formatPrice } from '@/lib/pricing-config';
 import { CheckIcon } from 'lucide-react';
 import Link from 'next/link';
 import type { Tenant } from '@prisma/client';
+import { PricingComparisonTable } from './PricingComparisonTable';
+import type { PricingPlan, APIPlan, SubscriptionData } from './types';
 
 interface PricingPageEnhancedProps {
   tenant?: Tenant | null;
 }
 
-// Interface for subscription data
-interface SubscriptionData {
-  hasSubscription: boolean;
-  subscriptionStatus: string;
-  planName?: string;
-  subscriptionId?: string;
-  customerId?: string;
-  subscriptionEndsAt?: string;
-  isTrialPeriod?: boolean;
-}
 
-// Estado para datos dinámicos de pricing desde Stripe
-interface PricingPlan {
-  id: string;
-  name: string;
-  description: string;
-  features: string[];
-  prices: {
-    monthly: {
-      id: string;
-      unitAmount: number;
-      currency: string;
-      interval: string;
-      intervalCount: number;
-    } | null;
-    yearly: {
-      id: string;
-      unitAmount: number;
-      currency: string;
-      interval: string;
-      intervalCount: number;
-    } | null;
-  };
-}
-
-// Tipo para los datos que vienen de la API
-interface APIPlan {
-  id: string;
-  name: string;
-  description?: string;
-  features?: string[];
-  prices: {
-    monthly: {
-      id: string;
-      unitAmount: number;
-      currency: string;
-      interval: string;
-      intervalCount: number;
-    } | null;
-    yearly: {
-      id: string;
-      unitAmount: number;
-      currency: string;
-      interval: string;
-      intervalCount: number;
-    } | null;
-  };
-}
 
 // Mapeo de IDs de Stripe a IDs locales para compatibilidad
 const STRIPE_TO_LOCAL_ID_MAP: Record<string, string> = {
@@ -426,10 +371,10 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   // Renderizar loading state si está verificando autenticación
   if (isCheckingAuth) {
     return (
-      <div className="w-full max-w-6xl mx-auto px-4 py-8 bg-white dark:bg-gray-900 min-h-screen">
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vetify-accent-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">Verificando autenticación...</p>
+      <div className="w-full max-w-6xl mx-auto px-4 py-6 md:py-8 bg-white dark:bg-gray-900 min-h-screen">
+        <div className="text-center py-6 md:py-8">
+          <div className="animate-spin rounded-full h-6 w-6 md:h-8 md:w-8 border-b-2 border-vetify-accent-600 mx-auto"></div>
+          <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400">Verificando autenticación...</p>
         </div>
       </div>
     );
@@ -438,38 +383,38 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   return (
     <div className="w-full max-w-6xl mx-auto px-4 py-8 bg-white dark:bg-gray-900 min-h-screen">
       {/* Header */}
-      <div className="text-center mb-8">
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+      <div className="text-center mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3 md:mb-4 px-4">
           Precios Profesionales B2B
         </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-300 mb-8">
+        <p className="text-base md:text-xl text-gray-600 dark:text-gray-300 mb-6 md:mb-8 px-4">
           Soluciones completas para clínicas veterinarias profesionales
         </p>
         
         {/* Toggle facturación */}
-        <div className="flex items-center justify-center gap-4 mb-8">
-          <div className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-full px-6 py-3 shadow-lg border border-gray-200 dark:border-gray-700">
-            <span className={`text-sm transition-colors ${!isYearly ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-6 md:mb-8 px-4">
+          <div className="flex items-center gap-2 sm:gap-3 bg-white dark:bg-gray-800 rounded-full px-4 sm:px-6 py-2 sm:py-3 shadow-lg border border-gray-200 dark:border-gray-700">
+            <span className={`text-xs sm:text-sm transition-colors ${!isYearly ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
               Mensual
             </span>
             <button
               onClick={() => setIsYearly(!isYearly)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+              className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors ${
                 isYearly ? 'bg-vetify-accent-600' : 'bg-gray-200 dark:bg-gray-600'
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform ${
-                  isYearly ? 'translate-x-6' : 'translate-x-1'
+                className={`inline-block h-3 w-3 sm:h-4 sm:w-4 transform rounded-full bg-white shadow-md transition-transform ${
+                  isYearly ? 'translate-x-5 sm:translate-x-6' : 'translate-x-1'
                 }`}
               />
             </button>
-            <span className={`text-sm transition-colors ${isYearly ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
+            <span className={`text-xs sm:text-sm transition-colors ${isYearly ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
               Anual
             </span>
           </div>
           {isYearly && (
-            <Badge className="ml-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">
+            <Badge className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs sm:text-sm">
               Ahorra hasta 20%
             </Badge>
           )}
@@ -478,141 +423,379 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
       {/* Estado de carga y error */}
       {pricingLoading && (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vetify-accent-500"></div>
-          <span className="ml-3 text-gray-600 dark:text-gray-400">Cargando planes...</span>
+        <div className="flex justify-center items-center py-8 md:py-12 px-4">
+          <div className="animate-spin rounded-full h-6 w-6 md:h-8 md:w-8 border-b-2 border-vetify-accent-500"></div>
+          <span className="ml-3 text-sm md:text-base text-gray-600 dark:text-gray-400">Cargando planes...</span>
         </div>
       )}
       
       {pricingError && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-          <p className="text-red-600 dark:text-red-400">Error al cargar los planes: {pricingError}</p>
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 md:p-4 mb-6 mx-4">
+          <p className="text-sm md:text-base text-red-600 dark:text-red-400">Error al cargar los planes: {pricingError}</p>
         </div>
       )}
 
       {/* Tarjetas de precios */}
       {!pricingLoading && !pricingError && (
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          {pricingPlans.map((product: PricingPlan) => {
-          const price = getProductPrice(product.id);
-          const { isCurrentPlan, isUpgrade } = getPlanStatus(product.id);
-          const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
-          
-          if (!price) return null;
-
-          return (
-            <div
-              key={product.id}
-              className={`relative rounded-2xl border-2 p-6 shadow-lg transition-all duration-200 hover:shadow-xl ${
-                planConfig?.popular
-                  ? 'border-vetify-accent-500 bg-vetify-accent-50 dark:bg-vetify-accent-900/20 dark:border-vetify-accent-400'
-                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
-              }`}
-            >
-              {/* Badge */}
-              {planConfig?.badge && typeof planConfig.badge === 'string' && (
-                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className={`${planConfig.badgeColor || 'bg-blue-600 text-white'} dark:bg-blue-900 dark:text-blue-200`}>
-                    {planConfig.badge}
-                  </Badge>
-                </div>
-              )}
-
-              {/* Header */}
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                  {product.name}
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                  {product.description}
-                </p>
+        <>
+          {/* Vista móvil: Tarjetas apiladas */}
+          <div className="block md:hidden">
+            <div className="space-y-4">
+              {pricingPlans.map((product: PricingPlan) => {
+                const price = getProductPrice(product.id);
+                const { isCurrentPlan, isUpgrade } = getPlanStatus(product.id);
+                const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
                 
-                {/* Precio */}
-                <div className="mb-4">
-                  <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {formatPriceFromCents(price.unitAmount)}
-                  </span>
-                  <span className="text-gray-600 dark:text-gray-400 ml-1">
-                    /{isYearly ? 'año' : 'mes'}
-                  </span>
-                  {isYearly && (
-                    <div className="text-sm text-green-600 dark:text-green-400 mt-1">
-                      Ahorra {calculateAnnualDiscount(product.id)}% al año
+                if (!price) return null;
+
+                return (
+                  <div
+                    key={product.id}
+                    className={`relative rounded-2xl border-2 p-4 shadow-lg transition-all duration-200 ${
+                      planConfig?.popular
+                        ? 'border-vetify-accent-500 bg-vetify-accent-50 dark:bg-vetify-accent-900/20 dark:border-vetify-accent-400'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                    }`}
+                  >
+                    {/* Badge */}
+                    {planConfig?.badge && typeof planConfig.badge === 'string' && (
+                      <div className="absolute -top-2 left-4">
+                        <Badge className={`${planConfig.badgeColor || 'bg-blue-600 text-white'} dark:bg-blue-900 dark:text-blue-200 text-xs`}>
+                          {planConfig.badge}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* Header */}
+                    <div className="text-center mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        {product.name}
+                      </h3>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">
+                        {product.description}
+                      </p>
+                      
+                      {/* Precio */}
+                      <div className="mb-3">
+                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {formatPriceFromCents(price.unitAmount)}
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400 ml-1 text-sm">
+                          /{isYearly ? 'año' : 'mes'}
+                        </span>
+                        {isYearly && (
+                          <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                            Ahorra {calculateAnnualDiscount(product.id)}% al año
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div>
 
-              {/* Features */}
-              <div className="mb-6">
-                <ul className="space-y-2">
-                  {product.features && Array.isArray(product.features) && product.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <CheckIcon className="h-4 w-4 text-vetify-accent-500 dark:text-vetify-accent-400 mt-0.5 flex-shrink-0" />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{typeof feature === 'string' ? feature : ''}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+                    {/* Features - Limitado a 3 en móvil */}
+                    <div className="mb-4">
+                      <ul className="space-y-1.5">
+                        {product.features && Array.isArray(product.features) && 
+                         product.features.slice(0, 3).map((feature, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <CheckIcon className="h-3 w-3 text-vetify-accent-500 dark:text-vetify-accent-400 mt-0.5 flex-shrink-0" />
+                            <span className="text-xs text-gray-700 dark:text-gray-300">{typeof feature === 'string' ? feature : ''}</span>
+                          </li>
+                        ))}
+                        {product.features && product.features.length > 3 && (
+                          <li className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                            +{product.features.length - 3} características más
+                          </li>
+                        )}
+                      </ul>
+                    </div>
 
-              {/* CTA Button */}
-              <div className="mt-auto">
-                {isCurrentPlan ? (
-                  <Button 
-                    disabled 
-                    className="w-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                  >
-                    Plan Actual
-                  </Button>
-                ) : !isAuthenticated ? (
-                  <Button
-                    onClick={() => handleRegisterAndCheckout(price.id, product.id)}
-                    className={`w-full inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors ${
-                      planConfig?.popular
-                        ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
-                        : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
-                    } text-white`}
-                  >
-                    Iniciar Prueba Gratuita
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={() => handleCheckout(price.id, product.id)}
-                    className={`w-full ${
-                      planConfig?.popular
-                        ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
-                        : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
-                    } text-white transition-colors`}
-                  >
-                    {isUpgrade ? 'Actualizar Plan' : 
-                     product.id === 'empresa' ? 'Contactar Ventas' : 'Iniciar Prueba Gratuita'}
-                  </Button>
-                )}
-              </div>
+                    {/* CTA Button */}
+                    <div className="mt-auto">
+                      {isCurrentPlan ? (
+                        <Button 
+                          disabled 
+                          className="w-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm py-2"
+                        >
+                          Plan Actual
+                        </Button>
+                      ) : !isAuthenticated ? (
+                        <Button
+                          onClick={() => handleRegisterAndCheckout(price.id, product.id)}
+                          className={`w-full inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors text-sm ${
+                            planConfig?.popular
+                              ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
+                              : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
+                          } text-white`}
+                        >
+                          Iniciar Prueba Gratuita
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handleCheckout(price.id, product.id)}
+                          className={`w-full text-sm py-2 ${
+                            planConfig?.popular
+                              ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
+                              : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
+                          } text-white transition-colors`}
+                        >
+                          {isUpgrade ? 'Actualizar Plan' : 
+                           product.id === 'empresa' ? 'Contactar Ventas' : 'Iniciar Prueba Gratuita'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-        </div>
+          </div>
+
+          {/* Vista tablet: Grid de 2 columnas */}
+          <div className="hidden md:block lg:hidden">
+            <div className="grid grid-cols-2 gap-4">
+              {pricingPlans.map((product: PricingPlan) => {
+                const price = getProductPrice(product.id);
+                const { isCurrentPlan, isUpgrade } = getPlanStatus(product.id);
+                const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
+                
+                if (!price) return null;
+
+                return (
+                  <div
+                    key={product.id}
+                    className={`relative rounded-2xl border-2 p-5 shadow-lg transition-all duration-200 hover:shadow-xl ${
+                      planConfig?.popular
+                        ? 'border-vetify-accent-500 bg-vetify-accent-50 dark:bg-vetify-accent-900/20 dark:border-vetify-accent-400'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                    }`}
+                  >
+                    {/* Badge */}
+                    {planConfig?.badge && typeof planConfig.badge === 'string' && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <Badge className={`${planConfig.badgeColor || 'bg-blue-600 text-white'} dark:bg-blue-900 dark:text-blue-200`}>
+                          {planConfig.badge}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* Header */}
+                    <div className="text-center mb-5">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                        {product.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                        {product.description}
+                      </p>
+                      
+                      {/* Precio */}
+                      <div className="mb-3">
+                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {formatPriceFromCents(price.unitAmount)}
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400 ml-1">
+                          /{isYearly ? 'año' : 'mes'}
+                        </span>
+                        {isYearly && (
+                          <div className="text-sm text-green-600 dark:text-green-400 mt-1">
+                            Ahorra {calculateAnnualDiscount(product.id)}% al año
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Features */}
+                    <div className="mb-5">
+                      <ul className="space-y-2">
+                        {product.features && Array.isArray(product.features) && product.features.map((feature, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <CheckIcon className="h-4 w-4 text-vetify-accent-500 dark:text-vetify-accent-400 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">{typeof feature === 'string' ? feature : ''}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* CTA Button */}
+                    <div className="mt-auto">
+                      {isCurrentPlan ? (
+                        <Button 
+                          disabled 
+                          className="w-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                        >
+                          Plan Actual
+                        </Button>
+                      ) : !isAuthenticated ? (
+                        <Button
+                          onClick={() => handleRegisterAndCheckout(price.id, product.id)}
+                          className={`w-full inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors ${
+                            planConfig?.popular
+                              ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
+                              : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
+                          } text-white`}
+                        >
+                          Iniciar Prueba Gratuita
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handleCheckout(price.id, product.id)}
+                          className={`w-full ${
+                            planConfig?.popular
+                              ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
+                              : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
+                          } text-white transition-colors`}
+                        >
+                          {isUpgrade ? 'Actualizar Plan' : 
+                           product.id === 'empresa' ? 'Contactar Ventas' : 'Iniciar Prueba Gratuita'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Vista desktop: Grid de 3 columnas */}
+          <div className="hidden lg:block">
+            <div className="grid grid-cols-3 gap-6">
+              {pricingPlans.map((product: PricingPlan) => {
+                const price = getProductPrice(product.id);
+                const { isCurrentPlan, isUpgrade } = getPlanStatus(product.id);
+                const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
+                
+                if (!price) return null;
+
+                return (
+                  <div
+                    key={product.id}
+                    className={`relative rounded-2xl border-2 p-6 shadow-lg transition-all duration-200 hover:shadow-xl ${
+                      planConfig?.popular
+                        ? 'border-vetify-accent-500 bg-vetify-accent-50 dark:bg-vetify-accent-900/20 dark:border-vetify-accent-400'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                    }`}
+                  >
+                    {/* Badge */}
+                    {planConfig?.badge && typeof planConfig.badge === 'string' && (
+                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                        <Badge className={`${planConfig.badgeColor || 'bg-blue-600 text-white'} dark:bg-blue-900 dark:text-blue-200`}>
+                          {planConfig.badge}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {/* Header */}
+                    <div className="text-center mb-6">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                        {product.name}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                        {product.description}
+                      </p>
+                      
+                      {/* Precio */}
+                      <div className="mb-4">
+                        <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                          {formatPriceFromCents(price.unitAmount)}
+                        </span>
+                        <span className="text-gray-600 dark:text-gray-400 ml-1">
+                          /{isYearly ? 'año' : 'mes'}
+                        </span>
+                        {isYearly && (
+                          <div className="text-sm text-green-600 dark:text-green-400 mt-1">
+                            Ahorra {calculateAnnualDiscount(product.id)}% al año
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Features */}
+                    <div className="mb-6">
+                      <ul className="space-y-2">
+                        {product.features && Array.isArray(product.features) && product.features.map((feature, index) => (
+                          <li key={index} className="flex items-start gap-2">
+                            <CheckIcon className="h-4 w-4 text-vetify-accent-500 dark:text-vetify-accent-400 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-gray-700 dark:text-gray-300">{typeof feature === 'string' ? feature : ''}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    {/* CTA Button */}
+                    <div className="mt-auto">
+                      {isCurrentPlan ? (
+                        <Button 
+                          disabled 
+                          className="w-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
+                        >
+                          Plan Actual
+                        </Button>
+                      ) : !isAuthenticated ? (
+                        <Button
+                          onClick={() => handleRegisterAndCheckout(price.id, product.id)}
+                          className={`w-full inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors ${
+                            planConfig?.popular
+                              ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
+                              : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
+                          } text-white`}
+                        >
+                          Iniciar Prueba Gratuita
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handleCheckout(price.id, product.id)}
+                          className={`w-full ${
+                            planConfig?.popular
+                              ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
+                              : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
+                          } text-white transition-colors`}
+                        >
+                          {isUpgrade ? 'Actualizar Plan' : 
+                           product.id === 'empresa' ? 'Contactar Ventas' : 'Iniciar Prueba Gratuita'}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Vista alternativa tipo tabla para pantallas muy pequeñas */}
+          <div className="block sm:hidden mt-6 px-4">
+            <PricingComparisonTable
+              pricingPlans={pricingPlans}
+              isYearly={isYearly}
+              isAuthenticated={isAuthenticated}
+              getProductPrice={getProductPrice}
+              getPlanStatus={getPlanStatus}
+              handleRegisterAndCheckout={handleRegisterAndCheckout}
+              handleCheckout={handleCheckout}
+              formatPriceFromCents={formatPriceFromCents}
+              calculateAnnualDiscount={calculateAnnualDiscount}
+            />
+          </div>
+        </>
       )}
 
       {/* Información adicional */}
-      <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+      <div className="text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400 px-4">
         {!isAuthenticated && (
-          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-blue-800 dark:text-blue-200 font-medium">
+          <div className="mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <p className="text-blue-800 dark:text-blue-200 font-medium text-sm sm:text-base">
               🚀 ¡Comienza tu prueba gratuita de 30 días! Solo necesitas crear una cuenta
             </p>
           </div>
         )}
-        <p className="mb-2">
-          ✅ Todos los planes incluyen <strong className="text-gray-900 dark:text-white">30 días de prueba gratuita</strong>
-        </p>
-        <p className="mb-2">
-          ✅ Cancela en cualquier momento • Sin contratos • Soporte en español
-        </p>
-        <p>
-          ¿Necesitas ayuda para elegir? <Link href="/contacto" className="text-vetify-accent-600 dark:text-vetify-accent-400 hover:underline">Contacta con nosotros</Link>
-        </p>
+        <div className="space-y-2 sm:space-y-1">
+          <p className="text-xs sm:text-sm">
+            ✅ Todos los planes incluyen <strong className="text-gray-900 dark:text-white">30 días de prueba gratuita</strong>
+          </p>
+          <p className="text-xs sm:text-sm">
+            ✅ Cancela en cualquier momento • Sin contratos • Soporte en español
+          </p>
+          <p className="text-xs sm:text-sm">
+            ¿Necesitas ayuda para elegir? <Link href="/contacto" className="text-vetify-accent-600 dark:text-vetify-accent-400 hover:underline">Contacta con nosotros</Link>
+          </p>
+        </div>
       </div>
     </div>
   );

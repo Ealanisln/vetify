@@ -39,7 +39,7 @@ export const COMPLETE_PLANS = {
     monthlyPrice: 599,
     yearlyPrice: 479,
     badge: '30 DÍAS GRATIS',
-    badgeColor: 'bg-vetify-accent-500 text-white',
+    badgeColor: 'bg-green-600 text-white border border-green-700',
     popular: false,
     icon: 'Star',
     features: [
@@ -75,7 +75,7 @@ export const COMPLETE_PLANS = {
     monthlyPrice: 999,
     yearlyPrice: 799,
     badge: 'MÁS POPULAR',
-    badgeColor: 'bg-gradient-to-r from-vetify-blush-400 to-vetify-blush-500 text-white',
+    badgeColor: 'bg-orange-500 text-white border border-orange-600',
     popular: true,
     icon: 'Building',
     features: [
@@ -110,7 +110,7 @@ export const COMPLETE_PLANS = {
     monthlyPrice: 1799,
     yearlyPrice: 1439,
     badge: 'EMPRESARIAL',
-    badgeColor: 'bg-vetify-slate-500 text-white',
+    badgeColor: 'bg-purple-600 text-white border border-purple-700',
     popular: false,
     icon: 'Users',
     features: [

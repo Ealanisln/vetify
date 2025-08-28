@@ -1,51 +1,88 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { NextRequest } from 'next/server';
 import { createConsultation } from '@/lib/medical';
-import { consultationSchema } from '@/lib/medical-validation';
+import { createSensitiveDataHandler } from '@/lib/security/api-middleware';
+import { medicalSchemas } from '@/lib/security/validation-schemas';
+import { createSecureResponse } from '@/lib/security/input-sanitization';
+import { prisma } from '@/lib/prisma';
 
-export async function POST(request: NextRequest) {
-  try {
-    const { tenant } = await requireAuth();
-    const body = await request.json();
+export const POST = createSensitiveDataHandler(
+  async (req: NextRequest, { tenant, body, userId, tenantId }) => {
+    if (!body) {
+      throw new Error('Request body is required');
+    }
+
+    const { petId, ...consultationData } = body;
     
-    const { petId, tenantId, ...consultationData } = body;
-    
-    // Validate tenant access
-    if (tenantId !== tenant.id) {
-      return NextResponse.json(
-        { message: 'No tienes acceso a este tenant' },
-        { status: 403 }
+    if (typeof petId !== 'string') {
+      throw new Error('Invalid petId provided');
+    }
+
+    // Verify that the pet exists and belongs to the tenant
+    const pet = await prisma.pet.findFirst({
+      where: {
+        id: petId,
+        customer: {
+          tenantId: tenantId,
+        },
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            tenantId: true,
+          },
+        },
+      },
+    });
+
+    if (!pet) {
+      return createSecureResponse(
+        { success: false, error: 'Pet not found or access denied' },
+        404
       );
     }
-    
-    // Validate the consultation data
-    const validatedData = consultationSchema.parse(consultationData);
-    
-    // Create the consultation
-    const consultation = await createConsultation(petId, tenantId, validatedData);
-    
-    return NextResponse.json(consultation, { status: 201 });
-  } catch (error) {
-    console.error('Error creating consultation:', error);
-    
-    if (error instanceof Error) {
-      // Handle validation errors
-      if (error.name === 'ZodError') {
-        return NextResponse.json(
-          { message: 'Datos de consulta inválidos', errors: error },
-          { status: 400 }
+
+    // Verify staff member exists and belongs to tenant
+    if (consultationData.staffId) {
+      const staff = await prisma.staff.findFirst({
+        where: {
+          id: consultationData.staffId,
+          tenantId: tenantId,
+          isActive: true,
+        },
+      });
+
+      if (!staff) {
+        return createSecureResponse(
+          { success: false, error: 'Staff member not found or inactive' },
+          404
         );
       }
-      
-      return NextResponse.json(
-        { message: error.message },
-        { status: 500 }
-      );
     }
-    
-    return NextResponse.json(
-      { message: 'Error interno del servidor' },
-      { status: 500 }
+
+    // Create the consultation with enhanced data validation
+    const consultation = await createConsultation(petId, tenantId, consultationData as {
+      reason: string;
+      diagnosis: string;
+      symptoms: string[];
+      treatment_plan: string;
+      veterinarian_id: string;
+      notes?: string;
+      next_appointment?: Date;
+    });
+
+    return createSecureResponse(
+      {
+        success: true,
+        data: consultation,
+        message: 'Medical consultation created successfully',
+      },
+      201
     );
+  },
+  {
+    bodySchema: medicalSchemas.consultation,
+    resourceType: 'medical_consultation',
   }
-} 
+); 

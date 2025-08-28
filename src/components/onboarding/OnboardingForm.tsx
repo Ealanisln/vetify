@@ -91,7 +91,7 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
   };
 
   return (
-    <div className="space-y-4 md:space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-4 md:space-y-6 lg:space-y-8 max-w-7xl mx-auto">
       <OnboardingProgress currentStep={state.currentStep} />
       
       {state.currentStep === 'plan' && (
