@@ -2,6 +2,7 @@ import { withSentryConfig } from '@sentry/nextjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Instrumentation is now enabled by default in Next.js 15+
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
@@ -11,11 +12,23 @@ const nextConfig = {
     // Only run type checking in development
     ignoreBuildErrors: false,
   },
-  // Configure external packages for serverless environment (empty for now)
-  serverExternalPackages: [],
+  // Configure external packages for serverless environment
+  serverExternalPackages: [
+    // Exclude OpenTelemetry packages from being externalized to fix warnings
+    '!import-in-the-middle',
+    '!require-in-the-middle',
+  ],
 
   // Add transpilation for ESM packages that need bundling
-  transpilePackages: ['jose', '@kinde-oss/kinde-auth-nextjs'],
+  transpilePackages: [
+    'jose', 
+    '@kinde-oss/kinde-auth-nextjs',
+    // Add OpenTelemetry and Sentry packages for proper bundling
+    '@opentelemetry/instrumentation',
+    '@sentry/nextjs',
+    'import-in-the-middle',
+    'require-in-the-middle',
+  ],
   
   // Configure allowed dev origins for local development
   allowedDevOrigins: [
@@ -60,8 +73,8 @@ const nextConfig = {
         {
           key: 'Content-Security-Policy',
           value: process.env.NODE_ENV === 'production' 
-            ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com https://m.stripe.network; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.stripe.com https://*.upstash.io https://api.whatsapp.com wss://*.upstash.io; frame-src https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
-            : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com https://m.stripe.network http://localhost:*; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob: http://localhost:*; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.stripe.com https://*.upstash.io https://api.whatsapp.com wss://*.upstash.io http://localhost:* ws://localhost:*; frame-src https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
+            ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com https://m.stripe.network; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.stripe.com https://*.upstash.io https://api.whatsapp.com wss://*.upstash.io https://*.sentry.io https://*.ingest.sentry.io; frame-src https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
+            : "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com https://m.stripe.network http://localhost:*; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: blob: http://localhost:*; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.stripe.com https://*.upstash.io https://api.whatsapp.com wss://*.upstash.io https://*.sentry.io https://*.ingest.sentry.io http://localhost:* ws://localhost:*; frame-src https://js.stripe.com https://hooks.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none';"
         },
       ],
     });
@@ -88,7 +101,7 @@ const nextConfig = {
       };
     }
     
-    // Ignore warnings from Kinde packages
+    // Ignore warnings from Kinde packages and OpenTelemetry/Sentry
     config.ignoreWarnings = [
       {
         module: /node_modules\/@kinde/,
@@ -98,6 +111,18 @@ const nextConfig = {
       },
       {
         message: /Critical dependency: the request of a dependency is an expression/,
+      },
+      {
+        message: /import-in-the-middle can't be external/,
+      },
+      {
+        message: /require-in-the-middle can't be external/,
+      },
+      {
+        module: /node_modules\/@opentelemetry/,
+      },
+      {
+        module: /node_modules\/@sentry/,
       },
     ];
     return config;
