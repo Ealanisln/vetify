@@ -1,5 +1,6 @@
 'use client';
 
+// Admin user statistics component for displaying user metrics
 import { 
   UserGroupIcon, 
   CheckCircleIcon, 
