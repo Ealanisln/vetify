@@ -28,7 +28,9 @@ const minimalTsConfig = {
 };
 
 // Write minimal tsconfig.json for Vercel (in project root)
-const projectRoot = path.resolve(process.cwd());
+// Always write to project root, regardless of where script is executed from
+const scriptDir = path.dirname(new URL(import.meta.url).pathname);
+const projectRoot = path.resolve(scriptDir, '..');
 const tsconfigPath = path.join(projectRoot, 'tsconfig.json');
 
 fs.writeFileSync(tsconfigPath, JSON.stringify(minimalTsConfig, null, 2));
