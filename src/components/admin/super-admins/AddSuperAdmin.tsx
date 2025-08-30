@@ -1,6 +1,6 @@
 'use client';
 
-import { assignSuperAdminAction } from '@/app/admin/super-admins/actions';
+import { assignSuperAdminAction } from '../../../app/admin/super-admins/actions';
 
 export default function AddSuperAdmin() {
   const handleAdd = async () => {

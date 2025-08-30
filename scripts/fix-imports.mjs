@@ -78,8 +78,8 @@ function transformFile(filePath) {
     return `import('${relativePath}')`;
   });
   
-  // Also handle @/lib, @/utils, @/types, @/hooks imports
-  const otherAliases = ['lib', 'utils', 'types', 'hooks'];
+  // Also handle @/lib, @/utils, @/types, @/hooks, @/app imports
+  const otherAliases = ['lib', 'utils', 'types', 'hooks', 'app'];
   
   otherAliases.forEach(alias => {
     const aliasRegex = new RegExp(`from\\s+['"\`]@\\/${alias}\\/([^'"\`]+)['"\`]`, 'g');

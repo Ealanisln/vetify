@@ -1,6 +1,6 @@
 'use client';
 
-import { removeSuperAdminAction } from '@/app/admin/super-admins/actions';
+import { removeSuperAdminAction } from '../../../app/admin/super-admins/actions';
 
 interface AdminActionsProps {
   userId: string;

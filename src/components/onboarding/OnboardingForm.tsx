@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { UserWithTenant } from '@/types';
-import { PlanSelection } from '@/app/onboarding/steps/PlanSelection';
-import { ClinicInfo } from '@/app/onboarding/steps/ClinicInfo';
-import { Confirmation } from '@/app/onboarding/steps/Confirmation';
+import { PlanSelection } from '../../app/onboarding/steps/PlanSelection';
+import { ClinicInfo } from '../../app/onboarding/steps/ClinicInfo';
+import { Confirmation } from '../../app/onboarding/steps/Confirmation';
 import { OnboardingProgress } from './OnboardingProgress';
 import type { OnboardingState } from '../../types/onboarding';
 
