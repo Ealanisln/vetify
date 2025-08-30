@@ -1,6 +1,6 @@
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { NextResponse } from "next/server";
-import { findOrCreateUser } from "@/lib/db/queries/users";
+import { findOrCreateUser } from '../../../lib/db/queries/users';
 
 export async function GET() {
   const { getUser } = getKindeServerSession();

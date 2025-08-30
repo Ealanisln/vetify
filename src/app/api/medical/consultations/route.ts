@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
-import { createConsultation } from '@/lib/medical';
-import { createSensitiveDataHandler } from '@/lib/security/api-middleware';
-import { medicalSchemas } from '@/lib/security/validation-schemas';
-import { createSecureResponse } from '@/lib/security/input-sanitization';
-import { prisma } from '@/lib/prisma';
+import { createConsultation } from '../../../../lib/medical';
+import { createSensitiveDataHandler } from '../../../../lib/security/api-middleware';
+import { medicalSchemas } from '../../../../lib/security/validation-schemas';
+import { createSecureResponse } from '../../../../lib/security/input-sanitization';
+import { prisma } from '../../../../lib/prisma';
 
 export const POST = createSensitiveDataHandler(
   async (req: NextRequest, { tenant, body, userId, tenantId }) => {

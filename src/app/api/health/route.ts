@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
-import { createSecureResponse } from '@/lib/security/input-sanitization';
-import { prisma } from '@/lib/prisma';
+import { createSecureResponse } from '../../../lib/security/input-sanitization';
+import { prisma } from '../../../lib/prisma';
 import * as Sentry from '@sentry/nextjs';
 
 /**

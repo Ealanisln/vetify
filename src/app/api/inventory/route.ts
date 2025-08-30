@@ -5,8 +5,8 @@ import {
   createInventoryItem, 
   getInventoryStats,
   getLowStockItems 
-} from '@/lib/inventory';
-import { prisma } from '@/lib/prisma';
+} from '../../../lib/inventory';
+import { prisma } from '../../../lib/prisma';
 import { InventoryFormData } from '@/types';
 
 export async function GET(request: Request) {

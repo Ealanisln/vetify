@@ -1,9 +1,9 @@
 'use client';
 
-import { useSubscription } from '@/hooks/useSubscription';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useSubscription } from '../../hooks/useSubscription';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { 
   AlertTriangle, 
   Clock, 
@@ -19,7 +19,7 @@ import {
 import type { Tenant } from '@prisma/client';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { calculateTrialDaysRemaining } from '@/lib/trial/utils';
+import { calculateTrialDaysRemaining } from '../../lib/trial/utils';
 
 interface SubscriptionNotificationsProps {
   tenant: Tenant;

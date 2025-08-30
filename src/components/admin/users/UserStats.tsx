@@ -9,7 +9,7 @@ import {
   BuildingOfficeIcon,
   ShieldCheckIcon
 } from '@heroicons/react/24/outline';
-import { UserStats as UserStatsType } from '@/lib/admin/users';
+import { UserStats as UserStatsType } from '../../../lib/admin/users';
 
 interface UserStatsProps {
   stats: UserStatsType;

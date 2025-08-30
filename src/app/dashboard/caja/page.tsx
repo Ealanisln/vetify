@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
-import { requireAuth } from '@/lib/auth';
-import { CashDrawerMain } from '@/components/caja/CashDrawerMain';
-import { CashStats } from '@/components/caja/CashStats';
-import { TransactionHistory } from '@/components/caja/TransactionHistory';
+import { requireAuth } from '../../../lib/auth';
+import { CashDrawerMain } from '../../../components/caja/CashDrawerMain';
+import { CashStats } from '../../../components/caja/CashStats';
+import { TransactionHistory } from '../../../components/caja/TransactionHistory';
 
 export default async function CajaPage() {
   const { tenant } = await requireAuth();

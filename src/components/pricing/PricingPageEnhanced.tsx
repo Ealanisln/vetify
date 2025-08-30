@@ -1,16 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useSubscription } from '@/hooks/useSubscription';
-import { COMPLETE_PLANS, formatPrice } from '@/lib/pricing-config';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { useSubscription } from '../../hooks/useSubscription';
+import { COMPLETE_PLANS, formatPrice } from '../../lib/pricing-config';
 import { CheckIcon } from 'lucide-react';
 import Link from 'next/link';
 import type { Tenant } from '@prisma/client';
 import { PricingComparisonTable } from './PricingComparisonTable';
 import type { PricingPlan, APIPlan, SubscriptionData } from './types';
-import type { DowngradeValidation } from '@/lib/downgrade-validation';
+import type { DowngradeValidation } from '../../lib/downgrade-validation';
 
 interface PricingPageEnhancedProps {
   tenant?: Tenant | null;

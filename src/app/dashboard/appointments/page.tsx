@@ -1,8 +1,8 @@
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from '../../../lib/auth';
 import { AppointmentsPageClient } from './AppointmentsPageClient';
-import { getCustomersByTenant } from '@/lib/customers';
-import { getPetsByTenant } from '@/lib/pets';
-import { getStaffMembers } from '@/lib/medical';
+import { getCustomersByTenant } from '../../../lib/customers';
+import { getPetsByTenant } from '../../../lib/pets';
+import { getStaffMembers } from '../../../lib/medical';
 // Serializers not needed for this simple data transformation
 
 export default async function AppointmentsPage() {

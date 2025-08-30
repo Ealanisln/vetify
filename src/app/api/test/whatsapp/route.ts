@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { whatsappService } from '@/lib/whatsapp';
+import { whatsappService } from '../../../../lib/whatsapp';
 
 interface WhatsAppTestRequest {
   phone: string;

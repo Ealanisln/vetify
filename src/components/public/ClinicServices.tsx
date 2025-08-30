@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import Link from 'next/link';
 import { 
   Stethoscope, 
@@ -11,7 +11,7 @@ import {
   Microscope,
   ArrowRight 
 } from 'lucide-react';
-import type { PublicTenant, PublicService } from '@/lib/tenant';
+import type { PublicTenant, PublicService } from '../../lib/tenant';
 
 interface ClinicServicesProps {
   tenant: PublicTenant;

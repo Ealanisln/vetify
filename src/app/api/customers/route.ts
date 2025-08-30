@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
-import { createCustomer, createCustomerSchema, getCustomersByTenant } from '@/lib/customers';
+import { requireAuth } from '../../../lib/auth';
+import { createCustomer, createCustomerSchema, getCustomersByTenant } from '../../../lib/customers';
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,6 +1,6 @@
 "use server";
 import { z } from 'zod';
-import { sendSetupVerificationEmail } from '@/lib/setup/setup-email';
+import { sendSetupVerificationEmail } from '../../lib/setup/setup-email';
 import { revalidatePath } from 'next/cache';
 
 const emailSchema = z.string().email();

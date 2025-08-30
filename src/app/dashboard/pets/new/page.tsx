@@ -1,6 +1,6 @@
-import { requireAuth } from '@/lib/auth';
-import { AddPetForm } from '@/components/pets/AddPetForm';
-import { prisma } from '@/lib/prisma';
+import { requireAuth } from '../../../../lib/auth';
+import { AddPetForm } from '../../../../components/pets/AddPetForm';
+import { prisma } from '../../../../lib/prisma';
 import Link from 'next/link';
 
 export default async function AddPetPage() {

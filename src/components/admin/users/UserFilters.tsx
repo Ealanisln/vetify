@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { MagnifyingGlassIcon, FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline';
-import { UserFilters as UserFiltersType } from '@/lib/admin/users';
+import { UserFilters as UserFiltersType } from '../../../lib/admin/users';
 
 interface Role {
   id: string;

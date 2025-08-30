@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { prisma } from '@/lib/prisma';
-import { calculateTrialStatus } from '@/lib/trial/utils';
+import { prisma } from '../../../../lib/prisma';
+import { calculateTrialStatus } from '../../../../lib/trial/utils';
 import { 
   TrialAccessSchema, 
   type TrialAccessResult,
   TRIAL_LIMITS,
   PREMIUM_FEATURES 
-} from '@/types/trial';
+} from '../../../../types/trial';
 
 export async function POST(request: NextRequest) {
   try {

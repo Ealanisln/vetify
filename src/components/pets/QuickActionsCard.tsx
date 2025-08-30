@@ -3,7 +3,7 @@
 import { Pet, Customer } from '@prisma/client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getThemeClasses } from '@/utils/theme-colors';
+import { getThemeClasses } from '../../utils/theme-colors';
 
 type PetWithCustomer = Pet & { customer: Customer };
 

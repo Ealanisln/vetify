@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from './prisma';
 import { TenantStatus } from '@prisma/client';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 

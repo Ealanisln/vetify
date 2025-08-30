@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../../lib/prisma';
 import { ChartBarIcon, DocumentTextIcon, UsersIcon } from '@heroicons/react/24/outline';
 
 export async function ReportsOverview() {

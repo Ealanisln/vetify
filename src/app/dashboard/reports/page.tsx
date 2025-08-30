@@ -1,9 +1,9 @@
 import { Suspense } from 'react';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import { redirect } from 'next/navigation';
-import { getFullReportsData } from '@/lib/reports';
-import EnhancedReportsClient from '@/components/reports/EnhancedReportsClient';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getFullReportsData } from '../../../lib/reports';
+import EnhancedReportsClient from '../../../components/reports/EnhancedReportsClient';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';

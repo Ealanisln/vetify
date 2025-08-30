@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import { requireAuth } from '@/lib/auth';
-import { MedicalHistoryDetail } from '@/components/medical/MedicalHistoryDetail';
+import { requireAuth } from '../../../../lib/auth';
+import { MedicalHistoryDetail } from '../../../../components/medical/MedicalHistoryDetail';
 
 interface MedicalHistoryDetailPageProps {
   params: Promise<{

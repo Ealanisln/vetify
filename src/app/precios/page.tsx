@@ -1,4 +1,4 @@
-import { PricingPageEnhanced } from '@/components/pricing';
+import { PricingPageEnhanced } from '../../components/pricing';
 
 export default async function PreciosPage() {
   // Página pública - no requiere autenticación

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Menu, X, User, Settings, LogOut, Building2, ChevronDown } from "lucide-react";
 import Image from "next/image";
-import { useThemeAware } from "@/hooks/useThemeAware";
+import { useThemeAware } from '../../hooks/useThemeAware';
 import { LogoutLink } from '@kinde-oss/kinde-auth-nextjs/components';
 
 interface User {

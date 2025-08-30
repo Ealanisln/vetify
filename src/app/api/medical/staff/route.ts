@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { getStaffMembers } from '@/lib/medical';
+import { getStaffMembers } from '../../../../lib/medical';
 
 export async function GET(request: NextRequest) {
   try {

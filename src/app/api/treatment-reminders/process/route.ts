@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from '../../../../lib/auth';
 import { 
   processPendingReminders,
   createVaccinationSchedule,
   createDewormingSchedule
-} from '@/lib/treatment-reminders';
+} from '../../../../lib/treatment-reminders';
 
 export async function POST(request: NextRequest) {
   try {

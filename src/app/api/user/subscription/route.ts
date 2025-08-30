@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { prisma } from '@/lib/prisma';
-import { stripe } from '@/lib/payments/stripe';
+import { prisma } from '../../../../lib/prisma';
+import { stripe } from '../../../../lib/payments/stripe';
 
 export async function GET() {
   try {

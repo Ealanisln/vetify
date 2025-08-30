@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../prisma';
 
 // Type for Stripe subscription creation data
 interface StripeSubscriptionData {

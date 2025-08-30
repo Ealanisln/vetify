@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
-import { getStaffStats, getStaffPerformance } from '@/lib/staff';
+import { requireAuth } from '../../../../lib/auth';
+import { getStaffStats, getStaffPerformance } from '../../../../lib/staff';
 
 export async function GET(request: NextRequest) {
   try {

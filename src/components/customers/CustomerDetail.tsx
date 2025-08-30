@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
 import { 
   PencilIcon, 
   PhoneIcon, 
@@ -15,7 +15,7 @@ import {
   CalendarIcon,
   HeartIcon
 } from '@heroicons/react/24/outline';
-import { getThemeClasses } from '@/utils/theme-colors';
+import { getThemeClasses } from '../../utils/theme-colors';
 import Link from 'next/link';
 import { toast } from 'sonner';
 

@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../prisma';
 import { AdminAction, Prisma } from '@prisma/client';
 
 export async function logAdminAction(params: {

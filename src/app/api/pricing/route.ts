@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStripePrices, getStripeProducts } from '@/lib/payments/stripe';
+import { getStripePrices, getStripeProducts } from '../../../lib/payments/stripe';
 
 export async function GET() {
   try {

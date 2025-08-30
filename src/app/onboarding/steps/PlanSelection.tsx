@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { COMPLETE_PLANS } from '@/lib/pricing-config';
-import { formatPrice } from '@/lib/pricing-config';
+import { COMPLETE_PLANS } from '../../../lib/pricing-config';
+import { formatPrice } from '../../../lib/pricing-config';
 
 interface PlanSelectionProps {
   onNext: (selection: { key: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA'; billingInterval: 'monthly' | 'yearly' }) => void;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { generateSlugFromName } from '@/lib/tenant';
+import { generateSlugFromName } from '../../../lib/tenant';
 
 interface ClinicInfoProps {
   user: {

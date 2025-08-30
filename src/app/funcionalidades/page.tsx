@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useThemeAware, getThemeClass } from "@/hooks/useThemeAware";
+import { useThemeAware, getThemeClass } from '../../hooks/useThemeAware';
 import { Zap, MessageCircle, Shield, Package, Clock, TrendingUp, ChevronRight } from 'lucide-react';
-import { FeatureShowcase, HowItWorksSection } from "@/components/marketing";
+import { FeatureShowcase, HowItWorksSection } from '../../components/marketing';
 
 interface DetailedFeatureProps {
   title: string;

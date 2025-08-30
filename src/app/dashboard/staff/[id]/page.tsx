@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
-import { requireAuth } from '@/lib/auth';
-import { getStaffById } from '@/lib/staff';
+import { requireAuth } from '../../../../lib/auth';
+import { getStaffById } from '../../../../lib/staff';
 import StaffDetailClient from './StaffDetailClient';
 
 interface StaffDetailPageProps {

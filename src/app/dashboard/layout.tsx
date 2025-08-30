@@ -1,4 +1,4 @@
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from '../../lib/auth';
 import { DashboardLayoutClient } from './DashboardLayoutClient';
 
 // Force dynamic rendering

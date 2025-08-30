@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { hasSuperAdmins } from '@/lib/setup/setup-validator';
+import { hasSuperAdmins } from '../../../../lib/setup/setup-validator';
 
 // GET /api/setup/verify
 export async function GET() {

@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
-import { requireAuth } from '@/lib/auth';
-import { getStaffByTenant } from '@/lib/staff';
-import StaffList from '@/components/staff/StaffList';
+import { requireAuth } from '../../../lib/auth';
+import { getStaffByTenant } from '../../../lib/staff';
+import StaffList from '../../../components/staff/StaffList';
 
 interface SearchParams {
   page?: string;

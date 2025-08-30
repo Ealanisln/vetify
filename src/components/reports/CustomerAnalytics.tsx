@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { 
   BarChart, 
   Bar, 
@@ -13,7 +13,7 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { CustomerAnalytics as CustomerAnalyticsType } from '@/lib/reports';
+import { CustomerAnalytics as CustomerAnalyticsType } from '../../lib/reports';
 import { 
   UserGroupIcon,
   ArrowTrendingUpIcon,

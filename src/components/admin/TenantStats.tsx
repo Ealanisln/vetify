@@ -1,4 +1,4 @@
-import { getAdminStats } from '@/lib/admin';
+import { getAdminStats } from '../../lib/admin';
 import { 
   BuildingOfficeIcon,
   CheckCircleIcon,

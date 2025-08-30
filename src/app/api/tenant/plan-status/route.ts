@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
-import { getPlanStatus } from '@/lib/plan-limits';
+import { requireAuth } from '../../../../lib/auth';
+import { getPlanStatus } from '../../../../lib/plan-limits';
 
 /**
  * GET /api/tenant/plan-status

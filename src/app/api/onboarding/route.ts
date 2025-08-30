@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUserWithOptionalTenant } from '@/lib/auth';
-import { createTenantWithDefaults, isSlugAvailable } from '@/lib/tenant';
+import { getAuthenticatedUserWithOptionalTenant } from '../../../lib/auth';
+import { createTenantWithDefaults, isSlugAvailable } from '../../../lib/tenant';
 import { z } from 'zod';
 
 const onboardingSchema = z.object({

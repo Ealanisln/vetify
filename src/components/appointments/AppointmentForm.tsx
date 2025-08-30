@@ -3,16 +3,16 @@
 import { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { appointmentFormSchema, AppointmentFormData } from '@/lib/validations/appointments';
-import { useAvailability } from '@/hooks/useCalendar';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { appointmentFormSchema, AppointmentFormData } from '../../lib/validations/appointments';
+import { useAvailability } from '../../hooks/useCalendar';
+import { Button } from '../ui/button';
+import { Calendar } from '../ui/calendar';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Loader2, Clock, AlertCircle, CheckCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import { cn } from '../../lib/utils';
 
 interface Customer {
   id: string;

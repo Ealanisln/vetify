@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { CheckCircle, AlertCircle, User, ArrowRight, Users, Clock, Heart } from 'lucide-react';
 import Link from 'next/link';
-import type { PublicTenant } from '@/lib/tenant';
+import type { PublicTenant } from '../../lib/tenant';
 
 interface Pet {
   id: string;

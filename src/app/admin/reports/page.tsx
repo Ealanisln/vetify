@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { ReportsOverview } from '@/components/admin/reports/ReportsOverview';
-import { SystemAnalytics } from '@/components/admin/reports/SystemAnalytics';
-import { ClinicAnalytics } from '@/components/admin/reports/ClinicAnalytics';
+import { ReportsOverview } from '../../../components/admin/reports/ReportsOverview';
+import { SystemAnalytics } from '../../../components/admin/reports/SystemAnalytics';
+import { ClinicAnalytics } from '../../../components/admin/reports/ClinicAnalytics';
 
 export const metadata: Metadata = {
   title: 'Reportes - Admin Dashboard',

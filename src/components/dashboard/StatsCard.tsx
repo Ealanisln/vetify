@@ -1,4 +1,4 @@
-import { themeColors, responsive } from '@/utils/theme-colors';
+import { themeColors, responsive } from '../../utils/theme-colors';
 
 interface StatsCardProps {
   title: string;

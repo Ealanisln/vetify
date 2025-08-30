@@ -1,6 +1,6 @@
 "use client";
 
-import { useThemeAware } from "@/hooks/useThemeAware";
+import { useThemeAware } from '../../hooks/useThemeAware';
 import { usePathname, useRouter } from 'next/navigation';
 import { Bars3Icon, BellIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, UserIcon } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';

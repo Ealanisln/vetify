@@ -1,7 +1,7 @@
 'use client';
 
-import { COMPLETE_PLANS } from '@/lib/pricing-config';
-import { formatPrice } from '@/lib/pricing-config';
+import { COMPLETE_PLANS } from '../../../lib/pricing-config';
+import { formatPrice } from '../../../lib/pricing-config';
 
 interface ConfirmationProps {
   plan: {

@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState, ReactNode } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { 
   Lock,
   Crown,
@@ -13,9 +13,9 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import type { Tenant } from '@prisma/client';
-import { calculateTrialStatus } from '@/lib/trial/utils';
-import type { Feature } from '@/types/trial';
-import { PREMIUM_FEATURES } from '@/types/trial';
+import { calculateTrialStatus } from '../../lib/trial/utils';
+import type { Feature } from '../../types/trial';
+import { PREMIUM_FEATURES } from '../../types/trial';
 
 interface FeatureGuardProps {
   children: ReactNode;

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requireSuperAdmin } from '@/lib/super-admin';
-import { prisma } from '@/lib/prisma';
+import { requireSuperAdmin } from '../../../../lib/super-admin';
+import { prisma } from '../../../../lib/prisma';
 import { subMonths } from 'date-fns';
 
 export async function GET() {

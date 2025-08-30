@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { assertSetupAllowed } from '@/lib/setup/setup-validator';
-import { validateSetupToken, consumeSetupToken } from '@/lib/setup/setup-token';
-import { initializeFirstSuperAdmin } from '@/lib/super-admin';
-import { logAdminAction } from '@/lib/db/queries/admin-audit';
+import { assertSetupAllowed } from '../../../../lib/setup/setup-validator';
+import { validateSetupToken, consumeSetupToken } from '../../../../lib/setup/setup-token';
+import { initializeFirstSuperAdmin } from '../../../../lib/super-admin';
+import { logAdminAction } from '../../../../lib/db/queries/admin-audit';
 import { AdminAction } from '@prisma/client';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../../../lib/prisma';
 
 const bodySchema = z.object({
   token: z.string().length(32),

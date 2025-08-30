@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createCheckoutSessionForAPI, getPriceByLookupKey } from '@/lib/payments/stripe';
+import { createCheckoutSessionForAPI, getPriceByLookupKey } from '../../../lib/payments/stripe';
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { prisma } from '@/lib/prisma';
-import { findOrCreateUser } from '@/lib/db/queries/users';
+import { prisma } from '../../../lib/prisma';
+import { findOrCreateUser } from '../../../lib/db/queries/users';
 
 export async function POST(request: NextRequest) {
   try {

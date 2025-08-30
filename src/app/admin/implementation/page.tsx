@@ -1,6 +1,6 @@
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import { redirect } from 'next/navigation';
-import { OnboardingImplementationDashboard } from '@/components/admin/OnboardingImplementationDashboard';
+import { OnboardingImplementationDashboard } from '../../../components/admin/OnboardingImplementationDashboard';
 
 export default async function ImplementationPage() {
   const { isAuthenticated } = getKindeServerSession();

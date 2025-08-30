@@ -4,7 +4,7 @@ import {
   removeSuperAdmin, 
   listSuperAdmins,
   requireSuperAdmin 
-} from '@/lib/super-admin';
+} from '../../../../lib/super-admin';
 
 /**
  * GET - Listar todos los super administradores

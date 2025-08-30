@@ -1,4 +1,4 @@
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from '../../../lib/auth';
 import { SettingsPageClient } from './SettingsPageClient';
 
 export default async function SettingsPage() {

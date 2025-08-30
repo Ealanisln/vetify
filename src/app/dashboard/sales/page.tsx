@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../../lib/prisma';
 import SalesPageClient from './SalesPageClient';
 
 export default async function SalesPage() {

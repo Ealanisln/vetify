@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { PlusIcon, UserPlusIcon } from '@heroicons/react/24/outline';
-import { UserStats, UserFilters, UsersTable } from '@/components/admin/users';
-import { UserWithRoles, UserFilters as UserFiltersType, UserStats as UserStatsType } from '@/lib/admin/users';
+import { UserStats, UserFilters, UsersTable } from '../../../components/admin/users';
+import { UserWithRoles, UserFilters as UserFiltersType, UserStats as UserStatsType } from '../../../lib/admin/users';
 
 interface UsersData {
   users: UserWithRoles[];

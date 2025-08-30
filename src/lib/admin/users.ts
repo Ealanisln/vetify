@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../prisma';
 import { User, UserRole, Role, AdminAction } from '@prisma/client';
 
 export interface UserWithRoles extends User {

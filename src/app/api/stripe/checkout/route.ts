@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { redirect } from 'next/navigation';
-import { stripe, handleSubscriptionChange } from '@/lib/payments/stripe';
-import { prisma } from '@/lib/prisma';
+import { stripe, handleSubscriptionChange } from '../../../../lib/payments/stripe';
+import { prisma } from '../../../../lib/prisma';
 import Stripe from 'stripe';
 
 // Type for the subscription result in waitForSubscriptionCreation

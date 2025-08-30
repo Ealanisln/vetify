@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { GeneralSettings } from '@/components/admin/settings/GeneralSettings';
-import { SecuritySettings } from '@/components/admin/settings/SecuritySettings';
-import { NotificationSettings } from '@/components/admin/settings/NotificationSettings';
+import { GeneralSettings } from '../../../components/admin/settings/GeneralSettings';
+import { SecuritySettings } from '../../../components/admin/settings/SecuritySettings';
+import { NotificationSettings } from '../../../components/admin/settings/NotificationSettings';
 
 export const metadata: Metadata = {
   title: 'Configuración - Admin Dashboard',

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { getTenantByUserId } from '@/lib/tenant';
+import { getTenantByUserId } from '../../../../lib/tenant';
 
 export async function GET() {
   try {

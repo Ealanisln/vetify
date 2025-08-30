@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
-import { requireAuth } from '@/lib/auth';
-import { NewMedicalHistoryForm } from '@/components/medical/NewMedicalHistoryForm';
+import { requireAuth } from '../../../../lib/auth';
+import { NewMedicalHistoryForm } from '../../../../components/medical/NewMedicalHistoryForm';
 
 export default async function NewMedicalHistoryPage() {
   const { tenant } = await requireAuth();

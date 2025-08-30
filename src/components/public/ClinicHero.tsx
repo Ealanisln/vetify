@@ -2,9 +2,9 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { Phone, MapPin, Clock, Star } from 'lucide-react';
-import type { PublicTenant } from '@/lib/tenant';
+import type { PublicTenant } from '../../lib/tenant';
 
 interface ClinicHeroProps {
   tenant: PublicTenant;

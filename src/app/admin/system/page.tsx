@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { SystemOverview } from '@/components/admin/system/SystemOverview';
-import { SystemSettings } from '@/components/admin/system/SystemSettings';
-import { DatabaseStats } from '@/components/admin/system/DatabaseStats';
+import { SystemOverview } from '../../../components/admin/system/SystemOverview';
+import { SystemSettings } from '../../../components/admin/system/SystemSettings';
+import { DatabaseStats } from '../../../components/admin/system/DatabaseStats';
 
 export const metadata: Metadata = {
   title: 'Sistema - Admin Dashboard',

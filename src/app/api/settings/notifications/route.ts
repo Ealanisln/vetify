@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from '../../../../lib/auth';
 import { 
   getNotificationSettings, 
   updateNotificationSettings,
   notificationSettingsSchema 
-} from '@/lib/enhanced-settings';
+} from '../../../../lib/enhanced-settings';
 
 export async function GET() {
   try {

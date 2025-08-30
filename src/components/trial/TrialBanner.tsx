@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { 
   Clock, 
   CalendarX, 
@@ -13,7 +13,7 @@ import {
   XCircle
 } from 'lucide-react';
 import type { Tenant } from '@prisma/client';
-import { calculateTrialStatus, type TrialStatus } from '@/lib/trial/utils';
+import { calculateTrialStatus, type TrialStatus } from '../../lib/trial/utils';
 import { useRouter } from 'next/navigation';
 
 interface TrialBannerProps {

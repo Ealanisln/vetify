@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Check, Zap, MessageCircle, Shield } from 'lucide-react';
-import { useThemeAware } from "@/hooks/useThemeAware";
+import { useThemeAware } from '../../hooks/useThemeAware';
 
 const HeroSection: React.FC = () => {
   const [email, setEmail] = useState('');

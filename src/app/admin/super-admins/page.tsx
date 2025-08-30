@@ -1,4 +1,4 @@
-import SuperAdminManagement from '@/components/admin/super-admins/SuperAdminManagement';
+import SuperAdminManagement from '../../../components/admin/super-admins/SuperAdminManagement';
 import { Suspense } from 'react';
 
 export default function SuperAdminsPage() {

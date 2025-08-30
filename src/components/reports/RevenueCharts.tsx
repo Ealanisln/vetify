@@ -1,6 +1,6 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { 
   AreaChart, 
   Area, 
@@ -15,7 +15,7 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { RevenueAnalytics } from '@/lib/reports';
+import { RevenueAnalytics } from '../../lib/reports';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 

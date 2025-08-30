@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from '../auth';
 import { SecureApiHandler, RequestBody, QueryParams } from './types';
 import { UserWithTenant, TenantWithPlan } from '@/types';
 import { 

@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
 import { 
   BarChart, 
   Bar, 
@@ -14,7 +14,7 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { ServiceAnalytics, InventoryAnalytics } from '@/lib/reports';
+import { ServiceAnalytics, InventoryAnalytics } from '../../lib/reports';
 import { 
   ShoppingCartIcon,
   ExclamationTriangleIcon,

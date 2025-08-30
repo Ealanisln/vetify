@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { PaymentHistory } from '@/components/admin/billing/PaymentHistory';
+import { PaymentHistory } from '../../../../components/admin/billing/PaymentHistory';
 
 export const metadata: Metadata = {
   title: 'Historial de Pagos - Admin Dashboard',

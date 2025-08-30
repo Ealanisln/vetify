@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { MedicalFormLayout } from '@/components/medical/MedicalFormLayout';
-import { VaccinationForm } from '@/components/medical/VaccinationForm';
+import { MedicalFormLayout } from '../../../../../../components/medical/MedicalFormLayout';
+import { VaccinationForm } from '../../../../../../components/medical/VaccinationForm';
 import { Pet, Customer } from '@prisma/client';
 
 type PetWithCustomer = Pet & { customer: Customer };

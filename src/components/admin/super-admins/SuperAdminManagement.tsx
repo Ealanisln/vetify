@@ -1,6 +1,6 @@
 'use server';
 
-import { listSuperAdmins } from '@/lib/super-admin';
+import { listSuperAdmins } from '../../../lib/super-admin';
 import AddSuperAdmin from './AddSuperAdmin';
 import SuperAdminList from './SuperAdminList';
 

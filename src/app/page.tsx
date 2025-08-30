@@ -1,8 +1,8 @@
 "use client";
 
-import { useThemeAware, getThemeClass } from "@/hooks/useThemeAware";
-import HeroSection from "@/components/hero/HeroSection";
-import { MarketingSection } from "@/components/marketing";
+import { useThemeAware, getThemeClass } from '../hooks/useThemeAware';
+import HeroSection from '../components/hero/HeroSection';
+import { MarketingSection } from '../components/marketing';
 
 export default function Home() {
   const { mounted, theme } = useThemeAware();

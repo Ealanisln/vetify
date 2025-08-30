@@ -1,7 +1,7 @@
 "use client";
 
-import { OnboardingForm } from '@/components/onboarding/OnboardingForm';
-import { useThemeAware } from '@/hooks/useThemeAware';
+import { OnboardingForm } from '../../components/onboarding/OnboardingForm';
+import { useThemeAware } from '../../hooks/useThemeAware';
 import type { UserWithTenant } from '@/types';
 
 interface OnboardingPageClientProps {

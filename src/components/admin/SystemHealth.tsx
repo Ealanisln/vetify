@@ -1,4 +1,4 @@
-import { SystemHealth as SystemHealthType } from '@/lib/admin';
+import { SystemHealth as SystemHealthType } from '../../lib/admin';
 import { 
   CheckCircleIcon, 
   ExclamationTriangleIcon, 

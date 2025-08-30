@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from './prisma';
 import { Customer as PrismaCustomer, User as PrismaUser } from '@prisma/client';
 
 interface Customer extends Omit<PrismaCustomer, 'phone'> {

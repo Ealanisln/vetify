@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
-import { getFullReportsData } from '@/lib/reports';
+import { requireAuth } from '../../../lib/auth';
+import { getFullReportsData } from '../../../lib/reports';
 
 export async function GET(request: NextRequest) {
   try {

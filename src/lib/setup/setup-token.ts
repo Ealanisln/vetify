@@ -1,6 +1,6 @@
 import { nanoid } from 'nanoid';
 import { addMinutes, isBefore } from 'date-fns';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../prisma';
 
 /**
  * Generates a secure setup token tied to an email address. Tokens expire after `expirationMinutes`.

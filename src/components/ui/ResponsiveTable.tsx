@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { themeColors, responsiveTable } from '@/utils/theme-colors';
+import { themeColors, responsiveTable } from '../../utils/theme-colors';
 
 interface Column<T> {
   key: keyof T | string;

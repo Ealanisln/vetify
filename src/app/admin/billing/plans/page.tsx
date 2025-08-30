@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { PlanManager } from '@/components/admin/billing/PlanManager';
+import { PlanManager } from '../../../../components/admin/billing/PlanManager';
 
 export const metadata: Metadata = {
   title: 'Gestión de Planes - Admin Dashboard',

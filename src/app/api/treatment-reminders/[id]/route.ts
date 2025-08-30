@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from '../../../../lib/auth';
 import { 
   updateTreatmentSchedule, 
   markTreatmentAsCompleted,
   updateTreatmentScheduleSchema 
-} from '@/lib/treatment-reminders';
+} from '../../../../lib/treatment-reminders';
 
 export async function PUT(
   request: NextRequest,

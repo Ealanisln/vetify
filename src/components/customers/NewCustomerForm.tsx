@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { getThemeClasses } from '@/utils/theme-colors';
+import { getThemeClasses } from '../../utils/theme-colors';
 
 interface NewCustomerFormProps {
   tenantId: string;

@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { vitalSignsSchema, type VitalSignsFormData } from '@/lib/medical-validation';
-import { getThemeClasses } from '@/utils/theme-colors';
+import { vitalSignsSchema, type VitalSignsFormData } from '../../lib/medical-validation';
+import { getThemeClasses } from '../../utils/theme-colors';
 
 interface VitalSignsFormProps {
   petId: string;

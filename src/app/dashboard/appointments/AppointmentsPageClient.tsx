@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { FullCalendarView, AppointmentModal, TodayAppointments, AppointmentStats } from '@/components/appointments';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { FullCalendarView, AppointmentModal, TodayAppointments, AppointmentStats } from '../../../components/appointments';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
 import { PlusIcon, Calendar, Clock, Users } from 'lucide-react';
-import { useAppointments, AppointmentWithDetails } from '@/hooks/useAppointments';
-import { useCalendar } from '@/hooks/useCalendar';
+import { useAppointments, AppointmentWithDetails } from '../../../hooks/useAppointments';
+import { useCalendar } from '../../../hooks/useCalendar';
 import { DateSelectArg } from '@fullcalendar/core';
 // Toast notifications will be handled by individual components
 

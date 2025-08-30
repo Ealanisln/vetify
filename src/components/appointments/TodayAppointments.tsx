@@ -1,13 +1,13 @@
 'use client';
 
-import { useTodayAppointments, AppointmentWithDetails } from '@/hooks/useAppointments';
+import { useTodayAppointments, AppointmentWithDetails } from '../../hooks/useAppointments';
 import { QuickActions } from './QuickActions';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
 import { Loader2, Calendar, Clock, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
-import { getAppointmentStatusLabel, getAppointmentStatusColor } from '@/lib/validations/appointments';
-import { cn } from '@/lib/utils';
+import { getAppointmentStatusLabel, getAppointmentStatusColor } from '../../lib/validations/appointments';
+import { cn } from '../../lib/utils';
 
 interface TodayAppointmentsProps {
   onQuickAction: (appointmentId: string, action: string) => Promise<void>;

@@ -1,12 +1,12 @@
-import { requireAuth } from '@/lib/auth';
-import { getPetById } from '@/lib/pets';
+import { requireAuth } from '../../../../lib/auth';
+import { getPetById } from '../../../../lib/pets';
 import { notFound } from 'next/navigation';
-import { PetHeader } from '@/components/pets/PetHeader';
-import { PetInfoCard } from '@/components/pets/PetInfoCard';
-import { MedicalHistoryCard } from '@/components/pets/MedicalHistoryCard';
-import { TreatmentTimelineCard } from '@/components/pets/TreatmentTimelineCard';
-import { QuickActionsCard } from '@/components/pets/QuickActionsCard';
-import { UpcomingRemindersCard } from '@/components/pets/UpcomingRemindersCard';
+import { PetHeader } from '../../../../components/pets/PetHeader';
+import { PetInfoCard } from '../../../../components/pets/PetInfoCard';
+import { MedicalHistoryCard } from '../../../../components/pets/MedicalHistoryCard';
+import { TreatmentTimelineCard } from '../../../../components/pets/TreatmentTimelineCard';
+import { QuickActionsCard } from '../../../../components/pets/QuickActionsCard';
+import { UpcomingRemindersCard } from '../../../../components/pets/UpcomingRemindersCard';
 
 interface PetProfilePageProps {
   params: Promise<{ id: string }>;

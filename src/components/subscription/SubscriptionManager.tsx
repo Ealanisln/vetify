@@ -1,10 +1,10 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { redirectToCustomerPortal } from '@/lib/payments/actions';
-import { useSubscription } from '@/hooks/useSubscription';
+import { Button } from '../ui/button';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { redirectToCustomerPortal } from '../../lib/payments/actions';
+import { useSubscription } from '../../hooks/useSubscription';
 import type { Tenant } from '@prisma/client';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';

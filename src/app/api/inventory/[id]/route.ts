@@ -4,8 +4,8 @@ import {
   getInventoryItemById, 
   updateInventoryItem, 
   deleteInventoryItem 
-} from '@/lib/inventory';
-import { prisma } from '@/lib/prisma';
+} from '../../../../lib/inventory';
+import { prisma } from '../../../../lib/prisma';
 import { InventoryFormData } from '@/types';
 
 export async function GET(

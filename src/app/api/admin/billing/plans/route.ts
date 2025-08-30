@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requireSuperAdmin } from '@/lib/super-admin';
-import { prisma } from '@/lib/prisma';
+import { requireSuperAdmin } from '../../../../../lib/super-admin';
+import { prisma } from '../../../../../lib/prisma';
 
 export async function GET() {
   try {

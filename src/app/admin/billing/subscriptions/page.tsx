@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { SubscriptionsList } from '@/components/admin/billing/SubscriptionsList';
+import { SubscriptionsList } from '../../../../components/admin/billing/SubscriptionsList';
 
 export const metadata: Metadata = {
   title: 'Suscripciones - Admin Dashboard',

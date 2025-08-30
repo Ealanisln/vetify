@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { BillingOverview } from '@/components/admin/billing/BillingOverview';
-import { SubscriptionsList } from '@/components/admin/billing/SubscriptionsList';
-import { PaymentHistory } from '@/components/admin/billing/PaymentHistory';
+import { BillingOverview } from '../../../components/admin/billing/BillingOverview';
+import { SubscriptionsList } from '../../../components/admin/billing/SubscriptionsList';
+import { PaymentHistory } from '../../../components/admin/billing/PaymentHistory';
 
 export const metadata: Metadata = {
   title: 'Facturación - Admin Dashboard',

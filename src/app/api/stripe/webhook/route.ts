@@ -1,6 +1,6 @@
 import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe, handleSubscriptionChange } from '@/lib/payments/stripe';
+import { stripe, handleSubscriptionChange } from '../../../../lib/payments/stripe';
 import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {

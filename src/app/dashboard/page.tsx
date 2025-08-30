@@ -1,7 +1,7 @@
-import { requireAuth } from '@/lib/auth';
-import { getDashboardStats } from '@/lib/dashboard';
-import { StatsCard, RecentPetsCard, UpcomingAppointmentsCard, SubscriptionNotifications } from '@/components/dashboard';
-import { PlanLimitsDisplay } from '@/components/subscription';
+import { requireAuth } from '../../lib/auth';
+import { getDashboardStats } from '../../lib/dashboard';
+import { StatsCard, RecentPetsCard, UpcomingAppointmentsCard, SubscriptionNotifications } from '../../components/dashboard';
+import { PlanLimitsDisplay } from '../../components/subscription';
 import Link from 'next/link';
 
 // Force dynamic rendering

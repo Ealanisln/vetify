@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/prisma';
-import { serializeTenant } from '@/lib/serializers';
+import { prisma } from './prisma';
+import { serializeTenant } from './serializers';
 
 interface PlanFeatures {
   whatsappMessages?: number;

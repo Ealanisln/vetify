@@ -1,8 +1,8 @@
 'use server';
 
 import { createCheckoutSession, createCustomerPortalSession } from './stripe';
-import { getAuthenticatedUser } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { getAuthenticatedUser } from '../auth';
+import { prisma } from '../prisma';
 import { redirect } from 'next/navigation';
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 

@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/prisma";
-import { serializeUser } from "@/lib/serializers";
+import { prisma } from '../../prisma';
+import { serializeUser } from '../../serializers';
 import { UserWithTenant } from "@/types";
 
 export interface CreateOrUpdateUserData {

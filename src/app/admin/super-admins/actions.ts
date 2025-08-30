@@ -1,7 +1,7 @@
 'use server';
 
 import { z } from 'zod';
-import { assignSuperAdmin, removeSuperAdmin } from '@/lib/super-admin';
+import { assignSuperAdmin, removeSuperAdmin } from '../../../lib/super-admin';
 import { revalidatePath } from 'next/cache';
 
 const emailSchema = z.string().email();
