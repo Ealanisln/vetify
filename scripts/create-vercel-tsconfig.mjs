@@ -27,6 +27,9 @@ const minimalTsConfig = {
   "exclude": ["node_modules"]
 };
 
-// Write minimal tsconfig.json for Vercel
-fs.writeFileSync('tsconfig.json', JSON.stringify(minimalTsConfig, null, 2));
-console.log('✅ Created minimal tsconfig.json for Vercel build');
+// Write minimal tsconfig.json for Vercel (in project root)
+const projectRoot = path.resolve(process.cwd());
+const tsconfigPath = path.join(projectRoot, 'tsconfig.json');
+
+fs.writeFileSync(tsconfigPath, JSON.stringify(minimalTsConfig, null, 2));
+console.log(`✅ Created minimal tsconfig.json for Vercel build at ${tsconfigPath}`);
