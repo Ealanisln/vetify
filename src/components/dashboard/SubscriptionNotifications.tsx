@@ -19,6 +19,7 @@ import {
 import type { Tenant } from '@prisma/client';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { calculateTrialDaysRemaining } from '@/lib/trial/utils';
 
 interface SubscriptionNotificationsProps {
   tenant: Tenant;
@@ -34,17 +35,38 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
     subscriptionEndsAt
   } = useSubscription(tenant);
 
-  // Calcular días restantes
+  // Calcular días restantes - usar trialEndsAt para períodos de prueba
   const getDaysRemaining = () => {
-    if (!subscriptionEndsAt) return null;
-    return differenceInDays(new Date(subscriptionEndsAt), new Date());
+    if (isInTrial) {
+      // Para trials, usar la función específica que maneja días negativos
+      return calculateTrialDaysRemaining(tenant);
+    } else if (subscriptionEndsAt) {
+      // Para suscripciones pagadas, usar subscriptionEndsAt
+      return differenceInDays(new Date(subscriptionEndsAt), new Date());
+    }
+    return null;
   };
 
   const daysRemaining = getDaysRemaining();
 
   // Configuración de notificaciones según el estado
   const getNotificationConfig = () => {
-    if (isPastDue) {
+    // HOTFIX: Manejar trial expirado con días negativos
+    if (isInTrial && daysRemaining !== null && daysRemaining < 0) {
+      const daysAgo = Math.abs(daysRemaining);
+      return {
+        type: 'trial-expired' as const,
+        icon: CalendarX,
+        title: `⚠️ Trial expirado hace ${daysAgo} día${daysAgo !== 1 ? 's' : ''}`,
+        description: 'Tu período de prueba ha terminado. Suscríbete ahora para continuar usando todas las funciones.',
+        bgColor: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700',
+        textColor: 'text-red-800 dark:text-red-400',
+        iconColor: 'text-red-600 dark:text-red-400',
+        buttonColor: 'bg-red-600 hover:bg-red-700',
+        buttonText: 'Suscribirse Ahora',
+        link: '/precios'
+      };
+    } else if (isPastDue) {
       return {
         type: 'danger' as const,
         icon: AlertTriangle,
@@ -170,6 +192,15 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
               </div>
             )}
 
+            {config.type === 'trial-expired' && daysRemaining !== null && (
+              <div className="flex items-center gap-2 text-sm">
+                <CalendarX className={`h-4 w-4 ${config.iconColor}`} />
+                <span className={config.textColor}>
+                  Expirado hace {Math.abs(daysRemaining)} día{Math.abs(daysRemaining) !== 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
+
             {config.type === 'trial-active' && daysRemaining !== null && (
               <div className="flex items-center gap-2 text-sm">
                 <Clock className={`h-4 w-4 ${config.iconColor}`} />
@@ -216,6 +247,22 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
                 <div key={index} className="flex items-center gap-2">
                   <CheckCircle className="h-3 w-3 text-green-600" />
                   <span className="text-xs text-gray-700 dark:text-gray-300">{benefit}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Beneficios para trial expirado - mostrar lo que se perdió */}
+          {config.type === 'trial-expired' && (
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {[
+                'WhatsApp automático',
+                'Inventario completo',
+                'Reportes avanzados'
+              ].map((benefit, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <XCircle className="h-3 w-3 text-red-500" />
+                  <span className="text-xs text-gray-600 dark:text-gray-400">{benefit}</span>
                 </div>
               ))}
             </div>
