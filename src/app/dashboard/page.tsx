@@ -1,9 +1,6 @@
 import { requireAuth } from '@/lib/auth';
 import { getDashboardStats } from '@/lib/dashboard';
-import { StatsCard } from '@/components/dashboard/StatsCard';
-import { RecentPetsCard } from '@/components/dashboard/RecentPetsCard';
-import { UpcomingAppointmentsCard } from '@/components/dashboard/UpcomingAppointmentsCard';
-import { SubscriptionNotifications } from '@/components/dashboard/SubscriptionNotifications';
+import { StatsCard, RecentPetsCard, UpcomingAppointmentsCard, SubscriptionNotifications } from '@/components/dashboard';
 import { PlanLimitsDisplay } from '@/components/subscription';
 import Link from 'next/link';
 
