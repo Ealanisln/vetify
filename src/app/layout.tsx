@@ -11,7 +11,7 @@ import { Metadata } from 'next'
 import {AuthProvider} from '../AuthProvider';
 import { ConditionalLayout } from '../components/ConditionalLayout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { SentryInit } from '../components/SentryInit';
+
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -107,7 +107,6 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
-        <SentryInit />
         <ErrorBoundary>
           <AuthProvider>
             <Providers>
