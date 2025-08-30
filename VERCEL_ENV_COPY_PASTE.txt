@@ -1,0 +1,46 @@
+# 🚀 COPY-PASTE FOR VERCEL DASHBOARD
+# Copy each line below to Vercel Dashboard → Settings → Environment Variables
+
+# Database URLs (REPLACE YOUR_SERVICE_ROLE_KEY_HERE with actual key)
+DATABASE_URL=postgresql://postgres.rqxhmhplxeiprzprobdb:YOUR_SERVICE_ROLE_KEY_HERE@aws-0-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&pool_timeout=0
+
+DIRECT_URL=postgresql://postgres.rqxhmhplxeiprzprobdb:YOUR_SERVICE_ROLE_KEY_HERE@aws-0-us-east-1.pooler.supabase.com:5432/postgres?connection_limit=1&pool_timeout=0
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://rqxhmhplxeiprzprobdb.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxeGhtaHBseGVpcHJ6cHJvYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4OTExOTksImV4cCI6MjA1OTQ2NzE5OX0.MlOAoNMyU7E_OSCTBZRFJTNzdZv4IZsY6_0xVT-v9KI
+
+# Kinde
+KINDE_CLIENT_ID=0db7d44f29414510b2539193d16311f9
+KINDE_CLIENT_SECRET=dteQVIKpTe0VAuJK1kYRe9GSy4Flem9anclcNG1RFUPItAkwpaK
+KINDE_ISSUER_URL=https://alanisdev.kinde.com
+KINDE_SITE_URL=https://vetify.pro
+KINDE_POST_LOGOUT_REDIRECT_URL=https://vetify.pro
+KINDE_POST_LOGIN_REDIRECT_URL=https://vetify.pro/dashboard
+
+# Stripe (REPLACE with your actual keys)
+STRIPE_SECRET_KEY=YOUR_STRIPE_SECRET_KEY_HERE
+STRIPE_PUBLISHABLE_KEY=YOUR_STRIPE_PUBLISHABLE_KEY_HERE
+STRIPE_WEBHOOK_SECRET=YOUR_STRIPE_WEBHOOK_SECRET_HERE
+
+# WhatsApp
+WHATSAPP_PHONE_NUMBER_ID=700928786427921
+WHATSAPP_ACCESS_TOKEN=YOUR_WHATSAPP_ACCESS_TOKEN_HERE
+WHATSAPP_WEBHOOK_VERIFY_TOKEN=YOUR_WHATSAPP_WEBHOOK_VERIFY_TOKEN_HERE
+WHATSAPP_DEBUG_MODE=false
+
+# Facebook
+FACEBOOK_APP_ID=1130642095757374
+FACEBOOK_APP_SECRET=YOUR_FACEBOOK_APP_SECRET_HERE
+
+# N8N
+N8N_WEBHOOK_URL=https://n8n.alanis.dev
+N8N_API_KEY=YOUR_N8N_API_KEY_HERE
+NEXT_PUBLIC_N8N_WEBHOOK_URL=https://n8n.alanis.dev/webhook-test/pet-welcome
+
+# App URLs
+VETIFY_API_URL=https://vetify.pro
+NEXT_PUBLIC_APP_URL=https://vetify.pro
+NEXT_PUBLIC_BASE_URL=https://vetify.pro
+
+# ⚠️ IMPORTANT: Replace all YOUR_*_HERE placeholders with actual values
