@@ -11,8 +11,11 @@ if (DSN && DSN !== 'https://your-dsn@o000000.ingest.sentry.io/0000000') {
     // Performance Monitoring
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
     
-    // Debug mode for development
-    debug: process.env.NODE_ENV === 'development',
+    // Debug mode controlled by environment variable
+    debug: process.env.SENTRY_DEBUG === 'true',
+    
+    // Set log level based on environment variable or default to error
+    logLevel: process.env.SENTRY_LOG_LEVEL || 'error',
     
     // Additional metadata
     environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV,

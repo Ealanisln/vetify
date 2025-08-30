@@ -36,15 +36,15 @@ export const STRIPE_PRODUCTS = {
 export const STRIPE_PRICES = {
   PROFESIONAL: {
     monthly: 'price_1RjWSPPwxz1bHxlH60v9GJjX',
-    annual: 'price_1RjWSPPwxz1bHxlHpLCiifxS',
+    annual: 'price_1S1frxPwxz1bHxlHVcpmMKtx', // ACTUALIZADO con nuevo precio anual
   },
   CLINICA: {
     monthly: 'price_1RjWSQPwxz1bHxlHTcG2kbJA',
-    annual: 'price_1RjWSQPwxz1bHxlHZSALMZUr',
+    annual: 'price_1S1fryPwxz1bHxlHLL5IVhBC', // ACTUALIZADO con nuevo precio anual
   },
   EMPRESA: {
     monthly: 'price_1RjWSRPwxz1bHxlHHp1pVI43',
-    annual: 'price_1RjWSRPwxz1bHxlHR5zX9CCQ',
+    annual: 'price_1S1fryPwxz1bHxlHG1peVtLR', // ACTUALIZADO con nuevo precio anual
   }
 } as const;
 
@@ -52,15 +52,15 @@ export const STRIPE_PRICES = {
 export const PLAN_PRICES = {
   PROFESIONAL: {
     monthly: 599, // Plan Profesional B2B
-    annual: 479,  // Plan Profesional B2B anual
+    annual: 5750,  // Plan Profesional B2B anual - ACTUALIZADO
   },
   CLINICA: {
     monthly: 999, // Plan Clínica B2B
-    annual: 799,  // Plan Clínica B2B anual
+    annual: 9590,  // Plan Clínica B2B anual - ACTUALIZADO
   },
   EMPRESA: {
     monthly: 1799, // Plan Empresa B2B
-    annual: 1439,  // Plan Empresa B2B anual
+    annual: 17270,  // Plan Empresa B2B anual - ACTUALIZADO
   }
 } as const;
 

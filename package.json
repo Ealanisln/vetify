@@ -60,7 +60,19 @@
     "docs:epub": "cd gitbook-docs && gitbook epub . ../vetify-docs.epub",
     "docs:serve": "cd gitbook-docs && gitbook serve --port 4000",
     "organize:docs": "node organize-docs-v2.js",
-    "clean:docs": "node clean-docs.js"
+    "clean:docs": "node clean-docs.js",
+    "sentry:quiet": "node scripts/sentry-logging-control.mjs quiet",
+    "sentry:normal": "node scripts/sentry-logging-control.mjs normal",
+    "sentry:verbose": "node scripts/sentry-logging-control.mjs verbose",
+    "sentry:debug": "node scripts/sentry-logging-control.mjs debug",
+    "sentry:status": "node scripts/sentry-logging-control.mjs status",
+    "deploy:security:fix": "node scripts/fix-production-security.mjs",
+    "deploy:production": "node scripts/production-deploy.mjs",
+    "deploy:check": "node scripts/production-deploy.mjs --check-only",
+    "supabase:connections": "node scripts/generate-supabase-connections.mjs",
+    "vercel:env:generate": "node scripts/generate-vercel-env.mjs",
+    "vercel:env:custom": "node scripts/generate-vercel-env-custom.mjs",
+    "vercel:env:optimized": "node scripts/generate-vercel-env-optimized.mjs"
   },
   "dependencies": {
     "@fullcalendar/core": "^6.1.17",

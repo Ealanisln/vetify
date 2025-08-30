@@ -1,0 +1,4 @@
+# This is an automatically generated migration file.
+# Please review the SQL before applying to production.
+
+migration_lock = "supabase"

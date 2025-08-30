@@ -14,8 +14,14 @@ if (DSN && DSN !== 'https://your-dsn@o000000.ingest.sentry.io/0000000') {
     // Profiling
     profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
     
-    // Debug mode for development
-    debug: process.env.NODE_ENV === 'development',
+    // Disable debug mode to reduce console noise
+    debug: process.env.SENTRY_DEBUG === 'true',
+    
+    // Set log level based on environment variable or default to error
+    logLevel: process.env.SENTRY_LOG_LEVEL || 'error',
+    
+    // Disable automatic session tracking to reduce noise
+    autoSessionTracking: false,
     
     // Error filtering
     beforeSend(event, hint) {

@@ -25,10 +25,10 @@
         "formatted": "$599"
       },
       "annual": {
-        "id": "price_1RjWSPPwxz1bHxlHpLCiifxS",
-        "amount": 47900,
+        "id": "price_1S1frxPwxz1bHxlHVcpmMKtx",
+        "amount": 575000,
         "currency": "mxn",
-        "formatted": "$479"
+        "formatted": "$5,750"
       }
     },
     "clinica": {
@@ -39,10 +39,10 @@
         "formatted": "$999"
       },
       "annual": {
-        "id": "price_1RjWSQPwxz1bHxlHZSALMZUr",
-        "amount": 79900,
+        "id": "price_1S1fryPwxz1bHxlHLL5IVhBC",
+        "amount": 959000,
         "currency": "mxn",
-        "formatted": "$799"
+        "formatted": "$9,590"
       }
     },
     "empresa": {
@@ -50,27 +50,34 @@
         "id": "price_1RjWSRPwxz1bHxlHHp1pVI43",
         "amount": 179900,
         "currency": "mxn",
-        "formatted": "$1799"
+        "formatted": "$1,799"
       },
       "annual": {
-        "id": "price_1RjWSRPwxz1bHxlHR5zX9CCQ",
-        "amount": 143900,
+        "id": "price_1S1fryPwxz1bHxlHG1peVtLR",
+        "amount": 1727000,
         "currency": "mxn",
-        "formatted": "$1439"
+        "formatted": "$17,270"
       }
     }
   },
   "environment_variables": {
     "STRIPE_PRODUCT_PROFESIONAL": "prod_Seq8I3438TwbPQ",
     "STRIPE_PRICE_PROFESIONAL_MONTHLY": "price_1RjWSPPwxz1bHxlH60v9GJjX",
-    "STRIPE_PRICE_PROFESIONAL_ANNUAL": "price_1RjWSPPwxz1bHxlHpLCiifxS",
+    "STRIPE_PRICE_PROFESIONAL_ANNUAL": "price_1S1frxPwxz1bHxlHVcpmMKtx",
     "STRIPE_PRODUCT_CLINICA": "prod_Seq84VFkBvXUhI",
     "STRIPE_PRICE_CLINICA_MONTHLY": "price_1RjWSQPwxz1bHxlHTcG2kbJA",
-    "STRIPE_PRICE_CLINICA_ANNUAL": "price_1RjWSQPwxz1bHxlHZSALMZUr",
+    "STRIPE_PRICE_CLINICA_ANNUAL": "price_1S1fryPwxz1bHxlHLL5IVhBC",
     "STRIPE_PRODUCT_EMPRESA": "prod_Seq8KU7nw8WucQ",
     "STRIPE_PRICE_EMPRESA_MONTHLY": "price_1RjWSRPwxz1bHxlHHp1pVI43",
-    "STRIPE_PRICE_EMPRESA_ANNUAL": "price_1RjWSRPwxz1bHxlHR5zX9CCQ"
+    "STRIPE_PRICE_EMPRESA_ANNUAL": "price_1S1fryPwxz1bHxlHG1peVtLR"
   },
   "created_at": "2025-07-11T02:13:03.851Z",
-  "type": "b2b"
+  "type": "b2b",
+  "updated_at": "2025-01-28T02:33:05.000Z",
+  "new_pricing": {
+    "description": "Precios actualizados con descuento anual del 20% y 30 días gratis",
+    "profesional_annual": "$5,750/año (antes $599/mes)",
+    "clinica_annual": "$9,590/año (antes $999/mes)",
+    "empresa_annual": "$17,270/año (antes $1,799/mes)"
+  }
 }

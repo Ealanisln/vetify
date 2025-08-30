@@ -1,112 +1,47 @@
--- Update MVP Pricing for Vetify
--- This script updates the existing plans with new competitive pricing
--- 
--- Plan Changes:
--- - BASIC: 300 mascotas (was 500), 3 usuarios, $599/$399 regular pricing, $449/$349 promo
--- - PROFESSIONAL: 1000 mascotas (was 2000), 8 usuarios, $1199/$799 regular pricing, $899/$649 promo
+-- Script para actualizar precios MVP en la base de datos local
+-- Este script actualiza los precios de los planes B2B según la nueva estructura
 
--- Update BASIC plan with new pricing and limits
-UPDATE "Plan" 
+-- Actualizar precios del Plan Profesional B2B
+UPDATE "TenantSubscription" 
 SET 
-  "monthlyPrice" = 599,
-  "annualPrice" = 399,
-  "maxUsers" = 3,
-  "maxPets" = 300,
-  "features" = jsonb_set(
-    jsonb_set(
-      jsonb_set(
-        "features",
-        '{whatsappMessages}',
-        '-1'
-      ),
-      '{automations}',
-      'true'
-    ),
-    '{advancedReports}',
-    'false'
-  ),
+  "stripePriceId" = 'price_1RjWSPPwxz1bHxlHpLCiifxS', -- Precio anual actualizado
+  "planKey" = 'PROFESIONAL',
+  "billingInterval" = 'annual',
+  "amount" = 575000, -- $5,750 MXN en centavos
+  "currency" = 'mxn',
   "updatedAt" = NOW()
-WHERE "key" = 'BASIC';
+WHERE "planKey" = 'PROFESIONAL' AND "billingInterval" = 'annual';
 
--- Update PROFESSIONAL plan with new pricing and limits  
-UPDATE "Plan"
+-- Actualizar precios del Plan Clínica B2B
+UPDATE "TenantSubscription" 
 SET 
-  "monthlyPrice" = 1199,
-  "annualPrice" = 799,
-  "maxUsers" = 8,
-  "maxPets" = 1000,
-  "features" = jsonb_set(
-    jsonb_set(
-      jsonb_set(
-        jsonb_set(
-          "features",
-          '{whatsappMessages}',
-          '-1'
-        ),
-        '{automations}',
-        'true'
-      ),
-      '{advancedReports}',
-      'true'
-    ),
-    '{multiDoctor}',
-    'true'
-  ),
+  "stripePriceId" = 'price_1RjWSQPwxz1bHxlHZSALMZUr', -- Precio anual actualizado
+  "planKey" = 'CLINICA',
+  "billingInterval" = 'annual',
+  "amount" = 959000, -- $9,590 MXN en centavos
+  "currency" = 'mxn',
   "updatedAt" = NOW()
-WHERE "key" = 'PROFESSIONAL';
+WHERE "planKey" = 'CLINICA' AND "billingInterval" = 'annual';
 
--- Ensure FREE plan exists with correct limits
-INSERT INTO "Plan" (
-  "id",
-  "key", 
-  "name", 
-  "description",
-  "monthlyPrice", 
-  "annualPrice",
-  "features",
-  "maxUsers",
-  "maxPets", 
-  "storageGB",
-  "isRecommended",
-  "isActive",
-  "isMvp"
-) VALUES (
-  gen_random_uuid(),
-  'FREE',
-  'Plan Gratis',
-  'Ideal para veterinarios independientes o consultorios muy pequeños.',
-  0,
-  0,
-  '{
-    "whatsappMessages": 50,
-    "automations": false,
-    "advancedReports": false,
-    "multiDoctor": false,
-    "smsReminders": false
-  }',
-  1,
-  50,
-  1,
-  false,
-  true,
-  true
-) ON CONFLICT ("key") DO UPDATE SET
-  "monthlyPrice" = EXCLUDED."monthlyPrice",
-  "annualPrice" = EXCLUDED."annualPrice", 
-  "maxUsers" = EXCLUDED."maxUsers",
-  "maxPets" = EXCLUDED."maxPets",
-  "features" = EXCLUDED."features",
-  "updatedAt" = NOW();
+-- Actualizar precios del Plan Empresa B2B
+UPDATE "TenantSubscription" 
+SET 
+  "stripePriceId" = 'price_1RjWSRPwxz1bHxlHR5zX9CCQ', -- Precio anual actualizado
+  "planKey" = 'EMPRESA',
+  "billingInterval" = 'annual',
+  "amount" = 1727000, -- $17,270 MXN en centavos
+  "currency" = 'mxn',
+  "updatedAt" = NOW()
+WHERE "planKey" = 'EMPRESA' AND "billingInterval" = 'annual';
 
--- Display updated plans
+-- Verificar los cambios
 SELECT 
-  "key",
-  "name", 
-  "monthlyPrice",
-  "annualPrice",
-  "maxUsers",
-  "maxPets",
-  "features"
-FROM "Plan" 
-WHERE "isActive" = true
-ORDER BY "monthlyPrice"; 
+  "planKey",
+  "billingInterval",
+  "amount",
+  "currency",
+  "stripePriceId",
+  "updatedAt"
+FROM "TenantSubscription" 
+WHERE "planKey" IN ('PROFESIONAL', 'CLINICA', 'EMPRESA')
+ORDER BY "planKey", "billingInterval"; 

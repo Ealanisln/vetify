@@ -14,8 +14,14 @@ if (DSN && DSN !== 'https://your-dsn@o000000.ingest.sentry.io/0000000') {
   // Profiling
   profilesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
   
-  // Debug mode for development
-  debug: process.env.NODE_ENV === 'development',
+  // Debug mode controlled by environment variable
+  debug: process.env.SENTRY_DEBUG === 'true',
+  
+  // Set log level based on environment variable or default to error
+  logLevel: process.env.SENTRY_LOG_LEVEL || 'error',
+  
+  // Disable automatic breadcrumbs to reduce noise
+  autoSessionTracking: false,
   
   // Error filtering and enrichment
   beforeSend(event, hint) {
@@ -74,13 +80,20 @@ if (DSN && DSN !== 'https://your-dsn@o000000.ingest.sentry.io/0000000') {
     },
   },
   
-  // Server-specific integrations
+  // Server-specific integrations with minimal verbosity
   integrations: [
     // Database monitoring
     Sentry.prismaIntegration(),
     
-    // HTTP monitoring
-    Sentry.httpIntegration(),
+    // HTTP monitoring with minimal logging
+    Sentry.httpIntegration({
+      // Reduce HTTP instrumentation verbosity
+      tracing: true,
+      breadcrumbs: false, // Disable breadcrumbs to reduce noise
+      // Disable request/response logging
+      request: false,
+      response: false,
+    }),
   ],
   
   // Sampling rules
