@@ -20,6 +20,12 @@ model Tenant {
   isTrialPeriod        Boolean             @default(true)
   trialEndsAt          DateTime?
   
+  // Enhanced trial tracking
+  trialExtendedAt      DateTime?
+  trialExtendedBy      String?
+  gracePeriodEnds      DateTime?
+  lastTrialCheck       DateTime?
+  
   // Enhanced Stripe Integration
   stripeCustomerId     String?             @unique
   stripeSubscriptionId String?             @unique
@@ -67,10 +73,13 @@ model Tenant {
   treatmentRecords     TreatmentRecord[]
   treatmentSchedules   TreatmentSchedule[]
   users                User[]
+  trialAccessLogs      TrialAccessLog[]
 
   @@index([status])
   @@index([slug])
   @@index([domain])
+  @@index([trialEndsAt])
+  @@index([isTrialPeriod, subscriptionStatus])
 }
 
 model Plan {
@@ -116,6 +125,7 @@ model User {
   userRoles              UserRole[]
   adminAuditLogs         AdminAuditLog[]
   setupTokens            SetupToken[]
+  trialAccessLogs        TrialAccessLog[]
 
   @@index([tenantId])
   @@index([email])
@@ -994,4 +1004,29 @@ model SetupToken {
 
   @@index([token])
   @@index([email])
+}
+
+model TrialAccessLog {
+  id            String   @id @default(uuid())
+  tenantId      String
+  userId        String
+  feature       String
+  action        String
+  allowed       Boolean
+  denialReason  String?
+  requestPath   String?
+  userAgent     String?
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+  
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([feature])
+  @@index([allowed])
+  @@index([createdAt])
+  @@index([tenantId, feature])
+  @@index([tenantId, userId])
 }
