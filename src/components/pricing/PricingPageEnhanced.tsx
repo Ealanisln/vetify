@@ -10,6 +10,7 @@ import Link from 'next/link';
 import type { Tenant } from '@prisma/client';
 import { PricingComparisonTable } from './PricingComparisonTable';
 import type { PricingPlan, APIPlan, SubscriptionData } from './types';
+import type { DowngradeValidation } from '@/lib/downgrade-validation';
 
 interface PricingPageEnhancedProps {
   tenant?: Tenant | null;
@@ -222,11 +223,40 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
         });
         
         console.log('Pricing data loaded successfully:', transformedPlans.length, 'plans');
+        console.log('Transformed plans:', transformedPlans);
         setPricingPlans(transformedPlans);
         
       } catch (error) {
         console.error('Error loading pricing data:', error);
-        setPricingError(error instanceof Error ? error.message : 'Failed to load pricing');
+        console.log('Falling back to local pricing config...');
+        
+        // Fallback a configuración local si la API falla
+        const fallbackPlans = Object.values(COMPLETE_PLANS).map(plan => ({
+          id: plan.key.toLowerCase(),
+          name: plan.name,
+          description: plan.description,
+          features: plan.features.map(f => f.name),
+          prices: {
+            monthly: {
+              id: `price_${plan.key.toLowerCase()}_monthly`,
+              unitAmount: plan.monthlyPrice * 100, // Convert to cents
+              currency: 'mxn',
+              interval: 'month',
+              intervalCount: 1
+            },
+            yearly: {
+              id: `price_${plan.key.toLowerCase()}_yearly`,
+              unitAmount: plan.yearlyPrice * 100, // Convert to cents
+              currency: 'mxn',
+              interval: 'year',
+              intervalCount: 1
+            }
+          }
+        }));
+        
+        console.log('Using fallback plans:', fallbackPlans);
+        setPricingPlans(fallbackPlans);
+        setPricingError(null); // Clear error since we have fallback
       } finally {
         setPricingLoading(false);
       }
@@ -242,17 +272,32 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
     }
 
     // Check if user has an active subscription
+    // Solo considera ACTIVE como verdaderamente activo
+    // TRIALING, INACTIVE, INCOMPLETE_EXPIRED, etc. necesitan poder suscribirse
     const hasActiveSubscription = subscriptionData.hasSubscription && 
-      ['ACTIVE', 'TRIALING'].includes(subscriptionData.subscriptionStatus);
+      subscriptionData.subscriptionStatus === 'ACTIVE';
+
+    console.log('getPlanStatus debug:', {
+      productId,
+      hasSubscription: subscriptionData.hasSubscription,
+      subscriptionStatus: subscriptionData.subscriptionStatus,
+      hasActiveSubscription,
+      userPlan
+    });
 
     if (!hasActiveSubscription) {
-      // No active subscription - all plans are available
+      // No active subscription (including expired trials) - all plans are available for purchase
       return { isCurrentPlan: false, isUpgrade: true, isDowngrade: false };
     }
 
     const isCurrentPlan = userPlan === productId;
     const isUpgrade = upgradeOptions.includes(productId);
-    const isDowngrade = !isCurrentPlan && !isUpgrade;
+    
+    // Determinar si es downgrade basado en la jerarquía de planes
+    const planHierarchy = ['profesional', 'clinica', 'empresa'];
+    const currentIndex = planHierarchy.indexOf(userPlan || '');
+    const targetIndex = planHierarchy.indexOf(productId);
+    const isDowngrade = currentIndex > targetIndex && targetIndex !== -1;
 
     return { isCurrentPlan, isUpgrade, isDowngrade };
   };
@@ -267,7 +312,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
   // Formatear precio desde centavos
   const formatPriceFromCents = (amountInCents: number) => {
-    return formatPrice(amountInCents / 100);
+    return formatPrice(Math.round(amountInCents / 100));
   };
 
   // Calcular descuento anual
@@ -276,7 +321,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
     if (!plan || !plan.prices.monthly || !plan.prices.yearly) return 0;
     
     const monthlyTotal = plan.prices.monthly.unitAmount * 12;
-    const yearlyTotal = plan.prices.yearly.unitAmount * 12;
+    const yearlyTotal = plan.prices.yearly.unitAmount;
     return Math.round((1 - yearlyTotal / monthlyTotal) * 100);
   };
 
@@ -298,6 +343,22 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   };
 
   // Manejar checkout
+  // Modal functions for downgrade handling
+  const showDowngradeBlockerModal = (validation: DowngradeValidation) => {
+    const blockerMessages = validation.blockers.map((blocker) => blocker.message).join('\n\n');
+    const suggestions = validation.blockers.map((blocker) => blocker.suggestion).filter(Boolean).join('\n\n');
+    
+    alert(`❌ No puedes cambiar a este plan por las siguientes razones:\n\n${blockerMessages}\n\n📋 Para poder hacer este cambio:\n${suggestions}`);
+  };
+
+  const showDowngradeWarningModal = (validation: DowngradeValidation): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const warningMessages = validation.warnings.map((warning) => `• ${warning.description}`).join('\n');
+      const confirmed = confirm(`⚠️ Advertencia: Este cambio de plan resultará en pérdida de funcionalidades:\n\n${warningMessages}\n\n¿Estás seguro de que deseas continuar?`);
+      resolve(confirmed);
+    });
+  };
+
   const handleCheckout = async (priceId: string, planKey: string) => {
     // Si el usuario no está autenticado, iniciar el flujo de registro
     if (!isAuthenticated) {
@@ -308,6 +369,45 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
     try {
       console.log('Starting checkout for authenticated user:', { priceId, planKey });
+      
+      // Validar si es un downgrade antes de proceder
+      if (subscriptionData?.hasSubscription) {
+        console.log('Validating potential downgrade...');
+        try {
+          const validationResponse = await fetch('/api/plans/validate-downgrade', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              targetPlanKey: planKey.toUpperCase()
+            }),
+          });
+
+          if (validationResponse.ok) {
+            const validationData = await validationResponse.json();
+            console.log('Downgrade validation result:', validationData);
+            
+            // Si es un downgrade y no puede proceder
+            if (validationData.isDowngrade && !validationData.canProceed) {
+              showDowngradeBlockerModal(validationData.validation);
+              return;
+            }
+            
+            // Si es un downgrade pero puede proceder, mostrar advertencias
+            if (validationData.isDowngrade && validationData.canProceed && validationData.validation.warnings.length > 0) {
+              const shouldContinue = await showDowngradeWarningModal(validationData.validation);
+              if (!shouldContinue) {
+                return;
+              }
+            }
+          } else {
+            console.warn('Could not validate downgrade, proceeding anyway');
+          }
+        } catch (validationError) {
+          console.warn('Downgrade validation failed, proceeding anyway:', validationError);
+        }
+      }
       
       const response = await fetch('/api/checkout', {
         method: 'POST',
@@ -443,10 +543,13 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
             <div className="space-y-4">
               {pricingPlans.map((product: PricingPlan) => {
                 const price = getProductPrice(product.id);
-                const { isCurrentPlan, isUpgrade } = getPlanStatus(product.id);
+                const { isCurrentPlan, isUpgrade, isDowngrade } = getPlanStatus(product.id);
                 const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
                 
-                if (!price) return null;
+                if (!price) {
+                  console.warn(`No price found for plan ${product.id}, skipping render`);
+                  return null;
+                }
 
                 return (
                   <div
@@ -477,17 +580,26 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                       
                       {/* Precio */}
                       <div className="mb-3">
-                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {formatPriceFromCents(price.unitAmount)}
-                        </span>
-                        <span className="text-gray-600 dark:text-gray-400 ml-1 text-sm">
-                          /{isYearly ? 'año' : 'mes'}
-                        </span>
-                        {isYearly && (
-                          <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-                            Ahorra {calculateAnnualDiscount(product.id)}% al año
-                          </div>
-                        )}
+                        {/* Precio mensual como principal */}
+                        <div className="flex flex-col items-center">
+                          <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {formatPriceFromCents(isYearly ? price.unitAmount / 12 : price.unitAmount)}
+                          </span>
+                          <span className="text-gray-600 dark:text-gray-400 text-sm">
+                            /mes
+                          </span>
+                          {/* Información del total anual si está en modo anual */}
+                          {isYearly && (
+                            <div className="mt-1 text-center">
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                Total anual: {formatPriceFromCents(price.unitAmount)}
+                              </div>
+                              <div className="text-xs text-green-600 dark:text-green-400">
+                                Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -539,7 +651,9 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                           } text-white transition-colors`}
                         >
                           {isUpgrade ? 'Actualizar Plan' : 
-                           product.id === 'empresa' ? 'Contactar Ventas' : 'Iniciar Prueba Gratuita'}
+                           isDowngrade ? 'Cambiar Plan ⬇️' :
+                           product.id === 'empresa' ? 'Contactar Ventas' : 
+                           subscriptionData?.subscriptionStatus && !['ACTIVE', 'TRIALING'].includes(subscriptionData.subscriptionStatus) ? 'Suscribirse Ahora' : 'Iniciar Prueba Gratuita'}
                         </Button>
                       )}
                     </div>
@@ -554,10 +668,13 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
             <div className="grid grid-cols-2 gap-4">
               {pricingPlans.map((product: PricingPlan) => {
                 const price = getProductPrice(product.id);
-                const { isCurrentPlan, isUpgrade } = getPlanStatus(product.id);
+                const { isCurrentPlan, isUpgrade, isDowngrade } = getPlanStatus(product.id);
                 const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
                 
-                if (!price) return null;
+                if (!price) {
+                  console.warn(`No price found for plan ${product.id}, skipping render`);
+                  return null;
+                }
 
                 return (
                   <div
@@ -588,17 +705,26 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                       
                       {/* Precio */}
                       <div className="mb-3">
-                        <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {formatPriceFromCents(price.unitAmount)}
-                        </span>
-                        <span className="text-gray-600 dark:text-gray-400 ml-1">
-                          /{isYearly ? 'año' : 'mes'}
-                        </span>
-                        {isYearly && (
-                          <div className="text-sm text-green-600 dark:text-green-400 mt-1">
-                            Ahorra {calculateAnnualDiscount(product.id)}% al año
-                          </div>
-                        )}
+                        {/* Precio mensual como principal */}
+                        <div className="flex flex-col items-center">
+                          <span className="text-2xl font-bold text-gray-900 dark:text-white">
+                            {formatPriceFromCents(isYearly ? price.unitAmount / 12 : price.unitAmount)}
+                          </span>
+                          <span className="text-gray-600 dark:text-gray-400">
+                            /mes
+                          </span>
+                          {/* Información del total anual si está en modo anual */}
+                          {isYearly && (
+                            <div className="mt-1 text-center">
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                Total anual: {formatPriceFromCents(price.unitAmount)}
+                              </div>
+                              <div className="text-sm text-green-600 dark:text-green-400">
+                                Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -644,7 +770,9 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                           } text-white transition-colors`}
                         >
                           {isUpgrade ? 'Actualizar Plan' : 
-                           product.id === 'empresa' ? 'Contactar Ventas' : 'Iniciar Prueba Gratuita'}
+                           isDowngrade ? 'Cambiar Plan ⬇️' :
+                           product.id === 'empresa' ? 'Contactar Ventas' : 
+                           subscriptionData?.subscriptionStatus && !['ACTIVE', 'TRIALING'].includes(subscriptionData.subscriptionStatus) ? 'Suscribirse Ahora' : 'Iniciar Prueba Gratuita'}
                         </Button>
                       )}
                     </div>
@@ -659,10 +787,13 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
             <div className="grid grid-cols-3 gap-6">
               {pricingPlans.map((product: PricingPlan) => {
                 const price = getProductPrice(product.id);
-                const { isCurrentPlan, isUpgrade } = getPlanStatus(product.id);
+                const { isCurrentPlan, isUpgrade, isDowngrade } = getPlanStatus(product.id);
                 const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
                 
-                if (!price) return null;
+                if (!price) {
+                  console.warn(`No price found for plan ${product.id}, skipping render`);
+                  return null;
+                }
 
                 return (
                   <div
@@ -693,17 +824,26 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                       
                       {/* Precio */}
                       <div className="mb-4">
-                        <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                          {formatPriceFromCents(price.unitAmount)}
-                        </span>
-                        <span className="text-gray-600 dark:text-gray-400 ml-1">
-                          /{isYearly ? 'año' : 'mes'}
-                        </span>
-                        {isYearly && (
-                          <div className="text-sm text-green-600 dark:text-green-400 mt-1">
-                            Ahorra {calculateAnnualDiscount(product.id)}% al año
-                          </div>
-                        )}
+                        {/* Precio mensual como principal */}
+                        <div className="flex flex-col items-center">
+                          <span className="text-3xl font-bold text-gray-900 dark:text-white">
+                            {formatPriceFromCents(isYearly ? price.unitAmount / 12 : price.unitAmount)}
+                          </span>
+                          <span className="text-gray-600 dark:text-gray-400">
+                            /mes
+                          </span>
+                          {/* Información del total anual si está en modo anual */}
+                          {isYearly && (
+                            <div className="mt-2 text-center">
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                Total anual: {formatPriceFromCents(price.unitAmount)}
+                              </div>
+                              <div className="text-sm text-green-600 dark:text-green-400">
+                                Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -749,7 +889,9 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                           } text-white transition-colors`}
                         >
                           {isUpgrade ? 'Actualizar Plan' : 
-                           product.id === 'empresa' ? 'Contactar Ventas' : 'Iniciar Prueba Gratuita'}
+                           isDowngrade ? 'Cambiar Plan ⬇️' :
+                           product.id === 'empresa' ? 'Contactar Ventas' : 
+                           subscriptionData?.subscriptionStatus && !['ACTIVE', 'TRIALING'].includes(subscriptionData.subscriptionStatus) ? 'Suscribirse Ahora' : 'Iniciar Prueba Gratuita'}
                         </Button>
                       )}
                     </div>

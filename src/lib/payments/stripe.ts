@@ -1,7 +1,32 @@
 import Stripe from 'stripe';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/prisma';
+
+// Type for Stripe subscription creation data
+interface StripeSubscriptionData {
+  metadata: {
+    tenantId: string;
+    planKey: string;
+    userId: string;
+    hadLocalTrial: string;
+  };
+  trial_period_days?: number;
+}
 import type { Tenant, SubscriptionStatus } from '@prisma/client';
+
+/**
+ * Determina si un tenant debe recibir trial en Stripe
+ * Solo dar trial si nunca ha tenido trial local
+ */
+function shouldGiveStripeTrial(tenant: Tenant): boolean {
+  // Si nunca ha tenido trial local (no tiene trialEndsAt), puede tener trial en Stripe
+  if (!tenant.trialEndsAt) {
+    return true;
+  }
+  
+  // Si ya tuvo trial local (existe trialEndsAt), NO dar trial en Stripe
+  return false;
+}
 
 /**
  * CONFIGURACIÓN DE IMPUESTOS PARA MÉXICO
@@ -120,7 +145,35 @@ export async function createCheckoutSession({
   // Obtener o crear cliente
   const customer = await createOrRetrieveCustomer(tenant, userId);
 
-  const session = await stripe.checkout.sessions.create({
+  // Determinar si debe tener trial en Stripe
+  // Solo dar trial si nunca ha tenido trial local o el trial local aún está activo
+  const shouldHaveStripeTrial = shouldGiveStripeTrial(tenant);
+  
+  console.log('createCheckoutSession: Trial decision for tenant', tenant.id, {
+    isTrialPeriod: tenant.isTrialPeriod,
+    trialEndsAt: tenant.trialEndsAt,
+    subscriptionStatus: tenant.subscriptionStatus,
+    shouldHaveStripeTrial
+  });
+
+  const subscriptionData: StripeSubscriptionData = {
+    metadata: {
+      tenantId: tenant.id,
+      planKey: planKey || 'unknown',
+      userId,
+      hadLocalTrial: tenant.trialEndsAt ? 'true' : 'false'
+    }
+  };
+
+  // Solo agregar trial_period_days si nunca tuvo trial local
+  if (shouldHaveStripeTrial) {
+    subscriptionData.trial_period_days = 30;
+    console.log('createCheckoutSession: Adding 30-day Stripe trial for new user');
+  } else {
+    console.log('createCheckoutSession: No Stripe trial - user already had local trial');
+  }
+
+const session = await stripe.checkout.sessions.create({
     customer: customer.id,
     payment_method_types: ['card'],
     line_items: [
@@ -133,14 +186,7 @@ export async function createCheckoutSession({
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/precios?canceled=true`,
     allow_promotion_codes: true,
-    subscription_data: {
-      trial_period_days: 30, // Actualizado a 30 días
-      metadata: {
-        tenantId: tenant.id,
-        planKey: planKey || 'unknown',
-        userId
-      }
-    },
+    subscription_data: subscriptionData,
     // Configuración para México - SIN automatic tax ya que no está soportado en todos los países
     locale: 'es-419',
     // tax_id_collection: {
@@ -184,6 +230,34 @@ export async function createCheckoutSessionForAPI({
   // Obtener o crear cliente
   const customer = await createOrRetrieveCustomer(tenant, userId);
 
+  // Determinar si debe tener trial en Stripe
+  // Solo dar trial si nunca ha tenido trial local o el trial local aún está activo
+  const shouldHaveStripeTrial = shouldGiveStripeTrial(tenant);
+  
+  console.log('createCheckoutSessionForAPI: Trial decision for tenant', tenant.id, {
+    isTrialPeriod: tenant.isTrialPeriod,
+    trialEndsAt: tenant.trialEndsAt,
+    subscriptionStatus: tenant.subscriptionStatus,
+    shouldHaveStripeTrial
+  });
+
+  const subscriptionData: StripeSubscriptionData = {
+    metadata: {
+      tenantId: tenant.id,
+      planKey: planKey || 'unknown',
+      userId,
+      hadLocalTrial: tenant.trialEndsAt ? 'true' : 'false'
+    }
+  };
+
+  // Solo agregar trial_period_days si nunca tuvo trial local
+  if (shouldHaveStripeTrial) {
+    subscriptionData.trial_period_days = 30;
+    console.log('createCheckoutSessionForAPI: Adding 30-day Stripe trial for new user');
+  } else {
+    console.log('createCheckoutSessionForAPI: No Stripe trial - user already had local trial');
+  }
+
   const session = await stripe.checkout.sessions.create({
     customer: customer.id,
     payment_method_types: ['card'],
@@ -197,14 +271,7 @@ export async function createCheckoutSessionForAPI({
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/precios?canceled=true`,
     allow_promotion_codes: true,
-    subscription_data: {
-      trial_period_days: 30, // Actualizado a 30 días
-      metadata: {
-        tenantId: tenant.id,
-        planKey: planKey || 'unknown',
-        userId
-      }
-    },
+    subscription_data: subscriptionData,
     // Configuración para México - SIN automatic tax ya que no está soportado en todos los países
     locale: 'es-419',
     // tax_id_collection: {

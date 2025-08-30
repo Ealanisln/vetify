@@ -48,7 +48,7 @@ export function PricingComparisonTable({
       <div className="divide-y divide-gray-200 dark:divide-gray-600">
         {pricingPlans.map((product: PricingPlan) => {
           const price = getProductPrice(product.id);
-          const { isCurrentPlan, isUpgrade } = getPlanStatus(product.id);
+          const { isCurrentPlan, isUpgrade, isDowngrade } = getPlanStatus(product.id);
           
           if (!price) return null;
 
@@ -69,11 +69,16 @@ export function PricingComparisonTable({
                 </div>
                 <div className="text-right">
                   <div className="text-sm font-bold text-gray-900 dark:text-white">
-                    {formatPriceFromCents(price.unitAmount)}
+                    {formatPriceFromCents(isYearly ? price.unitAmount / 12 : price.unitAmount)}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400">
-                    /{isYearly ? 'año' : 'mes'}
+                    /mes
                   </div>
+                  {isYearly && (
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      Total: {formatPriceFromCents(price.unitAmount)}
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -105,7 +110,7 @@ export function PricingComparisonTable({
               {/* Descuento anual si aplica */}
               {isYearly && (
                 <div className="text-xs text-green-600 dark:text-green-400 text-center mb-2">
-                  💰 Ahorra {calculateAnnualDiscount(product.id)}% al año
+                  💰 Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
                 </div>
               )}
               
@@ -127,7 +132,7 @@ export function PricingComparisonTable({
                         : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
                     } text-white`}
                   >
-                    Iniciar Prueba
+                    Empezar
                   </Button>
                 ) : (
                   <Button
@@ -139,7 +144,8 @@ export function PricingComparisonTable({
                     } text-white`}
                   >
                     {isUpgrade ? 'Actualizar' : 
-                     product.id === 'empresa' ? 'Contactar' : 'Iniciar Prueba'}
+                     isDowngrade ? 'Cambiar ⬇️' :
+                     product.id === 'empresa' ? 'Contactar' : 'Suscribirse'}
                   </Button>
                 )}
               </div>
