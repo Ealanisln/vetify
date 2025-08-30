@@ -1,7 +1,7 @@
 {
-  "buildCommand": "pnpm run build",
+  "buildCommand": "rm -rf .next node_modules && pnpm install && pnpm build",
   "framework": "nextjs",
-  "installCommand": "pnpm install --no-cache",
+  "installCommand": "pnpm install --frozen-lockfile",
   "regions": ["iad1"],
   "functions": {
     "app/**/*.{js,ts,tsx}": {
@@ -10,7 +10,10 @@
   },
   "build": {
     "env": {
-      "NODE_OPTIONS": "--max-old-space-size=8192"
+      "NODE_OPTIONS": "--max-old-space-size=8192",
+      "NEXT_TELEMETRY_DISABLED": "1",
+      "SKIP_ENV_VALIDATION": "1",
+      "NODE_ENV": "production"
     }
   }
 }
