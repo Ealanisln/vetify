@@ -1,10 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FullCalendarView } from '@/components/appointments/FullCalendarView';
-import { AppointmentModal } from '@/components/appointments/AppointmentModal';
-import { TodayAppointments } from '@/components/appointments/TodayAppointments';
-import { AppointmentStats } from '@/components/appointments/AppointmentStats';
+import { FullCalendarView, AppointmentModal, TodayAppointments, AppointmentStats } from '@/components/appointments';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
