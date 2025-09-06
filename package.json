@@ -8,7 +8,7 @@
     "dev": "next dev",
     "prebuild": "npx prisma generate",
     "build": "prisma generate && next build",
-    "vercel-build": "rm -rf .next && node scripts/create-vercel-tsconfig-robust.mjs && prisma generate && SKIP_TYPE_CHECK=true next build --no-lint",
+    "vercel-build": "rm -rf .next && prisma generate && SKIP_TYPE_CHECK=true next build --no-lint",
     "vercel-build-original": "rm -rf .next && node scripts/create-vercel-tsconfig.mjs && prisma generate && SKIP_TYPE_CHECK=true next build --no-lint",
     "vercel-build-fallback": "rm -rf .next && node scripts/create-vercel-tsconfig-fallback.mjs && prisma generate && SKIP_TYPE_CHECK=true next build --no-lint",
     "start": "next start",
