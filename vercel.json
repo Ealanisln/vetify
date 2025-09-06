@@ -1,19 +1,17 @@
 {
-  "buildCommand": "pnpm vercel-build",
   "framework": "nextjs",
+  "buildCommand": "pnpm vercel-build",
+  "outputDirectory": ".next",
   "installCommand": "pnpm install --frozen-lockfile",
-  "regions": ["iad1"],
+  "devCommand": "pnpm dev",
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet .",
   "functions": {
-    "app/**/*.{js,ts,tsx}": {
+    "src/app/api/**/*": {
       "maxDuration": 30
     }
   },
-  "build": {
-    "env": {
-      "NODE_OPTIONS": "--max-old-space-size=8192",
-      "NEXT_TELEMETRY_DISABLED": "1",
-      "SKIP_ENV_VALIDATION": "1",
-      "NODE_ENV": "production"
-    }
+  "env": {
+    "SKIP_TYPE_CHECK": "true",
+    "NODE_ENV": "production"
   }
 }

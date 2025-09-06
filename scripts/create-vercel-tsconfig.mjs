@@ -2,6 +2,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Create a minimal tsconfig.json for Vercel builds
 const minimalTsConfig = {
@@ -29,9 +30,24 @@ const minimalTsConfig = {
 
 // Write minimal tsconfig.json for Vercel (in project root)
 // Always write to project root, regardless of where script is executed from
-const scriptDir = path.dirname(new URL(import.meta.url).pathname);
-const projectRoot = path.resolve(scriptDir, '..');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '..');
 const tsconfigPath = path.join(projectRoot, 'tsconfig.json');
 
-fs.writeFileSync(tsconfigPath, JSON.stringify(minimalTsConfig, null, 2));
-console.log(`✅ Created minimal tsconfig.json for Vercel build at ${tsconfigPath}`);
+// Ensure the directory exists
+if (!fs.existsSync(projectRoot)) {
+  console.error(`Project root does not exist: ${projectRoot}`);
+  process.exit(1);
+}
+
+try {
+  fs.writeFileSync(tsconfigPath, JSON.stringify(minimalTsConfig, null, 2));
+  console.log(`✅ Created minimal tsconfig.json for Vercel build at ${tsconfigPath}`);
+} catch (error) {
+  console.error(`❌ Failed to create tsconfig.json: ${error.message}`);
+  console.error(`Attempted path: ${tsconfigPath}`);
+  console.error(`Project root: ${projectRoot}`);
+  console.error(`Current directory: ${process.cwd()}`);
+  process.exit(1);
+}
