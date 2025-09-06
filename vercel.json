@@ -1,17 +1,9 @@
 {
   "framework": "nextjs",
-  "buildCommand": "pnpm vercel-build",
-  "outputDirectory": ".next",
   "installCommand": "pnpm install --frozen-lockfile",
-  "devCommand": "pnpm dev",
-  "ignoreCommand": "git diff HEAD^ HEAD --quiet .",
   "functions": {
     "src/app/api/**/*": {
       "maxDuration": 30
     }
-  },
-  "env": {
-    "SKIP_TYPE_CHECK": "true",
-    "NODE_ENV": "production"
   }
 }
