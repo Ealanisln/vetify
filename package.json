@@ -13,6 +13,8 @@
     "vercel-build-fallback": "rm -rf .next && node scripts/create-vercel-tsconfig-fallback.mjs && prisma generate && SKIP_TYPE_CHECK=true next build --no-lint",
     "start": "next start",
     "lint": "next lint",
+    "css:verify": "node scripts/css-verification.mjs",
+    "css:check": "pnpm build && pnpm css:verify",
     "test": "node scripts/env-config.mjs localhost && jest",
     "test:watch": "node scripts/env-config.mjs localhost && jest --watch",
     "test:unit": "node scripts/env-config.mjs localhost && jest __tests__/unit",
