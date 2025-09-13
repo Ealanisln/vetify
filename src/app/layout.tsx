@@ -4,7 +4,7 @@ import Script from 'next/script'
 
 // Force dynamic rendering for all pages to prevent static generation issues with Kinde Auth
 export const dynamic = 'force-dynamic'
-import './globals.css'
+import '@/app/globals.css'
 import { Providers } from './providers'
 import type { Viewport } from 'next'
 import { Metadata } from 'next'
