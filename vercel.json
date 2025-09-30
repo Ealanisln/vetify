@@ -1,7 +1,4 @@
 {
-  "framework": "nextjs",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm build",
   "functions": {
     "src/app/api/**/*": {
       "maxDuration": 30
@@ -9,17 +6,27 @@
   },
   "headers": [
     {
-      "source": "/_next/static/css/(.*)",
+      "source": "/api/webhooks/(.*)",
       "headers": [
         {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
         },
         {
-          "key": "Content-Type",
-          "value": "text/css; charset=utf-8"
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
         }
       ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/webhooks/(.*)",
+      "destination": "/api/webhooks/$1"
     }
   ]
 }

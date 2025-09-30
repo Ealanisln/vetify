@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Instrumentation is now enabled by default in Next.js 15+
@@ -17,44 +19,9 @@ const nextConfig = {
     '!require-in-the-middle',
   ],
 
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        'expo-secure-store': false,
-      };
-    }
-
-    // Ignore warnings from Kinde packages and OpenTelemetry/Sentry
-    config.ignoreWarnings = [
-      {
-        module: /node_modules\/@kinde/,
-      },
-      {
-        message: /Can't resolve 'expo-secure-store'/,
-      },
-      {
-        message: /Critical dependency: the request of a dependency is an expression/,
-      },
-      {
-        message: /import-in-the-middle can't be external/,
-      },
-      {
-        message: /require-in-the-middle can't be external/,
-      },
-      {
-        module: /node_modules\/@opentelemetry/,
-      },
-      {
-        module: /node_modules\/@sentry/,
-      },
-    ];
-    return config;
-  },
-
   // Add transpilation for ESM packages that need bundling
   transpilePackages: [
-    'jose',
+    'jose', 
     '@kinde-oss/kinde-auth-nextjs',
     // Add OpenTelemetry and Sentry packages for proper bundling
     '@opentelemetry/instrumentation',
@@ -126,6 +93,41 @@ const nextConfig = {
     return headers;
   },
 
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'expo-secure-store': false,
+      };
+    }
+    
+    // Ignore warnings from Kinde packages and OpenTelemetry/Sentry
+    config.ignoreWarnings = [
+      {
+        module: /node_modules\/@kinde/,
+      },
+      {
+        message: /Can't resolve 'expo-secure-store'/,
+      },
+      {
+        message: /Critical dependency: the request of a dependency is an expression/,
+      },
+      {
+        message: /import-in-the-middle can't be external/,
+      },
+      {
+        message: /require-in-the-middle can't be external/,
+      },
+      {
+        module: /node_modules\/@opentelemetry/,
+      },
+      {
+        module: /node_modules\/@sentry/,
+      },
+    ];
+    return config;
+  },
+
   // Production optimizations
   ...(process.env.NODE_ENV === 'production' && {
     compress: true,
@@ -134,4 +136,13 @@ const nextConfig = {
   }),
 };
 
-export default nextConfig;
+// Sentry configuration
+const sentryWebpackPluginOptions = {
+  silent: process.env.NODE_ENV === 'production',
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+};
+
+// Export with Sentry wrapper
+export default withSentryConfig(nextConfig, sentryWebpackPluginOptions);

@@ -15,6 +15,7 @@
     "lint": "next lint",
     "css:verify": "node scripts/css-verification.mjs",
     "css:check": "pnpm build && pnpm css:verify",
+    "assets:copy": "node scripts/copy-assets.mjs",
     "test": "node scripts/env-config.mjs localhost && jest",
     "test:watch": "node scripts/env-config.mjs localhost && jest --watch",
     "test:unit": "node scripts/env-config.mjs localhost && jest __tests__/unit",
