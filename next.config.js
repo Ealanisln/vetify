@@ -1,5 +1,3 @@
-import { withSentryConfig } from '@sentry/nextjs';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Instrumentation is now enabled by default in Next.js 15+
@@ -136,13 +134,4 @@ const nextConfig = {
   }),
 };
 
-// Sentry configuration
-const sentryWebpackPluginOptions = {
-  silent: process.env.NODE_ENV === 'production',
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-};
-
-// Export with Sentry wrapper
-export default withSentryConfig(nextConfig, sentryWebpackPluginOptions);
+export default nextConfig;
