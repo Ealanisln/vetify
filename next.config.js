@@ -1,9 +1,4 @@
 import { withSentryConfig } from '@sentry/nextjs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -17,16 +12,6 @@ const nextConfig = {
     // Skip TypeScript errors only on Vercel to avoid tsconfig.json issues
     ignoreBuildErrors: process.env.VERCEL ? true : false,
   },
-  // Experimental features for better module resolution in Vercel
-  experimental: {
-    externalDir: true,
-    ...(process.env.VERCEL && { typedRoutes: false })
-  },
-  
-  // Output file tracing for better Vercel deployment
-  outputFileTracingIncludes: {
-    '/': ['./src/**/*']
-  },
   // Configure external packages for serverless environment
   serverExternalPackages: [
     // Exclude OpenTelemetry packages from being externalized to fix warnings
@@ -34,19 +19,50 @@ const nextConfig = {
     '!require-in-the-middle',
   ],
 
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        'expo-secure-store': false,
+      };
+    }
+
+    // Ignore warnings from Kinde packages and OpenTelemetry/Sentry
+    config.ignoreWarnings = [
+      {
+        module: /node_modules\/@kinde/,
+      },
+      {
+        message: /Can't resolve 'expo-secure-store'/,
+      },
+      {
+        message: /Critical dependency: the request of a dependency is an expression/,
+      },
+      {
+        message: /import-in-the-middle can't be external/,
+      },
+      {
+        message: /require-in-the-middle can't be external/,
+      },
+      {
+        module: /node_modules\/@opentelemetry/,
+      },
+      {
+        module: /node_modules\/@sentry/,
+      },
+    ];
+    return config;
+  },
+
   // Add transpilation for ESM packages that need bundling
   transpilePackages: [
-    'jose', 
+    'jose',
     '@kinde-oss/kinde-auth-nextjs',
     // Add OpenTelemetry and Sentry packages for proper bundling
     '@opentelemetry/instrumentation',
     '@sentry/nextjs',
     'import-in-the-middle',
     'require-in-the-middle',
-    // Add path alias packages for transpilation
-    '@/components',
-    '@/lib',
-    '@/utils'
   ],
   
   // Configure allowed dev origins for local development
@@ -109,103 +125,7 @@ const nextConfig = {
       ],
     });
 
-    // CSS optimization headers for Vercel
-    headers.push({
-      source: '/_next/static/css/(.*)',
-      headers: [
-        {
-          key: 'Cache-Control',
-          value: 'public, max-age=31536000, immutable',
-        },
-        {
-          key: 'Content-Type',
-          value: 'text/css; charset=utf-8',
-        },
-      ],
-    });
-
     return headers;
-  },
-
-  webpack: (config, { isServer, dev }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        'expo-secure-store': false,
-      };
-    }
-    
-    // Disable symlinks for better Vercel compatibility
-    config.resolve.symlinks = false;
-    
-    // Force absolute path resolution
-    const srcPath = path.resolve(__dirname, './src');
-    
-    // Add explicit alias resolution for TypeScript paths
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': srcPath,
-      '@/components': path.join(srcPath, 'components'),
-      '@/lib': path.join(srcPath, 'lib'),
-      '@/types': path.join(srcPath, 'types'),
-      '@/utils': path.join(srcPath, 'utils'),
-      '@/hooks': path.join(srcPath, 'hooks'),
-    };
-    
-    // Ensure proper module resolution with absolute paths
-    config.resolve.modules = [
-      srcPath,
-      path.resolve(__dirname, './node_modules'),
-      'node_modules'
-    ];
-    
-    // Preserve existing extensions (don't override them)
-    config.resolve.extensions = [
-      '.tsx', '.ts', '.jsx', '.js', '.json', '.mjs',
-      ...config.resolve.extensions
-    ];
-    
-    // Add debug logging in non-production
-    if (dev || process.env.NODE_ENV !== 'production') {
-      console.log('Webpack aliases:', config.resolve.alias);
-      console.log('Webpack modules:', config.resolve.modules);
-      console.log('Source path:', srcPath);
-    }
-    
-    // Ignore warnings from instrumentation conflicts - enhanced for Next.js 15
-    config.ignoreWarnings = [
-      {
-        module: /node_modules\/@kinde/,
-      },
-      {
-        message: /Can't resolve 'expo-secure-store'/,
-      },
-      {
-        message: /Critical dependency: the request of a dependency is an expression/,
-      },
-      {
-        message: /import-in-the-middle can't be external/,
-      },
-      {
-        message: /require-in-the-middle can't be external/,
-      },
-      {
-        module: /node_modules\/@opentelemetry/,
-      },
-      {
-        module: /node_modules\/@sentry/,
-      },
-      {
-        module: /node_modules\/@prisma\/instrumentation/,
-      },
-      {
-        message: /Critical dependency.*@prisma\/instrumentation/,
-      },
-      {
-        message: /Critical dependency.*@opentelemetry\/instrumentation/,
-      },
-    ];
-    return config;
   },
 
   // Production optimizations
