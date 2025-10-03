@@ -7,13 +7,6 @@
     color-scheme: light dark;
   }
 
-  /* Optimize font rendering for crisp text on all displays */
-  html {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
-  }
-
   /* Ensure smooth theme transitions */
   * {
     transition-property: background-color, border-color, color, fill, stroke;
