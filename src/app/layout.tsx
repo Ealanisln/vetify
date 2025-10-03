@@ -13,7 +13,11 @@ import { ConditionalLayout } from '../components/ConditionalLayout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -105,8 +109,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es" suppressHydrationWarning>
-      <body className={inter.className}>
+    <html lang="es" suppressHydrationWarning className={inter.variable}>
+      <body className="font-sans">
         <ErrorBoundary>
           <AuthProvider>
             <Providers>

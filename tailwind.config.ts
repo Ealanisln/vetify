@@ -116,9 +116,9 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Inter var", "Inter", ...fontFamily.sans],
+        sans: ["var(--font-inter)", "Inter var", "Inter", ...fontFamily.sans],
         display: ["Quicksand", ...fontFamily.sans],
-        body: ["DM Sans", ...fontFamily.sans],
+        body: ["var(--font-inter)", "Inter var", "Inter", "DM Sans", ...fontFamily.sans],
       },
       borderRadius: {
         "4xl": "2rem",
