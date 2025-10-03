@@ -419,15 +419,16 @@ export default function Nav() {
       </nav>
 
       {/* Mobile Menu Overlay */}
-      <div
-        className="fixed inset-0 z-50"
-        aria-hidden={!mobileMenuOpen}
-      >
-        {/* Backdrop */}
+      {mobileMenuOpen && (
         <div
-          className="absolute inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm"
-          onClick={closeMobileMenu}
-        />
+          className="fixed inset-0 z-50"
+          aria-hidden={!mobileMenuOpen}
+        >
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/20 dark:bg-black/40 backdrop-blur-sm"
+            onClick={closeMobileMenu}
+          />
 
         {/* Mobile Navigation Panel */}
         <div
@@ -480,6 +481,7 @@ export default function Nav() {
           </div>
         </div>
       </div>
+      )}
     </>
   );
 } 
