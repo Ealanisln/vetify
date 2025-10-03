@@ -136,13 +136,18 @@ const nextConfig = {
   }),
 };
 
-// Sentry configuration
+// Sentry configuration (only applied when not on Vercel)
 const sentryWebpackPluginOptions = {
-  silent: process.env.NODE_ENV === 'production',
+  silent: true,
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
+  // Disable Sentry webpack plugin on Vercel to prevent CSS issues
+  disableServerWebpackPlugin: !!process.env.VERCEL,
+  disableClientWebpackPlugin: !!process.env.VERCEL,
 };
 
-// Export with Sentry wrapper
-export default withSentryConfig(nextConfig, sentryWebpackPluginOptions);
+// Export with Sentry wrapper disabled on Vercel to prevent CSS issues
+export default process.env.VERCEL
+  ? nextConfig  // Use plain config on Vercel to avoid CSS issues
+  : withSentryConfig(nextConfig, sentryWebpackPluginOptions);
