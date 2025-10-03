@@ -15,7 +15,6 @@ import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const inter = Inter({
   subsets: ['latin'],
-  variable: '--font-inter',
   display: 'swap',
 })
 
@@ -109,8 +108,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es" suppressHydrationWarning className={inter.variable}>
-      <body className="font-sans">
+    <html lang="es" suppressHydrationWarning>
+      <body className={inter.className}>
         <ErrorBoundary>
           <AuthProvider>
             <Providers>
