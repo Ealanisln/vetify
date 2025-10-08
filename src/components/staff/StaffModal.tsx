@@ -159,12 +159,12 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold">{getModalTitle()}</h2>
+      <div className="bg-card rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-border">
+        <div className="flex items-center justify-between p-6 border-b border-border">
+          <h2 className="text-xl font-semibold text-foreground">{getModalTitle()}</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="text-muted-foreground hover:text-foreground transition-colors"
           >
             <XMarkIcon className="h-6 w-6" />
           </button>
@@ -176,48 +176,48 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
               {/* View Mode - Staff Details */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Nombre completo
                   </label>
-                  <div className="text-lg font-semibold">{staff?.name}</div>
+                  <div className="text-lg font-semibold text-foreground">{staff?.name}</div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Posición
                   </label>
-                  <div className="text-lg">{staff?.position}</div>
+                  <div className="text-lg text-foreground">{staff?.position}</div>
                 </div>
 
                 {staff?.email && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                       Email
                     </label>
-                    <div>{staff.email}</div>
+                    <div className="text-foreground">{staff.email}</div>
                   </div>
                 )}
 
                 {staff?.phone && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                       Teléfono
                     </label>
-                    <div>{staff.phone}</div>
+                    <div className="text-foreground">{staff.phone}</div>
                   </div>
                 )}
 
                 {staff?.licenseNumber && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                       Número de Licencia
                     </label>
-                    <div>{staff.licenseNumber}</div>
+                    <div className="text-foreground">{staff.licenseNumber}</div>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Estado
                   </label>
                   <Badge variant={staff?.isActive ? "default" : "secondary"}>
@@ -226,48 +226,48 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Fecha de registro
                   </label>
-                  <div>{staff && format(new Date(staff.createdAt), 'd MMMM yyyy', { locale: es })}</div>
+                  <div className="text-foreground">{staff && format(new Date(staff.createdAt), 'd MMMM yyyy', { locale: es })}</div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Última actualización
                   </label>
-                  <div>{staff && format(new Date(staff.updatedAt), 'd MMMM yyyy', { locale: es })}</div>
+                  <div className="text-foreground">{staff && format(new Date(staff.updatedAt), 'd MMMM yyyy', { locale: es })}</div>
                 </div>
               </div>
 
               {/* Activity Summary */}
               {staff?._count && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                  <h3 className="text-lg font-semibold mb-4">Resumen de Actividad</h3>
+                <div className="border-t border-border pt-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">Resumen de Actividad</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                       <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {staff._count.appointments}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Citas</div>
+                      <div className="text-sm text-muted-foreground">Citas</div>
                     </div>
                     <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
                       <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                         {staff._count.medicalHistories}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Historiales</div>
+                      <div className="text-sm text-muted-foreground">Historiales</div>
                     </div>
                     <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                       <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                         {staff._count.medicalOrders}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Órdenes</div>
+                      <div className="text-sm text-muted-foreground">Órdenes</div>
                     </div>
                     <div className="text-center p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                       <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                         {staff._count.Sale}
                       </div>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">Ventas</div>
+                      <div className="text-sm text-muted-foreground">Ventas</div>
                     </div>
                   </div>
                 </div>
@@ -278,87 +278,81 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="form-label">
                     Nombre completo *
                   </label>
                   <input
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
-                      errors.name ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`form-input ${errors.name ? 'border-destructive' : ''}`}
                     placeholder="Ej: Dr. Juan Pérez"
                   />
-                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+                  {errors.name && <p className="form-error">{errors.name}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="form-label">
                     Posición *
                   </label>
                   <input
                     type="text"
                     value={formData.position}
                     onChange={(e) => handleInputChange('position', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
-                      errors.position ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`form-input ${errors.position ? 'border-destructive' : ''}`}
                     placeholder="Ej: Veterinario, Asistente, Recepcionista"
                   />
-                  {errors.position && <p className="text-red-500 text-sm mt-1">{errors.position}</p>}
+                  {errors.position && <p className="form-error">{errors.position}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="form-label">
                     Email
                   </label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 ${
-                      errors.email ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className={`form-input ${errors.email ? 'border-destructive' : ''}`}
                     placeholder="correo@ejemplo.com"
                   />
-                  {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+                  {errors.email && <p className="form-error">{errors.email}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="form-label">
                     Teléfono
                   </label>
                   <input
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                    className="form-input"
                     placeholder="555-1234567"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="form-label">
                     Número de Licencia
                   </label>
                   <input
                     type="text"
                     value={formData.licenseNumber}
                     onChange={(e) => handleInputChange('licenseNumber', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                    className="form-input"
                     placeholder="Número de cédula profesional"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="form-label">
                     Estado
                   </label>
                   <select
                     value={formData.isActive.toString()}
                     onChange={(e) => handleInputChange('isActive', e.target.value === 'true')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                    className="form-select"
                   >
                     <option value="true">Activo</option>
                     <option value="false">Inactivo</option>
@@ -366,7 +360,7 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
                 </div>
               </div>
 
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex justify-end gap-3 pt-6 border-t border-border">
                 <Button
                   type="button"
                   variant="outline"

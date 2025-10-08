@@ -1,5 +1,3 @@
-import { themeColors, responsive } from '../../utils/theme-colors';
-
 interface StatsCardProps {
   title: string;
   value: number;
@@ -18,29 +16,29 @@ export function StatsCard({ title, value, limit, icon, trend, className = "" }: 
 
   return (
     <div className={`card overflow-hidden ${className}`}>
-      <div className={`${responsive.padding.card}`}>
+      <div className="card-content">
         <div className="flex items-center">
           <div className="flex-shrink-0">
             <span className="text-xl sm:text-2xl">{icon}</span>
           </div>
           <div className="ml-3 sm:ml-5 w-0 flex-1 min-w-0">
             <dl>
-              <dt className={`text-sm font-medium ${themeColors.text.secondary} truncate`}>
+              <dt className="text-sm font-medium text-muted-foreground truncate">
                 {title}
               </dt>
               <dd className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-0">
-                <div className={`text-xl sm:text-2xl font-semibold ${themeColors.text.primary}`}>
+                <div className="text-xl sm:text-2xl font-semibold text-foreground">
                   {value.toLocaleString()}
                   {limit && (
-                    <span className={`text-xs sm:text-sm ${themeColors.text.secondary} ml-1`}>
+                    <span className="text-xs sm:text-sm text-muted-foreground ml-1">
                       / {limit.toLocaleString()}
                     </span>
                   )}
                 </div>
                 {trend && (
                   <div className={`flex items-baseline text-xs sm:text-sm font-semibold sm:ml-2 ${
-                    trend.isPositive 
-                      ? 'text-green-600 dark:text-green-400' 
+                    trend.isPositive
+                      ? 'text-green-600 dark:text-green-400'
                       : 'text-red-600 dark:text-red-400'
                   }`}>
                     <span className="mr-1">{trend.isPositive ? '↗' : '↘'}</span>
@@ -51,12 +49,12 @@ export function StatsCard({ title, value, limit, icon, trend, className = "" }: 
             </dl>
             {limit && (
               <div className="mt-3">
-                <div className={`${themeColors.background.tertiary} rounded-full h-2`}>
-                  <div 
+                <div className="bg-muted rounded-full h-2">
+                  <div
                     className={`h-2 rounded-full transition-all duration-300 ${
-                      isNearLimit 
-                        ? 'bg-yellow-500 dark:bg-yellow-400' 
-                        : 'bg-[#75a99c] dark:bg-[#7FA99B]'
+                      isNearLimit
+                        ? 'bg-yellow-500 dark:bg-yellow-400'
+                        : 'bg-primary'
                     }`}
                     style={{ width: `${Math.min(percentage, 100)}%` }}
                   />
@@ -67,7 +65,7 @@ export function StatsCard({ title, value, limit, icon, trend, className = "" }: 
                       Cerca del límite
                     </p>
                   )}
-                  <span className={`text-xs ${themeColors.text.muted} ml-auto`}>
+                  <span className="text-xs text-muted-foreground ml-auto">
                     {percentage.toFixed(0)}%
                   </span>
                 </div>

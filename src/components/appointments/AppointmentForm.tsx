@@ -244,7 +244,7 @@ export function AppointmentForm({
                 {availabilityLoading && <Loader2 className="h-4 w-4 animate-spin ml-2" />}
               </CardTitle>
               {selectedDate && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
                 </p>
               )}
@@ -253,8 +253,8 @@ export function AppointmentForm({
               {!selectedDate ? (
                 <div className="flex items-center justify-center py-8 text-center">
                   <div>
-                    <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-sm text-gray-500">Selecciona una fecha para ver los horarios disponibles</p>
+                    <Calendar className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Selecciona una fecha para ver los horarios disponibles</p>
                   </div>
                 </div>
               ) : availabilityLoading ? (
@@ -267,10 +267,10 @@ export function AppointmentForm({
                   {availability.availableSlots.filter(slot => slot.period === 'morning').length > 0 && (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
-                        <div className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                        <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
                           🌅 Mañana
                         </div>
-                        <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
                           {availability.availableSlots.filter(slot => slot.period === 'morning').length} disponibles
                         </div>
                       </div>
@@ -297,10 +297,10 @@ export function AppointmentForm({
                   {availability.availableSlots.filter(slot => slot.period === 'afternoon').length > 0 && (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2">
-                        <div className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                        <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1">
                           🌆 Tarde
                         </div>
-                        <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
                           {availability.availableSlots.filter(slot => slot.period === 'afternoon').length} disponibles
                         </div>
                       </div>
@@ -324,20 +324,20 @@ export function AppointmentForm({
                   )}
                   
                   {/* Summary stats */}
-                  <div className="text-xs text-gray-500 pt-3 border-t border-gray-100 bg-gray-50 -mx-3 px-3 py-2 rounded-b-lg">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 pt-3 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 -mx-3 px-3 py-2 rounded-b-lg">
                     <div className="flex items-center justify-between">
                       <span>📅 {availability.availableCount} espacios disponibles</span>
-                      <span className="text-gray-400">de {availability.totalSlots} total</span>
+                      <span className="text-gray-400 dark:text-gray-500">de {availability.totalSlots} total</span>
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="text-center py-8 px-4">
                   <AlertCircle className="h-12 w-12 text-amber-500 mx-auto mb-3" />
-                  <p className="text-sm text-gray-600 mb-2">No hay horarios disponibles para esta fecha</p>
-                  <p className="text-xs text-gray-500">Intenta seleccionar otra fecha o revisa la configuración de horarios</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">No hay horarios disponibles para esta fecha</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Intenta seleccionar otra fecha o revisa la configuración de horarios</p>
                   {availability && (
-                    <div className="mt-3 text-xs text-gray-400">
+                    <div className="mt-3 text-xs text-gray-400 dark:text-gray-500">
                       <p>• Horarios configurados: {availability.totalSlots} espacios</p>
                       <p>• Ocupados: {availability.occupiedCount}</p>
                     </div>
@@ -351,15 +351,15 @@ export function AppointmentForm({
 
       {/* Selected DateTime Display */}
       {watch('dateTime') && (
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700">
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
               <div>
-                <p className="font-medium text-green-800">
+                <p className="font-medium text-green-800 dark:text-green-200">
                   Fecha y hora seleccionada:
                 </p>
-                <p className="text-sm text-green-700">
+                <p className="text-sm text-green-700 dark:text-green-300">
                   {format(watch('dateTime'), 'PPP \'a las\' HH:mm', { locale: es })}
                 </p>
               </div>

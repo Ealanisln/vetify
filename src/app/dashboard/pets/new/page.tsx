@@ -33,13 +33,13 @@ export default async function AddPetPage() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Agregar Nueva Mascota</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Agregar Nueva Mascota</h1>
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Registra una nueva mascota en el sistema
         </p>
       </div>
-      
-      <div className="bg-white shadow rounded-lg">
+
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <AddPetForm />
         </div>

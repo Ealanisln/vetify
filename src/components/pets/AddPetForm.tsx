@@ -203,7 +203,7 @@ export function AddPetForm() {
                   required
                   value={formData.customerId}
                   onChange={handleChange}
-                  className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 >
                   <option value="">Selecciona un cliente</option>
                   {customers.map((customer) => (
@@ -213,15 +213,15 @@ export function AddPetForm() {
                   ))}
                 </select>
               )}
-              
+
               {selectedCustomer && (
-                <div className="mt-2 p-3 bg-white rounded border border-blue-200">
-                  <p className="text-sm font-medium text-gray-900">{selectedCustomer.name}</p>
+                <div className="mt-2 p-3 bg-white dark:bg-gray-700 rounded border border-blue-200 dark:border-blue-700">
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{selectedCustomer.name}</p>
                   {selectedCustomer.phone && (
-                    <p className="text-sm text-gray-600">📞 {selectedCustomer.phone}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">📞 {selectedCustomer.phone}</p>
                   )}
                   {selectedCustomer.email && (
-                    <p className="text-sm text-gray-600">✉️ {selectedCustomer.email}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">✉️ {selectedCustomer.email}</p>
                   )}
                 </div>
               )}
@@ -229,7 +229,7 @@ export function AddPetForm() {
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Nombre Completo *
                 </label>
                 <input
@@ -238,13 +238,13 @@ export function AddPetForm() {
                   required
                   value={newCustomerData.name}
                   onChange={handleNewCustomerChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   placeholder="Ej: Juan Pérez"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Teléfono
                 </label>
                 <input
@@ -252,13 +252,13 @@ export function AddPetForm() {
                   name="phone"
                   value={newCustomerData.phone}
                   onChange={handleNewCustomerChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   placeholder="Ej: +52 55 1234 5678"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Email
                 </label>
                 <input
@@ -266,20 +266,20 @@ export function AddPetForm() {
                   name="email"
                   value={newCustomerData.email}
                   onChange={handleNewCustomerChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   placeholder="Ej: juan@email.com"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Método de Contacto Preferido
                 </label>
                 <select
                   name="preferredContactMethod"
                   value={newCustomerData.preferredContactMethod}
                   onChange={handleNewCustomerChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 >
                   <option value="phone">Teléfono</option>
                   <option value="email">Email</option>
@@ -288,7 +288,7 @@ export function AddPetForm() {
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Dirección
                 </label>
                 <textarea
@@ -296,7 +296,7 @@ export function AddPetForm() {
                   rows={2}
                   value={newCustomerData.address}
                   onChange={handleNewCustomerChange}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   placeholder="Dirección completa"
                 />
               </div>
@@ -306,14 +306,14 @@ export function AddPetForm() {
       </div>
 
       {/* Sección de Mascota */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <h3 className="text-lg font-medium text-green-900 mb-4">
+      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+        <h3 className="text-lg font-medium text-green-900 dark:text-green-100 mb-4">
           🐾 Información de la Mascota
         </h3>
         
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Nombre *
             </label>
             <input
@@ -322,20 +322,20 @@ export function AddPetForm() {
               required
               value={formData.name}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+              className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-green-500 focus:ring-green-500"
               placeholder="Ej: Firulais"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Especie *
             </label>
             <select
               name="species"
               value={formData.species}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+              className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-green-500 focus:ring-green-500"
             >
               <option value="dog">Perro</option>
               <option value="cat">Gato</option>
@@ -346,7 +346,7 @@ export function AddPetForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Raza
             </label>
             <input
@@ -354,20 +354,20 @@ export function AddPetForm() {
               name="breed"
               value={formData.breed}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+              className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-green-500 focus:ring-green-500"
               placeholder="Ej: Labrador"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Género *
             </label>
             <select
               name="gender"
               value={formData.gender}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+              className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-green-500 focus:ring-green-500"
             >
               <option value="male">Macho</option>
               <option value="female">Hembra</option>
@@ -375,7 +375,7 @@ export function AddPetForm() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Fecha de nacimiento *
             </label>
             <input
@@ -384,12 +384,12 @@ export function AddPetForm() {
               required
               value={formData.dateOfBirth}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+              className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-green-500 focus:ring-green-500"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Peso
             </label>
             <div className="mt-1 flex rounded-md shadow-sm">
@@ -400,14 +400,14 @@ export function AddPetForm() {
                 min="0"
                 value={formData.weight}
                 onChange={handleChange}
-                className="block w-full rounded-l-md border-gray-300 focus:border-green-500 focus:ring-green-500"
+                className="block w-full rounded-l-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-green-500 focus:ring-green-500"
                 placeholder="0.0"
               />
               <select
                 name="weightUnit"
                 value={formData.weightUnit}
                 onChange={handleChange}
-                className="rounded-r-md border-l-0 border-gray-300 bg-gray-50 text-gray-500 focus:border-green-500 focus:ring-green-500"
+                className="rounded-r-md border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-300 focus:border-green-500 focus:ring-green-500"
               >
                 <option value="kg">kg</option>
                 <option value="lbs">lbs</option>
@@ -416,7 +416,7 @@ export function AddPetForm() {
           </div>
 
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Número de microchip
             </label>
             <input
@@ -424,7 +424,7 @@ export function AddPetForm() {
               name="microchipNumber"
               value={formData.microchipNumber}
               onChange={handleChange}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+              className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-green-500 focus:ring-green-500"
               placeholder="Ej: 123456789012345"
             />
           </div>
@@ -436,9 +436,9 @@ export function AddPetForm() {
                 name="isNeutered"
                 checked={formData.isNeutered}
                 onChange={handleChange}
-                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 dark:border-gray-600 rounded"
               />
-              <label className="ml-2 block text-sm text-gray-900">
+              <label className="ml-2 block text-sm text-gray-900 dark:text-gray-100">
                 Está esterilizado/castrado
               </label>
             </div>
@@ -447,30 +447,30 @@ export function AddPetForm() {
       </div>
 
       {/* WhatsApp Integration Notice */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
         <div className="flex items-start">
-          <span className="text-green-500 text-xl mr-3">💬</span>
+          <span className="text-green-500 dark:text-green-400 text-xl mr-3">💬</span>
           <div className="flex-1">
-            <h4 className="text-sm font-medium text-green-900">
+            <h4 className="text-sm font-medium text-green-900 dark:text-green-100">
               WhatsApp Automático Incluido
             </h4>
-            <p className="text-sm text-green-700 mt-1">
+            <p className="text-sm text-green-700 dark:text-green-300 mt-1">
               Al registrar la mascota, se enviará automáticamente un mensaje de bienvenida al dueño.
             </p>
             <button
               type="button"
               onClick={() => setShowWhatsAppPreview(!showWhatsAppPreview)}
-              className="text-xs text-green-600 hover:text-green-800 mt-2 underline"
+              className="text-xs text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 mt-2 underline"
             >
               {showWhatsAppPreview ? 'Ocultar' : 'Ver'} vista previa del mensaje
             </button>
           </div>
         </div>
-        
+
         {showWhatsAppPreview && (
-          <div className="mt-4 p-3 bg-white rounded border border-green-300">
-            <div className="text-xs text-gray-500 mb-2">Vista previa del WhatsApp:</div>
-            <div className="text-sm bg-green-100 p-3 rounded-lg font-mono whitespace-pre-line">
+          <div className="mt-4 p-3 bg-white dark:bg-gray-700 rounded border border-green-300 dark:border-green-600">
+            <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Vista previa del WhatsApp:</div>
+            <div className="text-sm bg-green-100 dark:bg-green-900/40 p-3 rounded-lg font-mono whitespace-pre-line">
               🎉 ¡Bienvenido a Tu Clínica!
 
               {getSpeciesEmoji(formData.species)} <strong>{formData.name || '[Nombre]'}</strong> ya está registrado en nuestro sistema Vetify.
@@ -491,7 +491,7 @@ export function AddPetForm() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
         >
           Cancelar
         </button>

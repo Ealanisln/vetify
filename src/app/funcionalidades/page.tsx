@@ -75,89 +75,91 @@ const DetailedFeature: React.FC<DetailedFeatureProps> = ({
 
 const featuresData = [
   {
-    title: "Magic Vaccination Assistant",
+    title: "Gestión Completa de Citas",
     description: `
-      <p><strong>El gancho: "Nunca más olvides una vacuna"</strong></p>
-      <p>Sistema inteligente que automatiza completamente el seguimiento de vacunaciones:</p>
+      <p><strong>Organiza y controla todas las citas de tu clínica</strong></p>
+      <p>Sistema completo para programar y gestionar las citas de tus pacientes:</p>
       <ul class="list-disc list-inside mt-3 space-y-2">
-        <li>Revisa automáticamente mascotas que necesitan vacuna en los próximos 7 días</li>
-        <li>Envía WhatsApp automático con emoji de mascota personalizado</li>
-        <li>Crea evento automático en el calendario del veterinario</li>
-        <li>Pre-llena el formulario de consulta con datos del paciente</li>
-        <li>Envía seguimiento automático 24 horas antes de la cita</li>
+        <li>Calendario visual con todas las citas programadas</li>
+        <li>Múltiples estados: programada, confirmada, en progreso, completada</li>
+        <li>Asignación de veterinarios y personal a cada cita</li>
+        <li>Duración personalizable según tipo de consulta</li>
+        <li>Notas y razón de consulta para cada cita</li>
       </ul>
     `,
     icon: <MessageCircle className="h-8 w-8" />,
     image: "/features/magic-vaccination.png",
-    wowFactor: "90% reducción en vacunas olvidadas",
+    wowFactor: "Agenda ilimitada con calendario integrado",
   },
   {
-    title: "Emergency Response Protocol",
+    title: "Historiales Médicos Completos",
     description: `
-      <p><strong>El gancho: "Respuesta automática en emergencias"</strong></p>
-      <p>Protocolo que se activa automáticamente con la palabra 'EMERGENCIA' en cualquier comunicación:</p>
+      <p><strong>Registro detallado de la salud de cada mascota</strong></p>
+      <p>Mantén un historial médico completo de cada paciente:</p>
       <ul class="list-disc list-inside mt-3 space-y-2">
-        <li>Alerta inmediata a todos los veterinarios disponibles</li>
-        <li>Envía automáticamente instrucciones de ubicación al dueño</li>
-        <li>Abre slot de emergencia en la agenda instantáneamente</li>
-        <li>Prepara checklist de emergencia personalizado</li>
-        <li>Inicia secuencia de seguimiento automático post-emergencia</li>
+        <li>Registro de consultas con diagnóstico y tratamiento</li>
+        <li>Control de vacunaciones por etapa (cachorro, adulto, senior)</li>
+        <li>Seguimiento de desparasitaciones internas y externas</li>
+        <li>Historial de medicamentos y prescripciones detallado</li>
+        <li>Calendario de próximos tratamientos programados</li>
       </ul>
     `,
     icon: <Shield className="h-8 w-8" />,
     image: "/features/emergency-response.png",
     reverse: true,
-    wowFactor: "Respuesta menor a 2 minutos",
+    wowFactor: "Historial completo de cada paciente",
   },
   {
-    title: "Smart Inventory Guardian",
+    title: "Control de Inventario y Ventas",
     description: `
-      <p><strong>El gancho: "Nunca te quedes sin medicamentos críticos"</strong></p>
-      <p>IA que predice necesidades de inventario y automatiza todo el proceso de compras:</p>
+      <p><strong>Gestiona tu inventario y registra todas las ventas</strong></p>
+      <p>Control completo de medicamentos, productos y ventas:</p>
       <ul class="list-disc list-inside mt-3 space-y-2">
-        <li>Analiza patrones de uso con inteligencia artificial</li>
-        <li>Genera automáticamente órdenes de compra optimizadas</li>
-        <li>Encuentra los mejores precios entre proveedores</li>
-        <li>Programa entregas automáticas según demanda</li>
-        <li>Notifica al equipo sobre stock entrante y disponibilidad</li>
+        <li>Inventario de medicamentos, vacunas y productos veterinarios</li>
+        <li>Alertas de stock mínimo y productos próximos a vencer</li>
+        <li>Registro de ventas con múltiples métodos de pago</li>
+        <li>Caja registradora con apertura y cierre de turno</li>
+        <li>Historial completo de movimientos de inventario</li>
       </ul>
     `,
     icon: <Package className="h-8 w-8" />,
     image: "/features/smart-inventory.png",
-    wowFactor: "30% reducción de costos + Zero stockouts",
+    wowFactor: "Control completo de stock y ventas",
   },
   {
-    title: "Recordatorios Inteligentes",
+    title: "Sistema de Recordatorios",
     description: `
-      <p>Comunicación proactiva que mantiene a tus clientes comprometidos y aumenta la retención:</p>
+      <p><strong>Gestiona recordatorios para mantener a tus clientes informados</strong></p>
+      <p>Crea y administra recordatorios para citas, vacunas y tratamientos:</p>
       <ul class="list-disc list-inside mt-3 space-y-2">
-        <li>WhatsApp automático para citas, vacunas y medicamentos</li>
-        <li>Personalización basada en el historial de cada mascota</li>
-        <li>Seguimiento automático de tratamientos en curso</li>
-        <li>Recordatorios de servicios preventivos por edad/raza</li>
-        <li>Comunicación post-consulta para fidelización</li>
+        <li>Recordatorios de citas programadas</li>
+        <li>Seguimiento de vacunas y tratamientos pendientes</li>
+        <li>Recordatorios personalizados por mascota</li>
+        <li>Historial de recordatorios enviados</li>
+        <li>Estados de recordatorios: pendiente, enviado, completado</li>
       </ul>
     `,
     icon: <Clock className="h-8 w-8" />,
     image: "/features/recordatorios-inteligentes.png",
     reverse: true,
-    wowFactor: "40% aumento en retención de clientes",
+    wowFactor: "Seguimiento completo de tratamientos",
   },
   {
-    title: "Análisis Predictivo",
+    title: "Gestión de Clientes y Mascotas",
     description: `
-      <p>Insights basados en datos para tomar decisiones inteligentes y hacer crecer tu clínica:</p>
+      <p><strong>Base de datos completa de tus clientes y sus mascotas</strong></p>
+      <p>Administra toda la información de clientes y pacientes:</p>
       <ul class="list-disc list-inside mt-3 space-y-2">
-        <li>Predicción de demanda por servicios y temporadas</li>
-        <li>Análisis de rentabilidad por cliente y servicio</li>
-        <li>Identificación de oportunidades de crecimiento</li>
-        <li>Alertas de patrones inusuales en la clínica</li>
-        <li>Reportes automáticos para toma de decisiones</li>
+        <li>Registro completo de clientes con datos de contacto</li>
+        <li>Fichas detalladas de cada mascota con raza, edad y peso</li>
+        <li>Historial de consultas y tratamientos por mascota</li>
+        <li>Búsqueda rápida de clientes y mascotas</li>
+        <li>Notas y preferencias de contacto por cliente</li>
       </ul>
     `,
     icon: <TrendingUp className="h-8 w-8" />,
     image: "/features/analisis-predictivo.png",
-    wowFactor: "Decisiones basadas en datos reales",
+    wowFactor: "Base de datos completa y organizada",
   },
 ];
 
@@ -189,14 +191,14 @@ const FuncionalidadesPage: React.FC = () => {
           <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="inline-flex items-center px-4 py-2 bg-vetify-accent-50 dark:bg-vetify-accent-900/30 rounded-full mb-6">
               <Zap className="h-4 w-4 text-vetify-accent-600 dark:text-vetify-accent-300 mr-2" />
-              <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">Automatización inteligente para veterinarios</span>
+              <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">Sistema completo de gestión veterinaria</span>
             </div>
-            
+
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white mb-6">
-              El CRM que <span className="text-vetify-accent-500 dark:text-vetify-accent-300">automatiza</span> tu clínica veterinaria
+              El CRM <span className="text-vetify-accent-500 dark:text-vetify-accent-300">completo</span> para tu clínica veterinaria
             </h1>
             <p className="mt-4 text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              <strong>Reduce 5 horas de trabajo manual por semana.</strong> Workflows inteligentes que aumentan tus ingresos 30% con recordatorios automáticos.
+              <strong>Gestiona toda tu clínica en un solo lugar.</strong> Citas, historiales médicos, inventario, ventas y mucho más en una plataforma profesional.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
@@ -221,16 +223,16 @@ const FuncionalidadesPage: React.FC = () => {
             <div className="bg-gradient-to-r from-vetify-primary-50 to-vetify-accent-50 dark:from-vetify-primary-900/20 dark:to-vetify-accent-900/20 rounded-2xl p-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
                 <div>
-                  <div className="text-3xl font-bold text-vetify-primary-600 dark:text-vetify-primary-400 mb-2">5 horas</div>
-                  <p className="text-gray-600 dark:text-gray-300">menos trabajo manual por semana</p>
+                  <div className="text-3xl font-bold text-vetify-primary-600 dark:text-vetify-primary-400 mb-2">Todo en uno</div>
+                  <p className="text-gray-600 dark:text-gray-300">Gestión completa de tu clínica</p>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-vetify-accent-600 dark:text-vetify-accent-400 mb-2">30%</div>
-                  <p className="text-gray-600 dark:text-gray-300">aumento en ingresos promedio</p>
+                  <div className="text-3xl font-bold text-vetify-accent-600 dark:text-vetify-accent-400 mb-2">Multi-clínica</div>
+                  <p className="text-gray-600 dark:text-gray-300">Múltiples sucursales en una cuenta</p>
                 </div>
                 <div>
-                  <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">15 min</div>
-                  <p className="text-gray-600 dark:text-gray-300">setup completo sin técnicos</p>
+                  <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">30 días gratis</div>
+                  <p className="text-gray-600 dark:text-gray-300">Prueba sin compromiso</p>
                 </div>
               </div>
             </div>
@@ -245,10 +247,10 @@ const FuncionalidadesPage: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl mx-auto text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                Workflows de <span className="text-vetify-accent-500 dark:text-vetify-accent-300">máximo impacto</span>
+                Funcionalidades <span className="text-vetify-accent-500 dark:text-vetify-accent-300">completas</span>
               </h2>
               <p className="text-lg text-gray-600 dark:text-gray-300">
-                Cada workflow ha sido diseñado para automatizar las tareas más críticas de tu clínica veterinaria
+                Todo lo que necesitas para administrar tu clínica veterinaria de manera profesional
               </p>
             </div>
 
@@ -269,13 +271,13 @@ const FuncionalidadesPage: React.FC = () => {
             <div className="mt-16 text-center">
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-8 shadow-md">
                 <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-                  ¿Listo para automatizar tu clínica?
+                  ¿Listo para organizar tu clínica?
                 </h3>
                 <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-                  Comienza con 30 días gratis. Setup en 15 minutos.
+                  Comienza con 30 días gratis. Sin tarjeta de crédito.
                 </p>
-                <Link 
-                  href="/registro" 
+                <Link
+                  href="/registro"
                   className="inline-flex items-center px-6 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 dark:bg-vetify-accent-600 dark:hover:bg-vetify-accent-700 rounded-xl text-white font-medium transition-all"
                 >
                   Probar 30 días gratis <Zap className="ml-2 h-4 w-4" />

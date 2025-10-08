@@ -163,51 +163,51 @@ export default function StaffDetailClient({ initialStaff }: StaffDetailClientPro
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Nombre completo
                   </label>
-                  <div className="text-lg font-semibold">{staff.name}</div>
+                  <div className="text-lg font-semibold text-foreground">{staff.name}</div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Posición
                   </label>
-                  <div className="text-lg">{staff.position}</div>
+                  <div className="text-lg text-foreground">{staff.position}</div>
                 </div>
 
                 {staff.email && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                       Email
                     </label>
-                    <div>{staff.email}</div>
+                    <div className="text-foreground">{staff.email}</div>
                   </div>
                 )}
 
                 {staff.phone && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                       Teléfono
                     </label>
-                    <div>{staff.phone}</div>
+                    <div className="text-foreground">{staff.phone}</div>
                   </div>
                 )}
 
                 {staff.licenseNumber && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="block text-sm font-medium text-muted-foreground mb-1">
                       Número de licencia
                     </label>
-                    <div>{staff.licenseNumber}</div>
+                    <div className="text-foreground">{staff.licenseNumber}</div>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Fecha de ingreso
                   </label>
-                  <div>{format(new Date(staff.createdAt), 'dd/MM/yyyy', { locale: es })}</div>
+                  <div className="text-foreground">{format(new Date(staff.createdAt), 'dd/MM/yyyy', { locale: es })}</div>
                 </div>
               </div>
             </CardContent>

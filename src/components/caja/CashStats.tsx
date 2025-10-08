@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { 
+import {
   CurrencyDollarIcon,
   ArrowTrendingUpIcon,
   ReceiptRefundIcon,
   CreditCardIcon
 } from '@heroicons/react/24/outline';
-import { getThemeClasses } from '../../utils/theme-colors';
 
 interface CashStatsProps {
   tenantId: string;
@@ -59,12 +58,12 @@ export function CashStats({ tenantId }: CashStatsProps) {
         {[...Array(4)].map((_, i) => (
           <Card key={i} className="animate-pulse">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className={`h-4 ${getThemeClasses('background.tertiary')} rounded w-1/2`}></div>
-              <div className={`h-4 w-4 ${getThemeClasses('background.tertiary')} rounded`}></div>
+              <div className="h-4 bg-muted rounded w-1/2"></div>
+              <div className="h-4 w-4 bg-muted rounded"></div>
             </CardHeader>
             <CardContent>
-              <div className={`h-8 ${getThemeClasses('background.tertiary')} rounded w-3/4 mb-1`}></div>
-              <div className={`h-3 ${getThemeClasses('background.tertiary')} rounded w-1/2`}></div>
+              <div className="h-8 bg-muted rounded w-3/4 mb-1"></div>
+              <div className="h-3 bg-muted rounded w-1/2"></div>
             </CardContent>
           </Card>
         ))}
@@ -77,7 +76,7 @@ export function CashStats({ tenantId }: CashStatsProps) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-6">
-            <p className={`${getThemeClasses('text.muted')} text-center`}>
+            <p className="text-muted-foreground text-center">
               {error || "No hay datos disponibles"}
             </p>
           </CardContent>
@@ -139,16 +138,16 @@ export function CashStats({ tenantId }: CashStatsProps) {
       {statCards.map((stat, index) => (
         <Card key={index}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={`text-sm font-medium ${getThemeClasses('text.secondary')}`}>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
               {stat.title}
             </CardTitle>
             <stat.icon className={`h-4 w-4 ${stat.color}`} />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${getThemeClasses('text.primary')}`}>
+            <div className="text-2xl font-bold text-foreground">
               {stat.value}
             </div>
-            <p className={`text-xs ${getThemeClasses('text.muted')} mt-1`}>
+            <p className="text-xs text-muted-foreground mt-1">
               {stat.description}
             </p>
           </CardContent>

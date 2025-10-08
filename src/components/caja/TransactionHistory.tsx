@@ -83,12 +83,12 @@ export function TransactionHistory({ tenantId }: TransactionHistoryProps) {
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center space-x-3 animate-pulse">
-                <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                <div className="h-8 w-8 bg-muted rounded"></div>
                 <div className="flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-1"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-muted rounded w-3/4 mb-1"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
                 </div>
-                <div className="h-4 bg-gray-200 rounded w-16"></div>
+                <div className="h-4 bg-muted rounded w-16"></div>
               </div>
             ))}
           </div>
@@ -108,8 +108,8 @@ export function TransactionHistory({ tenantId }: TransactionHistoryProps) {
       <CardContent>
         {transactions.length === 0 ? (
           <div className="text-center py-8">
-            <ClockIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">No hay transacciones recientes</p>
+            <ClockIcon className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+            <p className="text-muted-foreground">No hay transacciones recientes</p>
           </div>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -118,21 +118,21 @@ export function TransactionHistory({ tenantId }: TransactionHistoryProps) {
               const iconColor = getTransactionColor(transaction.type, transaction.paymentMethod);
               
               return (
-                <div key={transaction.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                  <div className={`p-2 rounded-full bg-gray-100`}>
+                <div key={transaction.id} className="flex items-center space-x-3 p-2 hover:bg-accent rounded-lg transition-colors">
+                  <div className={`p-2 rounded-full bg-muted`}>
                     <Icon className={`h-4 w-4 ${iconColor}`} />
                   </div>
-                  
+
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {transaction.description}
                       </p>
                       <Badge variant={getStatusBadge(transaction.status)} className="text-xs">
                         {transaction.status}
                       </Badge>
                     </div>
-                    <div className="flex items-center text-xs text-gray-500">
+                    <div className="flex items-center text-xs text-muted-foreground">
                       <span>
                         {format(new Date(transaction.createdAt), 'HH:mm', { locale: es })}
                       </span>
@@ -152,8 +152,8 @@ export function TransactionHistory({ tenantId }: TransactionHistoryProps) {
                       {transaction.type === 'REFUND' ? '-' : '+'}
                       ${transaction.amount.toLocaleString()}
                     </p>
-                    <p className="text-xs text-gray-500 uppercase">
-                      {transaction.paymentMethod === 'MIXED' ? 'MIXTO' : 
+                    <p className="text-xs text-muted-foreground uppercase">
+                      {transaction.paymentMethod === 'MIXED' ? 'MIXTO' :
                        transaction.paymentMethod === 'CASH' ? 'EFECTIVO' : 'TARJETA'}
                     </p>
                   </div>

@@ -5,10 +5,9 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useSubscription } from '../../hooks/useSubscription';
 import { COMPLETE_PLANS, formatPrice } from '../../lib/pricing-config';
-import { CheckIcon } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import type { Tenant } from '@prisma/client';
-import { PricingComparisonTable } from './PricingComparisonTable';
 import type { PricingPlan, APIPlan, SubscriptionData } from './types';
 import type { DowngradeValidation } from '../../lib/downgrade-validation';
 
@@ -16,64 +15,50 @@ interface PricingPageEnhancedProps {
   tenant?: Tenant | null;
 }
 
-
-
 // Mapeo de IDs de Stripe a IDs locales para compatibilidad
 const STRIPE_TO_LOCAL_ID_MAP: Record<string, string> = {
   'prod_Seq8I3438TwbPQ': 'profesional',
-  'prod_Seq84VFkBvXUhI': 'clinica', 
+  'prod_Seq84VFkBvXUhI': 'clinica',
   'prod_Seq8KU7nw8WucQ': 'empresa'
 };
 
 export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   const [isYearly, setIsYearly] = useState(false);
-  
+
   // Subscription state management
   const [userPlan, setUserPlan] = useState<string | null>(null);
   const [upgradeOptions, setUpgradeOptions] = useState<string[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
-  
+
   // Estados para datos dinámicos de pricing desde Stripe
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
   const [pricingLoading, setPricingLoading] = useState(true);
   const [pricingError, setPricingError] = useState<string | null>(null);
-  
+
   // Mantenemos planName por compatibilidad pero no lo usamos directamente
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { planName } = useSubscription(tenant || null);
 
-  console.log('PricingPageEnhanced render:', { 
-    isAuthenticated, 
-    isCheckingAuth, 
-    userPlan, 
-    upgradeOptions: upgradeOptions.length 
-  });
-
-  // Function to load subscription data - moved to useCallback to fix dependency issue
+  // Function to load subscription data
   const loadSubscriptionData = useCallback(async () => {
     try {
-      console.log('Loading subscription data...');
       const response = await fetch('/api/subscription/current');
-      
+
       if (response.ok) {
         const data = await response.json();
-        console.log('Subscription data loaded:', data);
         setSubscriptionData(data);
-        
-        // Determine current plan from subscription
+
         if (data.hasSubscription && data.planName) {
           const planKey = mapPlanNameToKey(data.planName);
           setUserPlan(planKey);
           setUpgradeOptions(getAvailableUpgrades(planKey));
         } else {
-          // No active subscription
           setUserPlan(null);
           setUpgradeOptions(['profesional', 'clinica', 'empresa']);
         }
       } else {
-        console.log('No subscription data or user not authenticated');
         setUserPlan(null);
         setUpgradeOptions([]);
       }
@@ -88,29 +73,21 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        console.log('Checking authentication...');
         const response = await fetch('/api/user');
         const authenticated = response.ok;
-        console.log('Authentication check result:', authenticated, 'Status:', response.status);
-        
+
         setIsAuthenticated(authenticated);
-        
-        // Si está autenticado, cargar datos de suscripción
+
         if (authenticated) {
           await loadSubscriptionData();
-          
-          // Después verificar checkout pendiente
-          console.log('User authenticated, checking for pending checkout...');
+
           const pendingCheckout = localStorage.getItem('pendingCheckout');
-          console.log('Pending checkout found:', !!pendingCheckout);
-          
+
           if (pendingCheckout) {
             try {
               const checkoutData = JSON.parse(pendingCheckout);
-              console.log('Processing pending checkout:', checkoutData);
               localStorage.removeItem('pendingCheckout');
-              
-              // Proceder con el checkout usando POST
+
               const response = await fetch('/api/checkout', {
                 method: 'POST',
                 headers: {
@@ -123,24 +100,14 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                 }),
               });
 
-              console.log('Pending checkout response:', response.status);
-
               if (response.ok) {
                 const data = await response.json();
-                console.log('Pending checkout success:', data);
                 if (data.url) {
-                  console.log('Redirecting to Stripe checkout from pending:', data.url);
                   window.location.href = data.url;
-                } else {
-                  console.error('No checkout URL received');
                 }
               } else {
                 const errorData = await response.json().catch(() => ({}));
-                console.error('Pending checkout failed:', response.status, errorData);
-                
-                // Si necesita onboarding, redirigir
                 if (errorData.redirectUrl) {
-                  console.log('Redirecting to onboarding from pending checkout:', errorData.redirectUrl);
                   window.location.href = errorData.redirectUrl;
                 }
               }
@@ -171,18 +138,18 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
     } else if (name.includes('empresa') || name.includes('enterprise')) {
       return 'empresa';
     }
-    return 'profesional'; // default
+    return 'profesional';
   };
 
   // Get available upgrades based on current plan
   const getAvailableUpgrades = (currentPlan: string): string[] => {
     const planHierarchy = ['profesional', 'clinica', 'empresa'];
     const currentIndex = planHierarchy.indexOf(currentPlan);
-    
+
     if (currentIndex === -1) {
       return planHierarchy;
     }
-    
+
     return planHierarchy.slice(currentIndex + 1);
   };
 
@@ -192,24 +159,22 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
       try {
         setPricingLoading(true);
         setPricingError(null);
-        
-        console.log('Loading pricing data from API...');
+
         const response = await fetch('/api/pricing');
-        
+
         if (!response.ok) {
           throw new Error(`Failed to fetch pricing: ${response.status}`);
         }
-        
+
         const data = await response.json();
-        
+
         if (!data.success || !data.plans) {
           throw new Error('Invalid pricing data received');
         }
-        
-        // Transformar datos de la API al formato esperado por el componente
+
         const transformedPlans: PricingPlan[] = data.plans.map((plan: APIPlan) => {
           const localId = STRIPE_TO_LOCAL_ID_MAP[plan.id] || plan.id.toLowerCase();
-          
+
           return {
             id: localId,
             name: plan.name,
@@ -221,15 +186,12 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
             }
           };
         });
-        
-        console.log('Pricing data loaded successfully:', transformedPlans.length, 'plans');
-        console.log('Transformed plans:', transformedPlans);
+
         setPricingPlans(transformedPlans);
-        
+
       } catch (error) {
         console.error('Error loading pricing data:', error);
-        console.log('Falling back to local pricing config...');
-        
+
         // Fallback a configuración local si la API falla
         const fallbackPlans = Object.values(COMPLETE_PLANS).map(plan => ({
           id: plan.key.toLowerCase(),
@@ -239,24 +201,23 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
           prices: {
             monthly: {
               id: `price_${plan.key.toLowerCase()}_monthly`,
-              unitAmount: plan.monthlyPrice * 100, // Convert to cents
+              unitAmount: plan.monthlyPrice * 100,
               currency: 'mxn',
               interval: 'month',
               intervalCount: 1
             },
             yearly: {
               id: `price_${plan.key.toLowerCase()}_yearly`,
-              unitAmount: plan.yearlyPrice * 100, // Convert to cents
+              unitAmount: plan.yearlyPrice * 100,
               currency: 'mxn',
               interval: 'year',
               intervalCount: 1
             }
           }
         }));
-        
-        console.log('Using fallback plans:', fallbackPlans);
+
         setPricingPlans(fallbackPlans);
-        setPricingError(null); // Clear error since we have fallback
+        setPricingError(null);
       } finally {
         setPricingLoading(false);
       }
@@ -271,29 +232,16 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
       return { isCurrentPlan: false, isUpgrade: false, isDowngrade: false };
     }
 
-    // Check if user has an active subscription
-    // Solo considera ACTIVE como verdaderamente activo
-    // TRIALING, INACTIVE, INCOMPLETE_EXPIRED, etc. necesitan poder suscribirse
-    const hasActiveSubscription = subscriptionData.hasSubscription && 
+    const hasActiveSubscription = subscriptionData.hasSubscription &&
       subscriptionData.subscriptionStatus === 'ACTIVE';
 
-    console.log('getPlanStatus debug:', {
-      productId,
-      hasSubscription: subscriptionData.hasSubscription,
-      subscriptionStatus: subscriptionData.subscriptionStatus,
-      hasActiveSubscription,
-      userPlan
-    });
-
     if (!hasActiveSubscription) {
-      // No active subscription (including expired trials) - all plans are available for purchase
       return { isCurrentPlan: false, isUpgrade: true, isDowngrade: false };
     }
 
     const isCurrentPlan = userPlan === productId;
     const isUpgrade = upgradeOptions.includes(productId);
-    
-    // Determinar si es downgrade basado en la jerarquía de planes
+
     const planHierarchy = ['profesional', 'clinica', 'empresa'];
     const currentIndex = planHierarchy.indexOf(userPlan || '');
     const targetIndex = planHierarchy.indexOf(productId);
@@ -306,7 +254,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   const getProductPrice = (productId: string) => {
     const plan = pricingPlans.find(p => p.id === productId);
     if (!plan) return null;
-    
+
     return isYearly ? plan.prices.yearly : plan.prices.monthly;
   };
 
@@ -319,7 +267,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   const calculateAnnualDiscount = (productId: string) => {
     const plan = pricingPlans.find(p => p.id === productId);
     if (!plan || !plan.prices.monthly || !plan.prices.yearly) return 0;
-    
+
     const monthlyTotal = plan.prices.monthly.unitAmount * 12;
     const yearlyTotal = plan.prices.yearly.unitAmount;
     return Math.round((1 - yearlyTotal / monthlyTotal) * 100);
@@ -327,27 +275,21 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
   // Manejar registro y checkout
   const handleRegisterAndCheckout = (priceId: string, planKey: string) => {
-    // Guardar la información del plan en localStorage para después del login
     const checkoutData = {
       priceId,
       planKey: planKey.toUpperCase(),
       billingInterval: isYearly ? 'annual' : 'monthly'
     };
-    
-    console.log('Saving checkout data for after registration:', checkoutData);
+
     localStorage.setItem('pendingCheckout', JSON.stringify(checkoutData));
-    
-    // Redirigir al registro
-    console.log('Redirecting to registration...');
     window.location.href = `/api/auth/register?post_login_redirect_url=${encodeURIComponent('/precios')}`;
   };
 
-  // Manejar checkout
   // Modal functions for downgrade handling
   const showDowngradeBlockerModal = (validation: DowngradeValidation) => {
     const blockerMessages = validation.blockers.map((blocker) => blocker.message).join('\n\n');
     const suggestions = validation.blockers.map((blocker) => blocker.suggestion).filter(Boolean).join('\n\n');
-    
+
     alert(`❌ No puedes cambiar a este plan por las siguientes razones:\n\n${blockerMessages}\n\n📋 Para poder hacer este cambio:\n${suggestions}`);
   };
 
@@ -360,19 +302,14 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   };
 
   const handleCheckout = async (priceId: string, planKey: string) => {
-    // Si el usuario no está autenticado, iniciar el flujo de registro
     if (!isAuthenticated) {
-      console.log('User not authenticated, starting registration flow');
       handleRegisterAndCheckout(priceId, planKey);
       return;
     }
 
     try {
-      console.log('Starting checkout for authenticated user:', { priceId, planKey });
-      
       // Validar si es un downgrade antes de proceder
       if (subscriptionData?.hasSubscription) {
-        console.log('Validating potential downgrade...');
         try {
           const validationResponse = await fetch('/api/plans/validate-downgrade', {
             method: 'POST',
@@ -386,29 +323,24 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
           if (validationResponse.ok) {
             const validationData = await validationResponse.json();
-            console.log('Downgrade validation result:', validationData);
-            
-            // Si es un downgrade y no puede proceder
+
             if (validationData.isDowngrade && !validationData.canProceed) {
               showDowngradeBlockerModal(validationData.validation);
               return;
             }
-            
-            // Si es un downgrade pero puede proceder, mostrar advertencias
+
             if (validationData.isDowngrade && validationData.canProceed && validationData.validation.warnings.length > 0) {
               const shouldContinue = await showDowngradeWarningModal(validationData.validation);
               if (!shouldContinue) {
                 return;
               }
             }
-          } else {
-            console.warn('Could not validate downgrade, proceeding anyway');
           }
         } catch (validationError) {
           console.warn('Downgrade validation failed, proceeding anyway:', validationError);
         }
       }
-      
+
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: {
@@ -421,45 +353,33 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
         }),
       });
 
-      console.log('Checkout response:', response.status);
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.log('Checkout error response:', errorData);
-        
-        // Si necesita onboarding, redirigir
+
         if (errorData.redirectUrl) {
-          console.log('Redirecting to onboarding:', errorData.redirectUrl);
           window.location.href = errorData.redirectUrl;
           return;
         }
-        
+
         if (response.status === 401) {
-          // Usuario no autenticado, redirigir a login
-          console.log('401 error, redirecting to login');
           window.location.href = `/api/auth/login?post_login_redirect_url=${encodeURIComponent('/precios')}`;
           return;
         }
-        
-        // Intentar obtener el mensaje de error del servidor
+
         const errorMessage = errorData.error || `Error ${response.status}: ${response.statusText}`;
         throw new Error(errorMessage);
       }
 
-      // Obtener la URL de redirección
       const data = await response.json();
-      console.log('Checkout success response:', data);
-      
+
       if (data.url) {
-        console.log('Redirecting to Stripe checkout:', data.url);
         window.location.href = data.url;
       } else {
         throw new Error('No se recibió URL de checkout');
       }
     } catch (error) {
       console.error('Error en checkout:', error);
-      
-      // Mostrar mensaje de error al usuario
+
       if (error instanceof Error) {
         alert(`Error al procesar el checkout: ${error.message}`);
       } else {
@@ -468,477 +388,223 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
     }
   };
 
-  // Renderizar loading state si está verificando autenticación
   if (isCheckingAuth) {
     return (
-      <div className="w-full max-w-6xl mx-auto px-4 py-6 md:py-8 bg-white dark:bg-gray-900 min-h-screen">
-        <div className="text-center py-6 md:py-8">
-          <div className="animate-spin rounded-full h-6 w-6 md:h-8 md:w-8 border-b-2 border-vetify-accent-600 mx-auto"></div>
-          <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400">Verificando autenticación...</p>
+      <div className="w-full min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Verificando autenticación...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto px-4 py-8 bg-white dark:bg-gray-900 min-h-screen">
-      {/* Header */}
-      <div className="text-center mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3 md:mb-4 px-4">
-          Precios Profesionales B2B
-        </h1>
-        <p className="text-base md:text-xl text-gray-600 dark:text-gray-300 mb-6 md:mb-8 px-4">
-          Soluciones completas para clínicas veterinarias profesionales
-        </p>
-        
-        {/* Toggle facturación */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-6 md:mb-8 px-4">
-          <div className="flex items-center gap-2 sm:gap-3 bg-white dark:bg-gray-800 rounded-full px-4 sm:px-6 py-2 sm:py-3 shadow-lg border border-gray-200 dark:border-gray-700">
-            <span className={`text-xs sm:text-sm transition-colors ${!isYearly ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
-              Mensual
-            </span>
-            <button
-              onClick={() => setIsYearly(!isYearly)}
-              className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors ${
-                isYearly ? 'bg-vetify-accent-600' : 'bg-gray-200 dark:bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-3 w-3 sm:h-4 sm:w-4 transform rounded-full bg-white shadow-md transition-transform ${
-                  isYearly ? 'translate-x-5 sm:translate-x-6' : 'translate-x-1'
+    <div className="w-full min-h-screen bg-gradient-to-b from-background to-muted/30">
+      {/* Header Section */}
+      <div className="relative overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium">
+              <Sparkles className="h-4 w-4" />
+              <span>Planes profesionales para veterinarias</span>
+            </div>
+
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground">
+              Precios simples y <span className="text-primary">transparentes</span>
+            </h1>
+
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Gestiona tu clínica veterinaria de manera profesional. Todos los planes incluyen 30 días gratis.
+            </p>
+
+            {/* Billing Toggle */}
+            <div className="flex items-center justify-center gap-4 pt-6">
+              <span className={`text-sm font-medium transition-colors ${!isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
+                Mensual
+              </span>
+              <button
+                onClick={() => setIsYearly(!isYearly)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                  isYearly ? 'bg-primary' : 'bg-input'
                 }`}
-              />
-            </button>
-            <span className={`text-xs sm:text-sm transition-colors ${isYearly ? 'font-semibold text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}`}>
-              Anual
-            </span>
+                aria-label="Toggle billing period"
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-background shadow-lg transition-transform ${
+                    isYearly ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className={`text-sm font-medium transition-colors ${isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
+                Anual
+              </span>
+              {isYearly && (
+                <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20">
+                  Ahorra hasta 20%
+                </Badge>
+              )}
+            </div>
           </div>
-          {isYearly && (
-            <Badge className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs sm:text-sm">
-              Ahorra hasta 20%
-            </Badge>
-          )}
         </div>
       </div>
 
-      {/* Estado de carga y error */}
+      {/* Pricing Cards */}
       {pricingLoading && (
-        <div className="flex justify-center items-center py-8 md:py-12 px-4">
-          <div className="animate-spin rounded-full h-6 w-6 md:h-8 md:w-8 border-b-2 border-vetify-accent-500"></div>
-          <span className="ml-3 text-sm md:text-base text-gray-600 dark:text-gray-400">Cargando planes...</span>
+        <div className="flex justify-center items-center py-20">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span className="ml-3 text-muted-foreground">Cargando planes...</span>
         </div>
       )}
-      
+
       {pricingError && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 md:p-4 mb-6 mx-4">
-          <p className="text-sm md:text-base text-red-600 dark:text-red-400">Error al cargar los planes: {pricingError}</p>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+            <p className="text-destructive">Error al cargar los planes: {pricingError}</p>
+          </div>
         </div>
       )}
 
-      {/* Tarjetas de precios */}
       {!pricingLoading && !pricingError && (
-        <>
-          {/* Vista móvil: Tarjetas apiladas */}
-          <div className="block md:hidden">
-            <div className="space-y-4">
-              {pricingPlans.map((product: PricingPlan) => {
-                const price = getProductPrice(product.id);
-                const { isCurrentPlan, isUpgrade, isDowngrade } = getPlanStatus(product.id);
-                const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
-                
-                if (!price) {
-                  console.warn(`No price found for plan ${product.id}, skipping render`);
-                  return null;
-                }
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 pt-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 gap-y-16">
+            {pricingPlans.map((product: PricingPlan) => {
+              const price = getProductPrice(product.id);
+              const { isCurrentPlan, isUpgrade, isDowngrade } = getPlanStatus(product.id);
+              const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
 
-                return (
+              if (!price) return null;
+
+              const isPopular = planConfig?.popular;
+
+              return (
+                <div key={product.id} className={`relative ${isPopular ? 'mt-10' : 'mt-8'}`}>
+                  {/* Popular Badge - Outside the card */}
+                  {planConfig?.badge && (
+                    <div className={`absolute left-1/2 -translate-x-1/2 z-20 whitespace-nowrap ${isPopular ? '-top-4' : '-top-3'}`}>
+                      <Badge className={`${planConfig.badgeColor} px-4 py-1 text-sm font-semibold`}>
+                        {planConfig.badge}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Pricing Card */}
                   <div
-                    key={product.id}
-                    className={`relative rounded-2xl border-2 p-4 shadow-lg transition-all duration-200 ${
-                      planConfig?.popular
-                        ? 'border-vetify-accent-500 bg-vetify-accent-50 dark:bg-vetify-accent-900/20 dark:border-vetify-accent-400'
-                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
-                    }`}
+                    className={`relative flex flex-col rounded-2xl border-2 transition-all duration-300 ${
+                      isPopular
+                        ? 'border-primary shadow-lg shadow-primary/20 scale-105 origin-top'
+                        : 'border-border hover:border-primary/50 hover:shadow-md'
+                    } bg-card overflow-hidden`}
                   >
-                    {/* Badge */}
-                    {planConfig?.badge && typeof planConfig.badge === 'string' && (
-                      <div className="absolute -top-2 left-4">
-                        <Badge className={`${planConfig.badgeColor || 'bg-blue-600 text-white'} dark:bg-blue-900 dark:text-blue-200 text-xs`}>
-                          {planConfig.badge}
-                        </Badge>
-                      </div>
-                    )}
 
-                    {/* Header */}
-                    <div className="text-center mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        {product.name}
-                      </h3>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mb-3">
-                        {product.description}
-                      </p>
-                      
-                      {/* Precio */}
-                      <div className="mb-3">
-                        {/* Precio mensual como principal */}
-                        <div className="flex flex-col items-center">
-                          <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {formatPriceFromCents(isYearly ? price.unitAmount / 12 : price.unitAmount)}
-                          </span>
-                          <span className="text-gray-600 dark:text-gray-400 text-sm">
-                            /mes
-                          </span>
-                          {/* Información del total anual si está en modo anual */}
-                          {isYearly && (
-                            <div className="mt-1 text-center">
-                              <div className="text-xs text-gray-500 dark:text-gray-400">
-                                Total anual: {formatPriceFromCents(price.unitAmount)}
-                              </div>
-                              <div className="text-xs text-green-600 dark:text-green-400">
-                                Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
-                              </div>
-                            </div>
-                          )}
+                  {/* Card Header */}
+                  <div className={`px-6 pt-8 pb-6 ${isPopular ? 'bg-primary/5' : ''}`}>
+                    <h3 className="text-2xl font-bold text-foreground mb-2">
+                      {product.name}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      {product.description}
+                    </p>
+
+                    {/* Pricing */}
+                    <div className="space-y-2">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-4xl font-bold text-foreground">
+                          {formatPriceFromCents(isYearly ? price.unitAmount / 12 : price.unitAmount)}
+                        </span>
+                        <span className="text-muted-foreground">/mes</span>
+                      </div>
+                      {isYearly && (
+                        <div className="space-y-1">
+                          <p className="text-sm text-muted-foreground">
+                            Facturado anualmente: {formatPriceFromCents(price.unitAmount)}
+                          </p>
+                          <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                            Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
+                          </p>
                         </div>
-                      </div>
-                    </div>
-
-                    {/* Features - Limitado a 3 en móvil */}
-                    <div className="mb-4">
-                      <ul className="space-y-1.5">
-                        {product.features && Array.isArray(product.features) && 
-                         product.features.slice(0, 3).map((feature, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <CheckIcon className="h-3 w-3 text-vetify-accent-500 dark:text-vetify-accent-400 mt-0.5 flex-shrink-0" />
-                            <span className="text-xs text-gray-700 dark:text-gray-300">{typeof feature === 'string' ? feature : ''}</span>
-                          </li>
-                        ))}
-                        {product.features && product.features.length > 3 && (
-                          <li className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                            +{product.features.length - 3} características más
-                          </li>
-                        )}
-                      </ul>
-                    </div>
-
-                    {/* CTA Button */}
-                    <div className="mt-auto">
-                      {isCurrentPlan ? (
-                        <Button 
-                          disabled 
-                          className="w-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm py-2"
-                        >
-                          Plan Actual
-                        </Button>
-                      ) : !isAuthenticated ? (
-                        <Button
-                          onClick={() => handleRegisterAndCheckout(price.id, product.id)}
-                          className={`w-full inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors text-sm ${
-                            planConfig?.popular
-                              ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
-                              : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
-                          } text-white`}
-                        >
-                          Iniciar Prueba Gratuita
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => handleCheckout(price.id, product.id)}
-                          className={`w-full text-sm py-2 ${
-                            planConfig?.popular
-                              ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
-                              : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
-                          } text-white transition-colors`}
-                        >
-                          {isUpgrade ? 'Actualizar Plan' : 
-                           isDowngrade ? 'Cambiar Plan ⬇️' :
-                           product.id === 'empresa' ? 'Contactar Ventas' : 
-                           subscriptionData?.subscriptionStatus && !['ACTIVE', 'TRIALING'].includes(subscriptionData.subscriptionStatus) ? 'Suscribirse Ahora' : 'Iniciar Prueba Gratuita'}
-                        </Button>
                       )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* Vista tablet: Grid de 2 columnas */}
-          <div className="hidden md:block lg:hidden">
-            <div className="grid grid-cols-2 gap-4">
-              {pricingPlans.map((product: PricingPlan) => {
-                const price = getProductPrice(product.id);
-                const { isCurrentPlan, isUpgrade, isDowngrade } = getPlanStatus(product.id);
-                const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
-                
-                if (!price) {
-                  console.warn(`No price found for plan ${product.id}, skipping render`);
-                  return null;
-                }
-
-                return (
-                  <div
-                    key={product.id}
-                    className={`relative rounded-2xl border-2 p-5 shadow-lg transition-all duration-200 hover:shadow-xl ${
-                      planConfig?.popular
-                        ? 'border-vetify-accent-500 bg-vetify-accent-50 dark:bg-vetify-accent-900/20 dark:border-vetify-accent-400'
-                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
-                    }`}
-                  >
-                    {/* Badge */}
-                    {planConfig?.badge && typeof planConfig.badge === 'string' && (
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <Badge className={`${planConfig.badgeColor || 'bg-blue-600 text-white'} dark:bg-blue-900 dark:text-blue-200`}>
-                          {planConfig.badge}
-                        </Badge>
-                      </div>
-                    )}
-
-                    {/* Header */}
-                    <div className="text-center mb-5">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                        {product.name}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                        {product.description}
-                      </p>
-                      
-                      {/* Precio */}
-                      <div className="mb-3">
-                        {/* Precio mensual como principal */}
-                        <div className="flex flex-col items-center">
-                          <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                            {formatPriceFromCents(isYearly ? price.unitAmount / 12 : price.unitAmount)}
-                          </span>
-                          <span className="text-gray-600 dark:text-gray-400">
-                            /mes
-                          </span>
-                          {/* Información del total anual si está en modo anual */}
-                          {isYearly && (
-                            <div className="mt-1 text-center">
-                              <div className="text-sm text-gray-500 dark:text-gray-400">
-                                Total anual: {formatPriceFromCents(price.unitAmount)}
-                              </div>
-                              <div className="text-sm text-green-600 dark:text-green-400">
-                                Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
-                              </div>
-                            </div>
-                          )}
+                  {/* Features List */}
+                  <div className="flex-1 px-6 py-6 space-y-3">
+                    {product.features && Array.isArray(product.features) && product.features.map((feature, index) => (
+                      <div key={index} className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+                          <Check className="h-3 w-3 text-primary" />
                         </div>
+                        <span className="text-sm text-foreground">
+                          {typeof feature === 'string' ? feature : ''}
+                        </span>
                       </div>
-                    </div>
-
-                    {/* Features */}
-                    <div className="mb-5">
-                      <ul className="space-y-2">
-                        {product.features && Array.isArray(product.features) && product.features.map((feature, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <CheckIcon className="h-4 w-4 text-vetify-accent-500 dark:text-vetify-accent-400 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">{typeof feature === 'string' ? feature : ''}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* CTA Button */}
-                    <div className="mt-auto">
-                      {isCurrentPlan ? (
-                        <Button 
-                          disabled 
-                          className="w-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                        >
-                          Plan Actual
-                        </Button>
-                      ) : !isAuthenticated ? (
-                        <Button
-                          onClick={() => handleRegisterAndCheckout(price.id, product.id)}
-                          className={`w-full inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors ${
-                            planConfig?.popular
-                              ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
-                              : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
-                          } text-white`}
-                        >
-                          Iniciar Prueba Gratuita
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => handleCheckout(price.id, product.id)}
-                          className={`w-full ${
-                            planConfig?.popular
-                              ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
-                              : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
-                          } text-white transition-colors`}
-                        >
-                          {isUpgrade ? 'Actualizar Plan' : 
-                           isDowngrade ? 'Cambiar Plan ⬇️' :
-                           product.id === 'empresa' ? 'Contactar Ventas' : 
-                           subscriptionData?.subscriptionStatus && !['ACTIVE', 'TRIALING'].includes(subscriptionData.subscriptionStatus) ? 'Suscribirse Ahora' : 'Iniciar Prueba Gratuita'}
-                        </Button>
-                      )}
-                    </div>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* Vista desktop: Grid de 3 columnas */}
-          <div className="hidden lg:block">
-            <div className="grid grid-cols-3 gap-6">
-              {pricingPlans.map((product: PricingPlan) => {
-                const price = getProductPrice(product.id);
-                const { isCurrentPlan, isUpgrade, isDowngrade } = getPlanStatus(product.id);
-                const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
-                
-                if (!price) {
-                  console.warn(`No price found for plan ${product.id}, skipping render`);
-                  return null;
-                }
-
-                return (
-                  <div
-                    key={product.id}
-                    className={`relative rounded-2xl border-2 p-6 shadow-lg transition-all duration-200 hover:shadow-xl ${
-                      planConfig?.popular
-                        ? 'border-vetify-accent-500 bg-vetify-accent-50 dark:bg-vetify-accent-900/20 dark:border-vetify-accent-400'
-                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
-                    }`}
-                  >
-                    {/* Badge */}
-                    {planConfig?.badge && typeof planConfig.badge === 'string' && (
-                      <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                        <Badge className={`${planConfig.badgeColor || 'bg-blue-600 text-white'} dark:bg-blue-900 dark:text-blue-200`}>
-                          {planConfig.badge}
-                        </Badge>
-                      </div>
+                  {/* CTA Button */}
+                  <div className="px-6 pb-6">
+                    {isCurrentPlan ? (
+                      <Button
+                        disabled
+                        className="w-full bg-muted text-muted-foreground cursor-not-allowed"
+                        size="lg"
+                      >
+                        Plan Actual
+                      </Button>
+                    ) : !isAuthenticated ? (
+                      <Button
+                        onClick={() => handleRegisterAndCheckout(price.id, product.id)}
+                        className={`w-full ${isPopular ? 'bg-primary hover:bg-primary/90' : ''}`}
+                        size="lg"
+                      >
+                        Iniciar Prueba Gratuita
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => handleCheckout(price.id, product.id)}
+                        className={`w-full ${isPopular ? 'bg-primary hover:bg-primary/90' : ''}`}
+                        size="lg"
+                      >
+                        {isUpgrade ? 'Actualizar Plan' :
+                         isDowngrade ? 'Cambiar Plan ⬇️' :
+                         product.id === 'empresa' ? 'Contactar Ventas' :
+                         subscriptionData?.subscriptionStatus && !['ACTIVE', 'TRIALING'].includes(subscriptionData.subscriptionStatus) ? 'Suscribirse Ahora' : 'Iniciar Prueba Gratuita'}
+                      </Button>
                     )}
-
-                    {/* Header */}
-                    <div className="text-center mb-6">
-                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                        {product.name}
-                      </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                        {product.description}
-                      </p>
-                      
-                      {/* Precio */}
-                      <div className="mb-4">
-                        {/* Precio mensual como principal */}
-                        <div className="flex flex-col items-center">
-                          <span className="text-3xl font-bold text-gray-900 dark:text-white">
-                            {formatPriceFromCents(isYearly ? price.unitAmount / 12 : price.unitAmount)}
-                          </span>
-                          <span className="text-gray-600 dark:text-gray-400">
-                            /mes
-                          </span>
-                          {/* Información del total anual si está en modo anual */}
-                          {isYearly && (
-                            <div className="mt-2 text-center">
-                              <div className="text-sm text-gray-500 dark:text-gray-400">
-                                Total anual: {formatPriceFromCents(price.unitAmount)}
-                              </div>
-                              <div className="text-sm text-green-600 dark:text-green-400">
-                                Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Features */}
-                    <div className="mb-6">
-                      <ul className="space-y-2">
-                        {product.features && Array.isArray(product.features) && product.features.map((feature, index) => (
-                          <li key={index} className="flex items-start gap-2">
-                            <CheckIcon className="h-4 w-4 text-vetify-accent-500 dark:text-vetify-accent-400 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-gray-700 dark:text-gray-300">{typeof feature === 'string' ? feature : ''}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {/* CTA Button */}
-                    <div className="mt-auto">
-                      {isCurrentPlan ? (
-                        <Button 
-                          disabled 
-                          className="w-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                        >
-                          Plan Actual
-                        </Button>
-                      ) : !isAuthenticated ? (
-                        <Button
-                          onClick={() => handleRegisterAndCheckout(price.id, product.id)}
-                          className={`w-full inline-flex items-center justify-center px-4 py-2 rounded-md font-medium transition-colors ${
-                            planConfig?.popular
-                              ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
-                              : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
-                          } text-white`}
-                        >
-                          Iniciar Prueba Gratuita
-                        </Button>
-                      ) : (
-                        <Button
-                          onClick={() => handleCheckout(price.id, product.id)}
-                          className={`w-full ${
-                            planConfig?.popular
-                              ? 'bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600'
-                              : 'bg-gray-900 hover:bg-gray-800 dark:bg-gray-700 dark:hover:bg-gray-600'
-                          } text-white transition-colors`}
-                        >
-                          {isUpgrade ? 'Actualizar Plan' : 
-                           isDowngrade ? 'Cambiar Plan ⬇️' :
-                           product.id === 'empresa' ? 'Contactar Ventas' : 
-                           subscriptionData?.subscriptionStatus && !['ACTIVE', 'TRIALING'].includes(subscriptionData.subscriptionStatus) ? 'Suscribirse Ahora' : 'Iniciar Prueba Gratuita'}
-                        </Button>
-                      )}
-                    </div>
                   </div>
-                );
-              })}
-            </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-          {/* Vista alternativa tipo tabla para pantallas muy pequeñas */}
-          <div className="block sm:hidden mt-6 px-4">
-            <PricingComparisonTable
-              pricingPlans={pricingPlans}
-              isYearly={isYearly}
-              isAuthenticated={isAuthenticated}
-              getProductPrice={getProductPrice}
-              getPlanStatus={getPlanStatus}
-              handleRegisterAndCheckout={handleRegisterAndCheckout}
-              handleCheckout={handleCheckout}
-              formatPriceFromCents={formatPriceFromCents}
-              calculateAnnualDiscount={calculateAnnualDiscount}
-            />
-          </div>
-        </>
+        </div>
       )}
 
-      {/* Información adicional */}
-      <div className="text-center text-xs sm:text-sm text-gray-600 dark:text-gray-400 px-4">
-        {!isAuthenticated && (
-          <div className="mb-4 p-3 sm:p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <p className="text-blue-800 dark:text-blue-200 font-medium text-sm sm:text-base">
-              🚀 ¡Comienza tu prueba gratuita de 30 días! Solo necesitas crear una cuenta
+      {/* Footer Info */}
+      <div className="bg-card border-t border-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          {!isAuthenticated && (
+            <div className="mb-8 p-4 bg-primary/10 border border-primary/20 rounded-lg">
+              <p className="text-center text-foreground font-medium">
+                🚀 ¡Comienza tu prueba gratuita de 30 días! Solo necesitas crear una cuenta
+              </p>
+            </div>
+          )}
+          <div className="text-center space-y-2 text-sm text-muted-foreground">
+            <p>✅ Todos los planes incluyen <strong className="text-foreground">30 días de prueba gratuita</strong></p>
+            <p>✅ Cancela en cualquier momento • Sin contratos • Soporte en español</p>
+            <p>
+              ¿Necesitas ayuda para elegir? <Link href="/contacto" className="text-primary hover:underline">Contacta con nosotros</Link>
             </p>
           </div>
-        )}
-        <div className="space-y-2 sm:space-y-1">
-          <p className="text-xs sm:text-sm">
-            ✅ Todos los planes incluyen <strong className="text-gray-900 dark:text-white">30 días de prueba gratuita</strong>
-          </p>
-          <p className="text-xs sm:text-sm">
-            ✅ Cancela en cualquier momento • Sin contratos • Soporte en español
-          </p>
-          <p className="text-xs sm:text-sm">
-            ¿Necesitas ayuda para elegir? <Link href="/contacto" className="text-vetify-accent-600 dark:text-vetify-accent-400 hover:underline">Contacta con nosotros</Link>
-          </p>
         </div>
       </div>
     </div>
   );
-} 
+}

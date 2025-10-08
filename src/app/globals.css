@@ -5,6 +5,51 @@
 @layer base {
   :root {
     color-scheme: light dark;
+
+    /* Design System Color Variables - Light Mode */
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 166 30% 55%; /* Vetify teal #75a99c */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 166 30% 55%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Design System Color Variables - Dark Mode */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 15%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 15%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 166 30% 55%; /* Vetify teal stays same */
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 223 47% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 33% 21%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 217 33% 21%;
+    --input: 217 33% 21%;
+    --ring: 166 30% 55%;
   }
 
   /* Ensure smooth theme transitions */
@@ -14,46 +59,49 @@
     transition-duration: 150ms;
   }
 
-  /* Improve body background for dark mode */
+  /* Improve body background using design tokens */
   body {
-    @apply bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+    @apply bg-background text-foreground;
   }
 
-  /* Improve form elements in dark mode */
+  /* Improve form elements using design tokens */
   input[type="text"],
   input[type="email"],
   input[type="password"],
   input[type="number"],
   input[type="search"],
   input[type="url"],
+  input[type="date"],
+  input[type="time"],
+  input[type="tel"],
   textarea,
   select {
-    @apply bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100;
+    @apply bg-background border-input text-foreground;
   }
 
-  /* Improve focus states */
+  /* Improve focus states using design tokens */
   input:focus,
   textarea:focus,
   select:focus {
-    @apply ring-2 ring-[#75a99c] ring-opacity-50 border-[#75a99c];
+    @apply ring-2 ring-ring ring-offset-background border-primary;
   }
 
-  /* Custom scrollbar for dark mode */
+  /* Custom scrollbar using design tokens */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100 dark:bg-gray-800;
+    @apply bg-muted;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+    @apply bg-muted-foreground/30 rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400 dark:bg-gray-500;
+    @apply bg-muted-foreground/50;
   }
 
   /* Disable transitions during theme change to prevent flashing */
@@ -63,52 +111,64 @@
 }
 
 @layer components {
-  /* Button components with consistent styling */
+  /* Button components with consistent styling using design tokens */
   .btn-primary {
-    @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-[#75a99c] hover:bg-[#5b9788] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] transition-colors;
+    @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-primary-foreground bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors;
   }
 
   .btn-secondary {
-    @apply inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] transition-colors;
+    @apply inline-flex items-center px-4 py-2 border border-input text-sm font-medium rounded-md shadow-sm text-secondary-foreground bg-secondary hover:bg-secondary/80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors;
   }
 
   .btn-ghost {
-    @apply inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] transition-colors;
+    @apply inline-flex items-center px-4 py-2 text-sm font-medium rounded-md text-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors;
   }
 
-  /* Card component */
+  .btn-destructive {
+    @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-destructive-foreground bg-destructive hover:bg-destructive/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-ring transition-colors;
+  }
+
+  /* Card component using design tokens */
   .card {
-    @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm;
+    @apply bg-card text-card-foreground border border-border rounded-lg shadow-sm;
   }
 
   .card-header {
-    @apply px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700;
+    @apply px-4 py-5 sm:px-6 border-b border-border;
   }
 
   .card-content {
     @apply px-4 py-5 sm:px-6;
   }
 
-  /* Form components */
+  .card-hover {
+    @apply hover:bg-accent/50 transition-colors;
+  }
+
+  /* Form components using design tokens */
   .form-input {
-    @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c];
+    @apply block w-full px-3 py-2 border border-input rounded-md shadow-sm bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary;
   }
 
   .form-label {
-    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
+    @apply block text-sm font-medium text-foreground mb-1;
   }
 
   .form-select {
-    @apply block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c];
+    @apply block w-full px-3 py-2 border border-input rounded-md shadow-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-primary;
   }
 
-  /* Navigation link component */
+  .form-error {
+    @apply text-sm text-destructive mt-1;
+  }
+
+  /* Navigation link component using design tokens */
   .nav-link {
-    @apply text-gray-800 dark:text-gray-200 hover:text-[#5b9788] dark:hover:text-[#75a99c] px-3 py-2 text-sm font-medium transition-colors;
+    @apply text-muted-foreground hover:text-primary px-3 py-2 text-sm font-medium transition-colors;
   }
 
   .nav-link-active {
-    @apply text-[#75a99c] dark:text-[#75a99c] px-3 py-2 text-sm font-medium;
+    @apply text-primary px-3 py-2 text-sm font-medium bg-accent;
   }
 }
 

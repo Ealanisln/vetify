@@ -43,63 +43,63 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, acc
 const workflows = [
   {
     icon: <MessageCircle className="h-6 w-6 text-green-600" />,
-    title: "Magic Vaccination Assistant",
-    description: "El gancho: \"Nunca más olvides una vacuna\". Sistema inteligente que automatiza completamente el seguimiento de vacunaciones.",
+    title: "Gestión de Citas Completa",
+    description: "Sistema completo para programar, modificar y dar seguimiento a todas las citas de tu clínica veterinaria.",
     accent: "bg-green-50 dark:bg-green-900/20",
-    wowFactor: "90% reducción en vacunas olvidadas",
+    wowFactor: "Agenda ilimitada con calendario integrado",
     badgeColor: "bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 border border-green-200 dark:border-green-600",
     benefits: [
-      "Revisa mascotas que necesitan vacuna en los próximos 7 días",
-      "Envía WhatsApp automático con emoji de mascota",
-      "Crea evento en calendario del veterinario",
-      "Pre-llena formulario de consulta",
-      "Seguimiento 24h antes de la cita"
+      "Calendario visual con todas tus citas",
+      "Múltiples estados: programada, confirmada, completada",
+      "Asignación de veterinarios y personal",
+      "Duración personalizable por cita",
+      "Notas y razón de consulta para cada cita"
     ],
   },
   {
-    icon: <Shield className="h-6 w-6 text-red-600" />,
-    title: "Emergency Response Protocol",
-    description: "El gancho: \"Respuesta automática en emergencias\". Protocolo que se activa con la palabra 'EMERGENCIA' en cualquier comunicación.",
-    accent: "bg-red-50 dark:bg-red-900/20",
-    wowFactor: "Respuesta menor a 2 minutos",
-    badgeColor: "bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 border border-red-200 dark:border-red-600",
-    benefits: [
-      "Alerta inmediata a todos los veterinarios disponibles",
-      "Envía instrucciones de ubicación al dueño",
-      "Abre slot de emergencia en agenda",
-      "Prepara checklist de emergencia",
-      "Inicia secuencia de seguimiento automático"
-    ],
-  },
-  {
-    icon: <Package className="h-6 w-6 text-blue-600" />,
-    title: "Smart Inventory Guardian",
-    description: "El gancho: \"Nunca te quedes sin medicamentos críticos\". IA que predice necesidades de inventario y automatiza compras.",
+    icon: <Shield className="h-6 w-6 text-blue-600" />,
+    title: "Historiales Médicos Completos",
+    description: "Registro detallado de consultas, tratamientos, vacunas y desparasitaciones de cada mascota.",
     accent: "bg-blue-50 dark:bg-blue-900/20",
-    wowFactor: "30% reducción de costos",
+    wowFactor: "Historial completo de cada paciente",
     badgeColor: "bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-600",
     benefits: [
-      "Analiza patrones de uso con IA",
-      "Genera orden de compra automática",
-      "Encuentra mejores precios de proveedores",
-      "Programa entrega automática",
-      "Notifica al equipo sobre stock entrante"
+      "Registro de consultas con diagnóstico y tratamiento",
+      "Control de vacunaciones por etapa (cachorro, adulto, senior)",
+      "Seguimiento de desparasitaciones internas y externas",
+      "Historial de medicamentos y prescripciones",
+      "Calendario de próximos tratamientos"
+    ],
+  },
+  {
+    icon: <Package className="h-6 w-6 text-purple-600" />,
+    title: "Control de Inventario y Ventas",
+    description: "Gestiona tu inventario de medicamentos, productos y registra todas las ventas de tu clínica.",
+    accent: "bg-purple-50 dark:bg-purple-900/20",
+    wowFactor: "Control completo de stock y ventas",
+    badgeColor: "bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200 border border-purple-200 dark:border-purple-600",
+    benefits: [
+      "Inventario de medicamentos, vacunas y productos",
+      "Alertas de stock mínimo y productos por vencer",
+      "Registro de ventas con múltiples métodos de pago",
+      "Caja registradora con apertura y cierre de turno",
+      "Historial de movimientos de inventario"
     ],
   },
 ];
 
 const additionalFeatures = [
   {
-    icon: <Clock className="h-5 w-5 text-purple-600" />,
-    title: "Recordatorios Inteligentes",
-    description: "Comunicación proactiva que mantiene a tus clientes comprometidos",
-    accent: "bg-purple-50 dark:bg-purple-900/20",
+    icon: <Clock className="h-5 w-5 text-amber-600" />,
+    title: "Sistema de Recordatorios",
+    description: "Gestiona recordatorios de citas, vacunas y tratamientos para tus clientes",
+    accent: "bg-amber-50 dark:bg-amber-900/20",
   },
   {
-    icon: <TrendingUp className="h-5 w-5 text-amber-600" />,
-    title: "Análisis Predictivo",
-    description: "Insights basados en datos para hacer crecer tu clínica",
-    accent: "bg-amber-50 dark:bg-amber-900/20",
+    icon: <TrendingUp className="h-5 w-5 text-teal-600" />,
+    title: "Gestión de Personal",
+    description: "Administra tu equipo de veterinarios y personal con roles y permisos",
+    accent: "bg-teal-50 dark:bg-teal-900/20",
   },
 ];
 
@@ -115,13 +115,13 @@ export const FeatureShowcase: React.FC = () => {
         <div className="text-center max-w-4xl mx-auto mb-12 lg:mb-16">
           <div className="inline-flex items-center px-4 py-2 bg-vetify-accent-50 dark:bg-vetify-accent-900/30 rounded-full mb-6">
             <Zap className="h-4 w-4 text-vetify-accent-600 dark:text-vetify-accent-300 mr-2" />
-            <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">Workflows de máximo impacto</span>
+            <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">Características principales</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Los 3 workflows que <span className="text-vetify-accent-500 dark:text-vetify-accent-300">transformarán</span> tu clínica
+            Todo lo que necesitas para <span className="text-vetify-accent-500 dark:text-vetify-accent-300">gestionar tu clínica</span>
           </h2>
           <p className="text-lg text-gray-600 dark:text-gray-300">
-            <strong>Aumenta tus ingresos 30% con recordatorios automáticos.</strong> Automatización inteligente diseñada por veterinarios para veterinarios.
+            <strong>Sistema completo de gestión veterinaria.</strong> Administra citas, historiales, inventario y ventas en una sola plataforma.
           </p>
         </div>
 
@@ -145,16 +145,16 @@ export const FeatureShowcase: React.FC = () => {
         <div className="bg-gradient-to-r from-vetify-primary-50 to-vetify-accent-50 dark:from-vetify-primary-900/20 dark:to-vetify-accent-900/20 rounded-2xl p-8 mb-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div>
-              <div className="text-3xl font-bold text-vetify-primary-600 dark:text-vetify-primary-400 mb-2">5 horas</div>
-              <p className="text-gray-600 dark:text-gray-300">menos trabajo manual por semana</p>
+              <div className="text-3xl font-bold text-vetify-primary-600 dark:text-vetify-primary-400 mb-2">Todo en uno</div>
+              <p className="text-gray-600 dark:text-gray-300">Gestión completa de tu clínica</p>
             </div>
             <div>
-              <div className="text-3xl font-bold text-vetify-accent-600 dark:text-vetify-accent-400 mb-2">30%</div>
-              <p className="text-gray-600 dark:text-gray-300">aumento en ingresos promedio</p>
+              <div className="text-3xl font-bold text-vetify-accent-600 dark:text-vetify-accent-400 mb-2">Multi-clínica</div>
+              <p className="text-gray-600 dark:text-gray-300">Soporte para múltiples sucursales</p>
             </div>
             <div>
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">15 min</div>
-              <p className="text-gray-600 dark:text-gray-300">setup completo sin técnicos</p>
+              <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">30 días gratis</div>
+              <p className="text-gray-600 dark:text-gray-300">Prueba sin compromiso</p>
             </div>
           </div>
         </div>
@@ -183,10 +183,10 @@ export const FeatureShowcase: React.FC = () => {
         <div className="text-center">
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-8 shadow-md">
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              ¿Listo para automatizar tu clínica?
+              ¿Listo para organizar tu clínica?
             </h3>
             <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
-              Comienza con 30 días gratis. Setup en 15 minutos.
+              Comienza con 30 días gratis. Sin tarjeta de crédito.
             </p>
             <Link href="/registro" className="inline-flex items-center px-6 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 dark:bg-vetify-accent-600 dark:hover:bg-vetify-accent-700 rounded-xl text-white font-medium transition-all mr-4">
               Probar 30 días gratis <ChevronRight className="ml-2 h-4 w-4" />

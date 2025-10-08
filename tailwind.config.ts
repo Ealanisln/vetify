@@ -34,9 +34,43 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Design system colors using CSS variables for light/dark mode
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
         // Legacy color names for backward compatibility
         beige: "#E8D5C4", // Light beige for light mode backgrounds
-        beigeD: "#2D3136", // Dark beige for dark mode backgrounds  
+        beigeD: "#2D3136", // Dark beige for dark mode backgrounds
         grayD: "#1F2937", // Dark gray for dark mode backgrounds
         vetify: {
           // Primary palette

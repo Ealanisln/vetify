@@ -36,15 +36,15 @@ const HeroSection: React.FC = () => {
           <div>
             <div className="inline-flex items-center px-4 py-2 bg-vetify-accent-50 dark:bg-vetify-accent-900/30 rounded-full mb-6">
               <Zap className="h-4 w-4 text-vetify-accent-600 dark:text-vetify-accent-300 mr-2" />
-              <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">Software veterinario con 30 días gratis y WhatsApp automático</span>
+              <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">Software veterinario completo con 30 días gratis</span>
             </div>
-            
+
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white leading-tight">
-              <span className="text-vetify-accent-500 dark:text-vetify-accent-300">Vetify:</span> El CRM que automatiza tu <span className="text-vetify-accent-500 dark:text-vetify-accent-300">clínica veterinaria</span>
+              <span className="text-vetify-accent-500 dark:text-vetify-accent-300">Vetify:</span> El CRM completo para <span className="text-vetify-accent-500 dark:text-vetify-accent-300">gestionar tu clínica</span>
             </h1>
-            
+
             <p className="mt-6 text-xl text-gray-500 dark:text-gray-300 max-w-2xl">
-              <strong>Recordatorios automáticos = más clientes contentos.</strong> Reduce 5 horas de trabajo manual por semana con automatización inteligente.
+              <strong>Gestiona citas, historiales y clientes en un solo lugar.</strong> Todo lo que necesitas para administrar tu clínica veterinaria de manera profesional.
             </p>
             
             {/* Formulario CTA */}
@@ -91,26 +91,26 @@ const HeroSection: React.FC = () => {
           {/* Imagen o preview */}
           <div className="md:pl-8 hidden md:block">
             <div className="relative">
-              {/* Badge flotante 1 - WhatsApp */}
+              {/* Badge flotante 1 - Recordatorios */}
               <div className="absolute -left-6 top-12 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 flex items-center z-10">
                 <div className="bg-green-100 dark:bg-green-900/50 rounded-full p-2 mr-3">
                   <MessageCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">WhatsApp automático</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">90% menos vacunas olvidadas</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Sistema de recordatorios</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Seguimiento de vacunas y tratamientos</p>
                 </div>
               </div>
-              
-              {/* Badge flotante 2 - Emergencias */}
+
+              {/* Badge flotante 2 - Gestión completa */}
               <div className="absolute -right-4 bottom-16 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 z-10">
                 <div className="flex items-center">
-                  <div className="bg-red-100 dark:bg-red-900/50 rounded-full p-2 mr-3">
-                    <Shield className="h-6 w-6 text-red-600 dark:text-red-400" />
+                  <div className="bg-blue-100 dark:bg-blue-900/50 rounded-full p-2 mr-3">
+                    <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Respuesta menor a 2 min</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">en emergencias</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Gestión completa</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Citas, historiales e inventario</p>
                   </div>
                 </div>
               </div>
@@ -142,15 +142,15 @@ const HeroSection: React.FC = () => {
         </div>
       </div>
       
-      {/* Feature highlights strip - Top 3 Workflows MVP */}
+      {/* Feature highlights strip - Core Features */}
       <div className="relative z-10 bg-gray-50 dark:bg-gray-900/50 border-y border-gray-100 dark:border-gray-800">
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-8">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Los 3 workflows que transformarán tu clínica
+              Todo lo que necesitas para gestionar tu clínica
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Automatización inteligente para máximo impacto
+              Sistema completo de gestión veterinaria
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -158,44 +158,44 @@ const HeroSection: React.FC = () => {
               <div className="flex-shrink-0">
                 <div className="flex items-center justify-center h-12 w-12 rounded-md bg-green-500 text-white">
                   <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                 </div>
               </div>
               <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Magic Vaccination Assistant</h3>
-                <p className="mt-1 text-sm font-medium bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 px-2 py-1 rounded-full inline-block border border-green-200 dark:border-green-600">90% reducción en vacunas olvidadas</p>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Nunca más olvides una vacuna con recordatorios automáticos por WhatsApp.</p>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Gestión de Citas</h3>
+                <p className="mt-1 text-sm font-medium bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 px-2 py-1 rounded-full inline-block border border-green-200 dark:border-green-600">Agenda ilimitada</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Programa, modifica y da seguimiento a todas tus citas en un solo lugar.</p>
               </div>
             </div>
-            
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-red-500 text-white">
-                  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Emergency Response Protocol</h3>
-                <p className="mt-1 text-sm font-medium bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 px-2 py-1 rounded-full inline-block border border-red-200 dark:border-red-600">Respuesta menor a 2 minutos</p>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Respuesta automática en emergencias con alerta a todo el equipo.</p>
-              </div>
-            </div>
-            
+
             <div className="flex">
               <div className="flex-shrink-0">
                 <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
+                  <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+              </div>
+              <div className="ml-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Historiales Médicos</h3>
+                <p className="mt-1 text-sm font-medium bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 px-2 py-1 rounded-full inline-block border border-blue-200 dark:border-blue-600">Completo y detallado</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Registro completo de consultas, tratamientos y vacunas de cada mascota.</p>
+              </div>
+            </div>
+
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <div className="flex items-center justify-center h-12 w-12 rounded-md bg-purple-500 text-white">
                   <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                   </svg>
                 </div>
               </div>
               <div className="ml-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Smart Inventory Guardian</h3>
-                <p className="mt-1 text-sm font-medium bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 px-2 py-1 rounded-full inline-block border border-blue-200 dark:border-blue-600">30% reducción de costos</p>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Nunca te quedes sin medicamentos críticos con IA predictiva.</p>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Control de Inventario</h3>
+                <p className="mt-1 text-sm font-medium bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200 px-2 py-1 rounded-full inline-block border border-purple-200 dark:border-purple-600">Stock y ventas</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Gestiona medicamentos, productos y ventas con control de stock.</p>
               </div>
             </div>
           </div>
