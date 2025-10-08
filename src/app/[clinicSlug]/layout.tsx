@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
-import { getTenantBySlug } from '@/lib/tenant';
-import { PublicNavbar } from '@/components/public/PublicNavbar';
-import { PublicFooter } from '@/components/public/PublicFooter';
+import { getTenantBySlug } from '../../lib/tenant';
+import { PublicNavbar } from '../../components/public/PublicNavbar';
+import { PublicFooter } from '../../components/public/PublicFooter';
 import type { Metadata } from 'next';
 
 export async function generateMetadata({ 

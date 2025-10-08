@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from '../../../../lib/auth';
 import { 
   getUserRoles, 
   createUserRole,
   userRoleSchema,
   AVAILABLE_PERMISSIONS 
-} from '@/lib/enhanced-settings';
+} from '../../../../lib/enhanced-settings';
 
 export async function GET() {
   try {

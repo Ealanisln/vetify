@@ -1,8 +1,8 @@
-import { getAdminStats } from '@/lib/admin';
-import { AdminStatsGrid } from '@/components/admin/AdminStatsGrid';
-import { RecentTenantsTable } from '@/components/admin/RecentTenantsTable';
-import { RevenueChart } from '@/components/admin/RevenueChart';
-import { SystemHealth } from '@/components/admin/SystemHealth';
+import { getAdminStats } from '../../lib/admin';
+import { AdminStatsGrid } from '../../components/admin/AdminStatsGrid';
+import { RecentTenantsTable } from '../../components/admin/RecentTenantsTable';
+import { RevenueChart } from '../../components/admin/RevenueChart';
+import { SystemHealth } from '../../components/admin/SystemHealth';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {

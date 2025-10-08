@@ -1,118 +1,101 @@
-# 🏥 Vetify - Veterinary Practice Management System
+# Vetify - Veterinary Practice Management Platform
 
-> **Complete documentation for Vetify - A modern, cloud-based veterinary practice management system built with Next.js, TypeScript, and PostgreSQL.**
-
-![Vetify Logo](public/logo/vetify-logo-dark.png)
-
-## 🎯 What is Vetify?
-
-Vetify is a comprehensive veterinary practice management system designed to streamline operations for veterinary clinics. Built with modern technologies and a focus on user experience, Vetify provides all the tools needed to manage pets, appointments, medical records, inventory, and business operations.
-
-## ✨ Key Features
-
-### 🐾 Core Management
-- **Pet Management**: Complete pet profiles with medical history
-- **Appointment Scheduling**: Advanced calendar with availability management
-- **Medical Records**: Comprehensive medical history tracking
-- **Inventory Management**: Stock tracking and product management
-- **Customer Management**: Client profiles and communication tools
-
-### 💼 Business Operations
-- **Multi-tenant Architecture**: Support for multiple clinics
-- **Subscription Management**: Flexible pricing plans with Stripe integration
-- **B2B Features**: Enterprise-level functionality
-- **Reporting & Analytics**: Business insights and performance metrics
-- **Staff Management**: Role-based access control
-
-### 🔗 Integrations
-- **WhatsApp API**: Automated communication and notifications
-- **N8N Workflows**: Custom automation and integrations
-- **Stripe Payments**: Secure payment processing
-- **Vercel Deployment**: Cloud hosting and CI/CD
+A comprehensive, multi-tenant SaaS platform for veterinary practices with advanced features including appointment management, client communication, and business analytics.
 
 ## 🚀 Quick Start
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/vetify.git
-cd vetify
-
 # Install dependencies
 pnpm install
 
-# Set up environment
-cp .env.example .env.local
-# Configure your environment variables
-
-# Run the development server
+# Start development server
 pnpm dev
+
+# Build for production
+pnpm build
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to see the application.
+## 📁 Project Structure
 
-## 📚 Documentation Structure
+```
+vetify/
+├── src/                    # Source code
+│   ├── app/              # Next.js App Router
+│   ├── components/       # Reusable UI components
+│   ├── lib/             # Utility libraries
+│   └── types/           # TypeScript type definitions
+├── config/               # Configuration files
+│   ├── jest.config.ts   # Jest testing configuration
+│   ├── next.config.js   # Next.js configuration
+│   ├── tailwind.config.ts # Tailwind CSS configuration
+│   └── tsconfig.json    # TypeScript configuration
+├── deployment/           # Deployment configurations
+│   ├── vercel.json      # Vercel deployment config
+│   └── VERCEL_*.md      # Vercel setup documentation
+├── docs/                 # Documentation
+│   ├── additional/      # Additional project docs
+│   └── ...              # Feature documentation
+├── prisma/              # Database schema and migrations
+├── public/              # Static assets
+├── scripts/             # Utility scripts
+└── tests/               # Test files
+```
 
-This documentation is organized into the following sections:
+## 🛠️ Development
 
-### 🏠 Getting Started
-- [Introduction](docs/getting-started/introduction.md) - Overview and concepts
-- [Quick Start Guide](docs/getting-started/quick-start.md) - Get up and running fast
-- [Environment Setup](docs/getting-started/environment-setup.md) - Development environment
-- [Installation Guide](docs/getting-started/installation.md) - Production deployment
+### Prerequisites
+- Node.js 18+
+- pnpm
+- PostgreSQL
+- Supabase account
 
-### 🏗️ Architecture & Design
-- [System Overview](docs/architecture/system-overview.md) - High-level architecture
-- [Technology Stack](docs/architecture/technology-stack.md) - Technologies used
-- [Database Schema](docs/architecture/database-schema.md) - Data model
-- [Security Architecture](docs/architecture/security.md) - Security considerations
+### Environment Setup
+1. Copy `.env.example` to `.env.local`
+2. Configure your database connection
+3. Set up Supabase credentials
 
-### 📋 Feature Documentation
-- **Core Features**: Pet management, appointments, medical records
-- **Business Features**: Pricing, subscriptions, B2B functionality
-- **Advanced Features**: Business hours, admin systems, public pages
+### Testing
+```bash
+# Run unit tests
+pnpm test
 
-### 🔗 Integrations
-- **WhatsApp API**: Communication automation
-- **N8N Workflows**: Custom integrations
-- **Stripe**: Payment processing
+# Run integration tests
+pnpm test:integration
 
-### 🚀 Deployment & Operations
-- Production deployment guides
-- Environment configuration
-- Monitoring and maintenance
+# Run E2E tests
+pnpm test:e2e
+```
 
-## 🛠️ Technology Stack
+## 🚀 Deployment
 
-- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
-- **Backend**: Next.js API Routes, Prisma ORM
-- **Database**: PostgreSQL (Neon)
-- **Authentication**: Kinde Auth
-- **Payments**: Stripe
-- **Deployment**: Vercel
-- **Communication**: WhatsApp Business API
-- **Automation**: N8N
+### Vercel (Recommended)
+- Configuration files are in `/deployment/`
+- Follow the setup instructions in `/deployment/VERCEL_SETUP_INSTRUCTIONS.md`
+
+### Manual Deployment
+- Build: `pnpm build`
+- Start: `pnpm start`
+
+## 📚 Documentation
+
+- **Core Features**: `/docs/features/`
+- **Architecture**: `/docs/architecture/`
+- **API Reference**: `/docs/api/`
+- **Deployment**: `/deployment/`
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Development Guide](docs/development/environment.md) for details on:
-
-- Setting up your development environment
-- Coding standards and conventions
-- Testing guidelines
-- Deployment process
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
 ## 📄 License
 
 This project is proprietary software. All rights reserved.
 
-## 🆘 Support
-
-- **Documentation**: Browse this documentation
-- **Issues**: Report bugs and feature requests
-- **Discussions**: Join community discussions
-- **Email**: support@vetify.app
-
 ---
 
-**Ready to get started?** Check out our [Quick Start Guide](docs/getting-started/quick-start.md) or dive into the [Architecture Overview](docs/architecture/system-overview.md).
+**Note**: Configuration files in the root directory are symlinks to maintain Next.js compatibility. The actual files are located in `/config/`.
 

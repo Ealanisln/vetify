@@ -1,7 +1,7 @@
 'use client';
 
-import { useAppointmentStats } from '@/hooks/useAppointments';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAppointmentStats } from '../../hooks/useAppointments';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { 
   CalendarCheck, 
   Clock, 

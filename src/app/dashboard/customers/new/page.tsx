@@ -1,5 +1,5 @@
-import { requireAuth } from '@/lib/auth';
-import { NewCustomerForm } from '@/components/customers/NewCustomerForm';
+import { requireAuth } from '../../../../lib/auth';
+import { NewCustomerForm } from '../../../../components/customers/NewCustomerForm';
 
 export default async function NewCustomerPage() {
   const { tenant } = await requireAuth();

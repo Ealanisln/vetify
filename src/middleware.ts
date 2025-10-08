@@ -1,6 +1,35 @@
 import { withAuth } from "@kinde-oss/kinde-auth-nextjs/middleware";
 import { NextRequest, NextResponse } from "next/server";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import { 
+  checkRateLimit, 
+  getClientIdentifier, 
+  createRateLimitHeaders,
+  isRateLimitingEnabled 
+} from './lib/security/rate-limiter';
+import { 
+  logSecurityEvent, 
+  createAuditMiddleware 
+} from './lib/security/audit-logger';
+import { securityHeaders } from './lib/security/input-sanitization';
+
+// Protected routes that require trial/subscription access
+const PROTECTED_ROUTES = {
+  '/dashboard/pets/new': 'pets',
+  '/dashboard/appointments/new': 'appointments', 
+  '/dashboard/inventory': 'inventory',
+  '/dashboard/reports': 'reports',
+  '/dashboard/settings/automations': 'automations'
+} as const;
+
+// Routes that are always accessible (read-only access) - for future use
+// const PUBLIC_DASHBOARD_ROUTES = [
+//   '/dashboard',
+//   '/dashboard/settings', 
+//   '/dashboard/pets', // View pets allowed
+//   '/dashboard/appointments', // View appointments allowed
+//   '/dashboard/customers'
+// ] as const;
 
 // The `withAuth` middleware automatically handles authentication
 // for the routes specified in the `config.matcher` below.
@@ -8,8 +37,60 @@ import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 export default withAuth(
   async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
+    let userId: string | undefined;
     
-    // Allow public access to webhook routes (bypass all protection)
+    // Initialize audit middleware
+    const auditMiddleware = createAuditMiddleware();
+    
+    // Get user info for authenticated requests
+    try {
+      const { getUser } = getKindeServerSession();
+      const kindeUser = await getUser();
+      userId = kindeUser?.id;
+    } catch (error) {
+      // User not authenticated, continue with undefined userId
+    }
+    
+    // Apply rate limiting to all API routes (if enabled)
+    if (pathname.startsWith('/api/') && isRateLimitingEnabled()) {
+      const clientIdentifier = getClientIdentifier(req, userId);
+      const rateLimitResult = await checkRateLimit(clientIdentifier, pathname);
+      
+      if (!rateLimitResult.success) {
+        // Log rate limit exceeded event
+        await logSecurityEvent(
+          req,
+          'rate_limit_exceeded',
+          userId,
+          {
+            clientIdentifier,
+            limit: rateLimitResult.limit,
+            remaining: rateLimitResult.remaining,
+            endpoint: pathname,
+          }
+        );
+        
+        // Return rate limit exceeded response
+        const response = new Response(
+          JSON.stringify({
+            error: 'Rate limit exceeded',
+            retryAfter: Math.ceil((rateLimitResult.reset.getTime() - Date.now()) / 1000),
+          }),
+          {
+            status: 429,
+            headers: {
+              'Content-Type': 'application/json',
+              ...createRateLimitHeaders(rateLimitResult),
+              ...securityHeaders,
+            },
+          }
+        );
+        
+        return response;
+      }
+    }
+    
+    // Allow public access to webhook routes (bypass auth protection but still apply rate limiting)
     if (pathname.startsWith('/api/webhooks/')) {
       const response = NextResponse.next();
       
@@ -18,10 +99,18 @@ export default withAuth(
       response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
       response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       
+      // Add security headers
+      Object.entries(securityHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+      
+      // Log webhook access
+      await auditMiddleware(req, userId);
+      
       return response;
     }
     
-    // Skip middleware for API routes (except admin APIs), static files, and auth routes
+    // Skip auth middleware for certain routes but still apply security headers
     if (
       (pathname.startsWith('/api/') && !pathname.startsWith('/api/admin/')) ||
       pathname.startsWith('/_next/') ||
@@ -29,23 +118,116 @@ export default withAuth(
       pathname.includes('.') ||
       pathname.startsWith('/auth/')
     ) {
-      return NextResponse.next();
+      const response = NextResponse.next();
+      
+      // Add security headers to all responses
+      Object.entries(securityHeaders).forEach(([key, value]) => {
+        response.headers.set(key, value);
+      });
+      
+      // Log API access (but skip static files)
+      if (pathname.startsWith('/api/')) {
+        await auditMiddleware(req, userId);
+      }
+      
+      return response;
     }
 
-    // For dashboard routes, check if user has completed onboarding
+    // For dashboard routes, check if user has completed onboarding and trial access
     if (pathname.startsWith('/dashboard')) {
       try {
         const { getUser } = getKindeServerSession();
         const kindeUser = await getUser();
         
         if (kindeUser) {
-          // Check if user has a tenant in the database
-          // Note: We can't use Prisma directly in middleware due to edge runtime limitations
-          // So we'll let the requireAuth function handle the redirect
-          return NextResponse.next();
+          // Log dashboard access
+          await auditMiddleware(req, kindeUser.id);
+          
+          // Check if this is a protected route requiring trial/subscription access
+          const protectedRoute = Object.keys(PROTECTED_ROUTES).find(route => 
+            pathname.startsWith(route)
+          );
+
+          // Check if this is a generally accessible dashboard route (for future use)
+          // const isPublicDashboardRoute = PUBLIC_DASHBOARD_ROUTES.some(route => 
+          //   pathname === route || pathname.startsWith(route + '/')
+          // );
+
+          if (protectedRoute) {
+            // This is a protected route - check trial access via API
+            try {
+              const baseUrl = req.nextUrl.origin;
+              const accessCheckResponse = await fetch(`${baseUrl}/api/trial/check-access`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Cookie': req.headers.get('cookie') || '',
+                  'x-forwarded-for': req.headers.get('x-forwarded-for') || '',
+                  'user-agent': req.headers.get('user-agent') || ''
+                },
+                body: JSON.stringify({
+                  feature: PROTECTED_ROUTES[protectedRoute as keyof typeof PROTECTED_ROUTES],
+                  action: 'create'
+                })
+              });
+
+              if (accessCheckResponse.ok) {
+                const result = await accessCheckResponse.json();
+                
+                if (!result.allowed) {
+                  // Access denied - redirect to pricing page with context
+                  const url = new URL('/precios', req.url);
+                  url.searchParams.set('reason', 'trial_expired');
+                  url.searchParams.set('feature', PROTECTED_ROUTES[protectedRoute as keyof typeof PROTECTED_ROUTES]);
+                  url.searchParams.set('from', pathname);
+                  
+                  await logSecurityEvent(req, 'permission_denied', kindeUser.id, {
+                    reason: result.reason,
+                    feature: PROTECTED_ROUTES[protectedRoute as keyof typeof PROTECTED_ROUTES],
+                    pathname,
+                  });
+                  
+                  return NextResponse.redirect(url);
+                }
+              } else {
+                // API error - log but allow access to prevent blocking
+                console.warn('Trial access check failed:', accessCheckResponse.status);
+                
+                await logSecurityEvent(req, 'security_event', kindeUser.id, {
+                  error: 'Trial access check API error',
+                  pathname,
+                  status: accessCheckResponse.status
+                });
+              }
+            } catch (error) {
+              // Network error - log but allow access to prevent blocking
+              console.warn('Trial access check network error:', error);
+              
+              await logSecurityEvent(req, 'security_event', kindeUser.id, {
+                error: 'Trial access check network error',
+                pathname,
+              });
+            }
+          }
+          
+          // Continue with normal flow
+          const response = NextResponse.next();
+          
+          // Add security headers
+          Object.entries(securityHeaders).forEach(([key, value]) => {
+            response.headers.set(key, value);
+          });
+          
+          return response;
         }
       } catch (error) {
         console.error('Middleware error:', error);
+        
+        // Log the error as a security event
+        await logSecurityEvent(req, 'security_event', userId, {
+          error: 'Dashboard access error',
+          pathname,
+        });
       }
     }
 
@@ -57,13 +239,34 @@ export default withAuth(
         
         if (!kindeUser) {
           // Not authenticated, redirect to sign in
+          await logSecurityEvent(req, 'permission_denied', undefined, {
+            reason: 'Unauthenticated onboarding access',
+            pathname,
+          });
+          
           return NextResponse.redirect(new URL('/api/auth/login', req.url));
         }
         
+        // Log onboarding access
+        await auditMiddleware(req, kindeUser.id);
+        
         // Let the onboarding page handle the tenant check
-        return NextResponse.next();
+        const response = NextResponse.next();
+        
+        // Add security headers
+        Object.entries(securityHeaders).forEach(([key, value]) => {
+          response.headers.set(key, value);
+        });
+        
+        return response;
       } catch (error) {
         console.error('Middleware error:', error);
+        
+        // Log the error as a security event
+        await logSecurityEvent(req, 'security_event', userId, {
+          error: 'Onboarding access error',
+          pathname,
+        });
       }
     }
 
@@ -75,18 +278,54 @@ export default withAuth(
         
         if (!kindeUser) {
           // Not authenticated, redirect to sign in
+          await logSecurityEvent(req, 'permission_denied', undefined, {
+            reason: 'Unauthenticated admin access attempt',
+            pathname,
+          });
+          
           return NextResponse.redirect(new URL('/api/auth/login', req.url));
         }
         
+        // Log admin access attempt
+        await logSecurityEvent(req, 'security_event', kindeUser.id, {
+          action: 'admin_access_attempt',
+          pathname,
+        });
+        
         // Let the admin layout/API handle the super admin check
-        return NextResponse.next();
+        const response = NextResponse.next();
+        
+        // Add security headers
+        Object.entries(securityHeaders).forEach(([key, value]) => {
+          response.headers.set(key, value);
+        });
+        
+        return response;
       } catch (error) {
         console.error('Admin middleware error:', error);
+        
+        // Log the error as a security event
+        await logSecurityEvent(req, 'security_event', userId, {
+          error: 'Admin access error',
+          pathname,
+        });
+        
         return NextResponse.redirect(new URL('/api/auth/login', req.url));
       }
     }
 
-    return NextResponse.next();
+    // Default response with security headers
+    const response = NextResponse.next();
+    
+    // Add security headers to all responses
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    
+    // Log general access
+    await auditMiddleware(req, userId);
+    
+    return response;
   }
 );
 

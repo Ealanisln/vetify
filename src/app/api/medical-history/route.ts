@@ -6,8 +6,8 @@ import {
   getMedicalHistoryStats,
   getPetMedicalHistory,
   searchMedicalHistories
-} from '@/lib/medical-history';
-import { prisma } from '@/lib/prisma';
+} from '../../../lib/medical-history';
+import { prisma } from '../../../lib/prisma';
 import { MedicalHistoryFormData } from '@/types';
 
 export async function GET(request: Request) {

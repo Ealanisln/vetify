@@ -8,13 +8,70 @@ import tailwindTypography from "@tailwindcss/typography";
 export default {
   darkMode: "class",
   content: [
-    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  // Safelist critical classes that might be purged
+  safelist: [
+    'bg-vetify-primary',
+    'text-vetify-accent',
+    'border-vetify-primary',
+    'bg-vetify-accent',
+    'text-vetify-primary',
+    'border-vetify-accent',
+    { pattern: /^bg-vetify-/ },
+    { pattern: /^text-vetify-/ },
+    { pattern: /^border-vetify-/ },
+    'dark:bg-gray-900',
+    'dark:text-gray-100',
+    'btn-primary',
+    'btn-secondary',
+    'card',
+    'form-input',
   ],
   theme: {
     extend: {
       colors: {
+        // Design system colors using CSS variables for light/dark mode
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        // Legacy color names for backward compatibility
+        beige: "#E8D5C4", // Light beige for light mode backgrounds
+        beigeD: "#2D3136", // Dark beige for dark mode backgrounds
+        grayD: "#1F2937", // Dark gray for dark mode backgrounds
         vetify: {
           // Primary palette
           primary: {

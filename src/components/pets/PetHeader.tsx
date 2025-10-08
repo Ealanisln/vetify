@@ -1,6 +1,6 @@
 import { Pet, Customer } from '@prisma/client';
 import { differenceInYears, differenceInMonths } from 'date-fns';
-import { getThemeClasses } from '@/utils/theme-colors';
+import { getThemeClasses } from '../../utils/theme-colors';
 
 type PetWithOwner = Pet & { customer: Customer };
 

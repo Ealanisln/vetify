@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from '../../../lib/auth';
 import { 
   createTreatmentSchedule, 
   getTreatmentSchedulesByTenant,
   createTreatmentScheduleSchema 
-} from '@/lib/treatment-reminders';
+} from '../../../lib/treatment-reminders';
 
 export async function GET(request: NextRequest) {
   try {

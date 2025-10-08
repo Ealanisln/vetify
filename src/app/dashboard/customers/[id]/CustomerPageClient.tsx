@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { CustomerDetail } from '@/components/customers/CustomerDetail';
-import { Button } from '@/components/ui/button';
+import { CustomerDetail } from '../../../../components/customers/CustomerDetail';
+import { Button } from '../../../../components/ui/button';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { toast } from 'sonner';

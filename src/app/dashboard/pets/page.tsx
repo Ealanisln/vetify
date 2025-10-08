@@ -1,5 +1,5 @@
-import { requireAuth } from '@/lib/auth';
-import { getPetsByTenant } from '@/lib/pets';
+import { requireAuth } from '../../../lib/auth';
+import { getPetsByTenant } from '../../../lib/pets';
 import { PetWithOwner } from '@/types';
 import Link from 'next/link';
 

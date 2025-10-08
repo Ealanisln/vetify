@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
-import { createVaccination } from '@/lib/medical';
-import { vaccinationSchema } from '@/lib/medical-validation';
+import { requireAuth } from '../../../../lib/auth';
+import { createVaccination } from '../../../../lib/medical';
+import { vaccinationSchema } from '../../../../lib/medical-validation';
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from './prisma';
 import { TenantStatus } from '@prisma/client';
 import { startOfMonth, endOfMonth, subMonths, format } from 'date-fns';
 
@@ -138,7 +138,7 @@ async function getMonthlyRevenue(): Promise<number> {
  * Get recent tenants with their subscription info
  */
 async function getRecentTenants() {
-  return prisma.tenant.findMany({
+  const tenants = await prisma.tenant.findMany({
     take: 10,
     orderBy: { createdAt: 'desc' },
     include: {
@@ -154,6 +154,19 @@ async function getRecentTenants() {
       }
     }
   });
+
+  // Serialize the data to convert Decimal objects to numbers
+  return tenants.map(tenant => ({
+    ...tenant,
+    tenantSubscription: tenant.tenantSubscription ? {
+      ...tenant.tenantSubscription,
+      plan: {
+        ...tenant.tenantSubscription.plan,
+        monthlyPrice: Number(tenant.tenantSubscription.plan.monthlyPrice),
+        annualPrice: Number(tenant.tenantSubscription.plan.annualPrice)
+      }
+    } : null
+  }));
 }
 
 /**
@@ -291,8 +304,21 @@ export async function getAllTenants(
     prisma.tenant.count({ where })
   ]);
 
+  // Serialize the data to convert Decimal objects to numbers
+  const serializedTenants = tenants.map(tenant => ({
+    ...tenant,
+    tenantSubscription: tenant.tenantSubscription ? {
+      ...tenant.tenantSubscription,
+      plan: {
+        ...tenant.tenantSubscription.plan,
+        monthlyPrice: Number(tenant.tenantSubscription.plan.monthlyPrice),
+        annualPrice: Number(tenant.tenantSubscription.plan.annualPrice)
+      }
+    } : null
+  }));
+
   return {
-    tenants,
+    tenants: serializedTenants,
     total,
     pages: Math.ceil(total / limit),
     currentPage: page
@@ -340,7 +366,7 @@ export async function deleteTenant(tenantId: string) {
  * Get tenant details by ID
  */
 export async function getTenantDetails(tenantId: string) {
-  return prisma.tenant.findUnique({
+  const tenant = await prisma.tenant.findUnique({
     where: { id: tenantId },
     include: {
       tenantSubscription: {
@@ -366,6 +392,21 @@ export async function getTenantDetails(tenantId: string) {
       }
     }
   });
+
+  if (!tenant) return null;
+
+  // Serialize the data to convert Decimal objects to numbers
+  return {
+    ...tenant,
+    tenantSubscription: tenant.tenantSubscription ? {
+      ...tenant.tenantSubscription,
+      plan: {
+        ...tenant.tenantSubscription.plan,
+        monthlyPrice: Number(tenant.tenantSubscription.plan.monthlyPrice),
+        annualPrice: Number(tenant.tenantSubscription.plan.annualPrice)
+      }
+    } : null
+  };
 }
 
 /**

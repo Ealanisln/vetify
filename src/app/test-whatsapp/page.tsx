@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Send, MessageCircle, Phone, CheckCircle, XCircle, Loader2, Zap, Calendar, Heart } from 'lucide-react';
-import { useThemeAware, getThemeClass } from "@/hooks/useThemeAware";
+import { useThemeAware, getThemeClass } from '../../hooks/useThemeAware';
 
 interface TestResult {
   success: boolean;

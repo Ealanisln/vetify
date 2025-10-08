@@ -33,9 +33,35 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Generated environment and configuration files (should never be committed)
+VERCEL_ENV*.txt
+CONNECTION_SUMMARY.md
+MVP_DEPLOYMENT_CHECKLIST.md
+vercel.supabase.json
+
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+
+# Configuration directories (keep symlinks in root)
+/config/
+/deployment/
+/docs/additional/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+
+# IA
+.cursor/
+.cursorrules/
+.cursorignore/

@@ -1,9 +1,9 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { Phone, MapPin, Clock, Mail, Navigation, Star } from 'lucide-react';
 import Link from 'next/link';
-import type { PublicTenant } from '@/lib/tenant';
+import type { PublicTenant } from '../../lib/tenant';
 
 interface ClinicInfoProps {
   tenant: PublicTenant;

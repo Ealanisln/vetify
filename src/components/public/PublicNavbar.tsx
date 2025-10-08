@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { Phone, MapPin, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 

@@ -9,12 +9,12 @@ import {
   TrashIcon
 } from '@heroicons/react/24/outline';
 import { InventoryItemWithStock } from '@/types';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../ui/badge';
 import { AddProductModal } from './AddProductModal';
 import { EditProductModal } from './EditProductModal';
-import { getInventoryCategories } from '@/lib/inventory';
-import { ResponsiveTable } from '@/components/ui/ResponsiveTable';
-import { themeColors, responsive } from '@/utils/theme-colors';
+import { getInventoryCategories } from '../../lib/inventory';
+import { ResponsiveTable } from '../ui/ResponsiveTable';
+import { themeColors, responsive } from '../../utils/theme-colors';
 
 interface InventoryMainProps {
   tenantId: string;

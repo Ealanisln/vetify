@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { getMedicalHistoryById } from '@/lib/medical-history';
-import { prisma } from '@/lib/prisma';
+import { getMedicalHistoryById } from '../../../../lib/medical-history';
+import { prisma } from '../../../../lib/prisma';
 
 export async function GET(
   request: Request, 

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Sidebar } from '@/components/dashboard/Sidebar';
-import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
+import { Sidebar, DashboardHeader } from '../../components/dashboard';
 import type { UserWithTenant, TenantWithPlan } from '@/types';
 
 interface DashboardLayoutClientProps {

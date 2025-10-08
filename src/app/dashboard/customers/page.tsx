@@ -1,8 +1,8 @@
-import { requireAuth } from '@/lib/auth';
-import { getCustomers } from '@/lib/customers';
-import { CustomersList } from '@/components/customers/CustomersList';
-import { CustomerStats } from '@/components/customers/CustomerStats';
-import { Button } from '@/components/ui/button';
+import { requireAuth } from '../../../lib/auth';
+import { getCustomers } from '../../../lib/customers';
+import { CustomersList } from '../../../components/customers/CustomersList';
+import { CustomerStats } from '../../../components/customers/CustomerStats';
+import { Button } from '../../../components/ui/button';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 

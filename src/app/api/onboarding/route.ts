@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuthenticatedUserWithOptionalTenant } from '@/lib/auth';
-import { createTenantWithDefaults, isSlugAvailable } from '@/lib/tenant';
+import { getAuthenticatedUserWithOptionalTenant } from '../../../lib/auth';
+import { createTenantWithDefaults, isSlugAvailable } from '../../../lib/tenant';
 import { z } from 'zod';
 
 const onboardingSchema = z.object({
+  planKey: z.enum(['PROFESIONAL', 'CLINICA', 'EMPRESA'], {
+    required_error: 'Debe seleccionar un plan',
+  }),
+  billingInterval: z.enum(['monthly', 'yearly'], {
+    required_error: 'Debe seleccionar un intervalo de facturación',
+  }),
   clinicName: z.string().min(1, 'El nombre de la clínica es requerido'),
   slug: z.string()
     .min(1, 'El slug es requerido')
@@ -42,11 +48,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create tenant with all defaults
+    // Create tenant with selected plan
     const result = await createTenantWithDefaults({
       name: validatedData.clinicName,
       slug: validatedData.slug,
       userId: user.id,
+      planKey: validatedData.planKey,
+      billingInterval: validatedData.billingInterval,
       phone: validatedData.phone,
       address: validatedData.address,
     });

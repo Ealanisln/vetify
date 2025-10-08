@@ -18,7 +18,13 @@ export function useSubscription(tenant: Tenant | null) {
       setIsPastDue(tenant.subscriptionStatus === 'PAST_DUE');
       setIsCanceled(tenant.subscriptionStatus === 'CANCELED');
       setPlanName(tenant.planName);
-      setSubscriptionEndsAt(tenant.subscriptionEndsAt);
+      
+      // HOTFIX: Use trialEndsAt for trial periods, subscriptionEndsAt for paid subscriptions
+      if (tenant.isTrialPeriod && tenant.trialEndsAt) {
+        setSubscriptionEndsAt(tenant.trialEndsAt);
+      } else {
+        setSubscriptionEndsAt(tenant.subscriptionEndsAt);
+      }
     }
   }, [tenant]);
 

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from '../../../../lib/auth';
 import { 
   getStaffById, 
   updateStaff, 
   deleteStaff, 
   updateStaffSchema 
-} from '@/lib/staff';
+} from '../../../../lib/staff';
 
 export async function GET(
   request: NextRequest,

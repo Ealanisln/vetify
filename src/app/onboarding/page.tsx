@@ -1,4 +1,4 @@
-import { getAuthenticatedUserWithOptionalTenant } from '@/lib/auth';
+import { getAuthenticatedUserWithOptionalTenant } from '../../lib/auth';
 import { redirect } from 'next/navigation';
 import { OnboardingPageClient } from './OnboardingPageClient';
 

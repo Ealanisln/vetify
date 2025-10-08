@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { createSale, getRecentSales, getSalesStats } from '@/lib/sales';
-import { prisma } from '@/lib/prisma';
+import { createSale, getRecentSales, getSalesStats } from '../../../lib/sales';
+import { prisma } from '../../../lib/prisma';
 import { SaleFormData } from '@/types';
 
 export async function GET(request: Request) {

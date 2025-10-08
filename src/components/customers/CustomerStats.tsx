@@ -1,4 +1,4 @@
-import { getThemeClasses } from '@/utils/theme-colors';
+import { getThemeClasses } from '../../utils/theme-colors';
 
 interface Customer {
   id: string;

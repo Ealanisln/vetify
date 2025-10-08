@@ -1,17 +1,16 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import {
   CurrencyDollarIcon,
   LockClosedIcon,
   LockOpenIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { getThemeClasses } from '@/utils/theme-colors';
 
 interface CashDrawerMainProps {
   tenantId: string;
@@ -157,8 +156,8 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
-            <span className={`ml-3 ${getThemeClasses('text.primary')}`}>Cargando estado de caja...</span>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-3 text-foreground">Cargando estado de caja...</span>
           </div>
         </CardContent>
       </Card>
@@ -198,23 +197,23 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
             <div className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p className={`text-sm ${getThemeClasses('text.secondary')}`}>Abierta por</p>
-                  <p className={`font-medium ${getThemeClasses('text.primary')}`}>{currentDrawer.openedBy.name}</p>
+                  <p className="text-sm text-muted-foreground">Abierta por</p>
+                  <p className="font-medium text-foreground">{currentDrawer.openedBy.name}</p>
                 </div>
                 <div>
-                  <p className={`text-sm ${getThemeClasses('text.secondary')}`}>Hora de apertura</p>
-                  <p className={`font-medium ${getThemeClasses('text.primary')}`}>
+                  <p className="text-sm text-muted-foreground">Hora de apertura</p>
+                  <p className="font-medium text-foreground">
                     {format(new Date(currentDrawer.openedAt), 'HH:mm', { locale: es })}
                   </p>
                 </div>
                 <div>
-                  <p className={`text-sm ${getThemeClasses('text.secondary')}`}>Monto inicial</p>
+                  <p className="text-sm text-muted-foreground">Monto inicial</p>
                   <p className="font-medium text-green-600 dark:text-green-400">
                     ${currentDrawer.initialAmount.toLocaleString()}
                   </p>
                 </div>
                 <div>
-                  <p className={`text-sm ${getThemeClasses('text.secondary')}`}>Ventas del día</p>
+                  <p className="text-sm text-muted-foreground">Ventas del día</p>
                   <p className="font-medium text-blue-600 dark:text-blue-400">
                     ${transactionSummary?.totalSales.toLocaleString() || '0'}
                   </p>
@@ -222,19 +221,19 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
               </div>
 
               {currentDrawer.status === 'CLOSED' && (
-                <div className={`${getThemeClasses('background.muted')} rounded-lg p-4`}>
-                  <h4 className={`font-medium ${getThemeClasses('text.primary')} mb-2`}>Resumen de Cierre</h4>
+                <div className="bg-muted rounded-lg p-4">
+                  <h4 className="font-medium text-foreground mb-2">Resumen de Cierre</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
-                      <p className={getThemeClasses('text.secondary')}>Efectivo esperado</p>
-                      <p className={`font-medium ${getThemeClasses('text.primary')}`}>${currentDrawer.expectedAmount?.toLocaleString()}</p>
+                      <p className="text-muted-foreground">Efectivo esperado</p>
+                      <p className="font-medium text-foreground">${currentDrawer.expectedAmount?.toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className={getThemeClasses('text.secondary')}>Efectivo contado</p>
-                      <p className={`font-medium ${getThemeClasses('text.primary')}`}>${currentDrawer.finalAmount?.toLocaleString()}</p>
+                      <p className="text-muted-foreground">Efectivo contado</p>
+                      <p className="font-medium text-foreground">${currentDrawer.finalAmount?.toLocaleString()}</p>
                     </div>
                     <div>
-                      <p className={getThemeClasses('text.secondary')}>Diferencia</p>
+                      <p className="text-muted-foreground">Diferencia</p>
                       <p className={`font-medium ${
                         (currentDrawer.difference || 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
@@ -243,8 +242,8 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
                       </p>
                     </div>
                     <div>
-                      <p className={getThemeClasses('text.secondary')}>Cerrada por</p>
-                      <p className={`font-medium ${getThemeClasses('text.primary')}`}>{currentDrawer.closedBy?.name}</p>
+                      <p className="text-muted-foreground">Cerrada por</p>
+                      <p className="font-medium text-foreground">{currentDrawer.closedBy?.name}</p>
                     </div>
                   </div>
                 </div>
@@ -252,8 +251,8 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
             </div>
           ) : (
             <div className="text-center py-8">
-              <CurrencyDollarIcon className={`h-12 w-12 ${getThemeClasses('text.muted')} mx-auto mb-3`} />
-              <p className={`${getThemeClasses('text.secondary')} mb-4`}>No hay caja abierta</p>
+              <CurrencyDollarIcon className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+              <p className="text-muted-foreground mb-4">No hay caja abierta</p>
             </div>
           )}
         </CardContent>
@@ -278,10 +277,10 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
                     Abrir Caja
                   </Button>
                 ) : (
-                  <div className={`space-y-4 border ${getThemeClasses('border.primary')} rounded-lg p-4`}>
-                    <h4 className={`font-medium ${getThemeClasses('text.primary')}`}>Abrir Caja</h4>
+                  <div className="space-y-4 border border-border rounded-lg p-4 bg-card">
+                    <h4 className="font-medium text-foreground">Abrir Caja</h4>
                     <div>
-                      <label className={`block text-sm font-medium ${getThemeClasses('text.primary')} mb-1`}>
+                      <label className="form-label">
                         Monto inicial en efectivo
                       </label>
                       <input
@@ -289,7 +288,7 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
                         value={initialAmount}
                         onChange={(e) => setInitialAmount(e.target.value)}
                         placeholder="1000.00"
-                        className={`w-full border rounded-md px-3 py-2 ${getThemeClasses('input.base')}`}
+                        className="form-input"
                       />
                     </div>
                     <div className="flex gap-2">
@@ -324,24 +323,24 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
                     Cerrar Caja
                   </Button>
                 ) : (
-                  <div className="space-y-4 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                    <h4 className="font-medium text-red-900 dark:text-red-300">Cerrar Caja</h4>
-                    
+                  <div className="space-y-4 border border-destructive/50 rounded-lg p-4 bg-card">
+                    <h4 className="font-medium text-destructive">Cerrar Caja</h4>
+
                     {transactionSummary && (
-                      <div className={`${getThemeClasses('background.muted')} rounded p-3 text-sm`}>
-                        <p className={getThemeClasses('text.primary')}><strong>Efectivo esperado:</strong> ${(
-                          currentDrawer!.initialAmount + 
+                      <div className="bg-muted rounded p-3 text-sm">
+                        <p className="text-foreground"><strong>Efectivo esperado:</strong> ${(
+                          currentDrawer!.initialAmount +
                           transactionSummary.totalCash
                         ).toLocaleString()}</p>
-                        <p className={getThemeClasses('text.secondary')}>
-                          (Inicial: ${currentDrawer!.initialAmount.toLocaleString()} + 
+                        <p className="text-muted-foreground">
+                          (Inicial: ${currentDrawer!.initialAmount.toLocaleString()} +
                           Ventas en efectivo: ${transactionSummary.totalCash.toLocaleString()})
                         </p>
                       </div>
                     )}
-                    
+
                     <div>
-                      <label className={`block text-sm font-medium ${getThemeClasses('text.primary')} mb-1`}>
+                      <label className="form-label">
                         Efectivo contado en caja
                       </label>
                       <input
@@ -349,7 +348,7 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
                         value={finalAmount}
                         onChange={(e) => setFinalAmount(e.target.value)}
                         placeholder="0.00"
-                        className={`w-full border rounded-md px-3 py-2 ${getThemeClasses('input.base')}`}
+                        className="form-input"
                       />
                     </div>
                     <div className="flex gap-2">

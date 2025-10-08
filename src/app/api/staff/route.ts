@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from '../../../lib/auth';
 import { 
   createStaff, 
   createStaffSchema, 
   getStaffByTenant
-} from '@/lib/staff';
+} from '../../../lib/staff';
 
 export async function POST(request: NextRequest) {
   try {

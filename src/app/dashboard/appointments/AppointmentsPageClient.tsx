@@ -1,16 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { FullCalendarView } from '@/components/appointments/FullCalendarView';
-import { AppointmentModal } from '@/components/appointments/AppointmentModal';
-import { TodayAppointments } from '@/components/appointments/TodayAppointments';
-import { AppointmentStats } from '@/components/appointments/AppointmentStats';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { FullCalendarView, AppointmentModal, TodayAppointments, AppointmentStats } from '../../../components/appointments';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
 import { PlusIcon, Calendar, Clock, Users } from 'lucide-react';
-import { useAppointments, AppointmentWithDetails } from '@/hooks/useAppointments';
-import { useCalendar } from '@/hooks/useCalendar';
+import { useAppointments, AppointmentWithDetails } from '../../../hooks/useAppointments';
+import { useCalendar } from '../../../hooks/useCalendar';
 import { DateSelectArg } from '@fullcalendar/core';
 // Toast notifications will be handled by individual components
 
@@ -98,8 +95,8 @@ export function AppointmentsPageClient({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Calendario de Citas</h1>
-          <p className="text-gray-500">Gestiona las citas y horarios de tu clínica</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Calendario de Citas</h1>
+          <p className="text-gray-500 dark:text-gray-400">Gestiona las citas y horarios de tu clínica</p>
         </div>
         <Button onClick={handleNewAppointment} className="inline-flex items-center">
           <PlusIcon className="h-4 w-4 mr-2" />
@@ -188,14 +185,14 @@ export function AppointmentsPageClient({
                   <div>
                     <p className="font-medium">{customer.name}</p>
                     {customer.phone && (
-                      <p className="text-xs text-gray-500">{customer.phone}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{customer.phone}</p>
                     )}
                   </div>
                   <Badge variant="secondary">{pets.filter(p => p.customerId === customer.id).length} mascotas</Badge>
                 </div>
               ))}
               {customers.length > 5 && (
-                <p className="text-xs text-gray-500 pt-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400 pt-2">
                   +{customers.length - 5} clientes más
                 </p>
               )}
@@ -234,7 +231,7 @@ export function AppointmentsPageClient({
                 <div key={member.id} className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">{member.name}</p>
-                    <p className="text-xs text-gray-500">{member.position}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{member.position}</p>
                   </div>
                   <Badge variant="secondary">Activo</Badge>
                 </div>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { Phone, MapPin, Mail, Clock, Heart } from 'lucide-react';
-import type { PublicTenant } from '@/lib/tenant';
+import type { PublicTenant } from '../../lib/tenant';
 
 interface PublicFooterProps {
   tenant: PublicTenant;

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import StaffModal from '@/components/staff/StaffModal';
+import StaffModal from '../../../../components/staff/StaffModal';
 
 export default function NewStaffPage() {
   const router = useRouter();

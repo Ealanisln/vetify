@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
-import { createPet, createPetSchema, getPetsByTenant } from '@/lib/pets';
-import { n8nService } from '@/lib/n8n';
-import { prisma } from '@/lib/prisma';
-import { validatePlanAction, PlanLimitError } from '@/lib/plan-limits';
+import { requireAuth } from '../../../lib/auth';
+import { createPet, createPetSchema, getPetsByTenant } from '../../../lib/pets';
+import { n8nService } from '../../../lib/n8n';
+import { prisma } from '../../../lib/prisma';
+import { validatePlanAction, PlanLimitError } from '../../../lib/plan-limits';
 
 export async function POST(request: NextRequest) {
   try {

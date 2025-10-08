@@ -12,7 +12,11 @@ import {AuthProvider} from '../AuthProvider';
 import { ConditionalLayout } from '../components/ConditionalLayout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 
-const inter = Inter({ subsets: ['latin'] })
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
 
 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
@@ -115,7 +119,7 @@ export default function RootLayout({
             </Providers>
           </AuthProvider>
         </ErrorBoundary>
-        
+
         {/* Umami Analytics */}
         <Script
           src="https://analytics.alanis.dev/script.js"

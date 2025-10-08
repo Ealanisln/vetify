@@ -1,0 +1,32 @@
+[
+  {
+    "file": "src/components/admin/super-admins/AddSuperAdmin.tsx",
+    "original": "@/app/admin/super-admins/actions",
+    "relative": "../../../app/admin/super-admins/actions",
+    "type": "import"
+  },
+  {
+    "file": "src/components/admin/super-admins/AdminActions.tsx",
+    "original": "@/app/admin/super-admins/actions",
+    "relative": "../../../app/admin/super-admins/actions",
+    "type": "import"
+  },
+  {
+    "file": "src/components/onboarding/OnboardingForm.tsx",
+    "original": "@/app/onboarding/steps/PlanSelection",
+    "relative": "../../app/onboarding/steps/PlanSelection",
+    "type": "import"
+  },
+  {
+    "file": "src/components/onboarding/OnboardingForm.tsx",
+    "original": "@/app/onboarding/steps/ClinicInfo",
+    "relative": "../../app/onboarding/steps/ClinicInfo",
+    "type": "import"
+  },
+  {
+    "file": "src/components/onboarding/OnboardingForm.tsx",
+    "original": "@/app/onboarding/steps/Confirmation",
+    "relative": "../../app/onboarding/steps/Confirmation",
+    "type": "import"
+  }
+]

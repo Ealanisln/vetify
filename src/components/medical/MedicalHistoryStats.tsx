@@ -1,11 +1,11 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { 
   DocumentTextIcon,
   HeartIcon,
   ChartBarIcon,
   CalendarDaysIcon
 } from '@heroicons/react/24/outline';
-import { getThemeClasses } from '@/utils/theme-colors';
+import { getThemeClasses } from '../../utils/theme-colors';
 
 interface MedicalHistoryStatsProps {
   tenantId: string;

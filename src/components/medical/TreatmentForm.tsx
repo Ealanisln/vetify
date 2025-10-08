@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { treatmentSchema, COMMON_MEDICATIONS, type TreatmentFormData } from '@/lib/medical-validation';
+import { treatmentSchema, COMMON_MEDICATIONS, type TreatmentFormData } from '../../lib/medical-validation';
 import { TreatmentType } from '@prisma/client';
-import { getThemeClasses } from '@/utils/theme-colors';
+import { getThemeClasses } from '../../utils/theme-colors';
 
 interface TreatmentFormProps {
   petId: string;

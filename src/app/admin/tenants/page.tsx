@@ -1,7 +1,7 @@
-import { getAllTenants } from '@/lib/admin';
-import { TenantsTable } from '@/components/admin/TenantsTable';
-import { TenantFilters } from '@/components/admin/TenantFilters';
-import { TenantStats } from '@/components/admin/TenantStats';
+import { getAllTenants } from '../../../lib/admin';
+import { TenantsTable } from '../../../components/admin/TenantsTable';
+import { TenantFilters } from '../../../components/admin/TenantFilters';
+import { TenantStats } from '../../../components/admin/TenantStats';
 import { Metadata } from 'next';
 import { Suspense } from 'react';
 

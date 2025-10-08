@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/auth';
+import { requireAuth } from '../../../../lib/auth';
 import { 
   getCustomerById, 
   updateCustomer, 
   deleteCustomer, 
   createCustomerSchema 
-} from '@/lib/customers';
+} from '../../../../lib/customers';
 import { z } from 'zod';
 
 const updateCustomerSchema = createCustomerSchema.partial();

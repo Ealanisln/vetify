@@ -20,6 +20,12 @@ model Tenant {
   isTrialPeriod        Boolean             @default(true)
   trialEndsAt          DateTime?
   
+  // Enhanced trial tracking
+  trialExtendedAt      DateTime?
+  trialExtendedBy      String?
+  gracePeriodEnds      DateTime?
+  lastTrialCheck       DateTime?
+  
   // Enhanced Stripe Integration
   stripeCustomerId     String?             @unique
   stripeSubscriptionId String?             @unique
@@ -67,10 +73,13 @@ model Tenant {
   treatmentRecords     TreatmentRecord[]
   treatmentSchedules   TreatmentSchedule[]
   users                User[]
+  trialAccessLogs      TrialAccessLog[]
 
   @@index([status])
   @@index([slug])
   @@index([domain])
+  @@index([trialEndsAt])
+  @@index([isTrialPeriod, subscriptionStatus])
 }
 
 model Plan {
@@ -114,6 +123,9 @@ model User {
   sales                  Sale[]
   tenant                 Tenant?        @relation(fields: [tenantId], references: [id])
   userRoles              UserRole[]
+  adminAuditLogs         AdminAuditLog[]
+  setupTokens            SetupToken[]
+  trialAccessLogs        TrialAccessLog[]
 
   @@index([tenantId])
   @@index([email])
@@ -950,4 +962,71 @@ enum AppointmentRequestStatus {
   REJECTED
   CANCELLED
   CONVERTED_TO_APPOINTMENT
+}
+
+/// -----------------------------------------------
+/// Super Admin Setup Support
+/// -----------------------------------------------
+
+enum AdminAction {
+  ASSIGNED
+  REMOVED
+  SETUP_COMPLETED
+}
+
+model AdminAuditLog {
+  id            String       @id @default(uuid())
+  action        AdminAction
+  performedBy   String?
+  targetUserId  String
+  targetEmail   String
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+
+  performedByUser User?      @relation(fields: [performedBy], references: [id], onDelete: SetNull)
+
+  @@index([action])
+  @@index([targetUserId])
+  @@index([createdAt])
+}
+
+model SetupToken {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  email     String
+  expiresAt DateTime
+  used      Boolean   @default(false)
+  usedAt    DateTime?
+  usedBy    String?
+  createdAt DateTime  @default(now())
+
+  usedByUser User?    @relation(fields: [usedBy], references: [id])
+
+  @@index([token])
+  @@index([email])
+}
+
+model TrialAccessLog {
+  id            String   @id @default(uuid())
+  tenantId      String
+  userId        String
+  feature       String
+  action        String
+  allowed       Boolean
+  denialReason  String?
+  requestPath   String?
+  userAgent     String?
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+  
+  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([feature])
+  @@index([allowed])
+  @@index([createdAt])
+  @@index([tenantId, feature])
+  @@index([tenantId, userId])
 }

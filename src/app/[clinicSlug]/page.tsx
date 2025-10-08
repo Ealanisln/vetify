@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
-import { getTenantBySlug } from '@/lib/tenant';
-import { ClinicHero } from '@/components/public/ClinicHero';
-import { ClinicServices } from '@/components/public/ClinicServices';
-import { ClinicInfo } from '@/components/public/ClinicInfo';
-import { QuickBooking } from '@/components/public/QuickBooking';
+import { getTenantBySlug } from '../../lib/tenant';
+import { ClinicHero } from '../../components/public/ClinicHero';
+import { ClinicServices } from '../../components/public/ClinicServices';
+import { ClinicInfo } from '../../components/public/ClinicInfo';
+import { QuickBooking } from '../../components/public/QuickBooking';
 
 export default async function ClinicPage({
   params

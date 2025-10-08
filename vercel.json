@@ -1,10 +1,7 @@
 {
   "functions": {
-    "src/app/api/webhooks/**/*.ts": {
+    "src/app/api/**/*": {
       "maxDuration": 30
-    },
-    "src/app/api/auth/**/*.ts": {
-      "maxDuration": 10
     }
   },
   "headers": [
@@ -32,4 +29,4 @@
       "destination": "/api/webhooks/$1"
     }
   ]
-} 
+}

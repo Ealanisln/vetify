@@ -10,30 +10,22 @@ const SUPER_ADMIN_ROLE_KEY = 'SUPER_ADMIN';
  * Verificar si un usuario es super admin (por email o por rol)
  */
 export async function isSuperAdmin(userId?: string, email?: string): Promise<boolean> {
-  // Verificar por dominio de email (método existente)
+  // Fallback to domain based check for legacy support
   if (email && (email.endsWith('@vetify.pro') || email.endsWith('@vetify.com') || email.endsWith('@alanis.dev'))) {
     return true;
   }
 
-  // Si no hay userId, no podemos verificar por rol
-  if (!userId) {
-    return false;
-  }
-
-  // Verificar si tiene el rol de super admin
-  const superAdminRole = await getSuperAdminRole();
-  if (!superAdminRole) {
-    return false;
-  }
+  if (!userId) return false;
 
   const userRole = await prisma.userRole.findFirst({
     where: {
       userId,
-      roleId: superAdminRole.id,
-    }
+      role: {
+        key: SUPER_ADMIN_ROLE_KEY,
+      },
+    },
   });
-
-  return !!userRole;
+  return Boolean(userRole);
 }
 
 /**
@@ -68,7 +60,10 @@ export async function assignSuperAdmin(userIdOrEmail: string): Promise<{ success
   try {
     // Verificar que el usuario actual es super admin
     const currentUser = await getAuthenticatedUser();
-    const isCurrentUserSuperAdmin = await isSuperAdmin(currentUser.id, currentUser.email);
+    if (!currentUser) {
+      return { success: false, message: 'No estás autenticado' };
+    }
+    const isCurrentUserSuperAdmin = await isSuperAdmin(currentUser.id);
     
     if (!isCurrentUserSuperAdmin) {
       return { success: false, message: 'No tienes permisos para asignar super administradores' };
@@ -86,7 +81,7 @@ export async function assignSuperAdmin(userIdOrEmail: string): Promise<{ success
     }
 
     // Verificar si ya es super admin
-    const isAlreadySuperAdmin = await isSuperAdmin(user.id, user.email);
+    const isAlreadySuperAdmin = await isSuperAdmin(user.id);
     if (isAlreadySuperAdmin) {
       return { success: false, message: 'El usuario ya es super administrador' };
     }
@@ -123,7 +118,10 @@ export async function removeSuperAdmin(userIdOrEmail: string): Promise<{ success
   try {
     // Verificar que el usuario actual es super admin
     const currentUser = await getAuthenticatedUser();
-    const isCurrentUserSuperAdmin = await isSuperAdmin(currentUser.id, currentUser.email);
+    if (!currentUser) {
+      return { success: false, message: 'No estás autenticado' };
+    }
+    const isCurrentUserSuperAdmin = await isSuperAdmin(currentUser.id);
     
     if (!isCurrentUserSuperAdmin) {
       return { success: false, message: 'No tienes permisos para remover super administradores' };
@@ -188,7 +186,10 @@ export async function listSuperAdmins() {
   try {
     // Verificar que el usuario actual es super admin
     const currentUser = await getAuthenticatedUser();
-    const isCurrentUserSuperAdmin = await isSuperAdmin(currentUser.id, currentUser.email);
+    if (!currentUser) {
+      throw new Error('No estás autenticado');
+    }
+    const isCurrentUserSuperAdmin = await isSuperAdmin(currentUser.id);
     
     if (!isCurrentUserSuperAdmin) {
       throw new Error('No tienes permisos para ver la lista de super administradores');
@@ -257,12 +258,10 @@ export async function listSuperAdmins() {
  */
 export async function requireSuperAdmin() {
   const user = await getAuthenticatedUser();
-  const isUserSuperAdmin = await isSuperAdmin(user.id, user.email);
-  
-  if (!isUserSuperAdmin) {
-    throw new Error('Se requieren permisos de super administrador');
+  const isAdmin = await isSuperAdmin(user.id, user.email);
+  if (!isAdmin) {
+    throw new Error('Access denied. Super admin privileges required.');
   }
-  
   return { user };
 }
 

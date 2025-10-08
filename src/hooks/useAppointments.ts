@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AppointmentFormData, AppointmentQuery, AppointmentStatus } from '@/lib/validations/appointments';
+import { AppointmentFormData, AppointmentQuery, AppointmentStatus } from '../lib/validations/appointments';
 
 export interface AppointmentWithDetails {
   id: string;

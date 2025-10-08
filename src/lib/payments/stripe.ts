@@ -1,7 +1,32 @@
 import Stripe from 'stripe';
 import { redirect } from 'next/navigation';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../prisma';
+
+// Type for Stripe subscription creation data
+interface StripeSubscriptionData {
+  metadata: {
+    tenantId: string;
+    planKey: string;
+    userId: string;
+    hadLocalTrial: string;
+  };
+  trial_period_days?: number;
+}
 import type { Tenant, SubscriptionStatus } from '@prisma/client';
+
+/**
+ * Determina si un tenant debe recibir trial en Stripe
+ * Solo dar trial si nunca ha tenido trial local
+ */
+function shouldGiveStripeTrial(tenant: Tenant): boolean {
+  // Si nunca ha tenido trial local (no tiene trialEndsAt), puede tener trial en Stripe
+  if (!tenant.trialEndsAt) {
+    return true;
+  }
+  
+  // Si ya tuvo trial local (existe trialEndsAt), NO dar trial en Stripe
+  return false;
+}
 
 /**
  * CONFIGURACIÓN DE IMPUESTOS PARA MÉXICO
@@ -36,15 +61,15 @@ export const STRIPE_PRODUCTS = {
 export const STRIPE_PRICES = {
   PROFESIONAL: {
     monthly: 'price_1RjWSPPwxz1bHxlH60v9GJjX',
-    annual: 'price_1RjWSPPwxz1bHxlHpLCiifxS',
+    annual: 'price_1S1frxPwxz1bHxlHVcpmMKtx', // ACTUALIZADO con nuevo precio anual
   },
   CLINICA: {
     monthly: 'price_1RjWSQPwxz1bHxlHTcG2kbJA',
-    annual: 'price_1RjWSQPwxz1bHxlHZSALMZUr',
+    annual: 'price_1S1fryPwxz1bHxlHLL5IVhBC', // ACTUALIZADO con nuevo precio anual
   },
   EMPRESA: {
     monthly: 'price_1RjWSRPwxz1bHxlHHp1pVI43',
-    annual: 'price_1RjWSRPwxz1bHxlHR5zX9CCQ',
+    annual: 'price_1S1fryPwxz1bHxlHG1peVtLR', // ACTUALIZADO con nuevo precio anual
   }
 } as const;
 
@@ -52,15 +77,15 @@ export const STRIPE_PRICES = {
 export const PLAN_PRICES = {
   PROFESIONAL: {
     monthly: 599, // Plan Profesional B2B
-    annual: 479,  // Plan Profesional B2B anual
+    annual: 5750,  // Plan Profesional B2B anual - ACTUALIZADO
   },
   CLINICA: {
     monthly: 999, // Plan Clínica B2B
-    annual: 799,  // Plan Clínica B2B anual
+    annual: 9590,  // Plan Clínica B2B anual - ACTUALIZADO
   },
   EMPRESA: {
     monthly: 1799, // Plan Empresa B2B
-    annual: 1439,  // Plan Empresa B2B anual
+    annual: 17270,  // Plan Empresa B2B anual - ACTUALIZADO
   }
 } as const;
 
@@ -120,7 +145,35 @@ export async function createCheckoutSession({
   // Obtener o crear cliente
   const customer = await createOrRetrieveCustomer(tenant, userId);
 
-  const session = await stripe.checkout.sessions.create({
+  // Determinar si debe tener trial en Stripe
+  // Solo dar trial si nunca ha tenido trial local o el trial local aún está activo
+  const shouldHaveStripeTrial = shouldGiveStripeTrial(tenant);
+  
+  console.log('createCheckoutSession: Trial decision for tenant', tenant.id, {
+    isTrialPeriod: tenant.isTrialPeriod,
+    trialEndsAt: tenant.trialEndsAt,
+    subscriptionStatus: tenant.subscriptionStatus,
+    shouldHaveStripeTrial
+  });
+
+  const subscriptionData: StripeSubscriptionData = {
+    metadata: {
+      tenantId: tenant.id,
+      planKey: planKey || 'unknown',
+      userId,
+      hadLocalTrial: tenant.trialEndsAt ? 'true' : 'false'
+    }
+  };
+
+  // Solo agregar trial_period_days si nunca tuvo trial local
+  if (shouldHaveStripeTrial) {
+    subscriptionData.trial_period_days = 30;
+    console.log('createCheckoutSession: Adding 30-day Stripe trial for new user');
+  } else {
+    console.log('createCheckoutSession: No Stripe trial - user already had local trial');
+  }
+
+const session = await stripe.checkout.sessions.create({
     customer: customer.id,
     payment_method_types: ['card'],
     line_items: [
@@ -133,14 +186,7 @@ export async function createCheckoutSession({
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/precios?canceled=true`,
     allow_promotion_codes: true,
-    subscription_data: {
-      trial_period_days: 30, // Actualizado a 30 días
-      metadata: {
-        tenantId: tenant.id,
-        planKey: planKey || 'unknown',
-        userId
-      }
-    },
+    subscription_data: subscriptionData,
     // Configuración para México - SIN automatic tax ya que no está soportado en todos los países
     locale: 'es-419',
     // tax_id_collection: {
@@ -184,6 +230,34 @@ export async function createCheckoutSessionForAPI({
   // Obtener o crear cliente
   const customer = await createOrRetrieveCustomer(tenant, userId);
 
+  // Determinar si debe tener trial en Stripe
+  // Solo dar trial si nunca ha tenido trial local o el trial local aún está activo
+  const shouldHaveStripeTrial = shouldGiveStripeTrial(tenant);
+  
+  console.log('createCheckoutSessionForAPI: Trial decision for tenant', tenant.id, {
+    isTrialPeriod: tenant.isTrialPeriod,
+    trialEndsAt: tenant.trialEndsAt,
+    subscriptionStatus: tenant.subscriptionStatus,
+    shouldHaveStripeTrial
+  });
+
+  const subscriptionData: StripeSubscriptionData = {
+    metadata: {
+      tenantId: tenant.id,
+      planKey: planKey || 'unknown',
+      userId,
+      hadLocalTrial: tenant.trialEndsAt ? 'true' : 'false'
+    }
+  };
+
+  // Solo agregar trial_period_days si nunca tuvo trial local
+  if (shouldHaveStripeTrial) {
+    subscriptionData.trial_period_days = 30;
+    console.log('createCheckoutSessionForAPI: Adding 30-day Stripe trial for new user');
+  } else {
+    console.log('createCheckoutSessionForAPI: No Stripe trial - user already had local trial');
+  }
+
   const session = await stripe.checkout.sessions.create({
     customer: customer.id,
     payment_method_types: ['card'],
@@ -197,14 +271,7 @@ export async function createCheckoutSessionForAPI({
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/precios?canceled=true`,
     allow_promotion_codes: true,
-    subscription_data: {
-      trial_period_days: 30, // Actualizado a 30 días
-      metadata: {
-        tenantId: tenant.id,
-        planKey: planKey || 'unknown',
-        userId
-      }
-    },
+    subscription_data: subscriptionData,
     // Configuración para México - SIN automatic tax ya que no está soportado en todos los países
     locale: 'es-419',
     // tax_id_collection: {
@@ -249,7 +316,20 @@ export async function createCustomerPortalSession(tenant: Tenant) {
           enabled: true,
           default_allowed_updates: ['price', 'quantity', 'promotion_code'],
           proration_behavior: 'create_prorations',
-          products: []
+          products: [
+            {
+              product: STRIPE_PRODUCTS.PROFESIONAL,
+              prices: Object.values(STRIPE_PRICES.PROFESIONAL)
+            },
+            {
+              product: STRIPE_PRODUCTS.CLINICA,
+              prices: Object.values(STRIPE_PRICES.CLINICA)
+            },
+            {
+              product: STRIPE_PRODUCTS.EMPRESA,
+              prices: Object.values(STRIPE_PRICES.EMPRESA)
+            }
+          ]
         },
         subscription_cancel: {
           enabled: true,
@@ -349,44 +429,177 @@ export async function handleSubscriptionChange(
   const subscriptionId = subscription.id;
   const status = subscription.status;
 
-  const tenant = await prisma.tenant.findUnique({
-    where: { stripeCustomerId: customerId }
+  console.log('handleSubscriptionChange: Processing subscription:', {
+    subscriptionId,
+    customerId,
+    status,
+    trial_start: subscription.trial_start,
+    trial_end: subscription.trial_end,
+    current_period_end: subscription.current_period_end
   });
 
-  if (!tenant) {
-    console.error('Tenant no encontrado para el cliente de Stripe:', customerId);
-    return;
+  try {
+    const tenant = await prisma.tenant.findUnique({
+      where: { stripeCustomerId: customerId }
+    });
+
+    if (!tenant) {
+      console.error('handleSubscriptionChange: Tenant not found for Stripe customer:', customerId);
+      
+      // Try to find tenant by subscription ID in case of race condition
+      const tenantBySubscription = await prisma.tenant.findFirst({
+        where: { stripeSubscriptionId: subscriptionId }
+      });
+      
+      if (tenantBySubscription) {
+        console.log('handleSubscriptionChange: Found tenant by subscription ID, updating customer ID');
+        await prisma.tenant.update({
+          where: { id: tenantBySubscription.id },
+          data: { stripeCustomerId: customerId }
+        });
+        // Continue with the found tenant
+        await updateTenantSubscription(tenantBySubscription, subscription);
+      } else {
+        console.error('handleSubscriptionChange: No tenant found for subscription:', subscriptionId);
+      }
+      return;
+    }
+
+    await updateTenantSubscription(tenant, subscription);
+  } catch (error) {
+    console.error('handleSubscriptionChange: Error processing subscription change:', error);
+    throw error;
   }
+}
+
+// Helper function to update tenant subscription data
+async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Subscription) {
+  const subscriptionId = subscription.id;
+  const status = subscription.status;
+
+  console.log('updateTenantSubscription: Updating tenant:', tenant.id, 'with status:', status);
 
   if (status === 'active' || status === 'trialing') {
     const plan = subscription.items.data[0]?.plan;
-    const product = await stripe.products.retrieve(plan?.product as string);
     
-    await prisma.tenant.update({
-      where: { id: tenant.id },
-      data: {
-        stripeSubscriptionId: subscriptionId,
-        stripeProductId: plan?.product as string,
-        planName: product?.name,
-        subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
-        subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
-        isTrialPeriod: status === 'trialing',
-        status: 'ACTIVE' // Activar tenant
+    if (!plan) {
+      console.error('updateTenantSubscription: No plan found in subscription:', subscriptionId);
+      return;
+    }
+
+    let product;
+    try {
+      product = await stripe.products.retrieve(plan.product as string);
+    } catch (error) {
+      console.error('updateTenantSubscription: Error retrieving product:', error);
+      return;
+    }
+
+    // Map Stripe product ID to our Plan record
+    const stripeProductId = plan.product as string;
+    let planKey: string | null = null;
+    
+    // Find the plan key from our mapping
+    for (const [key, mapping] of Object.entries(STRIPE_PLAN_MAPPING)) {
+      if (mapping.productId === stripeProductId) {
+        planKey = key;
+        break;
       }
+    }
+
+    if (!planKey) {
+      console.error('updateTenantSubscription: No plan mapping found for product:', stripeProductId);
+      return;
+    }
+
+    // Get the Plan record from our database
+    const dbPlan = await prisma.plan.findUnique({
+      where: { key: planKey }
     });
+
+    if (!dbPlan) {
+      console.error('updateTenantSubscription: Plan not found in database:', planKey);
+      return;
+    }
+    
+    const updateData = {
+      stripeSubscriptionId: subscriptionId,
+      stripeProductId: stripeProductId,
+      planName: product?.name,
+      subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
+      subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
+      isTrialPeriod: status === 'trialing',
+      status: 'ACTIVE' as const // Activar tenant
+    };
+
+    console.log('updateTenantSubscription: Updating tenant with active/trialing subscription:', updateData);
+
+    // Update tenant and create/update TenantSubscription in a transaction
+    await prisma.$transaction(async (tx) => {
+      // Update the tenant
+      await tx.tenant.update({
+        where: { id: tenant.id },
+        data: updateData
+      });
+
+      // Create or update TenantSubscription
+      await tx.tenantSubscription.upsert({
+        where: { tenantId: tenant.id },
+        create: {
+          tenantId: tenant.id,
+          planId: dbPlan.id,
+          stripeSubscriptionId: subscriptionId,
+          status: status.toUpperCase() as SubscriptionStatus,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          cancelAtPeriodEnd: subscription.cancel_at_period_end
+        },
+        update: {
+          planId: dbPlan.id, // ✅ This will now update the plan when upgrading
+          stripeSubscriptionId: subscriptionId,
+          status: status.toUpperCase() as SubscriptionStatus,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          cancelAtPeriodEnd: subscription.cancel_at_period_end
+        }
+      });
+    });
+
+    console.log('updateTenantSubscription: Successfully updated tenant and subscription to active/trialing');
   } else if (status === 'canceled' || status === 'unpaid' || status === 'past_due') {
-    await prisma.tenant.update({
-      where: { id: tenant.id },
-      data: {
-        stripeSubscriptionId: status === 'canceled' ? null : subscriptionId,
-        stripeProductId: status === 'canceled' ? null : (subscription.items.data[0]?.plan?.product as string),
-        planName: status === 'canceled' ? null : undefined,
-        subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
-        subscriptionEndsAt: status === 'canceled' ? new Date(subscription.canceled_at! * 1000) : new Date(subscription.current_period_end * 1000),
-        isTrialPeriod: false,
-                 status: status === 'past_due' ? 'SUSPENDED' : (status === 'canceled' ? 'ACTIVE' : 'ACTIVE')
+    console.log('updateTenantSubscription: Processing subscription cancellation/failure');
+    
+    const updateData = {
+      subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
+      stripeProductId: status === 'canceled' ? null : (subscription.items.data[0]?.plan?.product as string),
+      planName: status === 'canceled' ? null : undefined
+    };
+
+    // Update tenant and TenantSubscription status
+    await prisma.$transaction(async (tx) => {
+      await tx.tenant.update({
+        where: { id: tenant.id },
+        data: updateData
+      });
+
+      // Update TenantSubscription status if it exists
+      const existingSubscription = await tx.tenantSubscription.findUnique({
+        where: { tenantId: tenant.id }
+      });
+
+      if (existingSubscription) {
+        await tx.tenantSubscription.update({
+          where: { tenantId: tenant.id },
+          data: {
+            status: status.toUpperCase() as SubscriptionStatus,
+            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+            cancelAtPeriodEnd: subscription.cancel_at_period_end
+          }
+        });
       }
     });
+
+    console.log('updateTenantSubscription: Successfully updated tenant subscription to:', status);
   }
 }
 

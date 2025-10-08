@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ServiceManagement } from '@/components/settings/ServiceManagement';
-import { BusinessHoursSettings } from '@/components/settings/BusinessHoursSettings';
-import { SubscriptionManager } from '@/components/subscription';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
+import { ServiceManagement } from '../../../components/settings/ServiceManagement';
+import { BusinessHoursSettings } from '../../../components/settings/BusinessHoursSettings';
+import { SubscriptionManager } from '../../../components/subscription';
 import type { TenantWithPlan } from '@/types';
 import { 
   Settings, 

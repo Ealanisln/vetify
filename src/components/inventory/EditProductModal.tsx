@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { getInventoryCategories } from '@/lib/inventory';
+import { getInventoryCategories } from '../../lib/inventory';
 import { InventoryItemWithStock } from '@/types';
-import { getThemeClasses } from '@/utils/theme-colors';
+import { getThemeClasses } from '../../utils/theme-colors';
 
 interface EditProductModalProps {
   isOpen: boolean;

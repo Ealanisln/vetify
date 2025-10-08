@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createCheckoutSessionForAPI, getPriceByLookupKey } from '@/lib/payments/stripe';
+import { createCheckoutSessionForAPI, getPriceByLookupKey } from '../../../lib/payments/stripe';
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { prisma } from '@/lib/prisma';
+import { prisma } from '../../../lib/prisma';
+import { findOrCreateUser } from '../../../lib/db/queries/users';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,30 +43,21 @@ export async function POST(request: NextRequest) {
 
     console.log('6. Usuario autenticado:', kindeUser.id, 'email:', kindeUser.email);
 
-    // Buscar usuario en la base de datos
-    let user = await prisma.user.findUnique({
-      where: { id: kindeUser.id }
-    });
-
-    // Si el usuario no existe, sincronizarlo
-    if (!user) {
-      console.log('7. Usuario no encontrado en DB, sincronizando...');
-      try {
-        user = await prisma.user.create({
-          data: {
-            id: kindeUser.id,
-            email: kindeUser.email || '',
-            firstName: kindeUser.given_name,
-            lastName: kindeUser.family_name,
-            name: `${kindeUser.given_name || ''} ${kindeUser.family_name || ''}`.trim() || kindeUser.email?.split('@')[0],
-            isActive: true,
-          }
-        });
-        console.log('8. Usuario sincronizado:', user.email);
-      } catch (error) {
-        console.error('Error syncing user:', error);
-        return NextResponse.json({ error: 'Error syncing user' }, { status: 500 });
-      }
+    // Use centralized findOrCreateUser function to handle concurrent requests
+    let user;
+    try {
+      console.log('7. Buscando o creando usuario...');
+      user = await findOrCreateUser({
+        id: kindeUser.id,
+        email: kindeUser.email || '',
+        firstName: kindeUser.given_name,
+        lastName: kindeUser.family_name,
+        name: `${kindeUser.given_name || ''} ${kindeUser.family_name || ''}`.trim() || kindeUser.email?.split('@')[0],
+      });
+      console.log('8. Usuario encontrado/creado:', user.email);
+    } catch (error) {
+      console.error('Error syncing user:', error);
+      return NextResponse.json({ error: 'Error syncing user' }, { status: 500 });
     }
 
     console.log('9. Usuario encontrado/sincronizado en DB:', user.id, 'email:', user.email);

@@ -100,36 +100,38 @@ export async function createTenantWithDefaults(data: {
   name: string;
   slug: string;
   userId: string;
+  planKey: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA';
+  billingInterval: 'monthly' | 'yearly';
   phone?: string;
   address?: string;
 }) {
-  // Get the PROFESIONAL plan (default for trial period)
-  const profesionalPlan = await prisma.plan.findFirst({
-    where: { key: 'PROFESIONAL' }
+  // Get the selected plan
+  const plan = await prisma.plan.findFirst({
+    where: { key: data.planKey, isActive: true }
   });
 
-  if (!profesionalPlan) {
-    throw new Error('Plan PROFESIONAL no encontrado. Ejecute la migración B2B primero.');
+  if (!plan) {
+    throw new Error(`Plan ${data.planKey} no encontrado. Ejecute la migración B2B primero.`);
   }
 
   return await prisma.$transaction(async (tx) => {
-    // Create tenant
+    // Create tenant with selected plan
     const tenant = await tx.tenant.create({
       data: {
         name: data.name,
         slug: data.slug,
-        planType: 'PROFESIONAL',
+        planType: data.planKey,
         status: 'ACTIVE',
         isTrialPeriod: true,
         trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       }
     });
 
-    // Create tenant subscription
+    // Create subscription with trial status
     await tx.tenantSubscription.create({
       data: {
         tenantId: tenant.id,
-        planId: profesionalPlan.id,
+        planId: plan.id,
         status: 'TRIALING',
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now

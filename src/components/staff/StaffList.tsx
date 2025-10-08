@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { 
   UserPlusIcon,
   MagnifyingGlassIcon,
@@ -171,20 +171,20 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Buscar por nombre, email o teléfono..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                className="form-input pl-10"
               />
             </div>
 
             <select
               value={positionFilter}
               onChange={(e) => setPositionFilter(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+              className="form-select"
             >
               <option value="">Todas las posiciones</option>
               {positions.map(position => (
@@ -195,14 +195,14 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+              className="form-select"
             >
               <option value="all">Todos los estados</option>
               <option value="active">Activos</option>
               <option value="inactive">Inactivos</option>
             </select>
 
-            <div className="text-sm text-gray-500 flex items-center">
+            <div className="text-sm text-muted-foreground flex items-center">
               {pagination.total} {pagination.total === 1 ? 'miembro' : 'miembros'} del personal
             </div>
           </div>
@@ -217,16 +217,16 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
         <CardContent>
           {loading ? (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="mt-2 text-gray-500">Cargando personal...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+              <p className="mt-2 text-muted-foreground">Cargando personal...</p>
             </div>
           ) : staff.length === 0 ? (
             <div className="text-center py-12">
-              <UserPlusIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              <UserPlusIcon className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 No hay personal registrado
               </h3>
-              <p className="text-gray-500 mb-4">
+              <p className="text-muted-foreground mb-4">
                 Comienza agregando miembros a tu equipo de trabajo.
               </p>
               <Button onClick={() => openModal('create')}>
@@ -236,18 +236,18 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
           ) : (
             <div className="space-y-4">
               {staff.map((staffMember) => (
-                <div 
+                <div
                   key={staffMember.id}
-                  className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
+                  className="p-4 border border-border rounded-lg hover:shadow-md transition-shadow bg-card"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-lg">{staffMember.name}</h3>
+                        <h3 className="font-semibold text-lg text-foreground">{staffMember.name}</h3>
                         {getStatusBadge(staffMember.isActive)}
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-600 dark:text-gray-400">
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-muted-foreground">
                         <div>
                           <span className="font-medium">Posición:</span> {staffMember.position}
                         </div>
@@ -266,7 +266,7 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                      <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
                         <span>{staffMember._count.appointments} citas</span>
                         <span>{staffMember._count.medicalHistories} historiales</span>
                         <span>{staffMember._count.Sale} ventas</span>
@@ -311,7 +311,7 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-between mt-6">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-muted-foreground">
                 Página {pagination.page} de {pagination.totalPages}
               </div>
               <div className="flex gap-2">

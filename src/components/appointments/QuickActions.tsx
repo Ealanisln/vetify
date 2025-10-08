@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { Menu, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '../ui/badge';
 import { 
   MoreHorizontal, 
   CheckCircle, 
@@ -16,11 +16,11 @@ import {
   PlayCircle,
   Loader2
 } from 'lucide-react';
-import { AppointmentWithDetails } from '@/hooks/useAppointments';
-import { getAppointmentStatusLabel, getAppointmentStatusColor, getNextAppointmentStatus } from '@/lib/validations/appointments';
+import { AppointmentWithDetails } from '../../hooks/useAppointments';
+import { getAppointmentStatusLabel, getAppointmentStatusColor, getNextAppointmentStatus } from '../../lib/validations/appointments';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { cn } from '@/lib/utils';
+import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
 
 interface QuickActionsProps {

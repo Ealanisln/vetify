@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getTenantBySlug } from '@/lib/tenant';
-import { findOrCreateCustomer, createPublicAppointmentRequest } from '@/lib/customer-identification';
+import { getTenantBySlug } from '../../../../lib/tenant';
+import { findOrCreateCustomer, createPublicAppointmentRequest } from '../../../../lib/customer-identification';
 import { z } from 'zod';
 
 const appointmentRequestSchema = z.object({

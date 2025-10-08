@@ -1,6 +1,6 @@
-import { requireSuperAdmin } from '@/lib/super-admin';
-import { AdminSidebar } from '@/components/admin/AdminSidebar';
-import { AdminHeader } from '@/components/admin/AdminHeader';
+import { requireSuperAdmin } from '../../lib/super-admin';
+import { AdminSidebar } from '../../components/admin/AdminSidebar';
+import { AdminHeader } from '../../components/admin/AdminHeader';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {

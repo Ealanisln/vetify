@@ -3,8 +3,8 @@
 import { useState } from 'react';
 // Modal component will use custom pattern
 import { AppointmentForm } from './AppointmentForm';
-import { AppointmentFormData } from '@/lib/validations/appointments';
-import { useAppointments, AppointmentWithDetails } from '@/hooks/useAppointments';
+import { AppointmentFormData } from '../../lib/validations/appointments';
+import { useAppointments, AppointmentWithDetails } from '../../hooks/useAppointments';
 import { toast } from 'sonner';
 
 interface Customer {

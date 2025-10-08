@@ -1,5 +1,5 @@
 import React from 'react';
-import { checkFeatureAccess } from '@/lib/plan-limits';
+import { checkFeatureAccess } from '../lib/plan-limits';
 import { UpgradePrompt } from './UpgradePrompt';
 
 interface PlanGuardProps {

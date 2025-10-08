@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
-import { requireAuth } from '@/lib/auth';
-import { InventoryMain } from '@/components/inventory/InventoryMain';
-import { InventoryStats } from '@/components/inventory/InventoryStats';
-import { LowStockAlert } from '@/components/inventory/LowStockAlert';
+import { requireAuth } from '../../../lib/auth';
+import { InventoryMain } from '../../../components/inventory/InventoryMain';
+import { InventoryStats } from '../../../components/inventory/InventoryStats';
+import { LowStockAlert } from '../../../components/inventory/LowStockAlert';
 
 export default async function InventoryPage() {
   const { tenant } = await requireAuth();

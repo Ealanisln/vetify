@@ -1,8 +1,8 @@
 'use client';
 
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useSubscription } from '@/hooks/useSubscription';
+import { Card } from '../ui/card';
+import { Badge } from '../ui/badge';
+import { useSubscription } from '../../hooks/useSubscription';
 import type { Tenant } from '@prisma/client';
 import { 
   Users, 

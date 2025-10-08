@@ -16,7 +16,7 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname();
   
   // Hide navbar and footer on dashboard and onboarding routes
-  const shouldHideNavAndFooter = pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding');
+  const shouldHideNavAndFooter = pathname.startsWith('/dashboard') || pathname.startsWith('/onboarding') || pathname.startsWith('/admin');
   
   return (
     <>

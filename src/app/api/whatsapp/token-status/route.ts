@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { whatsappService } from '@/lib/whatsapp';
+import { whatsappService } from '../../../../lib/whatsapp';
 
 interface TokenStatusResponse {
   valid: boolean;

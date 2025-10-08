@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { getInventoryCategories } from '@/lib/inventory';
-import { themeColors, responsive } from '@/utils/theme-colors';
+import { getInventoryCategories } from '../../lib/inventory';
+import { themeColors, responsive } from '../../utils/theme-colors';
 
 interface AddProductModalProps {
   isOpen: boolean;

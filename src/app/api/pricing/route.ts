@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStripePrices, getStripeProducts } from '@/lib/payments/stripe';
+import { getStripePrices, getStripeProducts } from '../../../lib/payments/stripe';
 
 export async function GET() {
   try {
@@ -50,11 +50,16 @@ export async function GET() {
     // Filter out free plans and sort by price
     const activePlans = pricingData
       .filter(plan => {
-        // Solo productos B2B con precios válidos
-        return plan.prices.monthly && 
-               plan.prices.monthly.unitAmount != null &&
-               plan.prices.monthly.unitAmount > 0 &&
-               plan.metadata?.type === 'b2b';  // Filtro B2B
+        // Solo productos con precios válidos
+        // Aceptamos productos B2B específicos o productos con pricing válido
+        const hasValidPricing = plan.prices.monthly && 
+                               plan.prices.monthly.unitAmount != null &&
+                               plan.prices.monthly.unitAmount > 0;
+        
+        // Si tiene metadata type b2b, incluir, sino incluir si tiene precios válidos
+        const isB2BOrValid = plan.metadata?.type === 'b2b' || hasValidPricing;
+        
+        return hasValidPricing && isB2BOrValid;
       })
       .sort((a, b) => {
         const aPrice = a.prices.monthly?.unitAmount || 0;

@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
-import { getTenantBySlug } from '@/lib/tenant';
-import { QuickBooking } from '@/components/public/QuickBooking';
+import { getTenantBySlug } from '../../../lib/tenant';
+import { QuickBooking } from '../../../components/public/QuickBooking';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 

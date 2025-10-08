@@ -1,5 +1,5 @@
-import { requireAuth } from '@/lib/auth';
-import { getPetById } from '@/lib/pets';
+import { requireAuth } from '../../../../../../lib/auth';
+import { getPetById } from '../../../../../../lib/pets';
 import { notFound } from 'next/navigation';
 import { ConsultationPageClient } from './ConsultationPageClient';
 
