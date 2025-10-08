@@ -4,17 +4,19 @@ import { useEffect, useState } from 'react';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { 
-  Clock, 
-  CalendarX, 
+import {
+  Clock,
+  CalendarX,
   AlertTriangle,
   CheckCircle,
   ArrowRight,
-  XCircle
+  XCircle,
+  Zap
 } from 'lucide-react';
 import type { Tenant } from '@prisma/client';
 import { calculateTrialStatus, type TrialStatus } from '../../lib/trial/utils';
 import { useRouter } from 'next/navigation';
+import { UpgradeModal } from './UpgradeModal';
 
 interface TrialBannerProps {
   tenant: Tenant;
@@ -22,14 +24,15 @@ interface TrialBannerProps {
   showBenefits?: boolean;
 }
 
-export function TrialBanner({ 
-  tenant, 
-  compact = false, 
-  showBenefits = true 
+export function TrialBanner({
+  tenant,
+  compact = false,
+  showBenefits = true
 }: TrialBannerProps) {
   const router = useRouter();
   const [trialStatus, setTrialStatus] = useState(() => calculateTrialStatus(tenant));
-  
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
   // Update countdown every minute for real-time updates
   useEffect(() => {
     const interval = setInterval(() => {
@@ -89,12 +92,17 @@ export function TrialBanner({
   const Icon = config.icon;
 
   const handleUpgrade = () => {
+    // Open upgrade modal instead of redirecting to pricing page
+    setShowUpgradeModal(true);
+  };
+
+  const handleViewPricing = () => {
     // Add tracking parameters for better analytics
     const url = new URL('/precios', window.location.origin);
     url.searchParams.set('source', 'trial_banner');
     url.searchParams.set('status', trialStatus.status);
     url.searchParams.set('days_remaining', trialStatus.daysRemaining.toString());
-    
+
     router.push(url.toString());
   };
 
@@ -157,16 +165,27 @@ export function TrialBanner({
             )}
           </div>
           
-          <div className="flex items-center gap-3 mt-4">
+          <div className="flex items-center gap-3 mt-4 flex-wrap">
             {trialStatus.showUpgradePrompt && (
-              <Button
-                onClick={handleUpgrade}
-                className={config.buttonColor}
-                size="sm"
-              >
-                Ver Planes y Precios
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+              <>
+                <Button
+                  onClick={handleUpgrade}
+                  className={config.buttonColor}
+                  size="sm"
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  Actualizar Ahora
+                </Button>
+                <Button
+                  onClick={handleViewPricing}
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-300"
+                >
+                  Ver Planes
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </>
             )}
             
             {trialStatus.status === 'active' && (
@@ -222,6 +241,14 @@ export function TrialBanner({
           )}
         </div>
       </div>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        currentPlanKey={null}
+        isTrialPeriod={tenant.isTrialPeriod}
+      />
     </Card>
   );
 }
