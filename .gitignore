@@ -33,6 +33,12 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Generated environment and configuration files (should never be committed)
+VERCEL_ENV*.txt
+CONNECTION_SUMMARY.md
+MVP_DEPLOYMENT_CHECKLIST.md
+vercel.supabase.json
+
 # vercel
 .vercel
 
