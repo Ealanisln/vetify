@@ -5,7 +5,6 @@ import { AlertCircle, X } from 'lucide-react';
 import { useState } from 'react';
 
 interface NoActivePlanBannerProps {
-  currentPath?: string;
   message?: string;
 }
 
@@ -13,7 +12,7 @@ interface NoActivePlanBannerProps {
  * Banner component to warn users about inactive subscriptions
  * Displayed at the top of allowed pages when user has no active plan
  */
-export function NoActivePlanBanner({ currentPath, message }: NoActivePlanBannerProps) {
+export function NoActivePlanBanner({ message }: NoActivePlanBannerProps) {
   const router = useRouter();
   const [isDismissed, setIsDismissed] = useState(false);
 

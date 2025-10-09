@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { checkFeatureAccess } from '@/app/actions/subscription';
 import { Lock } from 'lucide-react';
 
@@ -48,12 +49,12 @@ export function FeatureGate({
               {upgradeMessage || 'Requiere plan profesional o superior'}
             </p>
           </div>
-          <a
+          <Link
             href="/precios"
             className="mt-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
           >
             Ver Planes
-          </a>
+          </Link>
         </div>
       )
     );

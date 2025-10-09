@@ -112,6 +112,8 @@ The middleware (`src/middleware.ts`) handles:
 ```
 src/
 ├── app/                        # Next.js App Router
+│   ├── actions/
+│   │   └── subscription.ts    # Server actions for subscription management
 │   ├── api/                   # API route handlers
 │   │   ├── webhooks/          # Stripe/external webhooks (public)
 │   │   ├── trial/             # Trial management endpoints
@@ -122,7 +124,13 @@ src/
 │   └── providers.tsx          # Client-side providers (theme, toast)
 ├── components/
 │   ├── ConditionalLayout.tsx  # Handles layout switching (Nav vs admin)
-│   └── ErrorBoundary.tsx      # Global error boundary
+│   ├── ErrorBoundary.tsx      # Global error boundary
+│   ├── features/
+│   │   └── FeatureGate.tsx    # Subscription-based feature gating
+│   ├── providers/
+│   │   └── SubscriptionGuard.tsx # Guard for subscription-protected content
+│   └── subscription/
+│       └── NoActivePlanBanner.tsx # Warning banner for inactive plans
 ├── lib/
 │   ├── prisma.ts              # Shared Prisma client instance
 │   ├── auth.ts                # Authentication utilities
@@ -135,6 +143,8 @@ src/
 │   ├── trial/                 # Trial period management
 │   ├── payments/              # Stripe integration
 │   └── plan-limits.ts         # Subscription plan limits
+├── hooks/
+│   └── useSubscriptionStatus.ts # Client-side subscription status management
 ├── middleware.ts              # Edge middleware (auth, rate limiting, security)
 ├── types/                     # TypeScript type definitions
 └── AuthProvider.tsx           # Auth context wrapper
@@ -177,7 +187,33 @@ Protected routes/features require active trial or subscription:
 - Accessing inventory, reports, automations
 - Access control enforced in `src/middleware.ts`
 - Trial status checked via `/api/trial/check-access`
-- Expired trials redirect to `/precios` (pricing page)
+- Users without active plans redirect to `/dashboard/settings?tab=subscription`
+
+#### Subscription Components & Hooks
+
+**Server Actions** (`src/app/actions/subscription.ts`):
+- `getSubscriptionStatus()`: Get comprehensive subscription status for current user's tenant
+- `checkFeatureAccess(feature)`: Check if specific feature is accessible with current plan
+- `requireActivePlan()`: Check if user requires active plan, returns redirect info if denied
+
+**Client Components**:
+- `FeatureGate`: Gate specific features based on subscription plan, shows upgrade prompt if not accessible
+- `SubscriptionGuard`: Guard protected content requiring active subscription, redirects if no active plan
+- `NoActivePlanBanner`: Warning banner displayed when user has no active plan
+
+**Hooks**:
+- `useSubscriptionStatus()`: Client-side hook to fetch and manage subscription status
+  - Returns: `{ status, isLoading, isActive, isTrialPeriod, planName, daysRemaining, requireActivePlan, refreshStatus }`
+
+**Usage Example**:
+```tsx
+import { FeatureGate } from '@/components/features/FeatureGate';
+
+// Gate a premium feature
+<FeatureGate feature="inventory">
+  <InventoryManagement />
+</FeatureGate>
+```
 
 ### Testing Philosophy
 
