@@ -11,32 +11,33 @@ import fs from 'fs';
 import path from 'path';
 
 // Configuration object with placeholder values
+// IMPORTANT: Set these via environment variables or replace with your actual values
 const SUPABASE_CONFIG = {
-  projectRef: 'rqxhmhplxeiprzprobdb',
-  region: 'us-east-1',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxeGhtaHBseGVpcHJ6cHJvYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4OTExOTksImV4cCI6MjA1OTQ2NzE5OX0.MlOAoNMyU7E_OSCTBZRFJTNzdZv4IZsY6_0xVT-v9KI'
+  projectRef: process.env.SUPABASE_PROJECT_REF || 'YOUR_SUPABASE_PROJECT_REF',
+  region: process.env.SUPABASE_REGION || 'us-east-1',
+  anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY'
 };
 
 const KINDE_CONFIG = {
-  clientId: '0db7d44f29414510b2539193d16311f9',
-  clientSecret: 'dteQVIKpTe0VAuJK1kYRe9GSy4Flem9anclcNG1RFUPItAkwpaK',
-  issuerUrl: 'https://alanisdev.kinde.com',
-  siteUrl: 'https://vetify.pro'
+  clientId: process.env.KINDE_CLIENT_ID || 'YOUR_KINDE_CLIENT_ID',
+  clientSecret: process.env.KINDE_CLIENT_SECRET || 'YOUR_KINDE_CLIENT_SECRET',
+  issuerUrl: process.env.KINDE_ISSUER_URL || 'https://yourdomain.kinde.com',
+  siteUrl: process.env.KINDE_SITE_URL || 'https://your-domain.com'
 };
 
 const WHATSAPP_CONFIG = {
-  phoneNumberId: '700928786427921',
+  phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID || 'YOUR_WHATSAPP_PHONE_NUMBER_ID',
   accessToken: 'YOUR_WHATSAPP_ACCESS_TOKEN_HERE',
   webhookVerifyToken: 'YOUR_WHATSAPP_WEBHOOK_VERIFY_TOKEN_HERE'
 };
 
 const FACEBOOK_CONFIG = {
-  appId: '1130642095757374',
+  appId: process.env.FACEBOOK_APP_ID || 'YOUR_FACEBOOK_APP_ID',
   appSecret: 'YOUR_FACEBOOK_APP_SECRET_HERE'
 };
 
 const N8N_CONFIG = {
-  webhookUrl: 'https://n8n.alanis.dev',
+  webhookUrl: process.env.N8N_WEBHOOK_URL || 'https://your-n8n-instance.com',
   apiKey: 'YOUR_N8N_API_KEY_HERE'
 };
 

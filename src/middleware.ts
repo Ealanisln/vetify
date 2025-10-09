@@ -15,21 +15,32 @@ import { securityHeaders } from './lib/security/input-sanitization';
 
 // Protected routes that require trial/subscription access
 const PROTECTED_ROUTES = {
+  // Create/Edit operations
   '/dashboard/pets/new': 'pets',
-  '/dashboard/appointments/new': 'appointments', 
+  '/dashboard/appointments/new': 'appointments',
+
+  // Main dashboard sections - require active subscription
+  '/dashboard/clientes': 'customers',
+  '/dashboard/mascotas': 'pets',
+  '/dashboard/citas': 'appointments',
+  '/dashboard/inventario': 'inventory',
+  '/dashboard/historia-clinica': 'medical_history',
+  '/dashboard/reportes': 'reports',
+  '/dashboard/punto-de-venta': 'pos',
+
+  // Premium features
   '/dashboard/inventory': 'inventory',
   '/dashboard/reports': 'reports',
   '/dashboard/settings/automations': 'automations'
 } as const;
 
-// Routes that are always accessible (read-only access) - for future use
-// const PUBLIC_DASHBOARD_ROUTES = [
-//   '/dashboard',
-//   '/dashboard/settings', 
-//   '/dashboard/pets', // View pets allowed
-//   '/dashboard/appointments', // View appointments allowed
-//   '/dashboard/customers'
-// ] as const;
+// Routes that are always accessible even without active subscription
+const ALLOWED_WITHOUT_PLAN = [
+  '/dashboard',
+  '/dashboard/settings',
+  '/precios',
+  '/checkout'
+] as const;
 
 // The `withAuth` middleware automatically handles authentication
 // for the routes specified in the `config.matcher` below.
@@ -143,17 +154,17 @@ export default withAuth(
           // Log dashboard access
           await auditMiddleware(req, kindeUser.id);
           
+          // Check if this is an allowed route that doesn't require a subscription
+          const isAllowedRoute = ALLOWED_WITHOUT_PLAN.some(route =>
+            pathname === route || pathname.startsWith(route + '/')
+          );
+
           // Check if this is a protected route requiring trial/subscription access
-          const protectedRoute = Object.keys(PROTECTED_ROUTES).find(route => 
+          const protectedRoute = Object.keys(PROTECTED_ROUTES).find(route =>
             pathname.startsWith(route)
           );
 
-          // Check if this is a generally accessible dashboard route (for future use)
-          // const isPublicDashboardRoute = PUBLIC_DASHBOARD_ROUTES.some(route => 
-          //   pathname === route || pathname.startsWith(route + '/')
-          // );
-
-          if (protectedRoute) {
+          if (protectedRoute && !isAllowedRoute) {
             // This is a protected route - check trial access via API
             try {
               const baseUrl = req.nextUrl.origin;
@@ -175,9 +186,10 @@ export default withAuth(
                 const result = await accessCheckResponse.json();
                 
                 if (!result.allowed) {
-                  // Access denied - redirect to pricing page with context
-                  const url = new URL('/precios', req.url);
-                  url.searchParams.set('reason', 'trial_expired');
+                  // Access denied - redirect to settings/subscription page
+                  const url = new URL('/dashboard/settings', req.url);
+                  url.searchParams.set('tab', 'subscription');
+                  url.searchParams.set('reason', 'no_plan');
                   url.searchParams.set('feature', PROTECTED_ROUTES[protectedRoute as keyof typeof PROTECTED_ROUTES]);
                   url.searchParams.set('from', pathname);
                   

@@ -14,13 +14,13 @@ interface FeatureCardProps {
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, accent, wowFactor, benefits, badgeColor }) => {
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm hover:shadow-lg dark:shadow-none border border-gray-100 dark:border-gray-700 transition-all group">
+    <div className="card card-hover flex flex-col h-full p-6 transition-all group">
       <div className={`p-3 rounded-lg mb-4 inline-flex w-fit ${accent} group-hover:scale-110 transition-transform`}>
         {icon}
       </div>
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{title}</h3>
-      <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">{description}</p>
-      
+      <h3 className="text-xl font-semibold text-foreground mb-2">{title}</h3>
+      <p className="text-muted-foreground text-sm mb-4">{description}</p>
+
       <div className="mb-4">
         <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${badgeColor}`}>
           <Zap className="h-3 w-3 mr-1" />
@@ -30,8 +30,8 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, acc
 
       <ul className="space-y-2 flex-grow">
         {benefits.map((benefit, index) => (
-          <li key={index} className="flex items-start text-sm text-gray-600 dark:text-gray-300">
-            <div className="w-1.5 h-1.5 rounded-full bg-vetify-accent-500 mt-2 mr-2 flex-shrink-0"></div>
+          <li key={index} className="flex items-start text-sm text-muted-foreground">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 mr-2 flex-shrink-0"></div>
             {benefit}
           </li>
         ))}
@@ -42,12 +42,12 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, description, acc
 
 const workflows = [
   {
-    icon: <MessageCircle className="h-6 w-6 text-green-600" />,
+    icon: <MessageCircle className="h-6 w-6 text-primary" />,
     title: "Gestión de Citas Completa",
     description: "Sistema completo para programar, modificar y dar seguimiento a todas las citas de tu clínica veterinaria.",
-    accent: "bg-green-50 dark:bg-green-900/20",
+    accent: "bg-primary/10",
     wowFactor: "Agenda ilimitada con calendario integrado",
-    badgeColor: "bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 border border-green-200 dark:border-green-600",
+    badgeColor: "bg-primary/10 text-primary border border-primary/20",
     benefits: [
       "Calendario visual con todas tus citas",
       "Múltiples estados: programada, confirmada, completada",
@@ -57,12 +57,12 @@ const workflows = [
     ],
   },
   {
-    icon: <Shield className="h-6 w-6 text-blue-600" />,
+    icon: <Shield className="h-6 w-6 text-primary" />,
     title: "Historiales Médicos Completos",
     description: "Registro detallado de consultas, tratamientos, vacunas y desparasitaciones de cada mascota.",
-    accent: "bg-blue-50 dark:bg-blue-900/20",
+    accent: "bg-primary/10",
     wowFactor: "Historial completo de cada paciente",
-    badgeColor: "bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 border border-blue-200 dark:border-blue-600",
+    badgeColor: "bg-primary/10 text-primary border border-primary/20",
     benefits: [
       "Registro de consultas con diagnóstico y tratamiento",
       "Control de vacunaciones por etapa (cachorro, adulto, senior)",
@@ -72,12 +72,12 @@ const workflows = [
     ],
   },
   {
-    icon: <Package className="h-6 w-6 text-purple-600" />,
+    icon: <Package className="h-6 w-6 text-primary" />,
     title: "Control de Inventario y Ventas",
     description: "Gestiona tu inventario de medicamentos, productos y registra todas las ventas de tu clínica.",
-    accent: "bg-purple-50 dark:bg-purple-900/20",
+    accent: "bg-primary/10",
     wowFactor: "Control completo de stock y ventas",
-    badgeColor: "bg-purple-100 dark:bg-purple-800 text-purple-700 dark:text-purple-200 border border-purple-200 dark:border-purple-600",
+    badgeColor: "bg-primary/10 text-primary border border-primary/20",
     benefits: [
       "Inventario de medicamentos, vacunas y productos",
       "Alertas de stock mínimo y productos por vencer",
@@ -90,38 +90,38 @@ const workflows = [
 
 const additionalFeatures = [
   {
-    icon: <Clock className="h-5 w-5 text-amber-600" />,
+    icon: <Clock className="h-5 w-5 text-primary" />,
     title: "Sistema de Recordatorios",
     description: "Gestiona recordatorios de citas, vacunas y tratamientos para tus clientes",
-    accent: "bg-amber-50 dark:bg-amber-900/20",
+    accent: "bg-primary/10",
   },
   {
-    icon: <TrendingUp className="h-5 w-5 text-teal-600" />,
+    icon: <TrendingUp className="h-5 w-5 text-primary" />,
     title: "Gestión de Personal",
     description: "Administra tu equipo de veterinarios y personal con roles y permisos",
-    accent: "bg-teal-50 dark:bg-teal-900/20",
+    accent: "bg-primary/10",
   },
 ];
 
 export const FeatureShowcase: React.FC = () => {
   return (
-    <section className="relative py-16 lg:py-24 overflow-hidden">
+    <section className="relative py-16 lg:py-24 overflow-hidden bg-background">
       <div className="absolute inset-0 z-0">
-        <div className="absolute -top-24 -left-20 w-96 h-96 rounded-full bg-vetify-accent-100 blur-3xl opacity-30 dark:opacity-10"></div>
-        <div className="absolute bottom-0 right-10 w-72 h-72 rounded-full bg-vetify-primary-100 blur-3xl opacity-20 dark:opacity-5"></div>
+        <div className="absolute -top-24 -left-20 w-96 h-96 rounded-full bg-primary/10 blur-3xl"></div>
+        <div className="absolute bottom-0 right-10 w-72 h-72 rounded-full bg-accent/10 blur-3xl"></div>
       </div>
-      
+
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-4xl mx-auto mb-12 lg:mb-16">
-          <div className="inline-flex items-center px-4 py-2 bg-vetify-accent-50 dark:bg-vetify-accent-900/30 rounded-full mb-6">
-            <Zap className="h-4 w-4 text-vetify-accent-600 dark:text-vetify-accent-300 mr-2" />
-            <span className="text-sm font-medium text-vetify-accent-600 dark:text-vetify-accent-300">Características principales</span>
+          <div className="inline-flex items-center px-4 py-2 bg-primary/10 rounded-full mb-6">
+            <Zap className="h-4 w-4 text-primary mr-2" />
+            <span className="text-sm font-medium text-primary">Características principales</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Todo lo que necesitas para <span className="text-vetify-accent-500 dark:text-vetify-accent-300">gestionar tu clínica</span>
+          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+            Todo lo que necesitas para <span className="text-primary">gestionar tu clínica</span>
           </h2>
-          <p className="text-lg text-gray-600 dark:text-gray-300">
-            <strong>Sistema completo de gestión veterinaria.</strong> Administra citas, historiales, inventario y ventas en una sola plataforma.
+          <p className="text-lg text-muted-foreground">
+            <strong className="text-foreground">Sistema completo de gestión veterinaria.</strong> Administra citas, historiales, inventario y ventas en una sola plataforma.
           </p>
         </div>
 
@@ -142,56 +142,56 @@ export const FeatureShowcase: React.FC = () => {
         </div>
 
         {/* Value Props Section */}
-        <div className="bg-gradient-to-r from-vetify-primary-50 to-vetify-accent-50 dark:from-vetify-primary-900/20 dark:to-vetify-accent-900/20 rounded-2xl p-8 mb-16">
+        <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-8 mb-16">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div>
-              <div className="text-3xl font-bold text-vetify-primary-600 dark:text-vetify-primary-400 mb-2">Todo en uno</div>
-              <p className="text-gray-600 dark:text-gray-300">Gestión completa de tu clínica</p>
+              <div className="text-3xl font-bold text-primary mb-2">Todo en uno</div>
+              <p className="text-muted-foreground">Gestión completa de tu clínica</p>
             </div>
             <div>
-              <div className="text-3xl font-bold text-vetify-accent-600 dark:text-vetify-accent-400 mb-2">Multi-clínica</div>
-              <p className="text-gray-600 dark:text-gray-300">Soporte para múltiples sucursales</p>
+              <div className="text-3xl font-bold text-primary mb-2">Multi-clínica</div>
+              <p className="text-muted-foreground">Soporte para múltiples sucursales</p>
             </div>
             <div>
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">30 días gratis</div>
-              <p className="text-gray-600 dark:text-gray-300">Prueba sin compromiso</p>
+              <div className="text-3xl font-bold text-primary mb-2">30 días gratis</div>
+              <p className="text-muted-foreground">Prueba sin compromiso</p>
             </div>
           </div>
         </div>
 
         {/* Additional Features */}
         <div className="text-center mb-8">
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          <h3 className="text-2xl font-bold text-foreground mb-4">
             Y mucho más para hacer crecer tu clínica
           </h3>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           {additionalFeatures.map((feature, index) => (
-            <div key={index} className="flex items-start p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+            <div key={index} className="card flex items-start p-6">
               <div className={`p-2 rounded-lg mr-4 ${feature.accent}`}>
                 {feature.icon}
               </div>
               <div>
-                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{feature.title}</h4>
-                <p className="text-gray-600 dark:text-gray-300 text-sm">{feature.description}</p>
+                <h4 className="text-lg font-medium text-foreground mb-2">{feature.title}</h4>
+                <p className="text-muted-foreground text-sm">{feature.description}</p>
               </div>
             </div>
           ))}
         </div>
 
         <div className="text-center">
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-8 shadow-md">
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+          <div className="card p-8 shadow-md">
+            <h3 className="text-2xl font-bold text-foreground mb-4">
               ¿Listo para organizar tu clínica?
             </h3>
-            <p className="text-lg text-gray-600 dark:text-gray-300 mb-6">
+            <p className="text-lg text-muted-foreground mb-6">
               Comienza con 30 días gratis. Sin tarjeta de crédito.
             </p>
-            <Link href="/registro" className="inline-flex items-center px-6 py-3 bg-vetify-accent-500 hover:bg-vetify-accent-600 dark:bg-vetify-accent-600 dark:hover:bg-vetify-accent-700 rounded-xl text-white font-medium transition-all mr-4">
+            <Link href="/registro" className="btn-primary inline-flex items-center px-6 py-3 rounded-xl mr-4">
               Probar 30 días gratis <ChevronRight className="ml-2 h-4 w-4" />
             </Link>
-            <Link href="/precios" className="inline-flex items-center px-6 py-3 border border-gray-300 dark:border-gray-600 hover:border-vetify-accent-500 dark:hover:border-vetify-accent-400 rounded-xl text-gray-700 dark:text-gray-300 hover:text-vetify-accent-600 dark:hover:text-vetify-accent-400 font-medium transition-all">
+            <Link href="/precios" className="btn-secondary inline-flex items-center px-6 py-3 rounded-xl">
               Ver precios
             </Link>
           </div>

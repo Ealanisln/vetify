@@ -51,15 +51,16 @@ function logHeader(message) {
 }
 
 // Supabase project configuration
+// IMPORTANT: Replace these placeholders with your actual Supabase credentials
 const SUPABASE_CONFIG = {
-  projectId: 'rqxhmhplxeiprzprobdb',
-  projectRef: 'rqxhmhplxeiprzprobdb',
-  region: 'us-east-1',
-  host: 'db.rqxhmhplxeiprzprobdb.supabase.co',
+  projectId: process.env.SUPABASE_PROJECT_ID || 'YOUR_SUPABASE_PROJECT_ID',
+  projectRef: process.env.SUPABASE_PROJECT_REF || 'YOUR_SUPABASE_PROJECT_REF',
+  region: process.env.SUPABASE_REGION || 'us-east-1',
+  host: process.env.SUPABASE_HOST || 'db.YOUR_PROJECT_REF.supabase.co',
   port: 5432,
   database: 'postgres',
-  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJxeGhtaHBseGVpcHJ6cHJvYmRiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM4OTExOTksImV4cCI6MjA1OTQ2NzE5OX0.MlOAoNMyU7E_OSCTBZRFJTNzdZv4IZsY6_0xVT-v9KI',
-  serviceRoleKey: 'YOUR_SERVICE_ROLE_KEY_HERE' // You'll need to get this from Supabase Dashboard
+  anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY',
+  serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || 'YOUR_SERVICE_ROLE_KEY_HERE'
 };
 
 // Connection string templates
@@ -71,9 +72,10 @@ const CONNECTION_TEMPLATES = {
   },
   
   // For local development - direct connection to VPS
+  // IMPORTANT: Replace with your actual database credentials
   local: {
-    DATABASE_URL: 'postgresql://postgres:4v2zzMiIkC6IqBNkmsUENKd4JQUBSR8xi6oKenWcA3E0YS6THjKTWPwA1GuOUFTN@152.53.89.138:5435/postgres?sslmode=disable',
-    DIRECT_URL: 'postgresql://postgres:4v2zzMiIkC6IqBNkmsUENKd4JQUBSR8xi6oKenWcA3E0YS6THjKTWPwA1GuOUFTN@152.53.89.138:5435/postgres?sslmode=disable'
+    DATABASE_URL: process.env.LOCAL_DATABASE_URL || 'postgresql://postgres:YOUR_PASSWORD@YOUR_HOST:5432/postgres?sslmode=disable',
+    DIRECT_URL: process.env.LOCAL_DIRECT_URL || 'postgresql://postgres:YOUR_PASSWORD@YOUR_HOST:5432/postgres?sslmode=disable'
   }
 };
 
