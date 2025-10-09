@@ -54,19 +54,22 @@ export function HeroSection() {
         {/* Dashboard Preview */}
         <div className="mt-20">
           <div className="mx-auto max-w-6xl">
-            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
-              <div className="flex items-center gap-2 border-b border-border bg-muted px-4 py-3">
-                <div className="h-3 w-3 rounded-full bg-destructive" />
-                <div className="h-3 w-3 rounded-full bg-accent" />
-                <div className="h-3 w-3 rounded-full bg-primary" />
-              </div>
-              <div className="aspect-video bg-gradient-to-br from-primary/5 via-background to-accent/5 p-8">
-                <img
-                  src="/veterinary-clinic-dashboard-interface-with-calenda.jpg"
-                  alt="Vista previa del dashboard de Vetify"
-                  className="h-full w-full rounded-lg object-cover shadow-lg"
-                />
-              </div>
+            {/* Light mode background with gradient */}
+            <div className="relative overflow-hidden rounded-2xl p-8 shadow-2xl dark:hidden bg-[radial-gradient(circle_at_30%_30%,rgba(117,169,156,0.08)_0%,rgba(117,169,156,0.04)_40%,rgba(255,255,255,0.02)_100%)]">
+              <img
+                src="/hero/hero-dashboard-light.png"
+                alt="Vista previa del dashboard de Vetify"
+                className="w-full object-contain"
+              />
+            </div>
+
+            {/* Dark mode background with gradient */}
+            <div className="relative hidden overflow-hidden rounded-2xl p-8 shadow-2xl dark:block bg-[radial-gradient(circle_at_30%_30%,rgba(117,169,156,0.15)_0%,rgba(117,169,156,0.08)_40%,rgba(17,24,39,0.95)_100%)]">
+              <img
+                src="/hero/hero-dashboard-dark.png"
+                alt="Vista previa del dashboard de Vetify"
+                className="w-full object-contain"
+              />
             </div>
           </div>
         </div>

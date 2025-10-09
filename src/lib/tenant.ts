@@ -1,6 +1,20 @@
 import { prisma } from './prisma';
 import type { SubscriptionStatus } from '@prisma/client';
 
+/**
+ * Initialize trial period for a tenant
+ * Returns type-safe trial configuration
+ */
+function initializeTrialPeriod(days: number = 30) {
+  const trialEndsAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+
+  return {
+    isTrialPeriod: true,
+    trialEndsAt,
+    subscriptionStatus: 'TRIALING' as const,
+  };
+}
+
 // Types for public pages
 export interface PublicHours {
   weekdays?: string;
@@ -122,8 +136,7 @@ export async function createTenantWithDefaults(data: {
         slug: data.slug,
         planType: data.planKey,
         status: 'ACTIVE',
-        isTrialPeriod: true,
-        trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        ...initializeTrialPeriod(30),
       }
     });
 
