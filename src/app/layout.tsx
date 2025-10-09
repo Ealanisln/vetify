@@ -11,6 +11,13 @@ import { Metadata } from 'next'
 import {AuthProvider} from '../AuthProvider';
 import { ConditionalLayout } from '../components/ConditionalLayout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import {
+  createHomePageSEO,
+  generateMetadata,
+  generateOrganizationSchema,
+  generateSoftwareApplicationSchema,
+} from '@/lib/seo';
+import { StructuredData } from '@/components/seo/StructuredData';
 
 
 const inter = Inter({
@@ -18,12 +25,11 @@ const inter = Inter({
   display: 'swap',
 })
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-
+// Generate SEO metadata using the new SEO library
+const seoConfig = createHomePageSEO('es');
 export const metadata: Metadata = {
-  metadataBase: new URL(baseUrl),
-  title: 'Vetify | Software de Gestión Veterinaria en la Nube',
-  description: 'Sistema integral para clínicas veterinarias. Gestiona pacientes, citas, inventario y más.',
+  ...generateMetadata(seoConfig, 'es'),
+  // Favicon configuration
   icons: {
     icon: [
       { url: '/favicon/favicon.ico' },
@@ -40,18 +46,7 @@ export const metadata: Metadata = {
       },
     ],
   },
-  keywords: [
-    'software veterinario',
-    'CRM veterinario',
-    'gestión clínica veterinaria',
-    'expediente clínico veterinario',
-    'sistema veterinario',
-    'citas veterinarias',
-    'historia clínica veterinaria',
-    'software para veterinarios',
-    'gestión de inventario veterinario',
-    'SaaS veterinario'
-  ],
+  // Additional metadata
   authors: [{ name: 'Vetify Team' }],
   creator: 'Vetify',
   publisher: 'Vetify',
@@ -59,40 +54,6 @@ export const metadata: Metadata = {
     email: false,
     address: false,
     telephone: false,
-  },
-  openGraph: {
-    type: 'website',
-    locale: 'es_MX',
-    url: '/',
-    siteName: 'Vetify',
-    title: 'Vetify | Software de Gestión Veterinaria en la Nube',
-    description: 'Sistema integral para clínicas veterinarias.',
-    images: [
-      {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'Vetify - Software Veterinario',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Vetify | Software Veterinario',
-    description: 'Sistema integral para clínicas veterinarias.',
-    images: ['/og-image.jpg'],
-    creator: '@vetify',
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
   },
 }
 
@@ -107,8 +68,27 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // Generate structured data for organization and software application
+  const organizationSchema = generateOrganizationSchema('es', {
+    socialLinks: [
+      // Add your actual social media links
+      // 'https://www.facebook.com/vetify',
+      // 'https://twitter.com/vetify',
+      // 'https://www.linkedin.com/company/vetify',
+    ],
+  });
+
+  const softwareSchema = generateSoftwareApplicationSchema('es', {
+    price: '990', // Update with actual pricing
+    priceCurrency: 'MXN',
+  });
+
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        {/* Structured Data (JSON-LD) */}
+        <StructuredData data={[organizationSchema, softwareSchema]} />
+      </head>
       <body className={inter.className}>
         <ErrorBoundary>
           <AuthProvider>
