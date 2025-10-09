@@ -5,6 +5,16 @@ import type {
   Article,
 } from '@/lib/seo/structured-data';
 
+type StructuredDataType =
+  | Organization
+  | SoftwareApplication
+  | WebPage
+  | Article
+  | Organization[]
+  | SoftwareApplication[]
+  | WebPage[]
+  | Article[];
+
 /**
  * Render structured data script tag
  * Server component for adding JSON-LD structured data to pages
@@ -12,7 +22,7 @@ import type {
 export function StructuredData({
   data,
 }: {
-  data: Organization | SoftwareApplication | WebPage | Article | Array<any>;
+  data: StructuredDataType;
 }) {
   return (
     <script

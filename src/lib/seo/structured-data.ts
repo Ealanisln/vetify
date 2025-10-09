@@ -306,12 +306,22 @@ export function combineSchemas(
   return JSON.stringify(schemas.length === 1 ? schemas[0] : schemas);
 }
 
+type StructuredDataType =
+  | Organization
+  | SoftwareApplication
+  | WebPage
+  | Article
+  | Organization[]
+  | SoftwareApplication[]
+  | WebPage[]
+  | Article[];
+
 /**
  * Convert structured data to JSON string for script tag
  * Use this with the StructuredData component from @/components/seo/StructuredData
  */
 export function toStructuredDataString(
-  data: Organization | SoftwareApplication | WebPage | Article | Array<any>
+  data: StructuredDataType
 ): string {
   return JSON.stringify(data);
 }

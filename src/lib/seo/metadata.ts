@@ -5,8 +5,6 @@ import {
   getBaseUrl,
   OG_IMAGE_WIDTH,
   OG_IMAGE_HEIGHT,
-  TWITTER_IMAGE_WIDTH,
-  TWITTER_IMAGE_HEIGHT,
   ROBOTS_CONFIG,
 } from './config';
 import { getLocaleForLanguage, getLocalizedContent } from './language';
