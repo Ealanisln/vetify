@@ -301,7 +301,7 @@ function getPerformanceLevel(metrics: PerformanceMetrics): Sentry.SeverityLevel 
 function createSecurityEventMessage(
   eventType: AuditEventType,
   context: SecurityContext,
-  details?: Record<string, unknown>
+  _details?: Record<string, unknown>
 ): string {
   const baseMessage = `Security Event: ${eventType}`;
   const location = context.endpoint ? ` at ${context.endpoint}` : '';

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSuperAdmin } from '../../../../../lib/super-admin';
-import { getUserById, updateUser, deactivateUser, activateUser } from '../../../../../lib/admin/users';
+import { getUserById, updateUser, deactivateUser } from '../../../../../lib/admin/users';
 
 /**
  * GET /api/admin/users/[userId]

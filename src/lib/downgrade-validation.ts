@@ -1,4 +1,4 @@
-import { getPlanLimits, getPlanUsageStats, type PlanLimits, type PlanUsageStats } from './plan-limits';
+import { getPlanUsageStats, type PlanLimits, type PlanUsageStats } from './plan-limits';
 import { COMPLETE_PLANS } from './pricing-config';
 
 // Extended plan limits that may include API access

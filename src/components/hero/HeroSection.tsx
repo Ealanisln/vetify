@@ -106,26 +106,17 @@ const HeroSection: React.FC = () => {
               </div>
 
               {/* Screenshot principal */}
-              <div className="card rounded-2xl shadow-2xl overflow-hidden">
-                <div className="h-6 bg-muted flex items-center px-4">
-                  <div className="flex space-x-2">
-                    <div className="w-2 h-2 rounded-full bg-red-400"></div>
-                    <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
-                    <div className="w-2 h-2 rounded-full bg-green-400"></div>
+              <div className="rounded-2xl overflow-hidden">
+                <object
+                  type="image/svg+xml"
+                  data="/dashboard-preview.svg"
+                  className="w-full h-auto scale-125"
+                  aria-label="Dashboard Vetify"
+                >
+                  <div className="w-full h-60 flex items-center justify-center">
+                    <p className="text-muted-foreground">Vista previa del dashboard</p>
                   </div>
-                </div>
-                <div className="w-full">
-                  <object
-                    type="image/svg+xml"
-                    data="/dashboard-preview.svg"
-                    className="w-full"
-                    aria-label="Dashboard Vetify"
-                  >
-                    <div className="w-full h-60 bg-muted flex items-center justify-center">
-                      <p className="text-muted-foreground">Vista previa del dashboard</p>
-                    </div>
-                  </object>
-                </div>
+                </object>
               </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 # Vetify - Veterinary Practice Management Platform
 
-A comprehensive, multi-tenant SaaS platform for veterinary practices with advanced features including appointment management, client communication, and business analytics.
+A comprehensive, multi-tenant SaaS platform for veterinary practices built with Next.js 15, React 19, and TypeScript. Features include appointment management, pet health records, inventory tracking, client communication via WhatsApp, and subscription-based access control.
 
 ## 🚀 Quick Start
 
@@ -8,88 +8,208 @@ A comprehensive, multi-tenant SaaS platform for veterinary practices with advanc
 # Install dependencies
 pnpm install
 
+# Setup environment
+cp .env.example .env.local
+# Configure your environment variables
+
+# Run database migrations
+pnpm prisma migrate dev
+
 # Start development server
 pnpm dev
+```
 
-# Build for production
-pnpm build
+Visit `http://localhost:3000` to access the application.
+
+## 📦 Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **UI**: React 19, Tailwind CSS, Framer Motion
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: Kinde Auth
+- **Payments**: Stripe (Subscriptions & Trials)
+- **Storage**: Supabase
+- **Rate Limiting**: Upstash Redis
+- **Monitoring**: Sentry
+- **Testing**: Jest, Playwright, React Testing Library
+
+## 🛠️ Development
+
+### Prerequisites
+- Node.js >= 20.0.0
+- pnpm 9.15.9
+- PostgreSQL database
+- Supabase account
+- Stripe account (for payments)
+- Kinde Auth account
+
+### Available Commands
+
+#### Development
+```bash
+pnpm dev                      # Start dev server (localhost:3000)
+pnpm build                    # Production build
+pnpm start                    # Start production server
+pnpm lint                     # Run ESLint
+```
+
+#### Database
+```bash
+pnpm prisma generate          # Generate Prisma Client
+pnpm prisma migrate dev       # Create and apply migrations
+pnpm prisma migrate deploy    # Apply migrations (production)
+pnpm prisma studio            # Open Prisma Studio GUI
+```
+
+#### Testing
+```bash
+pnpm test                     # Run all unit tests
+pnpm test:watch               # Run tests in watch mode
+pnpm test:unit                # Run unit tests only
+pnpm test:integration         # Run integration tests
+pnpm test:e2e                 # Run Playwright E2E tests
+pnpm test:e2e:ui              # Run E2E tests with UI
+pnpm test:coverage            # Generate coverage report
+pnpm test:security            # Run security tests
+pnpm test:components          # Run component tests
+pnpm test:critical            # Run critical tests before deploy
+```
+
+#### Environment Management
+```bash
+pnpm env:show                 # Show current environment config
+pnpm env:localhost            # Configure for localhost
+pnpm env:development          # Configure for development
+```
+
+#### Stripe & Payments
+```bash
+pnpm stripe:verify            # Verify Stripe configuration
+pnpm stripe:setup             # Setup Stripe products and prices
+pnpm pricing:sync             # Verify pricing synchronization
+pnpm trial:status             # Check subscription status
+```
+
+#### Deployment
+```bash
+pnpm vercel-build             # Build for Vercel
+pnpm build:production         # Production build with migrations
+pnpm deploy:check             # Check deployment readiness
 ```
 
 ## 📁 Project Structure
 
 ```
 vetify/
-├── src/                    # Source code
-│   ├── app/              # Next.js App Router
-│   ├── components/       # Reusable UI components
-│   ├── lib/             # Utility libraries
-│   └── types/           # TypeScript type definitions
-├── config/               # Configuration files
-│   ├── jest.config.ts   # Jest testing configuration
-│   ├── next.config.js   # Next.js configuration
-│   ├── tailwind.config.ts # Tailwind CSS configuration
-│   └── tsconfig.json    # TypeScript configuration
-├── deployment/           # Deployment configurations
-│   ├── vercel.json      # Vercel deployment config
-│   └── VERCEL_*.md      # Vercel setup documentation
-├── docs/                 # Documentation
-│   ├── additional/      # Additional project docs
-│   └── ...              # Feature documentation
-├── prisma/              # Database schema and migrations
-├── public/              # Static assets
-├── scripts/             # Utility scripts
-└── tests/               # Test files
+├── src/
+│   ├── app/                  # Next.js App Router
+│   │   ├── actions/          # Server Actions
+│   │   ├── api/              # API Routes
+│   │   ├── dashboard/        # Main dashboard (protected)
+│   │   ├── admin/            # Super admin interface
+│   │   └── layout.tsx        # Root layout
+│   ├── components/
+│   │   ├── ui/               # UI components
+│   │   ├── features/         # Feature components
+│   │   └── subscription/     # Subscription components
+│   ├── lib/
+│   │   ├── prisma.ts         # Prisma client
+│   │   ├── auth.ts           # Authentication utilities
+│   │   ├── security/         # Security utilities
+│   │   ├── payments/         # Stripe integration
+│   │   └── trial/            # Trial management
+│   ├── hooks/                # React hooks
+│   ├── types/                # TypeScript definitions
+│   └── middleware.ts         # Edge middleware
+├── config/                   # Configuration files
+│   ├── jest.config.ts
+│   ├── next.config.js
+│   ├── tailwind.config.ts
+│   └── tsconfig.json
+├── deployment/               # Deployment configs
+│   └── vercel.json
+├── gitbook-docs/            # GitBook documentation
+├── prisma/                  # Database schema & migrations
+├── public/                  # Static assets
+├── scripts/                 # Utility scripts
+├── tests/                   # Test files
+└── CLAUDE.md                # AI assistant instructions
 ```
 
-## 🛠️ Development
+## 🔒 Security Features
 
-### Prerequisites
-- Node.js 18+
-- pnpm
-- PostgreSQL
-- Supabase account
+- **Rate Limiting**: Upstash Redis-based rate limiting on API routes
+- **CSRF Protection**: Token-based protection for state-changing operations
+- **Security Headers**: Comprehensive security headers via middleware
+- **Input Validation**: Zod schemas for all inputs
+- **Audit Logging**: Security event logging
+- **Multi-tenant Isolation**: Strict tenant data separation
 
-### Environment Setup
-1. Copy `.env.example` to `.env.local`
-2. Configure your database connection
-3. Set up Supabase credentials
+## 💳 Subscription System
 
-### Testing
-```bash
-# Run unit tests
-pnpm test
+- **Trial Period**: 30-day free trial for all plans
+- **Plans**: Profesional ($599/mo), Clínica ($999/mo), Empresa ($1,799/mo)
+- **Early Adopter Discount**: 25% off for 6 months (promo code: `FUNDADOR25`)
+- **Features**: Subscription-based feature gating
+- **Access Control**: Middleware-enforced subscription requirements
+- **Components**:
+  - `FeatureGate`: Gate premium features
+  - `SubscriptionGuard`: Protect subscription-only content
+  - `useSubscriptionStatus()`: Client-side subscription hook
+  - `EarlyAdopterBanner`: Marketing banner for launch discount
 
-# Run integration tests
-pnpm test:integration
+## 🧪 Testing
 
-# Run E2E tests
-pnpm test:e2e
-```
+The project includes comprehensive test coverage:
+- **Unit Tests**: Utilities, validation, business logic
+- **Integration Tests**: API routes, database operations
+- **E2E Tests**: User flows with Playwright
+- **Security Tests**: Input validation, rate limiting, auth flows
+
+Run `pnpm test:coverage` for detailed coverage reports.
 
 ## 🚀 Deployment
 
 ### Vercel (Recommended)
-- Configuration files are in `/deployment/`
-- Follow the setup instructions in `/deployment/VERCEL_SETUP_INSTRUCTIONS.md`
 
-### Manual Deployment
-- Build: `pnpm build`
-- Start: `pnpm start`
+1. Configure environment variables (see `.env.example`)
+2. Connect your GitHub repository to Vercel
+3. Vercel will automatically use the `vercel-build` command
+4. Refer to `/deployment/` for detailed instructions
+
+### Environment Variables
+
+Required variables:
+- `DATABASE_URL`: PostgreSQL connection string
+- Kinde Auth credentials (`KINDE_*`)
+- Stripe API keys (`STRIPE_*`)
+- Supabase credentials (`NEXT_PUBLIC_SUPABASE_*`)
+- Upstash Redis (`UPSTASH_REDIS_*`)
+- Optional: Sentry DSN for error tracking
+
+See `/deployment/VERCEL_SETUP_INSTRUCTIONS.md` for complete setup guide.
 
 ## 📚 Documentation
 
-- **Core Features**: `/docs/features/`
-- **Architecture**: `/docs/architecture/`
-- **API Reference**: `/docs/api/`
-- **Deployment**: `/deployment/`
+- **Main Guide**: `CLAUDE.md` - Comprehensive development guide
+- **Deployment**: `/deployment/` - Vercel deployment instructions
+- **GitBook Docs**: `/gitbook-docs/` - Detailed feature documentation
+- **Configuration**: `/config/README.md` - Configuration file documentation
+
+## 🔧 Configuration
+
+**Important**: Root configuration files (`next.config.js`, `tailwind.config.ts`, etc.) are symlinks to `/config/` directory for Next.js compatibility. Edit files in `/config/` when making changes.
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Add tests
-5. Submit a pull request
+4. Add tests for new functionality
+5. Run `pnpm test:critical` to ensure tests pass
+6. Commit your changes (`git commit -m 'Add amazing feature'`)
+7. Push to the branch (`git push origin feature/amazing-feature`)
+8. Open a Pull Request
 
 ## 📄 License
 
@@ -97,5 +217,4 @@ This project is proprietary software. All rights reserved.
 
 ---
 
-**Note**: Configuration files in the root directory are symlinks to maintain Next.js compatibility. The actual files are located in `/config/`.
-
+**For AI Assistants**: Please refer to `CLAUDE.md` for detailed development instructions and architectural guidelines.
