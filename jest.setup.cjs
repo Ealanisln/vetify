@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom'
+require('@testing-library/jest-dom');
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
@@ -14,7 +14,7 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/',
   notFound: jest.fn(),
   redirect: jest.fn(),
-}))
+}));
 
 // Mock Kinde Auth
 jest.mock('@kinde-oss/kinde-auth-nextjs', () => ({
@@ -23,10 +23,10 @@ jest.mock('@kinde-oss/kinde-auth-nextjs', () => ({
     getPermissions: jest.fn(),
     getOrganization: jest.fn(),
   })),
-  LoginLink: ({ children }: { children: React.ReactNode }) => children,
-  LogoutLink: ({ children }: { children: React.ReactNode }) => children,
-  RegisterLink: ({ children }: { children: React.ReactNode }) => children,
-}))
+  LoginLink: ({ children }) => children,
+  LogoutLink: ({ children }) => children,
+  RegisterLink: ({ children }) => children,
+}));
 
 // Mock Prisma
 jest.mock('@prisma/client', () => ({
@@ -62,19 +62,19 @@ jest.mock('@prisma/client', () => ({
       delete: jest.fn(),
     },
   })),
-}))
+}));
 
 // Global test environment setup
-global.fetch = jest.fn()
+global.fetch = jest.fn();
 
 // Mock environment variables
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/vetify_test'
-process.env.NEXTAUTH_SECRET = 'test-secret'
-process.env.KINDE_CLIENT_ID = 'test-client-id'
-process.env.KINDE_CLIENT_SECRET = 'test-client-secret'
-process.env.KINDE_ISSUER_URL = 'https://test.kinde.com'
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/vetify_test';
+process.env.NEXTAUTH_SECRET = 'test-secret';
+process.env.KINDE_CLIENT_ID = 'test-client-id';
+process.env.KINDE_CLIENT_SECRET = 'test-client-secret';
+process.env.KINDE_ISSUER_URL = 'https://test.kinde.com';
 
 // Clean up after each test
 afterEach(() => {
-  jest.clearAllMocks()
-})
+  jest.clearAllMocks();
+});
