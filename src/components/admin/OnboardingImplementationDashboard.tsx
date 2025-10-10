@@ -91,15 +91,6 @@ export function OnboardingImplementationDashboard() {
     }
   };
 
-  const getStatusIcon = (isImplemented: boolean, isRequired: boolean = true) => {
-    if (isImplemented) {
-      return <CheckCircle className="h-4 w-4 text-green-600" />;
-    } else if (isRequired) {
-      return <AlertTriangle className="h-4 w-4 text-red-600" />;
-    } else {
-      return <Clock className="h-4 w-4 text-yellow-600" />;
-    }
-  };
 
   const getStatusBadge = (isImplemented: boolean, isRequired: boolean = true) => {
     if (isImplemented) {
@@ -113,13 +104,7 @@ export function OnboardingImplementationDashboard() {
 
   const calculateProgress = () => {
     if (!status) return 0;
-    
-    const criticalItems = [
-      status.onboardingApiUpdated,
-      status.multiStepOnboardingExists,
-      status.stripeConfigured,
-    ];
-    
+
     const allItems = [
       status.plansSeeded,
       status.trialFieldsAdded,

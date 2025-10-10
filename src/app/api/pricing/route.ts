@@ -3,16 +3,11 @@ import { getStripePrices, getStripeProducts } from '../../../lib/payments/stripe
 
 export async function GET() {
   try {
-    console.log('=== PRICING API: Fetching prices from Stripe ===');
-    
     // Fetch actual products and prices from Stripe
     const [products, prices] = await Promise.all([
       getStripeProducts(),
       getStripePrices()
     ]);
-
-    console.log('Stripe products:', products.length);
-    console.log('Stripe prices:', prices.length);
 
     // Group prices by product
     const pricingData = products.map(product => {
@@ -47,28 +42,23 @@ export async function GET() {
       };
     });
 
-    // Filter out free plans and sort by price
+    // Filter only the correct Vetify products (basico, profesional)
+    // Corporativo se maneja por separado en el frontend como cotización
+    const VALID_PRODUCT_IDS = [
+      'prod_TCuXLEJNsZUevo', // Plan Básico
+      'prod_TCuY69NLP7G9Xf'  // Plan Profesional
+    ];
+
     const activePlans = pricingData
       .filter(plan => {
-        // Solo productos con precios válidos
-        // Aceptamos productos B2B específicos o productos con pricing válido
-        const hasValidPricing = plan.prices.monthly && 
-                               plan.prices.monthly.unitAmount != null &&
-                               plan.prices.monthly.unitAmount > 0;
-        
-        // Si tiene metadata type b2b, incluir, sino incluir si tiene precios válidos
-        const isB2BOrValid = plan.metadata?.type === 'b2b' || hasValidPricing;
-        
-        return hasValidPricing && isB2BOrValid;
+        // Only include our 2 valid Vetify subscription products (Corporativo is custom quote)
+        return VALID_PRODUCT_IDS.includes(plan.id);
       })
       .sort((a, b) => {
         const aPrice = a.prices.monthly?.unitAmount || 0;
         const bPrice = b.prices.monthly?.unitAmount || 0;
         return aPrice - bPrice;
       });
-
-    console.log('Active plans:', activePlans.length);
-    console.log('=== PRICING API: Success ===');
 
     return NextResponse.json({
       success: true,

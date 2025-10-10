@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { PlusIcon, UserPlusIcon } from '@heroicons/react/24/outline';
+import { UserPlusIcon } from '@heroicons/react/24/outline';
 import { UserStats, UserFilters, UsersTable } from '../../../components/admin/users';
 import { UserWithRoles, UserFilters as UserFiltersType, UserStats as UserStatsType } from '../../../lib/admin/users';
 
@@ -107,6 +107,7 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers();
     fetchFiltersData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle filter changes

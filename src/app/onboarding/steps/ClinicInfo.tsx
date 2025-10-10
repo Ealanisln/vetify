@@ -24,7 +24,7 @@ interface ClinicInfoProps {
   };
 }
 
-export function ClinicInfo({ user, onNext, onBack, initialData }: ClinicInfoProps) {
+export function ClinicInfo({ onNext, onBack, initialData }: ClinicInfoProps) {
   const [clinicName, setClinicName] = useState(initialData?.clinicName || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [phone, setPhone] = useState(initialData?.phone || '');

@@ -8,7 +8,7 @@ import { getUsers, createUser, getUserStats, UserFilters } from '../../../../lib
  */
 export async function GET(request: NextRequest) {
   try {
-    const { user } = await requireSuperAdmin();
+    await requireSuperAdmin();
     
     const { searchParams } = new URL(request.url);
     

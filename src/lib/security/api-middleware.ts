@@ -50,7 +50,7 @@ export function createSecureApiHandler<T = RequestBody>(
           user = authResult.user;
           userId = user?.id;
           tenantId = tenant?.id;
-        } catch (error) {
+        } catch {
           await logSecurityEvent(req, 'permission_denied', undefined, {
             reason: 'Authentication required',
             endpoint: req.nextUrl.pathname,

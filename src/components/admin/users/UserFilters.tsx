@@ -48,6 +48,7 @@ export function UserFilters({
     }, 300);
 
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
 
   const handleFilterChange = (key: keyof UserFiltersType, value: string | boolean | undefined) => {

@@ -177,7 +177,7 @@ export const BenefitsSection: React.FC = () => {
 
         {/* CTA */}
         <div className="text-center mt-10">
-          <Link href="/registro" className="btn-primary inline-flex items-center px-6 py-3 rounded-xl">
+          <Link href="/api/auth/register" className="btn-primary inline-flex items-center px-6 py-3 rounded-xl">
             Comenzar prueba gratuita
           </Link>
         </div>

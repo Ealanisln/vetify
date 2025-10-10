@@ -1,4 +1,3 @@
-import { NextRequest } from 'next/server';
 import { createSecureResponse } from '../../../lib/security/input-sanitization';
 import { prisma } from '../../../lib/prisma';
 import * as Sentry from '@sentry/nextjs';
@@ -6,7 +5,7 @@ import * as Sentry from '@sentry/nextjs';
 /**
  * Health check endpoint for monitoring system status
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   const startTime = Date.now();
   
   try {

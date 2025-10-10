@@ -48,32 +48,32 @@ const features = [
 
 export function FeaturesSection() {
   return (
-    <section id="funcionalidades" className="py-24 bg-secondary/30">
-      <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-3xl text-center mb-16">
-          <h2 className="text-balance text-4xl font-bold tracking-tight text-foreground md:text-5xl">
+    <section id="funcionalidades" className="py-12 sm:py-24 bg-secondary/30">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="mx-auto max-w-3xl text-center mb-8 sm:mb-16">
+          <h2 className="text-balance text-2xl sm:text-4xl font-bold tracking-tight text-foreground md:text-5xl">
             Todo lo que necesitas para gestionar tu clínica
           </h2>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => {
             const Icon = feature.icon
             return (
               <Card key={index} className="border-border bg-card transition-shadow hover:shadow-lg">
-                <CardContent className="p-8">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                    <Icon className="h-6 w-6 text-primary" />
+                <CardContent className="p-4 sm:p-8">
+                  <div className="mb-3 sm:mb-4 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-primary/10">
+                    <Icon className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                   </div>
-                  <Badge variant="secondary" className="mb-3">
+                  <Badge variant="secondary" className="mb-2 sm:mb-3 text-xs">
                     {feature.subtitle}
                   </Badge>
-                  <h3 className="mb-3 text-2xl font-bold text-foreground">{feature.title}</h3>
-                  <p className="mb-6 text-muted-foreground">{feature.description}</p>
-                  <ul className="space-y-3">
+                  <h3 className="mb-2 sm:mb-3 text-xl sm:text-2xl font-bold text-foreground">{feature.title}</h3>
+                  <p className="mb-4 sm:mb-6 text-sm sm:text-base text-muted-foreground">{feature.description}</p>
+                  <ul className="space-y-2 sm:space-y-3">
                     {feature.items.map((item, itemIndex) => (
-                      <li key={itemIndex} className="flex items-start gap-3 text-sm">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
+                      <li key={itemIndex} className="flex items-start gap-2 sm:gap-3 text-xs sm:text-sm">
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-primary" />
                         <span className="text-muted-foreground">{item}</span>
                       </li>
                     ))}

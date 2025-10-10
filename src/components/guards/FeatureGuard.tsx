@@ -52,11 +52,6 @@ export function FeatureGuard({
     isLoading: true
   });
 
-  // Check access on mount and when dependencies change
-  useEffect(() => {
-    checkFeatureAccess();
-  }, [feature, action, tenant.id, tenant.trialEndsAt, tenant.subscriptionStatus]);
-
   const checkFeatureAccess = async () => {
     try {
       setAccessCheck(prev => ({ ...prev, isLoading: true }));
@@ -141,6 +136,12 @@ export function FeatureGuard({
       });
     }
   };
+
+  // Check access on mount and when dependencies change
+  useEffect(() => {
+    checkFeatureAccess();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feature, action, tenant.id, tenant.trialEndsAt, tenant.subscriptionStatus]);
 
   const handleUpgrade = () => {
     const url = new URL('/precios', window.location.origin);

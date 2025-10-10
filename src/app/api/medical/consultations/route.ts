@@ -6,7 +6,7 @@ import { createSecureResponse } from '../../../../lib/security/input-sanitizatio
 import { prisma } from '../../../../lib/prisma';
 
 export const POST = createSensitiveDataHandler(
-  async (req: NextRequest, { tenant, body, userId, tenantId }) => {
+  async (req: NextRequest, { body, tenantId }) => {
     if (!body) {
       throw new Error('Request body is required');
     }

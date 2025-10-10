@@ -18,8 +18,6 @@ const UpgradeRequestSchema = z.object({
   fromTrial: z.boolean().default(false)
 });
 
-type UpgradeRequest = z.infer<typeof UpgradeRequestSchema>;
-
 // Plan hierarchy for upgrade validation
 const PLAN_HIERARCHY = {
   PROFESIONAL: 1,
@@ -95,8 +93,6 @@ export async function POST(request: NextRequest) {
 
     // 4. Handle trial to paid conversion
     if (fromTrial || (tenant.isTrialPeriod && !tenant.stripeSubscriptionId)) {
-      console.log('Upgrade: Converting trial to paid subscription for tenant:', tenant.id);
-
       const priceId = getPriceIdByPlan(targetPlan, billingInterval);
 
       if (!priceId) {
@@ -189,14 +185,6 @@ export async function POST(request: NextRequest) {
     }
 
     // 10. Perform the upgrade
-    console.log('Upgrade: Upgrading subscription', {
-      tenantId: tenant.id,
-      subscriptionId: tenant.stripeSubscriptionId,
-      from: currentPlanKey,
-      to: targetPlan,
-      interval: billingInterval
-    });
-
     const updatedSubscription = await updateSubscription(
       tenant.stripeSubscriptionId,
       targetPriceId
@@ -284,7 +272,7 @@ export async function POST(request: NextRequest) {
  * GET /api/subscription/upgrade
  * Get available upgrade options for the current user
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const { getUser, isAuthenticated } = getKindeServerSession();
 

@@ -53,57 +53,57 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 
 // IDs de productos y precios de Stripe - Nueva estructura B2B
 export const STRIPE_PRODUCTS = {
-  PROFESIONAL: 'prod_Seq8I3438TwbPQ',  // Plan Profesional B2B
-  CLINICA: 'prod_Seq84VFkBvXUhI',      // Plan Clínica B2B
-  EMPRESA: 'prod_Seq8KU7nw8WucQ'       // Plan Empresa B2B
+  BASICO: 'prod_TCuXLEJNsZUevo',      // Plan Básico
+  PROFESIONAL: 'prod_TCuY69NLP7G9Xf',  // Plan Profesional
+  CORPORATIVO: 'prod_TCuAYal8XCdJ1g'   // Plan Corporativo (solo para display, cotización personalizada)
 } as const;
 
 export const STRIPE_PRICES = {
+  BASICO: {
+    monthly: 'price_1SGUitL0nsUWmd4XJF2gsKud',
+    annual: 'price_1SGUv2L0nsUWmd4XNb66XuLD',   // $4,788/año ($399/mes x 12)
+  },
   PROFESIONAL: {
-    monthly: 'price_1RjWSPPwxz1bHxlH60v9GJjX',
-    annual: 'price_1S1frxPwxz1bHxlHVcpmMKtx', // ACTUALIZADO con nuevo precio anual
+    monthly: 'price_1SGUjKL0nsUWmd4XX7qqXKvv',
+    annual: 'price_1SGUvIL0nsUWmd4XPKU9VNB3',   // $9,588/año ($799/mes x 12)
   },
-  CLINICA: {
-    monthly: 'price_1RjWSQPwxz1bHxlHTcG2kbJA',
-    annual: 'price_1S1fryPwxz1bHxlHLL5IVhBC', // ACTUALIZADO con nuevo precio anual
-  },
-  EMPRESA: {
-    monthly: 'price_1RjWSRPwxz1bHxlHHp1pVI43',
-    annual: 'price_1S1fryPwxz1bHxlHG1peVtLR', // ACTUALIZADO con nuevo precio anual
+  CORPORATIVO: {
+    monthly: 'price_1SGUMOL0nsUWmd4XWjkRuo55', // No usado - cotización personalizada
+    annual: 'price_1SGUMPL0nsUWmd4Xm8tnvgsH',  // No usado - cotización personalizada
   }
 } as const;
 
 // Precios de planes en MXN - Nueva estructura B2B
 export const PLAN_PRICES = {
+  BASICO: {
+    monthly: 599,
+    annual: 4788,  // $399/mes x 12 meses
+  },
   PROFESIONAL: {
-    monthly: 599, // Plan Profesional B2B
-    annual: 5750,  // Plan Profesional B2B anual - ACTUALIZADO
+    monthly: 1199,
+    annual: 9588,  // $799/mes x 12 meses
   },
-  CLINICA: {
-    monthly: 999, // Plan Clínica B2B
-    annual: 9590,  // Plan Clínica B2B anual - ACTUALIZADO
-  },
-  EMPRESA: {
-    monthly: 1799, // Plan Empresa B2B
-    annual: 17270,  // Plan Empresa B2B anual - ACTUALIZADO
+  CORPORATIVO: {
+    monthly: 5000,
+    annual: 60000,  // Placeholder - cotización personalizada
   }
 } as const;
 
 // Mapeo de productos/precios para facilitar las operaciones
 export const STRIPE_PLAN_MAPPING = {
+  'BASICO': {
+    productId: STRIPE_PRODUCTS.BASICO,
+    prices: STRIPE_PRICES.BASICO,
+    limits: { pets: 500, users: 3, whatsappMessages: -1 }
+  },
   'PROFESIONAL': {
     productId: STRIPE_PRODUCTS.PROFESIONAL,
     prices: STRIPE_PRICES.PROFESIONAL,
-    limits: { pets: 300, users: 3, whatsappMessages: -1 }
+    limits: { pets: 2000, users: 8, whatsappMessages: -1 }
   },
-  'CLINICA': {
-    productId: STRIPE_PRODUCTS.CLINICA,
-    prices: STRIPE_PRICES.CLINICA,
-    limits: { pets: 1000, users: 8, whatsappMessages: -1 }
-  },
-  'EMPRESA': {
-    productId: STRIPE_PRODUCTS.EMPRESA,
-    prices: STRIPE_PRICES.EMPRESA,
+  'CORPORATIVO': {
+    productId: STRIPE_PRODUCTS.CORPORATIVO,
+    prices: STRIPE_PRICES.CORPORATIVO,
     limits: { pets: -1, users: 20, whatsappMessages: -1 }
   }
 } as const;
@@ -148,13 +148,6 @@ export async function createCheckoutSession({
   // Determinar si debe tener trial en Stripe
   // Solo dar trial si nunca ha tenido trial local o el trial local aún está activo
   const shouldHaveStripeTrial = shouldGiveStripeTrial(tenant);
-  
-  console.log('createCheckoutSession: Trial decision for tenant', tenant.id, {
-    isTrialPeriod: tenant.isTrialPeriod,
-    trialEndsAt: tenant.trialEndsAt,
-    subscriptionStatus: tenant.subscriptionStatus,
-    shouldHaveStripeTrial
-  });
 
   const subscriptionData: StripeSubscriptionData = {
     metadata: {
@@ -168,9 +161,6 @@ export async function createCheckoutSession({
   // Solo agregar trial_period_days si nunca tuvo trial local
   if (shouldHaveStripeTrial) {
     subscriptionData.trial_period_days = 30;
-    console.log('createCheckoutSession: Adding 30-day Stripe trial for new user');
-  } else {
-    console.log('createCheckoutSession: No Stripe trial - user already had local trial');
   }
 
 const session = await stripe.checkout.sessions.create({
@@ -233,13 +223,6 @@ export async function createCheckoutSessionForAPI({
   // Determinar si debe tener trial en Stripe
   // Solo dar trial si nunca ha tenido trial local o el trial local aún está activo
   const shouldHaveStripeTrial = shouldGiveStripeTrial(tenant);
-  
-  console.log('createCheckoutSessionForAPI: Trial decision for tenant', tenant.id, {
-    isTrialPeriod: tenant.isTrialPeriod,
-    trialEndsAt: tenant.trialEndsAt,
-    subscriptionStatus: tenant.subscriptionStatus,
-    shouldHaveStripeTrial
-  });
 
   const subscriptionData: StripeSubscriptionData = {
     metadata: {
@@ -253,9 +236,6 @@ export async function createCheckoutSessionForAPI({
   // Solo agregar trial_period_days si nunca tuvo trial local
   if (shouldHaveStripeTrial) {
     subscriptionData.trial_period_days = 30;
-    console.log('createCheckoutSessionForAPI: Adding 30-day Stripe trial for new user');
-  } else {
-    console.log('createCheckoutSessionForAPI: No Stripe trial - user already had local trial');
   }
 
   const session = await stripe.checkout.sessions.create({
@@ -318,16 +298,16 @@ export async function createCustomerPortalSession(tenant: Tenant) {
           proration_behavior: 'create_prorations',
           products: [
             {
+              product: STRIPE_PRODUCTS.BASICO,
+              prices: Object.values(STRIPE_PRICES.BASICO)
+            },
+            {
               product: STRIPE_PRODUCTS.PROFESIONAL,
               prices: Object.values(STRIPE_PRICES.PROFESIONAL)
             },
             {
-              product: STRIPE_PRODUCTS.CLINICA,
-              prices: Object.values(STRIPE_PRICES.CLINICA)
-            },
-            {
-              product: STRIPE_PRODUCTS.EMPRESA,
-              prices: Object.values(STRIPE_PRICES.EMPRESA)
+              product: STRIPE_PRODUCTS.CORPORATIVO,
+              prices: Object.values(STRIPE_PRICES.CORPORATIVO)
             }
           ]
         },
@@ -368,9 +348,9 @@ async function createOrRetrieveCustomer(tenant: Tenant, userId: string) {
         if (!existingCustomer.deleted) {
           return existingCustomer as Stripe.Customer;
         }
-             } catch {
-         console.log('Cliente de Stripe no encontrado, creando uno nuevo');
-       }
+      } catch {
+        // Stripe customer not found, will create a new one
+      }
     }
 
     // Buscar usuario para obtener email
@@ -427,16 +407,6 @@ export async function handleSubscriptionChange(
 ) {
   const customerId = subscription.customer as string;
   const subscriptionId = subscription.id;
-  const status = subscription.status;
-
-  console.log('handleSubscriptionChange: Processing subscription:', {
-    subscriptionId,
-    customerId,
-    status,
-    trial_start: subscription.trial_start,
-    trial_end: subscription.trial_end,
-    current_period_end: subscription.current_period_end
-  });
 
   try {
     const tenant = await prisma.tenant.findUnique({
@@ -452,7 +422,6 @@ export async function handleSubscriptionChange(
       });
       
       if (tenantBySubscription) {
-        console.log('handleSubscriptionChange: Found tenant by subscription ID, updating customer ID');
         await prisma.tenant.update({
           where: { id: tenantBySubscription.id },
           data: { stripeCustomerId: customerId }
@@ -476,8 +445,6 @@ export async function handleSubscriptionChange(
 async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Subscription) {
   const subscriptionId = subscription.id;
   const status = subscription.status;
-
-  console.log('updateTenantSubscription: Updating tenant:', tenant.id, 'with status:', status);
 
   if (status === 'active' || status === 'trialing') {
     const plan = subscription.items.data[0]?.plan;
@@ -532,8 +499,6 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
       status: 'ACTIVE' as const // Activar tenant
     };
 
-    console.log('updateTenantSubscription: Updating tenant with active/trialing subscription:', updateData);
-
     // Update tenant and create/update TenantSubscription in a transaction
     await prisma.$transaction(async (tx) => {
       // Update the tenant
@@ -564,11 +529,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
         }
       });
     });
-
-    console.log('updateTenantSubscription: Successfully updated tenant and subscription to active/trialing');
   } else if (status === 'canceled' || status === 'unpaid' || status === 'past_due') {
-    console.log('updateTenantSubscription: Processing subscription cancellation/failure');
-    
     const updateData = {
       subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
       stripeProductId: status === 'canceled' ? null : (subscription.items.data[0]?.plan?.product as string),
@@ -598,8 +559,6 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
         });
       }
     });
-
-    console.log('updateTenantSubscription: Successfully updated tenant subscription to:', status);
   }
 }
 
@@ -760,21 +719,21 @@ export async function createStripeProducts() {
 // Obtener price ID por clave de plan y intervalo - Nueva estructura B2B
 export function getPriceIdByPlan(planKey: string, interval: 'monthly' | 'annual'): string | null {
   const planType = planKey.toUpperCase();
-  
-  if (planType === 'PROFESIONAL') {
-    return interval === 'annual' 
-      ? STRIPE_PRICES.PROFESIONAL.annual 
+
+  if (planType === 'BASICO') {
+    return interval === 'annual'
+      ? STRIPE_PRICES.BASICO.annual
+      : STRIPE_PRICES.BASICO.monthly;
+  } else if (planType === 'PROFESIONAL') {
+    return interval === 'annual'
+      ? STRIPE_PRICES.PROFESIONAL.annual
       : STRIPE_PRICES.PROFESIONAL.monthly;
-  } else if (planType === 'CLINICA') {
-    return interval === 'annual' 
-      ? STRIPE_PRICES.CLINICA.annual 
-      : STRIPE_PRICES.CLINICA.monthly;
-  } else if (planType === 'EMPRESA') {
-    return interval === 'annual' 
-      ? STRIPE_PRICES.EMPRESA.annual 
-      : STRIPE_PRICES.EMPRESA.monthly;
+  } else if (planType === 'CORPORATIVO') {
+    return interval === 'annual'
+      ? STRIPE_PRICES.CORPORATIVO.annual
+      : STRIPE_PRICES.CORPORATIVO.monthly;
   }
-  
+
   return null;
 }
 

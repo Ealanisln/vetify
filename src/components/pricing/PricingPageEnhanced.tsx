@@ -17,9 +17,9 @@ interface PricingPageEnhancedProps {
 
 // Mapeo de IDs de Stripe a IDs locales para compatibilidad
 const STRIPE_TO_LOCAL_ID_MAP: Record<string, string> = {
-  'prod_Seq8I3438TwbPQ': 'profesional',
-  'prod_Seq84VFkBvXUhI': 'clinica',
-  'prod_Seq8KU7nw8WucQ': 'empresa'
+  'prod_TCuXLEJNsZUevo': 'basico',
+  'prod_TCuY69NLP7G9Xf': 'profesional',
+  'prod_TCuAYal8XCdJ1g': 'corporativo' // Solo para display, cotización personalizada
 };
 
 export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
@@ -56,7 +56,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
           setUpgradeOptions(getAvailableUpgrades(planKey));
         } else {
           setUserPlan(null);
-          setUpgradeOptions(['profesional', 'clinica', 'empresa']);
+          setUpgradeOptions(['basico', 'profesional', 'corporativo']);
         }
       } else {
         setUserPlan(null);
@@ -131,19 +131,19 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   // Map Stripe plan name to local plan key
   const mapPlanNameToKey = (planName: string): string => {
     const name = planName.toLowerCase();
-    if (name.includes('profesional') || name.includes('professional')) {
+    if (name.includes('básico') || name.includes('basico') || name.includes('basic')) {
+      return 'basico';
+    } else if (name.includes('profesional') || name.includes('professional')) {
       return 'profesional';
-    } else if (name.includes('clínica') || name.includes('clinica')) {
-      return 'clinica';
-    } else if (name.includes('empresa') || name.includes('enterprise')) {
-      return 'empresa';
+    } else if (name.includes('corporativo') || name.includes('corporate') || name.includes('empresa') || name.includes('enterprise')) {
+      return 'corporativo';
     }
-    return 'profesional';
+    return 'basico';
   };
 
   // Get available upgrades based on current plan
   const getAvailableUpgrades = (currentPlan: string): string[] => {
-    const planHierarchy = ['profesional', 'clinica', 'empresa'];
+    const planHierarchy = ['basico', 'profesional', 'corporativo'];
     const currentIndex = planHierarchy.indexOf(currentPlan);
 
     if (currentIndex === -1) {
@@ -172,6 +172,40 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
           throw new Error('Invalid pricing data received');
         }
 
+        // Si la API devuelve vacío, usar fallback local silenciosamente
+        if (data.plans.length === 0) {
+          console.log('ℹ️ No plans from API, using local configuration');
+
+          // Usar configuración local completa
+          const fallbackPlans = Object.values(COMPLETE_PLANS).map(plan => ({
+            id: plan.key.toLowerCase(),
+            name: plan.name,
+            description: plan.description,
+            features: plan.features.map(f => f.name),
+            prices: {
+              monthly: {
+                id: `price_${plan.key.toLowerCase()}_monthly`,
+                unitAmount: plan.monthlyPrice * 100,
+                currency: 'mxn',
+                interval: 'month' as const,
+                intervalCount: 1
+              },
+              yearly: {
+                id: `price_${plan.key.toLowerCase()}_yearly`,
+                unitAmount: plan.yearlyPrice * 100,
+                currency: 'mxn',
+                interval: 'year' as const,
+                intervalCount: 1
+              }
+            }
+          }));
+
+          setPricingPlans(fallbackPlans);
+          setPricingError(null);
+          setPricingLoading(false);
+          return; // Salir temprano para evitar procesamiento adicional
+        }
+
         const transformedPlans: PricingPlan[] = data.plans.map((plan: APIPlan) => {
           const localId = STRIPE_TO_LOCAL_ID_MAP[plan.id] || plan.id.toLowerCase();
 
@@ -187,7 +221,34 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
           };
         });
 
-        setPricingPlans(transformedPlans);
+        // Siempre agregar el plan Corporativo desde la configuración local (cotización personalizada)
+        const corporativoConfig = COMPLETE_PLANS.CORPORATIVO;
+        const corporativoPlan: PricingPlan = {
+          id: 'corporativo',
+          name: corporativoConfig.name,
+          description: corporativoConfig.description,
+          features: corporativoConfig.features.map(f => f.name),
+          prices: {
+            monthly: {
+              id: 'price_corporativo_monthly',
+              unitAmount: corporativoConfig.monthlyPrice * 100,
+              currency: 'mxn',
+              interval: 'month',
+              intervalCount: 1
+            },
+            yearly: {
+              id: 'price_corporativo_yearly',
+              unitAmount: corporativoConfig.yearlyPrice * 100,
+              currency: 'mxn',
+              interval: 'year',
+              intervalCount: 1
+            }
+          }
+        };
+
+        // Combinar planes de la API con el plan Corporativo
+        const allPlans = [...transformedPlans, corporativoPlan];
+        setPricingPlans(allPlans);
 
       } catch (error) {
         console.error('Error loading pricing data:', error);
@@ -242,7 +303,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
     const isCurrentPlan = userPlan === productId;
     const isUpgrade = upgradeOptions.includes(productId);
 
-    const planHierarchy = ['profesional', 'clinica', 'empresa'];
+    const planHierarchy = ['basico', 'profesional', 'corporativo'];
     const currentIndex = planHierarchy.indexOf(userPlan || '');
     const targetIndex = planHierarchy.indexOf(productId);
     const isDowngrade = currentIndex > targetIndex && targetIndex !== -1;
@@ -514,21 +575,34 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
                     {/* Pricing */}
                     <div className="space-y-2">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-4xl font-bold text-foreground">
-                          {formatPriceFromCents(isYearly ? price.unitAmount / 12 : price.unitAmount)}
-                        </span>
-                        <span className="text-muted-foreground">/mes</span>
-                      </div>
-                      {isYearly && (
-                        <div className="space-y-1">
+                      {product.id === 'corporativo' ? (
+                        <div className="flex flex-col gap-2">
+                          <span className="text-4xl font-bold text-foreground">
+                            Cotización
+                          </span>
                           <p className="text-sm text-muted-foreground">
-                            Facturado anualmente: {formatPriceFromCents(price.unitAmount)}
-                          </p>
-                          <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                            Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
+                            Precio personalizado según tus necesidades
                           </p>
                         </div>
+                      ) : (
+                        <>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-4xl font-bold text-foreground">
+                              {formatPriceFromCents(isYearly ? price.unitAmount / 12 : price.unitAmount)}
+                            </span>
+                            <span className="text-muted-foreground">/mes</span>
+                          </div>
+                          {isYearly && (
+                            <div className="space-y-1">
+                              <p className="text-sm text-muted-foreground">
+                                Facturado anualmente: {formatPriceFromCents(price.unitAmount)}
+                              </p>
+                              <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                                Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
+                              </p>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -557,6 +631,15 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                       >
                         Plan Actual
                       </Button>
+                    ) : product.id === 'corporativo' ? (
+                      <Link href="/contacto">
+                        <Button
+                          className="w-full"
+                          size="lg"
+                        >
+                          Contactar Ventas
+                        </Button>
+                      </Link>
                     ) : !isAuthenticated ? (
                       <Button
                         onClick={() => handleRegisterAndCheckout(price.id, product.id)}
@@ -573,7 +656,6 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                       >
                         {isUpgrade ? 'Actualizar Plan' :
                          isDowngrade ? 'Cambiar Plan ⬇️' :
-                         product.id === 'empresa' ? 'Contactar Ventas' :
                          subscriptionData?.subscriptionStatus && !['ACTIVE', 'TRIALING'].includes(subscriptionData.subscriptionStatus) ? 'Suscribirse Ahora' : 'Iniciar Prueba Gratuita'}
                       </Button>
                     )}

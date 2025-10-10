@@ -58,7 +58,7 @@ export default withAuth(
       const { getUser } = getKindeServerSession();
       const kindeUser = await getUser();
       userId = kindeUser?.id;
-    } catch (error) {
+    } catch {
       // User not authenticated, continue with undefined userId
     }
     
