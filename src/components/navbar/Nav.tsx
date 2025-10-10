@@ -92,7 +92,7 @@ function UserSection() {
           <div className="absolute inset-0 bg-gradient-to-r from-[#4DB8A3]/0 via-[#4DB8A3]/10 to-[#4DB8A3]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
         </Link>
         <Link
-          href="/registro"
+          href="/api/auth/register"
           className="relative bg-gradient-to-r from-[#4DB8A3] to-[#45635C] hover:from-[#45635C] hover:to-[#4DB8A3] text-white px-6 py-2.5 rounded-xl text-base font-semibold transition-all duration-500 shadow-lg shadow-[#4DB8A3]/30 hover:shadow-xl hover:shadow-[#4DB8A3]/40 hover:scale-105 focus:ring-2 focus:ring-[#4DB8A3] focus:ring-offset-2 dark:focus:ring-offset-gray-900 group overflow-hidden"
         >
           <span className="relative z-10 flex items-center">

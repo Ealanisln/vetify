@@ -97,7 +97,7 @@ export function logSecurityEvent(
     });
     
     // Create appropriate message based on event type
-    const message = createSecurityEventMessage(eventType, securityContext, details);
+    const message = createSecurityEventMessage(eventType, securityContext);
     
     if (level === 'error' || level === 'fatal') {
       Sentry.captureException(new Error(message));
@@ -300,13 +300,12 @@ function getPerformanceLevel(metrics: PerformanceMetrics): Sentry.SeverityLevel 
  */
 function createSecurityEventMessage(
   eventType: AuditEventType,
-  context: SecurityContext,
-  _details?: Record<string, unknown>
+  context: SecurityContext
 ): string {
   const baseMessage = `Security Event: ${eventType}`;
   const location = context.endpoint ? ` at ${context.endpoint}` : '';
   const risk = context.riskLevel ? ` (${context.riskLevel} risk)` : '';
-  
+
   return `${baseMessage}${location}${risk}`;
 }
 

@@ -1,22 +1,31 @@
 export const PRICING_CONFIG = {
   // Nueva estructura B2B - 3 planes profesionales sin plan gratuito
   PLANS: {
-    PROFESIONAL: {
+    BASICO: {
       monthly: 599,
-      yearly: 479,
-      features: ['300 mascotas', '3 usuarios', 'Historiales médicos completos', 'Gestión de citas', 'Control de inventario'],
-      limits: { pets: 300, users: 3, whatsappMessages: -1 }
+      yearly: 4788,  // $399/mes x 12 meses
+      stripeProductId: 'prod_TCuXLEJNsZUevo',
+      stripePriceMonthly: 'price_1SGUitL0nsUWmd4XJF2gsKud',
+      stripePriceYearly: 'price_1SGUv2L0nsUWmd4XNb66XuLD',
+      features: ['Funcionalidades esenciales', 'Gestión básica', 'Historiales médicos', 'Gestión de citas', 'Soporte profesional'],
+      limits: { pets: 500, users: 3, whatsappMessages: -1 }
     },
-    CLINICA: {
-      monthly: 999,
-      yearly: 799,
-      features: ['1,000 mascotas', '8 usuarios', 'Gestión completa', 'Reportes básicos', 'Multi-sucursal'],
-      limits: { pets: 1000, users: 8, whatsappMessages: -1, multiLocation: true }
+    PROFESIONAL: {
+      monthly: 1199,
+      yearly: 9588,  // $799/mes x 12 meses
+      stripeProductId: 'prod_TCuY69NLP7G9Xf',
+      stripePriceMonthly: 'price_1SGUjKL0nsUWmd4XX7qqXKvv',
+      stripePriceYearly: 'price_1SGUvIL0nsUWmd4XPKU9VNB3',
+      features: ['Funcionalidades avanzadas', 'Multi-sucursal', 'Reportes avanzados', 'Soporte prioritario', 'Gestión completa'],
+      limits: { pets: 2000, users: 8, whatsappMessages: -1, multiLocation: true }
     },
-    EMPRESA: {
-      monthly: 1799,
-      yearly: 1439,
-      features: ['Mascotas ilimitadas', '20 usuarios', 'Reportes avanzados', 'Soporte prioritario', 'API personalizada'],
+    CORPORATIVO: {
+      monthly: 5000,
+      yearly: 60000,  // Placeholder - cotización personalizada
+      stripeProductId: 'prod_TCuAYal8XCdJ1g',
+      stripePriceMonthly: 'price_1SGUMOL0nsUWmd4XWjkRuo55',
+      stripePriceYearly: 'price_1SGUMPL0nsUWmd4Xm8tnvgsH',
+      features: ['Mascotas ilimitadas', '20 usuarios', 'API personalizada', 'Soporte 24/7', 'Consultoría especializada'],
       limits: { pets: -1, users: 20, whatsappMessages: -1, multiLocation: true, apiAccess: true }
     }
   },
@@ -32,22 +41,22 @@ export const PRICING_CONFIG = {
 
 // Plan completo con todas las características B2B
 export const COMPLETE_PLANS = {
-  PROFESIONAL: {
-    key: 'PROFESIONAL',
-    name: 'Plan Profesional',
-    description: 'Ideal para clínicas establecidas que buscan profesionalizar su operación.',
+  BASICO: {
+    key: 'BASICO',
+    name: 'Plan Básico',
+    description: 'Ideal para clínicas pequeñas que están comenzando.',
     monthlyPrice: 599,
-    yearlyPrice: 479,
+    yearlyPrice: 4788,  // $399/mes x 12 meses
     badge: '30 DÍAS GRATIS',
     badgeColor: 'bg-green-600 text-white border border-green-700',
     popular: false,
     icon: 'Star',
     features: [
-      { name: 'Hasta 300 mascotas', included: true, highlight: true },
+      { name: 'Hasta 500 mascotas', included: true, highlight: true },
       { name: '3 usuarios veterinarios', included: true },
       { name: 'Historiales médicos completos', included: true, highlight: true },
       { name: 'Gestión de citas', included: true },
-      { name: 'Control de inventario', included: true },
+      { name: 'Control de inventario básico', included: true },
       { name: 'Registro de ventas', included: true },
       { name: 'Sistema de recordatorios', included: true },
       { name: 'Reportes básicos', included: true },
@@ -57,9 +66,9 @@ export const COMPLETE_PLANS = {
       { name: 'API personalizada', included: false },
     ],
     limits: {
-      maxPets: 300,
+      maxPets: 500,
       maxUsers: 3,
-      maxMonthlyWhatsApp: -1, // ilimitado
+      maxMonthlyWhatsApp: -1,
       maxStorageGB: 5,
       canUseAutomations: true,
       canUseAdvancedReports: false,
@@ -68,20 +77,20 @@ export const COMPLETE_PLANS = {
     },
     cta: 'Iniciar prueba gratuita'
   },
-  CLINICA: {
-    key: 'CLINICA',
-    name: 'Plan Clínica',
-    description: 'Perfecto para clínicas en crecimiento con múltiples sucursales.',
-    monthlyPrice: 999,
-    yearlyPrice: 799,
+  PROFESIONAL: {
+    key: 'PROFESIONAL',
+    name: 'Plan Profesional',
+    description: 'Perfecto para clínicas establecidas con múltiples sucursales.',
+    monthlyPrice: 1199,
+    yearlyPrice: 9588,  // $799/mes x 12 meses
     badge: 'MÁS POPULAR',
     badgeColor: 'bg-orange-500 text-white border border-orange-600',
     popular: true,
     icon: 'Building',
     features: [
-      { name: 'Hasta 1,000 mascotas', included: true, highlight: true },
+      { name: 'Hasta 2,000 mascotas', included: true, highlight: true },
       { name: '8 usuarios veterinarios', included: true },
-      { name: 'Todo del plan Profesional', included: true, highlight: true },
+      { name: 'Todo del plan Básico', included: true, highlight: true },
       { name: 'Gestión multi-sucursal', included: true, highlight: true },
       { name: 'Control de inventario avanzado', included: true },
       { name: 'Reportes avanzados', included: true },
@@ -92,9 +101,9 @@ export const COMPLETE_PLANS = {
       { name: 'API personalizada', included: false },
     ],
     limits: {
-      maxPets: 1000,
+      maxPets: 2000,
       maxUsers: 8,
-      maxMonthlyWhatsApp: -1, // ilimitado
+      maxMonthlyWhatsApp: -1,
       maxStorageGB: 20,
       canUseAutomations: true,
       canUseAdvancedReports: true,
@@ -103,12 +112,12 @@ export const COMPLETE_PLANS = {
     },
     cta: 'Iniciar prueba gratuita'
   },
-  EMPRESA: {
-    key: 'EMPRESA',
-    name: 'Plan Empresa',
-    description: 'Solución integral para grandes organizaciones veterinarias.',
-    monthlyPrice: 1799,
-    yearlyPrice: 1439,
+  CORPORATIVO: {
+    key: 'CORPORATIVO',
+    name: 'Plan Corporativo',
+    description: 'Solución personalizada para grandes organizaciones.',
+    monthlyPrice: 5000,      // Placeholder - cotización personalizada
+    yearlyPrice: 60000,      // Placeholder - cotización personalizada
     badge: 'EMPRESARIAL',
     badgeColor: 'bg-purple-600 text-white border border-purple-700',
     popular: false,
@@ -116,7 +125,7 @@ export const COMPLETE_PLANS = {
     features: [
       { name: 'Mascotas ilimitadas', included: true, highlight: true },
       { name: '20 usuarios veterinarios', included: true },
-      { name: 'Todo del plan Clínica', included: true, highlight: true },
+      { name: 'Todo del plan Profesional', included: true, highlight: true },
       { name: 'API personalizada', included: true, highlight: true },
       { name: 'Múltiples sucursales ilimitadas', included: true },
       { name: 'Reportes empresariales', included: true },
@@ -127,9 +136,9 @@ export const COMPLETE_PLANS = {
       { name: 'Consultoría especializada', included: true },
     ],
     limits: {
-      maxPets: -1, // ilimitado
+      maxPets: -1,
       maxUsers: 20,
-      maxMonthlyWhatsApp: -1, // ilimitado
+      maxMonthlyWhatsApp: -1,
       maxStorageGB: 100,
       canUseAutomations: true,
       canUseAdvancedReports: true,
@@ -141,12 +150,12 @@ export const COMPLETE_PLANS = {
 };
 
 // Helper functions
-export function getCurrentPrice(planKey: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA', billingInterval: 'monthly' | 'yearly') {
+export function getCurrentPrice(planKey: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO', billingInterval: 'monthly' | 'yearly') {
   const plan = PRICING_CONFIG.PLANS[planKey];
   return billingInterval === 'yearly' ? plan.yearly : plan.monthly;
 }
 
-export function getDiscountPercentage(planKey: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA') {
+export function getDiscountPercentage(planKey: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO') {
   const plan = PRICING_CONFIG.PLANS[planKey];
   const monthlyTotal = plan.monthly * 12;
   const yearlyTotal = plan.yearly * 12;
@@ -212,10 +221,12 @@ export interface PricingFeature {
 
 // Mapeo de migración para usuarios existentes
 export const MIGRATION_MAPPING = {
-  'FREE': 'PROFESIONAL',
-  'STARTER': 'PROFESIONAL', 
-  'STANDARD': 'CLINICA',
-  'PROFESSIONAL': 'EMPRESA'
+  'FREE': 'BASICO',
+  'STARTER': 'BASICO',
+  'STANDARD': 'PROFESIONAL',
+  'PROFESSIONAL': 'PROFESIONAL',
+  'CLINICA': 'PROFESIONAL',
+  'EMPRESA': 'CORPORATIVO'
 };
 
 // Precios de grandfathering para usuarios existentes (12 meses)

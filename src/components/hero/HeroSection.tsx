@@ -8,7 +8,7 @@ const HeroSection: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    window.location.href = `/registro?email=${encodeURIComponent(email)}`;
+    window.location.href = `/api/auth/register?email=${encodeURIComponent(email)}`;
   };
 
   return (

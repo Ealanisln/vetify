@@ -105,12 +105,6 @@ export function OnboardingImplementationDashboard() {
   const calculateProgress = () => {
     if (!status) return 0;
 
-    const _criticalItems = [
-      status.onboardingApiUpdated,
-      status.multiStepOnboardingExists,
-      status.stripeConfigured,
-    ];
-    
     const allItems = [
       status.plansSeeded,
       status.trialFieldsAdded,

@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Check, Sparkles } from "lucide-react"
 import { EarlyAdopterBanner } from "@/components/marketing/EarlyAdopterBanner"
+import Link from "next/link"
 
 const plans = [
   {
@@ -106,9 +107,11 @@ export function PricingSection() {
                 <p className="text-xs sm:text-sm text-muted-foreground">{plan.description}</p>
               </CardHeader>
               <CardContent className="p-4 sm:p-8 pt-0">
-                <Button className="mb-4 sm:mb-6 w-full text-xs sm:text-sm" variant={plan.popular ? "default" : "outline"} size="lg">
-                  Comenzar prueba gratis
-                </Button>
+                <Link href="/api/auth/register">
+                  <Button className="mb-4 sm:mb-6 w-full text-xs sm:text-sm" variant={plan.popular ? "default" : "outline"} size="lg">
+                    Comenzar prueba gratis
+                  </Button>
+                </Link>
                 <ul className="space-y-2 sm:space-y-3">
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2 sm:gap-3">

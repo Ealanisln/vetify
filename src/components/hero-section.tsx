@@ -2,6 +2,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Check, Calendar, Syringe, ClipboardList } from "lucide-react"
 import { EarlyAdopterBanner } from "@/components/marketing/EarlyAdopterBanner"
+import Link from "next/link"
+import Image from "next/image"
 
 export function HeroSection() {
   return (
@@ -22,9 +24,11 @@ export function HeroSection() {
           </p>
 
           <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:gap-4 sm:flex-row">
-            <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold">
-              Probar 30 días gratis
-            </Button>
+            <Link href="/api/auth/register">
+              <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold">
+                Probar 30 días gratis
+              </Button>
+            </Link>
             <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
@@ -62,18 +66,24 @@ export function HeroSection() {
           <div className="mx-auto max-w-7xl">
             {/* Light mode */}
             <div className="relative dark:hidden">
-              <img
+              <Image
                 src="/hero/hero-dashboard-light.png"
                 alt="Vista previa del dashboard de Vetify"
+                width={1920}
+                height={1080}
+                priority
                 className="w-full h-auto object-contain scale-100 sm:scale-110"
               />
             </div>
 
             {/* Dark mode */}
             <div className="relative hidden dark:block">
-              <img
+              <Image
                 src="/hero/hero-dashboard-dark.png"
                 alt="Vista previa del dashboard de Vetify"
+                width={1920}
+                height={1080}
+                priority
                 className="w-full h-auto object-contain scale-100 sm:scale-110"
               />
             </div>

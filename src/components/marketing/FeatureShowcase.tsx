@@ -188,7 +188,7 @@ export const FeatureShowcase: React.FC = () => {
             <p className="text-lg text-muted-foreground mb-6">
               Comienza con 30 días gratis. Sin tarjeta de crédito.
             </p>
-            <Link href="/registro" className="btn-primary inline-flex items-center px-6 py-3 rounded-xl mr-4">
+            <Link href="/api/auth/register" className="btn-primary inline-flex items-center px-6 py-3 rounded-xl mr-4">
               Probar 30 días gratis <ChevronRight className="ml-2 h-4 w-4" />
             </Link>
             <Link href="/precios" className="btn-secondary inline-flex items-center px-6 py-3 rounded-xl">
