@@ -1,15 +1,15 @@
 import { withAuth } from "@kinde-oss/kinde-auth-nextjs/middleware";
 import { NextRequest, NextResponse } from "next/server";
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
-import { 
-  checkRateLimit, 
-  getClientIdentifier, 
+import {
+  checkRateLimit,
+  getClientIdentifier,
   createRateLimitHeaders,
-  isRateLimitingEnabled 
+  isRateLimitingEnabled
 } from './lib/security/rate-limiter';
-import { 
-  logSecurityEvent, 
-  createAuditMiddleware 
+import {
+  logSecurityEvent,
+  createAuditMiddleware
 } from './lib/security/audit-logger';
 import { securityHeaders } from './lib/security/input-sanitization';
 
@@ -49,11 +49,11 @@ export default withAuth(
   async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
     let userId: string | undefined;
-    
+
     // Initialize audit middleware
     const auditMiddleware = createAuditMiddleware();
-    
-    // Get user info for authenticated requests
+
+    // Get user info for authenticated requests (for logging and audit purposes)
     try {
       const { getUser } = getKindeServerSession();
       const kindeUser = await getUser();
