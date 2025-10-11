@@ -3,7 +3,7 @@
 export interface OnboardingState {
   currentStep: 'plan' | 'clinic' | 'confirmation';
   selectedPlan?: {
-    key: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA';
+    key: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO';
     billingInterval: 'monthly' | 'yearly';
   };
   clinicInfo?: {
@@ -16,7 +16,7 @@ export interface OnboardingState {
 }
 
 export interface OnboardingRequest {
-  planKey: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA';
+  planKey: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO';
   billingInterval: 'monthly' | 'yearly';
   clinicInfo: {
     clinicName: string;

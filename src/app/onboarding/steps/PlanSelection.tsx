@@ -5,12 +5,12 @@ import { COMPLETE_PLANS } from '../../../lib/pricing-config';
 import { formatPrice } from '../../../lib/pricing-config';
 
 interface PlanSelectionProps {
-  onNext: (selection: { key: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA'; billingInterval: 'monthly' | 'yearly' }) => void;
-  initialSelection?: { key: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA'; billingInterval: 'monthly' | 'yearly' };
+  onNext: (selection: { key: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO'; billingInterval: 'monthly' | 'yearly' }) => void;
+  initialSelection?: { key: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO'; billingInterval: 'monthly' | 'yearly' };
 }
 
 export function PlanSelection({ onNext, initialSelection }: PlanSelectionProps) {
-  const [selectedPlan, setSelectedPlan] = useState<'PROFESIONAL' | 'CLINICA' | 'EMPRESA'>(initialSelection?.key || 'CLINICA');
+  const [selectedPlan, setSelectedPlan] = useState<'BASICO' | 'PROFESIONAL' | 'CORPORATIVO'>(initialSelection?.key || 'PROFESIONAL');
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>(
     initialSelection?.billingInterval || 'monthly'
   );
@@ -60,7 +60,7 @@ export function PlanSelection({ onNext, initialSelection }: PlanSelectionProps) 
           {plans.map((plan) => (
             <div
               key={plan.key}
-              onClick={() => setSelectedPlan(plan.key as 'PROFESIONAL' | 'CLINICA' | 'EMPRESA')}
+              onClick={() => setSelectedPlan(plan.key as 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO')}
               className={`relative rounded-xl border-2 p-4 cursor-pointer transition-all duration-300 hover:shadow-lg ${
                 selectedPlan === plan.key
                   ? 'border-[#75a99c] bg-[#75a99c]/5 shadow-md scale-105'
@@ -118,7 +118,7 @@ export function PlanSelection({ onNext, initialSelection }: PlanSelectionProps) 
           {plans.map((plan) => (
             <div
               key={plan.key}
-              onClick={() => setSelectedPlan(plan.key as 'PROFESIONAL' | 'CLINICA' | 'EMPRESA')}
+              onClick={() => setSelectedPlan(plan.key as 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO')}
               className={`relative rounded-xl lg:rounded-2xl border-2 p-4 lg:p-6 xl:p-8 cursor-pointer transition-all duration-300 hover:shadow-xl transform hover:-translate-y-1 ${
                 selectedPlan === plan.key
                   ? 'border-[#75a99c] bg-[#75a99c]/5 shadow-lg scale-105'

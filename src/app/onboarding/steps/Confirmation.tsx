@@ -5,7 +5,7 @@ import { formatPrice } from '../../../lib/pricing-config';
 
 interface ConfirmationProps {
   plan: {
-    key: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA';
+    key: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO';
     billingInterval: 'monthly' | 'yearly';
   };
   clinicInfo: {

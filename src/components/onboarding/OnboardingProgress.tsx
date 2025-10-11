@@ -16,14 +16,14 @@ export function OnboardingProgress({ currentStep }: OnboardingProgressProps) {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-center">
         {steps.map((step, index) => {
           const isCompleted = index < currentStepIndex;
           const isCurrent = index === currentStepIndex;
           // const isUpcoming = index > currentStepIndex; // Unused for now
 
           return (
-            <div key={step.key} className="flex items-center flex-1">
+            <div key={step.key} className="flex items-center">
               <div className="flex flex-col items-center w-full">
                 <div
                   className={`w-6 h-6 md:w-8 md:h-8 rounded-full flex items-center justify-center text-xs md:text-sm font-medium transition-all ${

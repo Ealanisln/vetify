@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useSubscription } from '../../hooks/useSubscription';
-import { COMPLETE_PLANS, formatPrice } from '../../lib/pricing-config';
+import { COMPLETE_PLANS, formatPrice, PRICING_CONFIG } from '../../lib/pricing-config';
 import { Check, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import type { Tenant } from '@prisma/client';
@@ -17,9 +17,9 @@ interface PricingPageEnhancedProps {
 
 // Mapeo de IDs de Stripe a IDs locales para compatibilidad
 const STRIPE_TO_LOCAL_ID_MAP: Record<string, string> = {
-  'prod_TCuXLEJNsZUevo': 'basico',
-  'prod_TCuY69NLP7G9Xf': 'profesional',
-  'prod_TCuAYal8XCdJ1g': 'corporativo' // Solo para display, cotización personalizada
+  'prod_TDdWhTHiV65YFG': 'basico',
+  'prod_TDdW2nRtxwKws9': 'profesional',
+  'prod_TDdWMKyrMfoOJd': 'corporativo'
 };
 
 export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
@@ -176,29 +176,34 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
         if (data.plans.length === 0) {
           console.log('ℹ️ No plans from API, using local configuration');
 
-          // Usar configuración local completa
-          const fallbackPlans = Object.values(COMPLETE_PLANS).map(plan => ({
-            id: plan.key.toLowerCase(),
-            name: plan.name,
-            description: plan.description,
-            features: plan.features.map(f => f.name),
-            prices: {
-              monthly: {
-                id: `price_${plan.key.toLowerCase()}_monthly`,
-                unitAmount: plan.monthlyPrice * 100,
-                currency: 'mxn',
-                interval: 'month' as const,
-                intervalCount: 1
-              },
-              yearly: {
-                id: `price_${plan.key.toLowerCase()}_yearly`,
-                unitAmount: plan.yearlyPrice * 100,
-                currency: 'mxn',
-                interval: 'year' as const,
-                intervalCount: 1
+          // Usar configuración local completa con Stripe IDs reales
+          const fallbackPlans = Object.entries(COMPLETE_PLANS).map(([key, plan]) => {
+            const pricingKey = key as keyof typeof PRICING_CONFIG.PLANS;
+            const stripePrices = PRICING_CONFIG.PLANS[pricingKey];
+
+            return {
+              id: plan.key.toLowerCase(),
+              name: plan.name,
+              description: plan.description,
+              features: plan.features.map(f => f.name),
+              prices: {
+                monthly: {
+                  id: stripePrices.stripePriceMonthly,
+                  unitAmount: plan.monthlyPrice * 100,
+                  currency: 'mxn',
+                  interval: 'month' as const,
+                  intervalCount: 1
+                },
+                yearly: {
+                  id: stripePrices.stripePriceYearly,
+                  unitAmount: plan.yearlyPrice * 100,
+                  currency: 'mxn',
+                  interval: 'year' as const,
+                  intervalCount: 1
+                }
               }
-            }
-          }));
+            };
+          });
 
           setPricingPlans(fallbackPlans);
           setPricingError(null);
@@ -223,6 +228,8 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
         // Siempre agregar el plan Corporativo desde la configuración local (cotización personalizada)
         const corporativoConfig = COMPLETE_PLANS.CORPORATIVO;
+        const corporativoStripePrices = PRICING_CONFIG.PLANS.CORPORATIVO;
+
         const corporativoPlan: PricingPlan = {
           id: 'corporativo',
           name: corporativoConfig.name,
@@ -230,14 +237,14 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
           features: corporativoConfig.features.map(f => f.name),
           prices: {
             monthly: {
-              id: 'price_corporativo_monthly',
+              id: corporativoStripePrices.stripePriceMonthly,
               unitAmount: corporativoConfig.monthlyPrice * 100,
               currency: 'mxn',
               interval: 'month',
               intervalCount: 1
             },
             yearly: {
-              id: 'price_corporativo_yearly',
+              id: corporativoStripePrices.stripePriceYearly,
               unitAmount: corporativoConfig.yearlyPrice * 100,
               currency: 'mxn',
               interval: 'year',
@@ -254,28 +261,33 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
         console.error('Error loading pricing data:', error);
 
         // Fallback a configuración local si la API falla
-        const fallbackPlans = Object.values(COMPLETE_PLANS).map(plan => ({
-          id: plan.key.toLowerCase(),
-          name: plan.name,
-          description: plan.description,
-          features: plan.features.map(f => f.name),
-          prices: {
-            monthly: {
-              id: `price_${plan.key.toLowerCase()}_monthly`,
-              unitAmount: plan.monthlyPrice * 100,
-              currency: 'mxn',
-              interval: 'month',
-              intervalCount: 1
-            },
-            yearly: {
-              id: `price_${plan.key.toLowerCase()}_yearly`,
-              unitAmount: plan.yearlyPrice * 100,
-              currency: 'mxn',
-              interval: 'year',
-              intervalCount: 1
+        const fallbackPlans = Object.entries(COMPLETE_PLANS).map(([key, plan]) => {
+          const pricingKey = key as keyof typeof PRICING_CONFIG.PLANS;
+          const stripePrices = PRICING_CONFIG.PLANS[pricingKey];
+
+          return {
+            id: plan.key.toLowerCase(),
+            name: plan.name,
+            description: plan.description,
+            features: plan.features.map(f => f.name),
+            prices: {
+              monthly: {
+                id: stripePrices.stripePriceMonthly,
+                unitAmount: plan.monthlyPrice * 100,
+                currency: 'mxn',
+                interval: 'month',
+                intervalCount: 1
+              },
+              yearly: {
+                id: stripePrices.stripePriceYearly,
+                unitAmount: plan.yearlyPrice * 100,
+                currency: 'mxn',
+                interval: 'year',
+                intervalCount: 1
+              }
             }
-          }
-        }));
+          };
+        });
 
         setPricingPlans(fallbackPlans);
         setPricingError(null);
