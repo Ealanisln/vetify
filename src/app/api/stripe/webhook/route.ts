@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
       case 'checkout.session.completed': {
         console.log('Webhook: Processing checkout.session.completed');
         const session = event.data.object as Stripe.Checkout.Session;
-        
+
         console.log('Webhook: Session details:', {
           id: session.id,
           mode: session.mode,
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
           const subscription = await stripe.subscriptions.retrieve(
             session.subscription as string
           );
-          
+
           console.log('Webhook: Subscription details:', {
             id: subscription.id,
             status: subscription.status,
@@ -79,6 +79,21 @@ export async function POST(request: NextRequest) {
             current_period_end: subscription.current_period_end,
             customer: subscription.customer
           });
+
+          // ✅ Cancel any other active subscriptions for this customer
+          const customerId = subscription.customer as string;
+          const otherSubscriptions = await stripe.subscriptions.list({
+            customer: customerId,
+            status: 'active',
+            limit: 100
+          });
+
+          for (const otherSub of otherSubscriptions.data) {
+            if (otherSub.id !== subscription.id) {
+              console.log(`Webhook: Canceling duplicate subscription ${otherSub.id}`);
+              await stripe.subscriptions.cancel(otherSub.id);
+            }
+          }
 
           await handleSubscriptionChange(subscription);
           console.log('Webhook: Subscription processed successfully');
