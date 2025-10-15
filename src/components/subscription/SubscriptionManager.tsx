@@ -188,7 +188,8 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
 
       {/* Action Buttons */}
       <div className="space-y-3">
-        {hasActiveSubscription || isPastDue ? (
+        {/* Show Stripe portal only if has stripeCustomerId */}
+        {tenant.stripeCustomerId && (hasActiveSubscription || isPastDue) ? (
           <Button
             onClick={handleManageSubscription}
             disabled={isLoading}
@@ -212,7 +213,7 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
             onClick={() => window.location.href = '/precios'}
             className="w-full"
           >
-            Ver Planes Disponibles
+            {isInTrial ? 'Actualizar Plan' : 'Ver Planes Disponibles'}
           </Button>
         )}
 

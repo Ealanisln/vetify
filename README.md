@@ -93,8 +93,10 @@ pnpm env:development          # Configure for development
 ```bash
 pnpm stripe:verify            # Verify Stripe configuration
 pnpm stripe:setup             # Setup Stripe products and prices
+pnpm stripe:cleanup           # Clean up duplicate subscriptions
 pnpm pricing:sync             # Verify pricing synchronization
 pnpm trial:status             # Check subscription status
+pnpm trial:fix                # Fix trial status for tenants with incorrect status
 ```
 
 #### Deployment
@@ -163,11 +165,16 @@ vetify/
 - **Early Adopter Discount**: 25% off for 6 months (promo code: `FUNDADOR25`)
 - **Features**: Subscription-based feature gating
 - **Access Control**: Middleware-enforced subscription requirements
+- **Duplicate Prevention**: Automatic cancellation of duplicate subscriptions
 - **Components**:
   - `FeatureGate`: Gate premium features
   - `SubscriptionGuard`: Protect subscription-only content
   - `useSubscriptionStatus()`: Client-side subscription hook
+  - `SubscriptionManager`: Manage subscription and billing portal access
   - `EarlyAdopterBanner`: Marketing banner for launch discount
+- **Utilities**:
+  - `trial:fix`: Fix trial status for tenants with incorrect subscription state
+  - `stripe:cleanup`: Remove duplicate subscriptions (keeps most recent)
 
 ## 🧪 Testing
 

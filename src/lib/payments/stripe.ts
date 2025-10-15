@@ -145,6 +145,21 @@ export async function createCheckoutSession({
   // Obtener o crear cliente
   const customer = await createOrRetrieveCustomer(tenant, userId);
 
+  // ✅ Check for existing active subscriptions and cancel them
+  if (customer.id) {
+    const existingSubscriptions = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: 'active',
+      limit: 100
+    });
+
+    // Cancel all existing active subscriptions to prevent duplicates
+    for (const sub of existingSubscriptions.data) {
+      console.log(`Canceling existing subscription ${sub.id} before creating new one`);
+      await stripe.subscriptions.cancel(sub.id);
+    }
+  }
+
   // Determinar si debe tener trial en Stripe
   // Solo dar trial si nunca ha tenido trial local o el trial local aún está activo
   const shouldHaveStripeTrial = shouldGiveStripeTrial(tenant);
@@ -219,6 +234,21 @@ export async function createCheckoutSessionForAPI({
 
   // Obtener o crear cliente
   const customer = await createOrRetrieveCustomer(tenant, userId);
+
+  // ✅ Check for existing active subscriptions and cancel them
+  if (customer.id) {
+    const existingSubscriptions = await stripe.subscriptions.list({
+      customer: customer.id,
+      status: 'active',
+      limit: 100
+    });
+
+    // Cancel all existing active subscriptions to prevent duplicates
+    for (const sub of existingSubscriptions.data) {
+      console.log(`[API] Canceling existing subscription ${sub.id} before creating new one`);
+      await stripe.subscriptions.cancel(sub.id);
+    }
+  }
 
   // Determinar si debe tener trial en Stripe
   // Solo dar trial si nunca ha tenido trial local o el trial local aún está activo
