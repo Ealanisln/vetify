@@ -4,7 +4,7 @@ import { createTenantWithDefaults, isSlugAvailable } from '../../../lib/tenant';
 import { z } from 'zod';
 
 const onboardingSchema = z.object({
-  planKey: z.enum(['PROFESIONAL', 'CLINICA', 'EMPRESA'], {
+  planKey: z.enum(['BASICO', 'PROFESIONAL', 'CORPORATIVO'], {
     required_error: 'Debe seleccionar un plan',
   }),
   billingInterval: z.enum(['monthly', 'yearly'], {
