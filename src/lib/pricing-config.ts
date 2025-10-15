@@ -4,27 +4,27 @@ export const PRICING_CONFIG = {
     BASICO: {
       monthly: 599,
       yearly: 4788,  // $399/mes x 12 meses
-      stripeProductId: 'prod_TCuXLEJNsZUevo',
-      stripePriceMonthly: 'price_1SGUitL0nsUWmd4XJF2gsKud',
-      stripePriceYearly: 'price_1SGUv2L0nsUWmd4XNb66XuLD',
+      stripeProductId: 'prod_TDdWhTHiV65YFG',
+      stripePriceMonthly: 'price_1SHCFKL0nsUWmd4XeI5ntskS',
+      stripePriceYearly: 'price_1SHCFKL0nsUWmd4XRrWnPyoc',
       features: ['Funcionalidades esenciales', 'Gestión básica', 'Historiales médicos', 'Gestión de citas', 'Soporte profesional'],
       limits: { pets: 500, users: 3, whatsappMessages: -1 }
     },
     PROFESIONAL: {
       monthly: 1199,
       yearly: 9588,  // $799/mes x 12 meses
-      stripeProductId: 'prod_TCuY69NLP7G9Xf',
-      stripePriceMonthly: 'price_1SGUjKL0nsUWmd4XX7qqXKvv',
-      stripePriceYearly: 'price_1SGUvIL0nsUWmd4XPKU9VNB3',
+      stripeProductId: 'prod_TDdW2nRtxwKws9',
+      stripePriceMonthly: 'price_1SHCFLL0nsUWmd4XtIV8ExBc',
+      stripePriceYearly: 'price_1SHCFLL0nsUWmd4Xu83JDXwb',
       features: ['Funcionalidades avanzadas', 'Multi-sucursal', 'Reportes avanzados', 'Soporte prioritario', 'Gestión completa'],
       limits: { pets: 2000, users: 8, whatsappMessages: -1, multiLocation: true }
     },
     CORPORATIVO: {
       monthly: 5000,
       yearly: 60000,  // Placeholder - cotización personalizada
-      stripeProductId: 'prod_TCuAYal8XCdJ1g',
-      stripePriceMonthly: 'price_1SGUMOL0nsUWmd4XWjkRuo55',
-      stripePriceYearly: 'price_1SGUMPL0nsUWmd4Xm8tnvgsH',
+      stripeProductId: 'prod_TDdWMKyrMfoOJd',
+      stripePriceMonthly: 'price_1SHCFML0nsUWmd4XFduAqClk',
+      stripePriceYearly: 'price_1SHCFML0nsUWmd4X5pTplSrm',
       features: ['Mascotas ilimitadas', '20 usuarios', 'API personalizada', 'Soporte 24/7', 'Consultoría especializada'],
       limits: { pets: -1, users: 20, whatsappMessages: -1, multiLocation: true, apiAccess: true }
     }

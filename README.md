@@ -61,6 +61,13 @@ pnpm prisma migrate deploy    # Apply migrations (production)
 pnpm prisma studio            # Open Prisma Studio GUI
 ```
 
+#### Database Migration & RLS
+```bash
+pnpm tsx scripts/verify-migration.ts    # Verify database migration integrity
+pnpm tsx scripts/test-rls-policies.ts   # Test Row Level Security policies
+pnpm tsx scripts/export-dev-data.ts     # Export development data to JSON
+```
+
 #### Testing
 ```bash
 pnpm test                     # Run all unit tests
@@ -144,6 +151,10 @@ vetify/
 - **Input Validation**: Zod schemas for all inputs
 - **Audit Logging**: Security event logging
 - **Multi-tenant Isolation**: Strict tenant data separation
+- **Row Level Security (RLS)**: PostgreSQL RLS policies enforce tenant isolation at the database level
+  - Automatic tenant context setting via middleware
+  - Comprehensive test suite with 10+ isolation tests
+  - See `/docs/RLS_CONFIGURATION.md` for setup guide
 
 ## 💳 Subscription System
 
@@ -195,6 +206,10 @@ See `/deployment/VERCEL_SETUP_INSTRUCTIONS.md` for complete setup guide.
 - **Deployment**: `/deployment/` - Vercel deployment instructions
 - **GitBook Docs**: `/gitbook-docs/` - Detailed feature documentation
 - **Configuration**: `/config/README.md` - Configuration file documentation
+- **Database & Security**:
+  - `/docs/RLS_CONFIGURATION.md` - Row Level Security setup guide
+  - `/docs/RLS_SETUP_COMPLETE.md` - RLS implementation summary
+  - `/docs/migration/MIGRATION_GUIDE.md` - Database migration guide
 
 ## 🔧 Configuration
 
