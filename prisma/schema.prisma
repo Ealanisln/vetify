@@ -8,72 +8,72 @@ datasource db {
 }
 
 model Tenant {
-  id                   String              @id @default(uuid())
-  name                 String
-  slug                 String              @unique
-  domain               String?             @unique
-  logo                 String?
-  primaryColor         String?
-  secondaryColor       String?
-  planType             PlanType            @default(PROFESIONAL)
-  status               TenantStatus        @default(ACTIVE)
-  isTrialPeriod        Boolean             @default(true)
-  trialEndsAt          DateTime?
-  
+  id             String       @id @default(uuid())
+  name           String
+  slug           String       @unique
+  domain         String?      @unique
+  logo           String?
+  primaryColor   String?
+  secondaryColor String?
+  planType       PlanType     @default(PROFESIONAL)
+  status         TenantStatus @default(ACTIVE)
+  isTrialPeriod  Boolean      @default(true)
+  trialEndsAt    DateTime?
+
   // Enhanced trial tracking
-  trialExtendedAt      DateTime?
-  trialExtendedBy      String?
-  gracePeriodEnds      DateTime?
-  lastTrialCheck       DateTime?
-  
+  trialExtendedAt DateTime?
+  trialExtendedBy String?
+  gracePeriodEnds DateTime?
+  lastTrialCheck  DateTime?
+
   // Enhanced Stripe Integration
-  stripeCustomerId     String?             @unique
-  stripeSubscriptionId String?             @unique
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
   stripeProductId      String?
   planName             String?
-  subscriptionStatus   SubscriptionStatus  @default(INACTIVE)
+  subscriptionStatus   SubscriptionStatus @default(INACTIVE)
   subscriptionEndsAt   DateTime?
-  
+
   // Campos para página pública
-  publicPageEnabled    Boolean             @default(false)
-  publicDescription    String?             @db.Text
+  publicPageEnabled    Boolean @default(false)
+  publicDescription    String? @db.Text
   publicPhone          String?
   publicEmail          String?
-  publicAddress        String?             @db.Text
-  publicHours          Json?               // Horarios de atención
-  publicServices       Json?               // Servicios destacados
-  publicImages         Json?               // URLs de imágenes
-  publicSocialMedia    Json?               // Redes sociales
-  publicThemeColor     String?             @default("#75a99c")
-  publicBookingEnabled Boolean             @default(true)
-  
-  createdAt            DateTime            @default(now())
-  updatedAt            DateTime            @updatedAt
-  appointments         Appointment[]
-  appointmentRequests  AppointmentRequest[]
-  automationLogs       AutomationLog[]
-  businessHours        BusinessHours[]
-  cashDrawers          CashDrawer[]
-  customers            Customer[]
-  inventoryItems       InventoryItem[]
-  InventoryMovement    InventoryMovement[]
-  medicalHistories     MedicalHistory[]
-  medicalOrders        MedicalOrder[]
-  pets                 Pet[]
-  reminders            Reminder[]
-  roles                Role[]
-  sales                Sale[]
-  services             Service[]
-  staff                Staff[]
-  tenantApiKeys        TenantApiKey[]
-  tenantInvitations    TenantInvitation[]
-  tenantSettings       TenantSettings?
-  tenantSubscription   TenantSubscription?
-  tenantUsageStats     TenantUsageStats?
-  treatmentRecords     TreatmentRecord[]
-  treatmentSchedules   TreatmentSchedule[]
-  users                User[]
-  trialAccessLogs      TrialAccessLog[]
+  publicAddress        String? @db.Text
+  publicHours          Json? // Horarios de atención
+  publicServices       Json? // Servicios destacados
+  publicImages         Json? // URLs de imágenes
+  publicSocialMedia    Json? // Redes sociales
+  publicThemeColor     String? @default("#75a99c")
+  publicBookingEnabled Boolean @default(true)
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  appointments        Appointment[]
+  appointmentRequests AppointmentRequest[]
+  automationLogs      AutomationLog[]
+  businessHours       BusinessHours[]
+  cashDrawers         CashDrawer[]
+  customers           Customer[]
+  inventoryItems      InventoryItem[]
+  InventoryMovement   InventoryMovement[]
+  medicalHistories    MedicalHistory[]
+  medicalOrders       MedicalOrder[]
+  pets                Pet[]
+  reminders           Reminder[]
+  roles               Role[]
+  sales               Sale[]
+  services            Service[]
+  staff               Staff[]
+  tenantApiKeys       TenantApiKey[]
+  tenantInvitations   TenantInvitation[]
+  tenantSettings      TenantSettings?
+  tenantSubscription  TenantSubscription?
+  tenantUsageStats    TenantUsageStats?
+  treatmentRecords    TreatmentRecord[]
+  treatmentSchedules  TreatmentSchedule[]
+  users               User[]
+  trialAccessLogs     TrialAccessLog[]
 
   @@index([status])
   @@index([slug])
@@ -87,8 +87,8 @@ model Plan {
   key                 String               @unique
   name                String
   description         String?
-  monthlyPrice        Decimal
-  annualPrice         Decimal
+  monthlyPrice        Decimal              @db.Decimal(10, 2)
+  annualPrice         Decimal              @db.Decimal(10, 2)
   features            Json
   maxUsers            Int
   maxPets             Int
@@ -102,26 +102,26 @@ model Plan {
 }
 
 model User {
-  id                     String         @id
+  id                     String           @id
   tenantId               String?
-  email                  String         @unique
+  email                  String           @unique
   firstName              String?
   lastName               String?
   name                   String?
   phone                  String?
   address                String?
   preferredContactMethod String?
-  isActive               Boolean        @default(true)
-  createdAt              DateTime       @default(now())
-  updatedAt              DateTime       @updatedAt
+  isActive               Boolean          @default(true)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
   appointments           Appointment[]
-  closedDrawers          CashDrawer[]   @relation("CashDrawer_closedByToUser")
+  closedDrawers          CashDrawer[]     @relation("CashDrawer_closedByToUser")
   customers              Customer[]
-  openedDrawers          CashDrawer[]   @relation("CashDrawer_openedByToUser")
+  openedDrawers          CashDrawer[]     @relation("CashDrawer_openedByToUser")
   medicalOrders          MedicalOrder[]
   reminders              Reminder[]
   sales                  Sale[]
-  tenant                 Tenant?        @relation(fields: [tenantId], references: [id])
+  tenant                 Tenant?          @relation(fields: [tenantId], references: [id])
   userRoles              UserRole[]
   adminAuditLogs         AdminAuditLog[]
   setupTokens            SetupToken[]
@@ -158,7 +158,7 @@ model UserRole {
 }
 
 model Customer {
-  id                     String               @id @default(uuid())
+  id                     String    @id @default(uuid())
   tenantId               String
   email                  String?
   firstName              String?
@@ -166,25 +166,25 @@ model Customer {
   name                   String
   phone                  String?
   address                String?
-  preferredContactMethod String?              @default("phone")
-  notes                  String?
-  isActive               Boolean              @default(true)
-  source                 String?              @default("MANUAL") // MANUAL, PUBLIC_BOOKING, IMPORT
-  needsReview            Boolean              @default(false)    // Flag para duplicados
+  preferredContactMethod String?   @default("phone")
+  notes                  String?   @db.Text
+  isActive               Boolean   @default(true)
+  source                 String?   @default("MANUAL")
+  needsReview            Boolean   @default(false)
   reviewedAt             DateTime?
-  reviewedBy             String?              // Staff ID que revisó
-  mergedFrom             String[]             // IDs de clientes fusionados
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
-  
-  tenant                 Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  pets                   Pet[]
-  appointments           Appointment[]
-  appointmentRequests    AppointmentRequest[]
-  reminders              Reminder[]
-  sales                  Sale[]
-  user                   User?                @relation(fields: [userId], references: [id])
-  userId                 String?
+  reviewedBy             String?
+  mergedFrom             String[]
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pets                Pet[]
+  appointments        Appointment[]
+  appointmentRequests AppointmentRequest[]
+  reminders           Reminder[]
+  sales               Sale[]
+  user                User?                @relation(fields: [userId], references: [id])
+  userId              String?
 
   @@index([tenantId])
   @@index([email])
@@ -197,14 +197,14 @@ model Customer {
 model Pet {
   id                 String              @id @default(uuid())
   tenantId           String
-  customerId         String              // Cambio: ahora apunta a Customer en lugar de User
+  customerId         String
   internalId         String?
   name               String
   species            String
   breed              String
   dateOfBirth        DateTime
   gender             String
-  weight             Decimal?
+  weight             Decimal?            @db.Decimal(6, 2)
   weightUnit         String?
   microchipNumber    String?
   isNeutered         Boolean             @default(false)
@@ -215,16 +215,16 @@ model Pet {
   medicalHistories   MedicalHistory[]
   medicalOrders      MedicalOrder[]
   tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer           Customer            @relation(fields: [customerId], references: [id]) // Cambio: relación con Customer
+  customer           Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
   reminders          Reminder[]
   sales              Sale[]
   treatmentRecords   TreatmentRecord[]
   treatmentSchedules TreatmentSchedule[]
 
+  @@index([tenantId, customerId])
   @@index([tenantId])
-  @@index([customerId])  // Cambio: índice en customerId
+  @@index([customerId])
   @@index([name])
-  @@index([tenantId, customerId])  // Cambio: índice compuesto
 }
 
 model MedicalHistory {
@@ -232,10 +232,10 @@ model MedicalHistory {
   tenantId       String
   petId          String
   visitDate      DateTime
-  reasonForVisit String
-  diagnosis      String?
-  treatment      String?
-  notes          String?
+  reasonForVisit String        @db.Text
+  diagnosis      String?       @db.Text
+  treatment      String?       @db.Text
+  notes          String?       @db.Text
   medicalOrderId String?       @unique
   staffId        String?
   createdAt      DateTime      @default(now())
@@ -250,6 +250,7 @@ model MedicalHistory {
   @@index([visitDate])
   @@index([medicalOrderId])
   @@index([staffId])
+  @@index([tenantId, visitDate])
 }
 
 model TreatmentRecord {
@@ -296,43 +297,45 @@ model TreatmentSchedule {
   @@index([tenantId])
   @@index([petId, scheduledDate, status])
   @@index([status, scheduledDate])
+  @@index([tenantId, status, scheduledDate])
 }
 
 model Appointment {
-  id          String            @id @default(uuid())
-  tenantId    String
-  petId       String
-  customerId  String            // Cambio: agregar relación directa con Customer
-  staffId     String?
-  userId      String?
-  dateTime    DateTime
-  duration    Int               @default(30)
-  reason      String
-  notes       String?
-  status      AppointmentStatus @default(SCHEDULED)
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  
-  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  pet         Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
-  customer    Customer          @relation(fields: [customerId], references: [id]) // Nueva relación
-  staff       Staff?            @relation(fields: [staffId], references: [id])
-  user        User?             @relation(fields: [userId], references: [id])
+  id         String            @id @default(uuid())
+  tenantId   String
+  petId      String
+  customerId String?
+  staffId    String?
+  userId     String?
+  dateTime   DateTime
+  duration   Int               @default(30)
+  reason     String
+  notes      String?           @db.Text
+  status     AppointmentStatus @default(SCHEDULED)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pet      Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  staff    Staff?    @relation(fields: [staffId], references: [id])
+  user     User?     @relation(fields: [userId], references: [id])
 
   @@index([tenantId])
   @@index([petId])
-  @@index([customerId])  // Nuevo índice
+  @@index([customerId])
   @@index([staffId])
   @@index([userId])
   @@index([dateTime])
   @@index([status])
+  @@index([tenantId, status, dateTime])
 }
 
 model Reminder {
   id         String         @id @default(uuid())
   tenantId   String
   petId      String?
-  customerId String         // Cambio: agregar relación con Customer
+  customerId String?
   userId     String?
   type       ReminderType
   title      String
@@ -342,18 +345,19 @@ model Reminder {
   sentAt     DateTime?
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
-  
-  tenant     Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  pet        Pet?           @relation(fields: [petId], references: [id], onDelete: Cascade)
-  customer   Customer       @relation(fields: [customerId], references: [id]) // Nueva relación
-  user       User?          @relation(fields: [userId], references: [id])
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  pet      Pet?      @relation(fields: [petId], references: [id], onDelete: Cascade)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  user     User?     @relation(fields: [userId], references: [id])
 
   @@index([tenantId])
   @@index([petId])
-  @@index([customerId])  // Nuevo índice
+  @@index([customerId])
   @@index([userId])
   @@index([dueDate])
   @@index([status])
+  @@index([tenantId, status, dueDate])
 }
 
 model Staff {
@@ -380,6 +384,7 @@ model Staff {
   @@index([isActive])
   @@index([email])
   @@index([userId])
+  @@index([tenantId, isActive])
 }
 
 model InventoryItem {
@@ -392,15 +397,15 @@ model InventoryItem {
   presentation   String?
   measure        String?
   brand          String?
-  quantity       Decimal             @default(0)
-  minStock       Decimal?
+  quantity       Decimal             @default(0) @db.Decimal(8, 2)
+  minStock       Decimal?            @db.Decimal(8, 2)
   location       String?
   expirationDate DateTime?
   status         InventoryStatus     @default(ACTIVE)
   batchNumber    String?
   specialNotes   String?
-  cost           Decimal?
-  price          Decimal?
+  cost           Decimal?            @db.Decimal(10, 2)
+  price          Decimal?            @db.Decimal(10, 2)
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -414,6 +419,7 @@ model InventoryItem {
   @@index([status])
   @@index([expirationDate])
   @@index([quantity])
+  @@index([tenantId, status, quantity])
 }
 
 model InventoryMovement {
@@ -421,14 +427,15 @@ model InventoryMovement {
   tenantId          String
   itemId            String
   type              MovementType
-  quantity          Decimal
+  quantity          Decimal       @db.Decimal(8, 2)
   date              DateTime      @default(now())
   reason            String?
   staffId           String?
   relatedRecordId   String?
   relatedRecordType String?
-  notes             String?
+  notes             String?       @db.Text
   createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @default(now()) @updatedAt
   item              InventoryItem @relation(fields: [itemId], references: [id])
   staff             Staff?        @relation(fields: [staffId], references: [id])
   tenant            Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
@@ -472,13 +479,14 @@ model Prescription {
   id           String        @id @default(uuid())
   orderId      String
   productId    String
-  quantity     Decimal
-  unitPrice    Decimal
+  quantity     Decimal       @db.Decimal(8, 2)
+  unitPrice    Decimal       @db.Decimal(10, 2)
   dosage       String?
   frequency    String?
   duration     String?
-  instructions String?
+  instructions String?       @db.Text
   createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
   order        MedicalOrder  @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product      InventoryItem @relation(fields: [productId], references: [id])
 
@@ -491,18 +499,18 @@ model CashDrawer {
   tenantId         String
   openedAt         DateTime          @default(now())
   closedAt         DateTime?
-  openedById       String
+  openedById       String?
   closedById       String?
-  initialAmount    Decimal
-  finalAmount      Decimal?
-  expectedAmount   Decimal?
-  difference       Decimal?
+  initialAmount    Decimal           @db.Decimal(10, 2)
+  finalAmount      Decimal?          @db.Decimal(10, 2)
+  expectedAmount   Decimal?          @db.Decimal(10, 2)
+  difference       Decimal?          @db.Decimal(10, 2)
   status           DrawerStatus      @default(OPEN)
-  notes            String?
+  notes            String?           @db.Text
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
-  closedBy         User?             @relation("CashDrawer_closedByToUser", fields: [closedById], references: [id], onDelete: Restrict)
-  openedBy         User              @relation("CashDrawer_openedByToUser", fields: [openedById], references: [id])
+  closedBy         User?             @relation("CashDrawer_closedByToUser", fields: [closedById], references: [id], onDelete: SetNull)
+  openedBy         User?             @relation("CashDrawer_openedByToUser", fields: [openedById], references: [id], onDelete: SetNull)
   tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   cashTransactions CashTransaction[]
 
@@ -511,17 +519,19 @@ model CashDrawer {
   @@index([status])
   @@index([openedById])
   @@index([closedById])
+  @@index([tenantId, status, openedAt])
 }
 
 model CashTransaction {
   id          String          @id @default(uuid())
   drawerId    String
-  amount      Decimal
+  amount      Decimal         @db.Decimal(10, 2)
   type        TransactionType
   description String?
   relatedId   String?
   relatedType String?
   createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now()) @updatedAt
   cashDrawer  CashDrawer      @relation(fields: [drawerId], references: [id], onDelete: Cascade)
   SalePayment SalePayment?
 
@@ -531,24 +541,24 @@ model CashTransaction {
 }
 
 model Sale {
-  id           String        @id @default(uuid())
-  tenantId     String
-  customerId   String        // Cambio: agregar relación con Customer
-  petId        String?
-  userId       String?
-  staffId      String?
-  saleNumber   String        @unique
-  subtotal     Decimal
-  tax          Decimal       @default(0)
-  discount     Decimal       @default(0)
-  total        Decimal
-  status       SaleStatus    @default(PENDING)
-  notes        String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  
+  id         String     @id @default(uuid())
+  tenantId   String
+  customerId String?
+  petId      String?
+  userId     String?
+  staffId    String?
+  saleNumber String     @unique
+  subtotal   Decimal    @db.Decimal(10, 2)
+  tax        Decimal    @default(0) @db.Decimal(10, 2)
+  discount   Decimal    @default(0) @db.Decimal(10, 2)
+  total      Decimal    @db.Decimal(10, 2)
+  status     SaleStatus @default(PENDING)
+  notes      String?    @db.Text
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  customer     Customer      @relation(fields: [customerId], references: [id]) // Nueva relación
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
   pet          Pet?          @relation(fields: [petId], references: [id])
   user         User?         @relation(fields: [userId], references: [id])
   staff        Staff?        @relation(fields: [staffId], references: [id])
@@ -557,13 +567,14 @@ model Sale {
   medicalOrder MedicalOrder?
 
   @@index([tenantId])
-  @@index([customerId])  // Nuevo índice
+  @@index([customerId])
   @@index([petId])
   @@index([userId])
   @@index([staffId])
   @@index([saleNumber])
   @@index([status])
   @@index([createdAt])
+  @@index([tenantId, status, createdAt])
 }
 
 model SaleItem {
@@ -572,14 +583,15 @@ model SaleItem {
   itemId        String?
   serviceId     String?
   description   String
-  quantity      Decimal
-  unitPrice     Decimal
-  discount      Decimal        @default(0)
-  total         Decimal
+  quantity      Decimal        @db.Decimal(8, 2)
+  unitPrice     Decimal        @db.Decimal(10, 2)
+  discount      Decimal        @default(0) @db.Decimal(10, 2)
+  total         Decimal        @db.Decimal(10, 2)
   createdAt     DateTime       @default(now())
-  inventoryItem InventoryItem? @relation(fields: [itemId], references: [id], onDelete: Restrict)
+  updatedAt     DateTime       @default(now()) @updatedAt
+  inventoryItem InventoryItem? @relation(fields: [itemId], references: [id], onDelete: SetNull)
   sale          Sale           @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  service       Service?       @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+  service       Service?       @relation(fields: [serviceId], references: [id], onDelete: SetNull)
 
   @@index([saleId])
   @@index([itemId])
@@ -590,11 +602,13 @@ model SalePayment {
   id                String           @id @default(uuid())
   saleId            String
   paymentMethod     PaymentMethod
-  amount            Decimal
+  amount            Decimal          @db.Decimal(10, 2)
   paymentDate       DateTime         @default(now())
   transactionId     String?
   notes             String?
   cashTransactionId String?          @unique
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @default(now()) @updatedAt
   cashTransaction   CashTransaction? @relation(fields: [cashTransactionId], references: [id])
   sale              Sale             @relation(fields: [saleId], references: [id], onDelete: Cascade)
 
@@ -610,7 +624,7 @@ model Service {
   name        String
   description String?
   category    ServiceCategory
-  price       Decimal
+  price       Decimal         @db.Decimal(10, 2)
   duration    Int?
   isActive    Boolean         @default(true)
   createdAt   DateTime        @default(now())
@@ -622,6 +636,7 @@ model Service {
   @@index([category])
   @@index([isActive])
   @@index([name])
+  @@index([tenantId, isActive, category])
 }
 
 model TenantInvitation {
@@ -641,24 +656,23 @@ model TenantInvitation {
 }
 
 model TenantSettings {
-  id                   String   @id @default(uuid())
-  tenantId             String   @unique
-  timezone             String   @default("UTC")
-  dateFormat           String   @default("DD/MM/YYYY")
-  enableEmailReminders Boolean  @default(true)
-  enableSmsReminders   Boolean  @default(false)
-  taxRate              Decimal  @default(0)
-  currencyCode         String   @default("USD")
-  currencySymbol       String   @default("$")
-  appointmentDuration  Int      @default(30)
-  // Business Hours Configuration
-  defaultStartTime     String   @default("08:00")
-  defaultEndTime       String   @default("18:00")
-  defaultLunchStart    String?  @default("13:00")
-  defaultLunchEnd      String?  @default("14:00")
-  defaultSlotDuration  Int      @default(15)
-  updatedAt            DateTime @updatedAt
-  tenant               Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  id                   String          @id @default(uuid())
+  tenantId             String          @unique
+  timezone             String          @default("UTC")
+  dateFormat           String          @default("DD/MM/YYYY")
+  enableEmailReminders Boolean         @default(true)
+  enableSmsReminders   Boolean         @default(false)
+  taxRate              Decimal         @default(0) @db.Decimal(5, 4)
+  currencyCode         String          @default("USD")
+  currencySymbol       String          @default("$")
+  appointmentDuration  Int             @default(30)
+  defaultStartTime     String          @default("08:00")
+  defaultEndTime       String          @default("18:00")
+  defaultLunchStart    String?         @default("13:00")
+  defaultLunchEnd      String?         @default("14:00")
+  defaultSlotDuration  Int             @default(15)
+  updatedAt            DateTime        @updatedAt
+  tenant               Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   businessHours        BusinessHours[]
 }
 
@@ -666,7 +680,7 @@ model BusinessHours {
   id               String         @id @default(uuid())
   tenantId         String
   tenantSettingsId String
-  dayOfWeek        Int            // 0 = Sunday, 1 = Monday, etc.
+  dayOfWeek        Int // 0 = Sunday, 1 = Monday, etc.
   isWorkingDay     Boolean        @default(true)
   startTime        String         @default("08:00")
   endTime          String         @default("18:00")
@@ -913,15 +927,15 @@ enum ServiceCategory {
 model AutomationLog {
   id           String   @id @default(uuid())
   tenantId     String
-  workflowType String   // 'PET_WELCOME', 'VACCINATION_REMINDER', etc.
-  triggeredBy  String   // User ID who triggered
-  payload      Json     // Data sent to N8N
-  status       String   // 'SUCCESS', 'FAILED', 'PENDING'
-  executionId  String?  // N8N execution ID
-  error        String?  // Error message if failed
+  workflowType String // 'PET_WELCOME', 'VACCINATION_REMINDER', etc.
+  triggeredBy  String // User ID who triggered
+  payload      Json // Data sent to N8N
+  status       String // 'SUCCESS', 'FAILED', 'PENDING'
+  executionId  String? // N8N execution ID
+  error        String? // Error message if failed
   createdAt    DateTime @default(now())
-  
-  tenant       Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([workflowType])
@@ -929,28 +943,28 @@ model AutomationLog {
 }
 
 model AppointmentRequest {
-  id             String                    @id @default(uuid())
-  tenantId       String
-  customerId     String
-  petName        String
-  service        String?
-  preferredDate  DateTime?
-  preferredTime  String?
-  notes          String?                   @db.Text
-  status         AppointmentRequestStatus  @default(PENDING)
-  source         String                    @default("PUBLIC_BOOKING")
-  
+  id            String                   @id @default(uuid())
+  tenantId      String
+  customerId    String
+  petName       String
+  service       String?
+  preferredDate DateTime?
+  preferredTime String?
+  notes         String?                  @db.Text
+  status        AppointmentRequestStatus @default(PENDING)
+  source        String                   @default("PUBLIC_BOOKING")
+
   // Campos para seguimiento de identificación
-  identificationStatus String?             // 'existing', 'new', 'needs_review'
-  similarCustomerIds   String[]            // IDs de posibles duplicados
-  reviewNotes          String?             @db.Text
-  
-  createdAt      DateTime                  @default(now())
-  updatedAt      DateTime                  @updatedAt
-  
-  tenant         Tenant                    @relation(fields: [tenantId], references: [id])
-  customer       Customer                  @relation(fields: [customerId], references: [id])
-  
+  identificationStatus String? // 'existing', 'new', 'needs_review'
+  similarCustomerIds   String[] // IDs de posibles duplicados
+  reviewNotes          String?  @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+
   @@index([tenantId, status])
   @@index([tenantId, createdAt])
   @@index([tenantId, identificationStatus])
@@ -975,15 +989,15 @@ enum AdminAction {
 }
 
 model AdminAuditLog {
-  id            String       @id @default(uuid())
-  action        AdminAction
-  performedBy   String?
-  targetUserId  String
-  targetEmail   String
-  metadata      Json?
-  createdAt     DateTime     @default(now())
+  id           String      @id @default(uuid())
+  action       AdminAction
+  performedBy  String?
+  targetUserId String
+  targetEmail  String
+  metadata     Json?
+  createdAt    DateTime    @default(now())
 
-  performedByUser User?      @relation(fields: [performedBy], references: [id], onDelete: SetNull)
+  performedByUser User? @relation(fields: [performedBy], references: [id], onDelete: SetNull)
 
   @@index([action])
   @@index([targetUserId])
@@ -1000,27 +1014,27 @@ model SetupToken {
   usedBy    String?
   createdAt DateTime  @default(now())
 
-  usedByUser User?    @relation(fields: [usedBy], references: [id])
+  usedByUser User? @relation(fields: [usedBy], references: [id])
 
   @@index([token])
   @@index([email])
 }
 
 model TrialAccessLog {
-  id            String   @id @default(uuid())
-  tenantId      String
-  userId        String
-  feature       String
-  action        String
-  allowed       Boolean
-  denialReason  String?
-  requestPath   String?
-  userAgent     String?
-  ipAddress     String?
-  createdAt     DateTime @default(now())
-  
-  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(uuid())
+  tenantId     String
+  userId       String
+  feature      String
+  action       String
+  allowed      Boolean
+  denialReason String?
+  requestPath  String?
+  userAgent    String?
+  ipAddress    String?
+  createdAt    DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([userId])
