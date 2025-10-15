@@ -174,8 +174,6 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
         // Si la API devuelve vacío, usar fallback local silenciosamente
         if (data.plans.length === 0) {
-          console.log('ℹ️ No plans from API, using local configuration');
-
           // Usar configuración local completa con Stripe IDs reales
           const fallbackPlans = Object.entries(COMPLETE_PLANS).map(([key, plan]) => {
             const pricingKey = key as keyof typeof PRICING_CONFIG.PLANS;
