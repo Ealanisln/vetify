@@ -155,6 +155,7 @@ export async function createCheckoutSession({
 
     // Cancel all existing active subscriptions to prevent duplicates
     for (const sub of existingSubscriptions.data) {
+      console.log(`Canceling existing subscription ${sub.id} before creating new one`);
       await stripe.subscriptions.cancel(sub.id);
     }
   }
@@ -244,6 +245,7 @@ export async function createCheckoutSessionForAPI({
 
     // Cancel all existing active subscriptions to prevent duplicates
     for (const sub of existingSubscriptions.data) {
+      console.log(`[API] Canceling existing subscription ${sub.id} before creating new one`);
       await stripe.subscriptions.cancel(sub.id);
     }
   }
