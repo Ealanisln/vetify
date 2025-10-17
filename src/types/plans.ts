@@ -1,5 +1,5 @@
-// Tipos B2B
-type PlanType = 'PROFESIONAL' | 'CLINICA' | 'EMPRESA';
+// Tipos B2B (incluye tanto plan keys nuevos como legacy para compatibilidad)
+type PlanType = 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO' | 'CLINICA' | 'EMPRESA';
 
 interface PlanFeature {
   name: string;

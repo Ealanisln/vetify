@@ -114,7 +114,7 @@ export async function createTenantWithDefaults(data: {
   name: string;
   slug: string;
   userId: string;
-  planKey: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA';
+  planKey: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO' | 'CLINICA' | 'EMPRESA'; // Support both new and legacy plan keys
   billingInterval: 'monthly' | 'yearly';
   phone?: string;
   address?: string;

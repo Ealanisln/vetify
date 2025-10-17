@@ -64,4 +64,4 @@ ehthumbs.db
 # IA
 .cursor/
 .cursorrules/
-.cursorignore/
+.cursorignore/.playwright-mcp/

@@ -744,6 +744,8 @@ model TenantUsageStats {
 enum PlanType {
   BASICO
   PROFESIONAL
+  CLINICA
+  EMPRESA
   CORPORATIVO
 }
 

@@ -737,7 +737,6 @@ export async function createStripeProducts() {
       });
 
       createdProducts.push(product);
-      console.log(`✅ Producto creado: ${product.name} (${product.id})`);
     } catch (error) {
       console.error(`❌ Error creando producto ${productData.name}:`, error);
     }
