@@ -744,6 +744,8 @@ enum PlanType {
   PROFESIONAL
   CLINICA
   EMPRESA
+  BASICO
+  CORPORATIVO
 }
 
 enum TenantStatus {

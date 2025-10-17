@@ -6,6 +6,9 @@
  * is properly activated with the correct status.
  */
 
+// Unmock Prisma for integration tests
+jest.unmock('@prisma/client');
+
 import { PrismaClient } from '@prisma/client';
 import { createTenantWithDefaults } from '@/lib/tenant';
 
