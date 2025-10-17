@@ -5,6 +5,9 @@
  * and cannot see or modify data from other tenants.
  */
 
+// Unmock Prisma for integration tests
+jest.unmock('@prisma/client');
+
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
