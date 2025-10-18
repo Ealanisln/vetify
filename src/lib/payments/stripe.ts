@@ -51,25 +51,25 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   typescript: true,
 });
 
-// IDs de productos y precios de Stripe - Nueva estructura B2B
+// IDs de productos y precios de Stripe - Nueva estructura B2B sincronizada
 export const STRIPE_PRODUCTS = {
-  BASICO: 'prod_TCuXLEJNsZUevo',      // Plan Básico
-  PROFESIONAL: 'prod_TCuY69NLP7G9Xf',  // Plan Profesional
-  CORPORATIVO: 'prod_TCuAYal8XCdJ1g'   // Plan Corporativo (solo para display, cotización personalizada)
+  BASICO: 'prod_TGDXKD2ksDenYm',      // Plan Básico - $599/mes
+  PROFESIONAL: 'prod_TGDXLJxNFGsF9X',  // Plan Profesional - $1,199/mes
+  CORPORATIVO: 'prod_TGDXxUkqhta3cp'   // Plan Corporativo - $5,000/mes
 } as const;
 
 export const STRIPE_PRICES = {
   BASICO: {
-    monthly: 'price_1SGUitL0nsUWmd4XJF2gsKud',
-    annual: 'price_1SGUv2L0nsUWmd4XNb66XuLD',   // $4,788/año ($399/mes x 12)
+    monthly: 'price_1SJh6nPwxz1bHxlHQ15mCTij',  // $599/mes
+    annual: 'price_1SJh6oPwxz1bHxlH1gXSEuSF',   // $4,788/año
   },
   PROFESIONAL: {
-    monthly: 'price_1SGUjKL0nsUWmd4XX7qqXKvv',
-    annual: 'price_1SGUvIL0nsUWmd4XPKU9VNB3',   // $9,588/año ($799/mes x 12)
+    monthly: 'price_1SJh6oPwxz1bHxlHkJudNKvL',  // $1,199/mes
+    annual: 'price_1SJh6pPwxz1bHxlHcMip7KIU',   // $9,588/año
   },
   CORPORATIVO: {
-    monthly: 'price_1SGUMOL0nsUWmd4XWjkRuo55', // No usado - cotización personalizada
-    annual: 'price_1SGUMPL0nsUWmd4Xm8tnvgsH',  // No usado - cotización personalizada
+    monthly: 'price_1SJh6pPwxz1bHxlHY9cnLnPw',  // $5,000/mes
+    annual: 'price_1SJh6qPwxz1bHxlHd3ud2WZ3',   // $60,000/año
   }
 } as const;
 

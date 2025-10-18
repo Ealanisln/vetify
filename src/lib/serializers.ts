@@ -12,30 +12,44 @@ export function serializeDecimal(value: Decimal | null | undefined): number | nu
 
 /**
  * Recursively serializes an object, converting any Decimal fields to numbers
+ * Handles Prisma objects, nested objects, arrays, and Date objects
+ * Filters out functions to prevent serialization errors with Client Components
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function serializeObject(obj: any): any {
   if (obj === null || obj === undefined) {
     return obj;
   }
-  
+
+  // Handle Decimal objects
   if (obj instanceof Decimal) {
     return obj.toNumber();
   }
-  
+
+  // Handle Date objects
+  if (obj instanceof Date) {
+    return obj;
+  }
+
+  // Handle Arrays
   if (Array.isArray(obj)) {
     return obj.map(item => serializeObject(item));
   }
-  
-  if (typeof obj === 'object' && obj.constructor === Object) {
+
+  // Handle plain objects and Prisma model objects
+  // We check for 'object' type instead of constructor to handle Prisma models
+  if (typeof obj === 'object') {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const serialized: any = {};
     for (const [key, value] of Object.entries(obj)) {
-      serialized[key] = serializeObject(value);
+      // Skip functions and undefined values to ensure clean serialization
+      if (typeof value !== 'function' && value !== undefined) {
+        serialized[key] = serializeObject(value);
+      }
     }
     return serialized;
   }
-  
+
   return obj;
 }
 

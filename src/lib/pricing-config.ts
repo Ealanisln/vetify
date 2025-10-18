@@ -1,30 +1,30 @@
 export const PRICING_CONFIG = {
-  // Nueva estructura B2B - 3 planes profesionales sin plan gratuito
+  // Nueva estructura B2B - 3 planes profesionales sincronizados con Stripe
   PLANS: {
     BASICO: {
       monthly: 599,
-      yearly: 4788,  // $399/mes x 12 meses
-      stripeProductId: 'prod_TDdWhTHiV65YFG',
-      stripePriceMonthly: 'price_1SHCFKL0nsUWmd4XeI5ntskS',
-      stripePriceYearly: 'price_1SHCFKL0nsUWmd4XRrWnPyoc',
+      yearly: 4788,
+      stripeProductId: 'prod_TGDXKD2ksDenYm',
+      stripePriceMonthly: 'price_1SJh6nPwxz1bHxlHQ15mCTij',
+      stripePriceYearly: 'price_1SJh6oPwxz1bHxlH1gXSEuSF',
       features: ['Funcionalidades esenciales', 'Gestión básica', 'Historiales médicos', 'Gestión de citas', 'Soporte profesional'],
       limits: { pets: 500, users: 3, whatsappMessages: -1 }
     },
     PROFESIONAL: {
       monthly: 1199,
-      yearly: 9588,  // $799/mes x 12 meses
-      stripeProductId: 'prod_TDdW2nRtxwKws9',
-      stripePriceMonthly: 'price_1SHCFLL0nsUWmd4XtIV8ExBc',
-      stripePriceYearly: 'price_1SHCFLL0nsUWmd4Xu83JDXwb',
+      yearly: 9588,
+      stripeProductId: 'prod_TGDXLJxNFGsF9X',
+      stripePriceMonthly: 'price_1SJh6oPwxz1bHxlHkJudNKvL',
+      stripePriceYearly: 'price_1SJh6pPwxz1bHxlHcMip7KIU',
       features: ['Funcionalidades avanzadas', 'Multi-sucursal', 'Reportes avanzados', 'Soporte prioritario', 'Gestión completa'],
       limits: { pets: 2000, users: 8, whatsappMessages: -1, multiLocation: true }
     },
     CORPORATIVO: {
       monthly: 5000,
-      yearly: 60000,  // Placeholder - cotización personalizada
-      stripeProductId: 'prod_TDdWMKyrMfoOJd',
-      stripePriceMonthly: 'price_1SHCFML0nsUWmd4XFduAqClk',
-      stripePriceYearly: 'price_1SHCFML0nsUWmd4X5pTplSrm',
+      yearly: 60000,
+      stripeProductId: 'prod_TGDXxUkqhta3cp',
+      stripePriceMonthly: 'price_1SJh6pPwxz1bHxlHY9cnLnPw',
+      stripePriceYearly: 'price_1SJh6qPwxz1bHxlHd3ud2WZ3',
       features: ['Mascotas ilimitadas', '20 usuarios', 'API personalizada', 'Soporte 24/7', 'Consultoría especializada'],
       limits: { pets: -1, users: 20, whatsappMessages: -1, multiLocation: true, apiAccess: true }
     }

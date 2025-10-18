@@ -161,8 +161,7 @@ vetify/
 ## 💳 Subscription System
 
 - **Trial Period**: 30-day free trial for all plans
-- **Plans**: Profesional ($599/mo), Clínica ($999/mo), Empresa ($1,799/mo)
-- **Early Adopter Discount**: 25% off for 6 months (promo code: `FUNDADOR25`)
+- **Plans**: Básico ($599/mo), Profesional ($1,199/mo), Corporativo ($5,000/mo)
 - **Features**: Subscription-based feature gating
 - **Access Control**: Middleware-enforced subscription requirements
 - **Duplicate Prevention**: Automatic cancellation of duplicate subscriptions

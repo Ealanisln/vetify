@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireSuperAdmin } from '../../../../../lib/super-admin';
 import { prisma } from '../../../../../lib/prisma';
+import { serializePlan } from '../../../../../lib/serializers';
 
 export async function GET() {
   try {
@@ -12,12 +13,12 @@ export async function GET() {
       }
     });
 
-    // Transform plans data for frontend
+    // Transform plans data for frontend and convert Decimal to numbers
     const transformedPlans = plans.map(plan => ({
       id: plan.id,
       name: plan.name,
       description: plan.description || '',
-      price: plan.monthlyPrice,
+      price: plan.monthlyPrice.toNumber(),
       currency: 'MXN',
       interval: 'month' as const,
       features: Array.isArray(plan.features) ? plan.features : [],
@@ -66,7 +67,8 @@ export async function POST(request: Request) {
       }
     });
 
-    return NextResponse.json(plan, { status: 201 });
+    // Serialize to convert Decimal fields to numbers
+    return NextResponse.json(serializePlan(plan), { status: 201 });
   } catch (error) {
     console.error('Error creating plan:', error);
     return NextResponse.json(

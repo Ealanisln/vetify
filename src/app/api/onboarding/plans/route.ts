@@ -6,15 +6,17 @@ export async function GET() {
   try {
     // Get active plans from database
     const dbPlans = await prisma.plan.findMany({
-      where: { 
+      where: {
         isActive: true,
-        key: { in: ['PROFESIONAL', 'CLINICA', 'EMPRESA'] }
+        key: { in: ['BASICO', 'PROFESIONAL', 'CORPORATIVO'] }
       }
     });
 
-    // Merge with pricing config for UI data
+    // Merge with pricing config for UI data and convert Decimal to numbers
     const plans = dbPlans.map(dbPlan => ({
       ...dbPlan,
+      monthlyPrice: dbPlan.monthlyPrice.toNumber(),
+      annualPrice: dbPlan.annualPrice.toNumber(),
       ...COMPLETE_PLANS[dbPlan.key as keyof typeof COMPLETE_PLANS]
     }));
 
