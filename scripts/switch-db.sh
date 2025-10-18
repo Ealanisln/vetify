@@ -10,16 +10,27 @@ case $MODE in
     echo "🔍 Probando conectividad con Supabase..."
     echo ""
 
+    # Check if DATABASE_URL is set
+    if [ -z "$DATABASE_URL" ]; then
+      echo "❌ ERROR: DATABASE_URL environment variable not set"
+      echo "   Please set it in your .env file or export it:"
+      echo "   export DATABASE_URL='postgresql://...'"
+      exit 1
+    fi
+
+    # Extract connection details from DATABASE_URL
+    DB_HOST=$(echo "$DATABASE_URL" | sed -n 's/.*@\([^:]*\):.*/\1/p')
+    DB_PORT=$(echo "$DATABASE_URL" | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+
     # Test pooler connectivity
     echo "1. Verificando conexión al pooler (IPv4)..."
-    nc -zv -G 5 aws-1-us-east-1.pooler.supabase.com 6543 2>&1 | grep -q "succeeded" && \
+    nc -zv -G 5 "$DB_HOST" "$DB_PORT" 2>&1 | grep -q "succeeded" && \
       echo "   ✓ Pooler accesible" || \
       echo "   ✗ No se pudo conectar al pooler"
 
     # Test PostgreSQL auth
     echo "2. Probando autenticación PostgreSQL..."
-    PGCONNECT_TIMEOUT=5 PGPASSWORD="4U555qncmUb547Xp" psql \
-      "postgresql://postgres.neyznxeecossozkffets:4U555qncmUb547Xp@aws-1-us-east-1.pooler.supabase.com:6543/postgres" \
+    PGCONNECT_TIMEOUT=5 psql "$DATABASE_URL" \
       -c "SELECT 1 as test;" 2>&1 | grep -q "1 row" && \
       echo "   ✓ Autenticación exitosa" || \
       echo "   ✗ Error de autenticación"
