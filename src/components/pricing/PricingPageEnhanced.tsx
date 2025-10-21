@@ -24,6 +24,7 @@ const STRIPE_TO_LOCAL_ID_MAP: Record<string, string> = {
 
 export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   const [isYearly, setIsYearly] = useState(false);
+  const [showUpgradeInfo, setShowUpgradeInfo] = useState(false);
 
   // Subscription state management
   const [userPlan, setUserPlan] = useState<string | null>(null);
@@ -50,10 +51,27 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
         const data = await response.json();
         setSubscriptionData(data);
 
-        if (data.hasSubscription && data.planName) {
-          const planKey = mapPlanNameToKey(data.planName);
-          setUserPlan(planKey);
-          setUpgradeOptions(getAvailableUpgrades(planKey));
+        // Detectar plan actual ya sea de suscripción o trial
+        // Prioridad: planKey > planName > URL param
+        let detectedPlanKey: string | null = null;
+
+        if (data.planKey) {
+          detectedPlanKey = data.planKey.toLowerCase();
+        } else if (data.planName) {
+          detectedPlanKey = mapPlanNameToKey(data.planName);
+        } else {
+          // Si no hay planName en la respuesta, intentar obtener de URL
+          const urlParams = new URLSearchParams(window.location.search);
+          const currentPlanParam = urlParams.get('currentPlan');
+
+          if (currentPlanParam) {
+            detectedPlanKey = currentPlanParam.toLowerCase();
+          }
+        }
+
+        if (detectedPlanKey) {
+          setUserPlan(detectedPlanKey);
+          setUpgradeOptions(getAvailableUpgrades(detectedPlanKey));
         } else {
           setUserPlan(null);
           setUpgradeOptions(['basico', 'profesional', 'corporativo']);
@@ -73,6 +91,11 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Check if user came from settings
+        const urlParams = new URLSearchParams(window.location.search);
+        const fromSettings = urlParams.get('from') === 'settings';
+        setShowUpgradeInfo(fromSettings);
+
         const response = await fetch('/api/user');
         const authenticated = response.ok;
 
@@ -299,15 +322,8 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
   // Determinar el estado del plan para cada tarjeta
   const getPlanStatus = (productId: string) => {
-    if (!isAuthenticated || !subscriptionData) {
+    if (!isAuthenticated || !userPlan) {
       return { isCurrentPlan: false, isUpgrade: false, isDowngrade: false };
-    }
-
-    const hasActiveSubscription = subscriptionData.hasSubscription &&
-      subscriptionData.subscriptionStatus === 'ACTIVE';
-
-    if (!hasActiveSubscription) {
-      return { isCurrentPlan: false, isUpgrade: true, isDowngrade: false };
     }
 
     const isCurrentPlan = userPlan === productId;
@@ -488,12 +504,37 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground">
-              Precios simples y <span className="text-primary">transparentes</span>
+              {showUpgradeInfo && isAuthenticated ? 'Actualiza tu Plan' : 'Precios simples y'} <span className="text-primary">{showUpgradeInfo && isAuthenticated ? '' : 'transparentes'}</span>
             </h1>
 
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Gestiona tu clínica veterinaria de manera profesional. Todos los planes incluyen 30 días gratis.
+              {showUpgradeInfo && isAuthenticated
+                ? 'Elige el plan que mejor se adapte al crecimiento de tu clínica'
+                : 'Gestiona tu clínica veterinaria de manera profesional. Todos los planes incluyen 30 días gratis.'}
             </p>
+
+            {/* Info Banner when coming from settings */}
+            {showUpgradeInfo && isAuthenticated && userPlan && (
+              <div className="mt-6 max-w-2xl mx-auto">
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-blue-600 dark:text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                        Tu plan actual: <span className="font-bold capitalize">{userPlan}</span>
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                        Los planes superiores están resaltados. Para cambiar a un plan inferior, contacta a nuestro equipo de soporte.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Billing Toggle */}
             <div className="flex items-center justify-center gap-4 pt-6">
@@ -556,8 +597,14 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
               return (
                 <div key={product.id} className={`relative ${isPopular ? 'mt-10' : 'mt-8'}`}>
-                  {/* Popular Badge - Outside the card */}
-                  {planConfig?.badge && (
+                  {/* Current Plan or Popular Badge - Outside the card */}
+                  {isCurrentPlan ? (
+                    <div className="absolute left-1/2 -translate-x-1/2 z-20 whitespace-nowrap -top-4">
+                      <Badge className="bg-green-600 text-white border-green-700 px-4 py-1 text-sm font-semibold">
+                        TU PLAN ACTUAL
+                      </Badge>
+                    </div>
+                  ) : planConfig?.badge && (
                     <div className={`absolute left-1/2 -translate-x-1/2 z-20 whitespace-nowrap ${isPopular ? '-top-4' : '-top-3'}`}>
                       <Badge className={`${planConfig.badgeColor} px-4 py-1 text-sm font-semibold`}>
                         {planConfig.badge}
@@ -568,7 +615,9 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                   {/* Pricing Card */}
                   <div
                     className={`relative flex flex-col rounded-2xl border-2 transition-all duration-300 ${
-                      isPopular
+                      isCurrentPlan
+                        ? 'border-green-500 shadow-lg shadow-green-500/20 bg-green-50/50 dark:bg-green-950/10'
+                        : isPopular
                         ? 'border-primary shadow-lg shadow-primary/20 scale-105 origin-top'
                         : 'border-border hover:border-primary/50 hover:shadow-md'
                     } bg-card overflow-hidden`}
@@ -634,13 +683,18 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                   {/* CTA Button */}
                   <div className="px-6 pb-6">
                     {isCurrentPlan ? (
-                      <Button
-                        disabled
-                        className="w-full bg-muted text-muted-foreground cursor-not-allowed"
-                        size="lg"
-                      >
-                        Plan Actual
-                      </Button>
+                      <div className="space-y-2">
+                        <Button
+                          disabled
+                          className="w-full bg-muted text-muted-foreground cursor-not-allowed"
+                          size="lg"
+                        >
+                          Plan Actual
+                        </Button>
+                        <p className="text-xs text-center text-muted-foreground">
+                          Puedes gestionar tu plan desde Configuración
+                        </p>
+                      </div>
                     ) : product.id === 'corporativo' ? (
                       <Link href="/contacto">
                         <Button
@@ -650,6 +704,21 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                           Contactar Ventas
                         </Button>
                       </Link>
+                    ) : isDowngrade && isAuthenticated ? (
+                      <div className="space-y-2">
+                        <Link href="/contacto?asunto=downgrade" className="w-full">
+                          <Button
+                            variant="outline"
+                            className="w-full border-yellow-500 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-950/20"
+                            size="lg"
+                          >
+                            Contactar Soporte
+                          </Button>
+                        </Link>
+                        <p className="text-xs text-center text-muted-foreground">
+                          Un cambio a un plan inferior requiere validación de datos
+                        </p>
+                      </div>
                     ) : !isAuthenticated ? (
                       <Button
                         onClick={() => handleRegisterAndCheckout(price.id, product.id)}
@@ -664,8 +733,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                         className={`w-full ${isPopular ? 'bg-primary hover:bg-primary/90' : ''}`}
                         size="lg"
                       >
-                        {isUpgrade ? 'Actualizar Plan' :
-                         isDowngrade ? 'Cambiar Plan ⬇️' :
+                        {isUpgrade ? `Actualizar a ${product.name}` :
                          subscriptionData?.subscriptionStatus && !['ACTIVE', 'TRIALING'].includes(subscriptionData.subscriptionStatus) ? 'Suscribirse Ahora' : 'Iniciar Prueba Gratuita'}
                       </Button>
                     )}

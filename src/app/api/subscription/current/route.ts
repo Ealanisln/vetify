@@ -11,14 +11,12 @@ export async function GET() {
   }
 
   try {
-    // Find user with tenant information
+    // Find user with tenant information through Staff relationship
     const user = await prisma.user.findUnique({
       where: {
         id: kindeUser.id,
       },
-      select: {
-        id: true,
-        email: true,
+      include: {
         tenant: {
           select: {
             id: true,
@@ -32,7 +30,12 @@ export async function GET() {
             isTrialPeriod: true,
             status: true,
             createdAt: true,
-            updatedAt: true
+            updatedAt: true,
+            tenantSubscription: {
+              include: {
+                plan: true
+              }
+            }
           }
         }
       }
@@ -48,6 +51,9 @@ export async function GET() {
     }
 
     const tenant = user.tenant;
+
+    // Si no hay planName en tenant, intentar obtenerlo de la suscripción
+    const effectivePlanName = tenant.planName || tenant.tenantSubscription?.plan?.name || null;
     
     // Determine if user has an active subscription
     const hasActiveSubscription = !!(
@@ -71,7 +77,7 @@ export async function GET() {
     const subscriptionInfo = {
       hasSubscription: hasActiveSubscription,
       subscriptionStatus: tenant.subscriptionStatus,
-      planName: tenant.planName,
+      planName: effectivePlanName,
       isTrialPeriod: tenant.isTrialPeriod,
       isInTrial,
       subscriptionEndsAt: tenant.subscriptionEndsAt,
@@ -79,10 +85,10 @@ export async function GET() {
       stripeSubscriptionId: tenant.stripeSubscriptionId,
       stripeProductId: tenant.stripeProductId,
       tenantStatus: tenant.status,
-      lastUpdated: tenant.updatedAt
+      lastUpdated: tenant.updatedAt,
+      // Agregar información de la suscripción si existe
+      planKey: tenant.tenantSubscription?.plan?.key || null
     };
-
-    console.log('Subscription current API response:', subscriptionInfo);
 
     return NextResponse.json(subscriptionInfo);
   } catch (error) {

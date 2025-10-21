@@ -1,29 +1,31 @@
 'use client';
 
 import { Button } from '../ui/button';
-import { Card } from '../ui/card';
+import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { redirectToCustomerPortal } from '../../lib/payments/actions';
 import { useSubscription } from '../../hooks/useSubscription';
 import type { Tenant } from '@prisma/client';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { 
-  CreditCard, 
-  Calendar, 
-  AlertTriangle, 
+import {
+  CreditCard,
+  Calendar,
+  AlertTriangle,
   CheckCircle,
   Clock,
   XCircle,
   ExternalLink
 } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface SubscriptionManagerProps {
   tenant: Tenant;
 }
 
 export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const {
     isPastDue,
@@ -45,6 +47,25 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
       console.error('Error al abrir el portal de cliente:', error);
       setIsLoading(false);
     }
+  };
+
+  const handleUpgradePlan = () => {
+    // Determinar el plan actual basado en el nombre del plan
+    let planKey = 'BASICO'; // Default
+
+    if (planName) {
+      const lowerPlanName = planName.toLowerCase();
+      if (lowerPlanName.includes('profesional') || lowerPlanName.includes('professional')) {
+        planKey = 'PROFESIONAL';
+      } else if (lowerPlanName.includes('corporativo') || lowerPlanName.includes('corporate') || lowerPlanName.includes('empresa')) {
+        planKey = 'CORPORATIVO';
+      } else if (lowerPlanName.includes('básico') || lowerPlanName.includes('basico') || lowerPlanName.includes('basic')) {
+        planKey = 'BASICO';
+      }
+    }
+
+    // Redirigir con el parámetro del plan actual para mejorar UX
+    router.push(`/precios?from=settings&currentPlan=${planKey.toLowerCase()}`);
   };
 
   const getStatusConfig = (status: string) => {
@@ -91,137 +112,174 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
   const StatusIcon = statusConfig.icon;
 
   return (
-    <Card className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <CreditCard className="h-5 w-5 text-primary" />
+    <div className="space-y-6">
+      {/* Status Overview Card */}
+      <div className={`
+        relative overflow-hidden rounded-lg border p-6
+        ${isInTrial
+          ? 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200 dark:border-blue-800'
+          : needsPayment
+          ? 'bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border-yellow-200 dark:border-yellow-800'
+          : 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800'
+        }
+      `}>
+        <div className="relative z-10">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className={`p-3 rounded-xl ${isInTrial ? 'bg-blue-100 dark:bg-blue-900/40' : needsPayment ? 'bg-yellow-100 dark:bg-yellow-900/40' : 'bg-green-100 dark:bg-green-900/40'}`}>
+                <StatusIcon className={`h-6 w-6 ${isInTrial ? 'text-blue-600 dark:text-blue-400' : needsPayment ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`} />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Estado de la Subscripción</p>
+                <h3 className="text-2xl font-bold">{statusConfig.text}</h3>
+              </div>
+            </div>
+            <Badge className={statusConfig.color} variant="outline">
+              {planName || 'Sin plan'}
+            </Badge>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-foreground">
-              Subscripción
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              Gestiona tu plan y facturación
-            </p>
-          </div>
+          <p className="text-sm text-muted-foreground">{statusConfig.description}</p>
         </div>
       </div>
 
-      {/* Plan Info */}
-      <div className="space-y-4 mb-6">
-        {/* Plan Name */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">
-            Plan Actual:
-          </span>
-          <span className="font-semibold text-foreground">
-            {planName || 'Sin plan activo'}
-          </span>
-        </div>
-
-        {/* Status */}
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-muted-foreground">
-            Estado:
-          </span>
-          <Badge className={`${statusConfig.color} flex items-center gap-1`}>
-            <StatusIcon className="h-3 w-3" />
-            {statusConfig.text}
-          </Badge>
-        </div>
-
-        {/* Subscription End Date */}
-        {subscriptionEndsAt && (
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">
-              {isCanceled ? 'Termina:' : isInTrial ? 'Prueba termina:' : 'Renueva:'}
-            </span>
-            <div className="flex items-center gap-1 text-sm">
-              <Calendar className="h-3 w-3 text-muted-foreground" />
-              <span className="font-medium">
-                {format(new Date(subscriptionEndsAt), 'dd MMM yyyy', { locale: es })}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Trial Info */}
-        {isInTrial && tenant.trialEndsAt && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-start gap-2">
-              <Clock className="h-4 w-4 text-blue-600 mt-0.5" />
+      {/* Details Grid */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Plan Details */}
+            <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-blue-900">
-                  Periodo de Prueba Gratuito
+                <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                  Plan Actual
                 </p>
-                <p className="text-xs text-blue-700 mt-1">
-                  Tienes acceso completo hasta el{' '}
-                  {format(new Date(tenant.trialEndsAt), 'dd MMM yyyy', { locale: es })}
+                <p className="text-lg font-bold">
+                  {planName || 'Sin plan activo'}
                 </p>
+              </div>
+
+              {subscriptionEndsAt && (
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+                    {isCanceled ? 'Termina' : isInTrial ? 'Prueba termina' : 'Renueva'}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-lg font-semibold">
+                      {format(new Date(subscriptionEndsAt), 'dd MMM yyyy', { locale: es })}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Status & Actions */}
+            <div className="space-y-4">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+                  Estado
+                </p>
+                <Badge className={`${statusConfig.color} flex items-center gap-1.5 w-fit px-3 py-1.5`}>
+                  <StatusIcon className="h-3.5 w-3.5" />
+                  <span className="font-medium">{statusConfig.text}</span>
+                </Badge>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Warning Messages */}
-        {needsPayment && (
-          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-yellow-900">
-                  {isPastDue ? 'Pago Requerido' : 'Subscripción Cancelada'}
-                </p>
-                <p className="text-xs text-yellow-700 mt-1">
-                  {isPastDue 
-                    ? 'Actualiza tu método de pago para evitar la interrupción del servicio'
-                    : 'Tu subscripción ha sido cancelada. Reactiva para continuar usando todas las funciones'
-                  }
-                </p>
+          {/* Trial Info Banner */}
+          {isInTrial && tenant.trialEndsAt && (
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
+                  <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                    Periodo de Prueba Gratuito
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                    Tienes acceso completo hasta el{' '}
+                    <span className="font-semibold">
+                      {format(new Date(tenant.trialEndsAt), 'dd MMMM yyyy', { locale: es })}
+                    </span>
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+
+          {/* Warning Messages */}
+          {needsPayment && (
+            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900/50 rounded-lg">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-yellow-900 dark:text-yellow-100">
+                    {isPastDue ? 'Pago Requerido' : 'Subscripción Cancelada'}
+                  </p>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                    {isPastDue
+                      ? 'Actualiza tu método de pago para evitar la interrupción del servicio'
+                      : 'Tu subscripción ha sido cancelada. Reactiva para continuar usando todas las funciones'
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Action Buttons */}
-      <div className="space-y-3">
-        {/* Show Stripe portal only if has stripeCustomerId */}
-        {tenant.stripeCustomerId && (hasActiveSubscription || isPastDue) ? (
-          <Button
-            onClick={handleManageSubscription}
-            disabled={isLoading}
-            className="w-full"
-            variant={needsPayment ? "default" : "outline"}
-          >
-            {isLoading ? (
-              <div className="flex items-center gap-2">
-                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                Cargando...
-              </div>
+      <Card>
+        <CardContent className="p-6">
+          <div className="space-y-3">
+            {tenant.stripeCustomerId && (hasActiveSubscription || isPastDue) ? (
+              <Button
+                onClick={handleManageSubscription}
+                disabled={isLoading}
+                className="w-full h-12 text-base font-semibold"
+                size="lg"
+                variant={needsPayment ? "default" : "outline"}
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Cargando...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <ExternalLink className="h-5 w-5" />
+                    {needsPayment ? 'Actualizar Pago' : 'Gestionar Subscripción'}
+                  </div>
+                )}
+              </Button>
             ) : (
-              <div className="flex items-center gap-2">
-                <ExternalLink className="h-4 w-4" />
-                {needsPayment ? 'Actualizar Pago' : 'Gestionar Subscripción'}
-              </div>
+              <Button
+                onClick={handleUpgradePlan}
+                className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+                size="lg"
+              >
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  {isInTrial ? 'Actualizar Plan' : 'Ver Planes Disponibles'}
+                </div>
+              </Button>
             )}
-          </Button>
-        ) : (
-          <Button
-            onClick={() => window.location.href = '/precios'}
-            className="w-full"
-          >
-            {isInTrial ? 'Actualizar Plan' : 'Ver Planes Disponibles'}
-          </Button>
-        )}
 
-        {/* Status Description */}
-        <p className="text-xs text-muted-foreground text-center">
-          {statusConfig.description}
-        </p>
-      </div>
-    </Card>
+            <p className="text-xs text-muted-foreground text-center pt-2">
+              {isInTrial
+                ? 'Explora todos nuestros planes y elige el que mejor se adapte a tu clínica'
+                : needsPayment
+                ? 'Actualiza tu información de pago para continuar sin interrupciones'
+                : 'Gestiona tu subscripción, métodos de pago y facturas'
+              }
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 } 
