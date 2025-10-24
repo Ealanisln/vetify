@@ -1,3 +1,10 @@
+/**
+ * FUTURE FEATURE: n8n Pet Welcome Webhook
+ *
+ * This webhook handles pet welcome automation notifications from n8n.
+ * Currently not in use - will be activated when automation features are enabled.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 
 interface PetWelcomeWebhookPayload {

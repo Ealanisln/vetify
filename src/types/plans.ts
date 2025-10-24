@@ -46,13 +46,14 @@ const planFeatures: PlanFeature[] = [
     clinica: 'Ilimitado',
     empresa: 'Ilimitado'
   },
-  {
-    name: 'Automatizaciones',
-    description: 'Automatización de recordatorios y procesos',
-    profesional: 'Básica',
-    clinica: 'Completa',
-    empresa: 'Avanzada'
-  },
+  // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
+  // {
+  //   name: 'Automatizaciones',
+  //   description: 'Automatización de recordatorios y procesos',
+  //   profesional: 'Básica',
+  //   clinica: 'Completa',
+  //   empresa: 'Avanzada'
+  // },
   {
     name: 'Reportes',
     description: 'Reportes de operaciones y finanzas',

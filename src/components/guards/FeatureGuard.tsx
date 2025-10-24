@@ -69,8 +69,9 @@ export function FeatureGuard({
       }
 
       // If trial expired, block premium features and creation actions
+      // Note: 'automations' excluded as it's a future feature
       if (trialStatus.status === 'expired') {
-        if (PREMIUM_FEATURES.includes(feature as 'inventory' | 'reports' | 'automations') || action === 'create') {
+        if (PREMIUM_FEATURES.includes(feature as 'inventory' | 'reports') || action === 'create') {
           setAccessCheck({
             allowed: false,
             reason: `Trial expirado hace ${Math.abs(trialStatus.daysRemaining)} días`,
@@ -114,7 +115,8 @@ export function FeatureGuard({
         }
       } else {
         // For view actions on non-premium features, allow access
-        if (!PREMIUM_FEATURES.includes(feature as 'inventory' | 'reports' | 'automations')) {
+        // Note: 'automations' excluded as it's a future feature
+        if (!PREMIUM_FEATURES.includes(feature as 'inventory' | 'reports')) {
           setAccessCheck({
             allowed: true,
             isLoading: false
@@ -178,7 +180,7 @@ export function FeatureGuard({
         <div className="flex items-center gap-4">
           <div className="flex-shrink-0">
             <div className="p-3 rounded-full bg-gray-200 dark:bg-gray-700">
-              {PREMIUM_FEATURES.includes(feature as 'inventory' | 'reports' | 'automations') ? (
+              {PREMIUM_FEATURES.includes(feature as 'inventory' | 'reports') ? (
                 <Crown className="h-6 w-6 text-amber-600" />
               ) : (
                 <Lock className="h-6 w-6 text-gray-600" />
@@ -196,8 +198,8 @@ export function FeatureGuard({
                   {accessCheck.reason || getBlockedDescription(feature, action)}
                 </p>
               </div>
-              
-              {PREMIUM_FEATURES.includes(feature as 'inventory' | 'reports' | 'automations') && (
+
+              {PREMIUM_FEATURES.includes(feature as 'inventory' | 'reports') && (
                 <Badge className="bg-amber-100 text-amber-800 border-amber-300">
                   <Crown className="h-3 w-3 mr-1" />
                   Premium
@@ -268,22 +270,23 @@ function getBlockedTitle(feature: Feature, action: string): string {
       return 'Gestión de inventario';
     case 'reports':
       return 'Reportes avanzados';
-    case 'automations':
-      return 'Automatizaciones WhatsApp';
+    // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
+    // case 'automations':
+    //   return 'Automatizaciones WhatsApp';
     default:
       return `${actionText} ${feature}`;
   }
 }
 
 function getBlockedDescription(feature: Feature, action: string): string {
-  if (PREMIUM_FEATURES.includes(feature as 'inventory' | 'reports' | 'automations')) {
+  if (PREMIUM_FEATURES.includes(feature as 'inventory' | 'reports')) {
     return 'Esta función requiere una suscripción activa para acceder.';
   }
-  
+
   if (action === 'create') {
     return 'Has alcanzado el límite de tu período de prueba. Actualiza para continuar creando.';
   }
-  
+
   return 'Actualiza tu plan para acceder a esta función.';
 }
 
@@ -301,12 +304,13 @@ function getFeatureBenefits(feature: Feature): string[] {
         'Análisis de clientes',
         'Métricas de rendimiento'
       ];
-    case 'automations':
-      return [
-        'Mensajes automáticos',
-        'Recordatorios WhatsApp',
-        'Confirmaciones de citas'
-      ];
+    // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
+    // case 'automations':
+    //   return [
+    //     'Mensajes automáticos',
+    //     'Recordatorios WhatsApp',
+    //     'Confirmaciones de citas'
+    //   ];
     case 'pets':
       return [
         'Registro ilimitado',

@@ -70,7 +70,8 @@ export const COMPLETE_PLANS = {
       maxUsers: 3,
       maxMonthlyWhatsApp: -1,
       maxStorageGB: 5,
-      canUseAutomations: true,
+      // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
+      // canUseAutomations: true,
       canUseAdvancedReports: false,
       canUseMultiDoctor: true,
       canUseSMSReminders: true
@@ -105,7 +106,8 @@ export const COMPLETE_PLANS = {
       maxUsers: 8,
       maxMonthlyWhatsApp: -1,
       maxStorageGB: 20,
-      canUseAutomations: true,
+      // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
+      // canUseAutomations: true,
       canUseAdvancedReports: true,
       canUseMultiDoctor: true,
       canUseSMSReminders: true
@@ -140,7 +142,8 @@ export const COMPLETE_PLANS = {
       maxUsers: 20,
       maxMonthlyWhatsApp: -1,
       maxStorageGB: 100,
-      canUseAutomations: true,
+      // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
+      // canUseAutomations: true,
       canUseAdvancedReports: true,
       canUseMultiDoctor: true,
       canUseSMSReminders: true
@@ -205,7 +208,8 @@ export interface PricingPlan {
     maxUsers: number;
     maxMonthlyWhatsApp: number;
     maxStorageGB: number;
-    canUseAutomations: boolean;
+    // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
+    // canUseAutomations?: boolean;
     canUseAdvancedReports: boolean;
     canUseMultiDoctor: boolean;
     canUseSMSReminders: boolean;

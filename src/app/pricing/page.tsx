@@ -86,7 +86,8 @@ export default function PricingPage() {
               <li>✓ Pacientes ilimitados</li>
               <li>✓ Todas las funcionalidades básicas</li>
               <li>✓ Inventario y facturación</li>
-              <li>✓ Automatizaciones WhatsApp</li>
+              {/* FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented */}
+              {/* <li>✓ Automatizaciones WhatsApp</li> */}
               <li>✓ Soporte prioritario</li>
             </ul>
             <button className="w-full bg-primary text-white py-2 rounded-lg hover:bg-primary/90">

@@ -1,3 +1,16 @@
+/**
+ * FUTURE FEATURE: n8n Integration
+ *
+ * This file contains the n8n integration service for automating workflows
+ * and notifications. This feature is currently not active in the application.
+ *
+ * When ready to implement:
+ * 1. Uncomment automation references in frontend components
+ * 2. Update trial types to include automations in PREMIUM_FEATURES
+ * 3. Configure n8n webhooks and workflows
+ * 4. Test all automation flows end-to-end
+ */
+
 interface N8NWorkflowPayload {
   [key: string]: string | number | boolean | Date | object | null | undefined;
 }

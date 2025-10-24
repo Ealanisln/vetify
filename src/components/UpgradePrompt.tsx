@@ -5,19 +5,21 @@ import { ArrowUpIcon, LockIcon } from "lucide-react";
 import Link from "next/link";
 
 interface UpgradePromptProps {
-  feature: 'automations' | 'advancedReports' | 'multiDoctor' | 'smsReminders';
+  // Note: 'automations' removed as it's a future feature
+  feature: 'advancedReports' | 'multiDoctor' | 'smsReminders';
   tenantId: string;
   size?: 'sm' | 'md' | 'lg';
   showIcon?: boolean;
 }
 
 const featureConfig = {
-  automations: {
-    title: 'Automatizaciones',
-    description: 'Automatiza recordatorios y notificaciones para tus clientes',
-    icon: '🤖',
-    benefit: 'Ahorra tiempo y mejora la comunicación con tus clientes'
-  },
+  // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
+  // automations: {
+  //   title: 'Automatizaciones',
+  //   description: 'Automatiza recordatorios y notificaciones para tus clientes',
+  //   icon: '🤖',
+  //   benefit: 'Ahorra tiempo y mejora la comunicación con tus clientes'
+  // },
   advancedReports: {
     title: 'Reportes Avanzados',
     description: 'Obtén insights detallados sobre tu clínica veterinaria',

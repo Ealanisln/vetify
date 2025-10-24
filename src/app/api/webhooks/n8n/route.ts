@@ -1,3 +1,10 @@
+/**
+ * FUTURE FEATURE: n8n Webhook Handler
+ *
+ * This webhook receives automation completion notifications from n8n.
+ * Currently not in use - will be activated when automation features are enabled.
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
