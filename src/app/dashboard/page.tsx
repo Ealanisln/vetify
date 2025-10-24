@@ -43,11 +43,12 @@ export default async function DashboardPage() {
           value={0}
           icon="⭐"
         />
-        <StatsCard
+        {/* FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented */}
+        {/* <StatsCard
           title="Automatizaciones"
           value={0}
           icon="🤖"
-        />
+        /> */}
       </div>
 
       {/* Plan Limits Display */}

@@ -21,6 +21,7 @@ export interface TrialStatus {
 }
 
 // Feature access control
+// Note: 'automations' kept for backward compatibility but not actively used
 export interface FeatureAccess {
   feature: 'pets' | 'appointments' | 'inventory' | 'reports' | 'automations';
   allowed: boolean;
@@ -30,9 +31,10 @@ export interface FeatureAccess {
 }
 
 // Access check request schema
+// Note: 'automations' removed as it's a future feature
 export const TrialAccessSchema = z.object({
   tenantId: z.string().uuid().optional(), // Optional since it can be inferred from user
-  feature: z.enum(['pets', 'appointments', 'inventory', 'reports', 'automations']).optional(),
+  feature: z.enum(['pets', 'appointments', 'inventory', 'reports']).optional(),
   action: z.enum(['view', 'create', 'update', 'delete']).optional().default('view')
 });
 
@@ -88,17 +90,19 @@ export const TRIAL_LIMITS = {
   appointments: 20,  // Max 20 appointments during trial
   inventory: false,  // No inventory access during trial
   reports: false,    // No reports access during trial
-  automations: false // No automations during trial
+  // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
+  // automations: false // No automations during trial
 } as const;
 
 // Grace period configuration
 export const GRACE_PERIOD_DAYS = 3;
 
 // Features that require paid subscription
+// FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
 export const PREMIUM_FEATURES = [
   'inventory',
-  'reports', 
-  'automations'
+  'reports'
+  // 'automations' // Commented out - future feature
 ] as const;
 
 // Features available during trial with limits
@@ -108,6 +112,7 @@ export const TRIAL_FEATURES = [
 ] as const;
 
 // Export feature type
+// Note: 'automations' kept in type for backward compatibility but not used
 export type Feature = 'pets' | 'appointments' | 'inventory' | 'reports' | 'automations';
 export type TrialFeature = typeof TRIAL_FEATURES[number];
 export type PremiumFeature = typeof PREMIUM_FEATURES[number];

@@ -31,7 +31,8 @@ const PROTECTED_ROUTES = {
   // Premium features
   '/dashboard/inventory': 'inventory',
   '/dashboard/reports': 'reports',
-  '/dashboard/settings/automations': 'automations'
+  // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
+  // '/dashboard/settings/automations': 'automations'
 } as const;
 
 // Routes that are always accessible even without active subscription
