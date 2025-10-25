@@ -27,23 +27,9 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
   }
 
   try {
-    const user = await prisma.user.upsert({
+    // First, try to find the existing user
+    const existingUser = await prisma.user.findUnique({
       where: { id },
-      update: {
-        email,
-        firstName,
-        lastName,
-        name: name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
-        isActive: true,
-      },
-      create: {
-        id,
-        email,
-        firstName,
-        lastName,
-        name: name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
-        isActive: true,
-      },
       include: {
         tenant: {
           include: {
@@ -53,7 +39,68 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
       },
     });
 
-    return serializeUser(user);
+    // If user exists, update and return
+    if (existingUser) {
+      const updatedUser = await prisma.user.update({
+        where: { id },
+        data: {
+          email,
+          firstName,
+          lastName,
+          name: name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
+          isActive: true,
+        },
+        include: {
+          tenant: {
+            include: {
+              tenantSubscription: { include: { plan: true } },
+            },
+          },
+        },
+      });
+      return serializeUser(updatedUser);
+    }
+
+    // If user doesn't exist, try to create
+    try {
+      const newUser = await prisma.user.create({
+        data: {
+          id,
+          email,
+          firstName,
+          lastName,
+          name: name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
+          isActive: true,
+        },
+        include: {
+          tenant: {
+            include: {
+              tenantSubscription: { include: { plan: true } },
+            },
+          },
+        },
+      });
+      return serializeUser(newUser);
+    } catch (createError: unknown) {
+      // Handle race condition: if create fails due to duplicate, fetch the existing user
+      if (createError && typeof createError === 'object' && 'code' in createError && createError.code === 'P2002') {
+        const user = await prisma.user.findUnique({
+          where: { id },
+          include: {
+            tenant: {
+              include: {
+                tenantSubscription: { include: { plan: true } },
+              },
+            },
+          },
+        });
+
+        if (user) {
+          return serializeUser(user);
+        }
+      }
+      throw createError;
+    }
   } catch (error) {
     console.error('Error in findOrCreateUser:', error);
     throw new Error(`Failed to find or create user: ${error instanceof Error ? error.message : 'Unknown error'}`);

@@ -249,10 +249,33 @@ export async function isSlugAvailable(slug: string): Promise<boolean> {
 }
 
 /**
+ * Remove accents and diacritics from a string
+ * Converts accented characters to their ASCII equivalents
+ */
+export function removeAccents(str: string): string {
+  const accentMap: Record<string, string> = {
+    'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+    'Á': 'a', 'É': 'e', 'Í': 'i', 'Ó': 'o', 'Ú': 'u',
+    'à': 'a', 'è': 'e', 'ì': 'i', 'ò': 'o', 'ù': 'u',
+    'À': 'a', 'È': 'e', 'Ì': 'i', 'Ò': 'o', 'Ù': 'u',
+    'ä': 'a', 'ë': 'e', 'ï': 'i', 'ö': 'o', 'ü': 'u',
+    'Ä': 'a', 'Ë': 'e', 'Ï': 'i', 'Ö': 'o', 'Ü': 'u',
+    'â': 'a', 'ê': 'e', 'î': 'i', 'ô': 'o', 'û': 'u',
+    'Â': 'a', 'Ê': 'e', 'Î': 'i', 'Ô': 'o', 'Û': 'u',
+    'ã': 'a', 'õ': 'o', 'ñ': 'n',
+    'Ã': 'a', 'Õ': 'o', 'Ñ': 'n',
+    'ç': 'c', 'Ç': 'c'
+  };
+
+  return str.split('').map(char => accentMap[char] || char).join('');
+}
+
+/**
  * Generate a unique slug from a name
+ * Removes accents and converts to URL-friendly format
  */
 export function generateSlugFromName(name: string): string {
-  return name
+  return removeAccents(name)
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
