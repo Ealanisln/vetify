@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { COMPLETE_PLANS } from '../../../lib/pricing-config';
 import { formatPrice } from '../../../lib/pricing-config';
 
@@ -78,14 +79,20 @@ export function PlanSelection({ onNext, initialSelection }: PlanSelectionProps) 
               </h3>
               
               <div className="mb-3 text-center">
-                <span className="text-2xl font-bold text-[#75a99c]">
-                  {formatPrice(
-                    billingInterval === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice
-                  )}
-                </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400 ml-1 block sm:inline">
-                  /{billingInterval === 'yearly' ? 'año' : 'mes'}
-                </span>
+                {plan.key === 'CORPORATIVO' ? (
+                  <div className="text-2xl font-bold text-[#75a99c]">Cotización</div>
+                ) : (
+                  <>
+                    <span className="text-2xl font-bold text-[#75a99c]">
+                      {formatPrice(
+                        billingInterval === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice
+                      )}
+                    </span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-1 block sm:inline">
+                      /{billingInterval === 'yearly' ? 'año' : 'mes'}
+                    </span>
+                  </>
+                )}
               </div>
 
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 text-center leading-relaxed">
@@ -137,14 +144,20 @@ export function PlanSelection({ onNext, initialSelection }: PlanSelectionProps) 
                 </h3>
                 
                 <div className="mb-3 lg:mb-4 text-center">
-                  <span className="text-2xl lg:text-3xl font-bold text-[#75a99c]">
-                    {formatPrice(
-                      billingInterval === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice
-                    )}
-                  </span>
-                  <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400 ml-1 block lg:inline">
-                    /{billingInterval === 'yearly' ? 'año' : 'mes'}
-                  </span>
+                  {plan.key === 'CORPORATIVO' ? (
+                    <div className="text-2xl lg:text-3xl font-bold text-[#75a99c]">Cotización</div>
+                  ) : (
+                    <>
+                      <span className="text-2xl lg:text-3xl font-bold text-[#75a99c]">
+                        {formatPrice(
+                          billingInterval === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice
+                        )}
+                      </span>
+                      <span className="text-sm lg:text-base text-gray-500 dark:text-gray-400 ml-1 block lg:inline">
+                        /{billingInterval === 'yearly' ? 'año' : 'mes'}
+                      </span>
+                    </>
+                  )}
                 </div>
 
                 <p className="text-sm lg:text-base text-gray-600 dark:text-gray-400 mb-4 lg:mb-6 text-center leading-relaxed">
@@ -168,12 +181,21 @@ export function PlanSelection({ onNext, initialSelection }: PlanSelectionProps) 
       </div>
 
       <div className="max-w-md mx-auto">
-        <button
-          onClick={() => onNext({ key: selectedPlan, billingInterval })}
-          className="w-full py-3 lg:py-4 px-4 lg:px-6 bg-[#75a99c] hover:bg-[#5b9788] text-white rounded-lg lg:rounded-xl font-medium lg:font-semibold transition-all duration-300 text-sm md:text-base lg:text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:scale-95"
-        >
-          Continuar
-        </button>
+        {selectedPlan === 'CORPORATIVO' ? (
+          <Link
+            href="/contacto?asunto=plan-corporativo"
+            className="block w-full py-3 lg:py-4 px-4 lg:px-6 bg-purple-600 hover:bg-purple-700 text-white rounded-lg lg:rounded-xl font-medium lg:font-semibold transition-all duration-300 text-sm md:text-base lg:text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:scale-95 text-center"
+          >
+            Contactar Ventas
+          </Link>
+        ) : (
+          <button
+            onClick={() => onNext({ key: selectedPlan, billingInterval })}
+            className="w-full py-3 lg:py-4 px-4 lg:px-6 bg-[#75a99c] hover:bg-[#5b9788] text-white rounded-lg lg:rounded-xl font-medium lg:font-semibold transition-all duration-300 text-sm md:text-base lg:text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-1 active:scale-95"
+          >
+            Continuar
+          </button>
+        )}
       </div>
     </div>
   );

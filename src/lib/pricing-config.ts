@@ -129,8 +129,8 @@ export const COMPLETE_PLANS = {
     key: 'CORPORATIVO',
     name: 'Plan Corporativo',
     description: 'Solución personalizada para grandes organizaciones.',
-    monthlyPrice: 5000,      // Placeholder - cotización personalizada
-    yearlyPrice: 60000,      // Placeholder - cotización personalizada
+    monthlyPrice: 0,      // Cotización personalizada - no se muestra precio
+    yearlyPrice: 0,       // Cotización personalizada - no se muestra precio
     badge: 'EMPRESARIAL',
     badgeColor: 'bg-purple-600 text-white border border-purple-700',
     popular: false,
@@ -163,7 +163,7 @@ export const COMPLETE_PLANS = {
       canUseSMSReminders: true,
       canUseApiAccess: true
     },
-    cta: 'Contactar ventas'
+    cta: 'Contactar Ventas'
   }
 };
 

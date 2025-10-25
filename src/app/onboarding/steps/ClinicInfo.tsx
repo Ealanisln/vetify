@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { generateSlugFromName } from '../../../lib/tenant';
+import { generateSlugFromName, removeAccents } from '../../../lib/tenant';
 
 interface ClinicInfoProps {
   user: {
@@ -114,7 +114,13 @@ export function ClinicInfo({ onNext, onBack, initialData }: ClinicInfoProps) {
               type="text"
               id="slug"
               value={slug}
-              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+              onChange={(e) => {
+                // Remove accents first, then sanitize
+                const sanitized = removeAccents(e.target.value)
+                  .toLowerCase()
+                  .replace(/[^a-z0-9-]/g, '');
+                setSlug(sanitized);
+              }}
               className="flex-1 min-w-0 block w-full rounded-none rounded-r-md border-gray-300 focus:border-[#75a99c] focus:ring-[#75a99c] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               placeholder="mi-clinica"
               required
