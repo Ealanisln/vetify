@@ -57,11 +57,14 @@ export const COMPLETE_PLANS = {
       { name: 'Historiales médicos completos', included: true, highlight: true },
       { name: 'Gestión de citas', included: true },
       { name: 'Control de inventario básico', included: true },
+      { name: 'Punto de venta básico', included: true },
+      { name: 'Caja registradora (1 caja)', included: true },
       { name: 'Registro de ventas', included: true },
       { name: 'Sistema de recordatorios', included: true },
       { name: 'Reportes básicos', included: true },
       { name: 'Soporte profesional', included: true },
       { name: 'Multi-sucursal', included: false },
+      { name: 'Inventario avanzado', included: false },
       { name: 'Reportes avanzados', included: false },
       { name: 'API personalizada', included: false },
     ],
@@ -70,9 +73,12 @@ export const COMPLETE_PLANS = {
       maxUsers: 3,
       maxMonthlyWhatsApp: -1,
       maxStorageGB: 5,
+      maxCashRegisters: 1,
       // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
       // canUseAutomations: true,
       canUseAdvancedReports: false,
+      canUseAdvancedInventory: false,
+      canUseMultiLocation: false,
       canUseMultiDoctor: true,
       canUseSMSReminders: true
     },
@@ -93,11 +99,13 @@ export const COMPLETE_PLANS = {
       { name: '8 usuarios veterinarios', included: true },
       { name: 'Todo del plan Básico', included: true, highlight: true },
       { name: 'Gestión multi-sucursal', included: true, highlight: true },
+      { name: 'Múltiples cajas por sucursal', included: true },
       { name: 'Control de inventario avanzado', included: true },
       { name: 'Reportes avanzados', included: true },
+      { name: 'Reportes de caja avanzados', included: true },
       { name: 'Gestión de personal', included: true },
-      { name: 'Caja registradora', included: true },
-      { name: 'Reportes de ventas', included: true },
+      { name: 'Gestión de turnos de caja', included: true },
+      { name: 'Reportes de ventas avanzados', included: true },
       { name: 'Soporte prioritario', included: true },
       { name: 'API personalizada', included: false },
     ],
@@ -106,9 +114,12 @@ export const COMPLETE_PLANS = {
       maxUsers: 8,
       maxMonthlyWhatsApp: -1,
       maxStorageGB: 20,
+      maxCashRegisters: -1, // Ilimitado
       // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
       // canUseAutomations: true,
       canUseAdvancedReports: true,
+      canUseAdvancedInventory: true,
+      canUseMultiLocation: true,
       canUseMultiDoctor: true,
       canUseSMSReminders: true
     },
@@ -142,11 +153,15 @@ export const COMPLETE_PLANS = {
       maxUsers: 20,
       maxMonthlyWhatsApp: -1,
       maxStorageGB: 100,
+      maxCashRegisters: -1, // Ilimitado
       // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
       // canUseAutomations: true,
       canUseAdvancedReports: true,
+      canUseAdvancedInventory: true,
+      canUseMultiLocation: true,
       canUseMultiDoctor: true,
-      canUseSMSReminders: true
+      canUseSMSReminders: true,
+      canUseApiAccess: true
     },
     cta: 'Contactar ventas'
   }
@@ -208,11 +223,15 @@ export interface PricingPlan {
     maxUsers: number;
     maxMonthlyWhatsApp: number;
     maxStorageGB: number;
+    maxCashRegisters: number;
     // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
     // canUseAutomations?: boolean;
     canUseAdvancedReports: boolean;
+    canUseAdvancedInventory: boolean;
+    canUseMultiLocation: boolean;
     canUseMultiDoctor: boolean;
     canUseSMSReminders: boolean;
+    canUseApiAccess?: boolean;
   };
   cta: string;
 }

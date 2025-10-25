@@ -96,10 +96,10 @@ export async function checkFeatureAccess(feature: string): Promise<boolean> {
       return true;
     }
 
-    // Trial users have access to basic features
+    // Trial users have access to basic features only
     if (status.isTrialPeriod && status.isActive) {
-      // Premium features require paid subscription
-      const premiumFeatures = ['inventory', 'reports', 'automations'];
+      // Premium features require paid subscription (Plan Profesional+)
+      const premiumFeatures = ['advancedInventory', 'advancedReports', 'multiLocation', 'automations', 'apiAccess'];
       return !premiumFeatures.includes(feature);
     }
 

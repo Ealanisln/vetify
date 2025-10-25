@@ -1,3 +1,18 @@
+/**
+ * Inventory Page
+ *
+ * PLAN FEATURES:
+ * - Plan Básico: Basic inventory management (add/edit items, track stock)
+ * - Plan Profesional: Advanced features (rotation analysis, automatic alerts, supplier integration, detailed reports)
+ *
+ * TODO: Split InventoryMain into basic vs advanced sections
+ * TODO: Wrap advanced features with <FeatureGate feature="advancedInventory">
+ * TODO: Examples of advanced features to gate:
+ *   - Detailed movement reports
+ *   - Rotation analysis
+ *   - Automated low-stock alerts
+ *   - Supplier integration
+ */
 import { Suspense } from 'react';
 import { requireAuth } from '../../../lib/auth';
 import { InventoryMain } from '../../../components/inventory/InventoryMain';

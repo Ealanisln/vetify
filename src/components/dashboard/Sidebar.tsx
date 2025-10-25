@@ -26,17 +26,22 @@ interface SidebarProps {
   setSidebarOpen: (open: boolean) => void;
 }
 
+// Navigation items for the sidebar
+// NOTE: All features are accessible to basic plans with some limitations:
+// - Inventario: Basic inventory for all, advanced features require Plan Profesional
+// - Reportes: Basic reports for all, advanced analytics require Plan Profesional
+// - Caja: Basic single cash drawer for all, multiple drawers require Plan Profesional
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon },
   { name: 'Mascotas', href: '/dashboard/pets', icon: UserGroupIcon },
   { name: 'Personal', href: '/dashboard/staff', icon: UsersIcon },
   { name: 'Punto de Venta', href: '/dashboard/sales', icon: CreditCardIcon },
-  { name: 'Caja', href: '/dashboard/caja', icon: CurrencyDollarIcon },
-  { name: 'Inventario', href: '/dashboard/inventory', icon: CubeIcon },
+  { name: 'Caja', href: '/dashboard/caja', icon: CurrencyDollarIcon }, // Basic: 1 caja | Pro: múltiples cajas
+  { name: 'Inventario', href: '/dashboard/inventory', icon: CubeIcon }, // Basic: inventario básico | Pro: avanzado
   { name: 'Historia Clínica', href: '/dashboard/medical-history', icon: DocumentTextIcon },
   { name: 'Citas', href: '/dashboard/appointments', icon: CalendarIcon },
-  { name: 'Reportes', href: '/dashboard/reports', icon: ChartBarIcon },
+  { name: 'Reportes', href: '/dashboard/reports', icon: ChartBarIcon }, // Basic: reportes básicos | Pro: avanzados
   { name: 'Configuración', href: '/dashboard/settings', icon: CogIcon },
 ];
 
