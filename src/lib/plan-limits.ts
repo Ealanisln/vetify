@@ -5,6 +5,8 @@ interface PlanFeatures {
   whatsappMessages?: number;
   automations?: boolean;
   advancedReports?: boolean;
+  advancedInventory?: boolean;
+  multiLocation?: boolean;
   multiDoctor?: boolean;
   smsReminders?: boolean;
   apiAccess?: boolean;
@@ -15,8 +17,11 @@ export interface PlanLimits {
   maxUsers: number;
   maxMonthlyWhatsApp: number;
   maxStorageGB: number;
+  maxCashRegisters: number;
   canUseAutomations: boolean;
   canUseAdvancedReports: boolean;
+  canUseAdvancedInventory: boolean;
+  canUseMultiLocation: boolean;
   canUseMultiDoctor: boolean;
   canUseSMSReminders: boolean;
   canUseApiAccess?: boolean;
@@ -43,15 +48,18 @@ export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
     }
   });
 
-  // If no tenant subscription exists, return PROFESIONAL plan limits (30-day trial)
+  // If no tenant subscription exists, return BASICO plan limits (30-day trial)
   if (!tenant?.tenantSubscription?.plan) {
     return {
       maxPets: 300,
       maxUsers: 3,
       maxMonthlyWhatsApp: -1, // ilimitado
       maxStorageGB: 5,
-      canUseAutomations: true,
+      maxCashRegisters: 1,
+      canUseAutomations: false, // FUTURE FEATURE
       canUseAdvancedReports: false,
+      canUseAdvancedInventory: false,
+      canUseMultiLocation: false,
       canUseMultiDoctor: true,
       canUseSMSReminders: true,
       canUseApiAccess: false
@@ -60,14 +68,17 @@ export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
 
   const plan = tenant.tenantSubscription.plan;
   const features = plan.features as PlanFeatures;
-  
+
   return {
     maxPets: plan.maxPets === -1 ? Number.MAX_SAFE_INTEGER : plan.maxPets,
     maxUsers: plan.maxUsers,
     maxMonthlyWhatsApp: features?.whatsappMessages === -1 ? Number.MAX_SAFE_INTEGER : (features?.whatsappMessages || 0),
     maxStorageGB: plan.storageGB,
+    maxCashRegisters: plan.maxCashRegisters === -1 ? Number.MAX_SAFE_INTEGER : (plan.maxCashRegisters || 1),
     canUseAutomations: features?.automations || false,
     canUseAdvancedReports: features?.advancedReports || false,
+    canUseAdvancedInventory: features?.advancedInventory || false,
+    canUseMultiLocation: features?.multiLocation || false,
     canUseMultiDoctor: features?.multiDoctor || false,
     canUseSMSReminders: features?.smsReminders || false,
     canUseApiAccess: features?.apiAccess || false
@@ -214,19 +225,62 @@ export async function checkWhatsAppLimit(tenantId: string): Promise<{
 }
 
 /**
+ * Check if tenant can add a new cash drawer/register
+ */
+export async function checkCashRegisterLimit(tenantId: string): Promise<{
+  canAdd: boolean;
+  current: number;
+  limit: number;
+  remaining: number;
+}> {
+  const limits = await getPlanLimits(tenantId);
+
+  // Count current cash drawers for this tenant
+  const currentCashRegisters = await prisma.cashDrawer.count({
+    where: {
+      tenantId,
+      status: { not: 'CLOSED' } // Count open/active drawers
+    }
+  });
+
+  // Handle unlimited cash registers (PROFESIONAL+ plans)
+  if (limits.maxCashRegisters === Number.MAX_SAFE_INTEGER) {
+    return {
+      canAdd: true,
+      current: currentCashRegisters,
+      limit: -1, // Represent unlimited as -1 in response
+      remaining: -1
+    };
+  }
+
+  const remaining = limits.maxCashRegisters - currentCashRegisters;
+
+  return {
+    canAdd: currentCashRegisters < limits.maxCashRegisters,
+    current: currentCashRegisters,
+    limit: limits.maxCashRegisters,
+    remaining: Math.max(0, remaining)
+  };
+}
+
+/**
  * Check if tenant can use a specific feature
  */
 export async function checkFeatureAccess(
-  tenantId: string, 
-  feature: 'automations' | 'advancedReports' | 'multiDoctor' | 'smsReminders' | 'apiAccess'
+  tenantId: string,
+  feature: 'automations' | 'advancedReports' | 'advancedInventory' | 'multiLocation' | 'multiDoctor' | 'smsReminders' | 'apiAccess'
 ): Promise<boolean> {
   const limits = await getPlanLimits(tenantId);
-  
+
   switch (feature) {
     case 'automations':
       return limits.canUseAutomations;
     case 'advancedReports':
       return limits.canUseAdvancedReports;
+    case 'advancedInventory':
+      return limits.canUseAdvancedInventory;
+    case 'multiLocation':
+      return limits.canUseMultiLocation;
     case 'multiDoctor':
       return limits.canUseMultiDoctor;
     case 'smsReminders':
@@ -302,7 +356,7 @@ export class PlanLimitError extends Error {
  */
 export async function validatePlanAction(
   tenantId: string,
-  action: 'addPet' | 'addUser' | 'sendWhatsApp',
+  action: 'addPet' | 'addUser' | 'sendWhatsApp' | 'addCashRegister',
   quantity: number = 1
 ): Promise<void> {
   switch (action) {
@@ -338,6 +392,18 @@ export async function validatePlanAction(
           whatsappCheck.current,
           whatsappCheck.limit,
           `No puedes enviar más mensajes de WhatsApp este mes. Has alcanzado el límite de ${whatsappCheck.limit} mensajes de tu plan actual.`
+        );
+      }
+      break;
+    }
+    case 'addCashRegister': {
+      const cashRegisterCheck = await checkCashRegisterLimit(tenantId);
+      if (!cashRegisterCheck.canAdd || cashRegisterCheck.remaining < quantity) {
+        throw new PlanLimitError(
+          'cashRegisters',
+          cashRegisterCheck.current,
+          cashRegisterCheck.limit,
+          `No puedes agregar más cajas registradoras. Tu plan ${cashRegisterCheck.limit === 1 ? 'solo permite 1 caja. Actualiza a Plan Profesional' : `permite hasta ${cashRegisterCheck.limit} cajas`}.`
         );
       }
       break;

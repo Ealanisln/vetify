@@ -14,6 +14,8 @@ import {
 import { securityHeaders } from './lib/security/input-sanitization';
 
 // Protected routes that require trial/subscription access
+// NOTE: Basic features (inventory, reports, cash register) are NOT protected here
+// Advanced features are protected via FeatureGate within each page
 const PROTECTED_ROUTES = {
   // Create/Edit operations
   '/dashboard/pets/new': 'pets',
@@ -23,22 +25,24 @@ const PROTECTED_ROUTES = {
   '/dashboard/clientes': 'customers',
   '/dashboard/mascotas': 'pets',
   '/dashboard/citas': 'appointments',
-  '/dashboard/inventario': 'inventory',
   '/dashboard/historia-clinica': 'medical_history',
-  '/dashboard/reportes': 'reports',
   '/dashboard/punto-de-venta': 'pos',
 
-  // Premium features
-  '/dashboard/inventory': 'inventory',
-  '/dashboard/reports': 'reports',
   // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
   // '/dashboard/settings/automations': 'automations'
 } as const;
 
 // Routes that are always accessible even without active subscription
+// Basic features are accessible to all plans; advanced features gated within pages
 const ALLOWED_WITHOUT_PLAN = [
   '/dashboard',
   '/dashboard/settings',
+  '/dashboard/inventory',      // Basic inventory accessible to all
+  '/dashboard/inventario',      // Spanish route for inventory
+  '/dashboard/reports',         // Basic reports accessible to all
+  '/dashboard/reportes',        // Spanish route for reports
+  '/dashboard/caja',            // Basic cash register accessible to all
+  '/dashboard/sales',           // Point of sale accessible to all
   '/precios',
   '/checkout'
 ] as const;
