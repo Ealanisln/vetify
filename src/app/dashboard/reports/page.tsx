@@ -1,3 +1,13 @@
+/**
+ * Reports Page
+ *
+ * PLAN FEATURES:
+ * - Plan Básico: Basic reports (lists, simple statistics)
+ * - Plan Profesional: Advanced analytics, trends, detailed insights
+ *
+ * TODO: Split EnhancedReportsClient into basic vs advanced components
+ * TODO: Wrap advanced features with <FeatureGate feature="advancedReports">
+ */
 import { Suspense } from 'react';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import { redirect } from 'next/navigation';
