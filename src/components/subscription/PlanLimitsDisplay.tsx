@@ -4,11 +4,10 @@ import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { useSubscription } from '../../hooks/useSubscription';
 import type { Tenant } from '@prisma/client';
-import { 
-  Users, 
-  Heart, 
-  HardDrive, 
-  AlertTriangle, 
+import {
+  Users,
+  Heart,
+  AlertTriangle,
   CheckCircle
 } from 'lucide-react';
 
@@ -17,13 +16,11 @@ interface PlanLimitsDisplayProps {
     tenantUsageStats?: {
       totalUsers: number;
       totalPets: number;
-      storageUsedBytes: bigint;
     } | null;
     tenantSubscription?: {
       plan: {
         maxUsers: number;
         maxPets: number;
-        storageGB: number;
       };
     } | null;
   };
@@ -35,28 +32,22 @@ export function PlanLimitsDisplay({ tenant }: PlanLimitsDisplayProps) {
   // Valores por defecto para plan gratuito/inactivo
   const defaultLimits = {
     maxUsers: 1,
-    maxPets: 10,
-    storageGB: 1
+    maxPets: 10
   };
 
   // Obtener límites del plan actual
   const planLimits = tenant.tenantSubscription?.plan || defaultLimits;
-  
+
   // Obtener uso actual
   const usage = tenant.tenantUsageStats || {
     totalUsers: 1,
-    totalPets: 0,
-    storageUsedBytes: BigInt(0)
+    totalPets: 0
   };
-
-  // Convertir bytes a GB para mostrar
-  const storageUsedGB = Number(usage.storageUsedBytes) / (1024 * 1024 * 1024);
 
   // Calcular porcentajes de uso
   const usagePercentages = {
     users: (usage.totalUsers / planLimits.maxUsers) * 100,
-    pets: (usage.totalPets / planLimits.maxPets) * 100,
-    storage: (storageUsedGB / planLimits.storageGB) * 100
+    pets: (usage.totalPets / planLimits.maxPets) * 100
   };
 
   // Función para obtener el color según el porcentaje de uso
@@ -70,14 +61,6 @@ export function PlanLimitsDisplay({ tenant }: PlanLimitsDisplayProps) {
   const getUsageIcon = (percentage: number) => {
     if (percentage >= 90) return AlertTriangle;
     return CheckCircle;
-  };
-
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
   const items = [
@@ -96,16 +79,8 @@ export function PlanLimitsDisplay({ tenant }: PlanLimitsDisplayProps) {
       limit: planLimits.maxPets,
       percentage: usagePercentages.pets,
       unit: ''
-    },
-    {
-      label: 'Almacenamiento',
-      icon: HardDrive,
-      current: storageUsedGB,
-      limit: planLimits.storageGB,
-      percentage: usagePercentages.storage,
-      unit: 'GB',
-      formatter: (value: number) => value < 1 ? formatBytes(Number(usage.storageUsedBytes)) : `${value.toFixed(1)} GB`
     }
+    // FUTURE FEATURE: Almacenamiento - file storage not yet implemented
   ];
 
   return (

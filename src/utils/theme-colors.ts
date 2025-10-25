@@ -17,6 +17,7 @@ export const themeColors = {
   text: {
     primary: "text-gray-900 dark:text-gray-100",
     secondary: "text-gray-600 dark:text-gray-400",
+    tertiary: "text-gray-500 dark:text-gray-400",
     muted: "text-gray-500 dark:text-gray-500",
     inverse: "text-white dark:text-gray-900",
     accent: "text-[#5b9788] dark:text-[#75a99c]",
@@ -27,6 +28,7 @@ export const themeColors = {
     primary: "border-gray-200 dark:border-gray-700",
     secondary: "border-gray-300 dark:border-gray-600",
     muted: "border-gray-100 dark:border-gray-800",
+    card: "border-gray-200 dark:border-gray-700",
     accent: "border-[#d5e3df] dark:border-gray-700",
   },
 

@@ -10,10 +10,13 @@ interface PetInfoCardProps {
 }
 
 export function PetInfoCard({ pet }: PetInfoCardProps) {
+  // Safely convert weight to number (handles both Decimal and number types)
+  const weightValue = pet.weight ? Number(pet.weight) : null;
+
   const infoItems = [
     { label: 'ID Interno', value: pet.internalId || 'No asignado' },
     { label: 'Fecha de nacimiento', value: format(pet.dateOfBirth, 'dd MMMM yyyy', { locale: es }) },
-    { label: 'Peso', value: pet.weight ? `${pet.weight.toString()} ${pet.weightUnit}` : 'No registrado' },
+    { label: 'Peso', value: weightValue ? `${weightValue.toFixed(1)} ${pet.weightUnit}` : 'No registrado' },
     { label: 'Microchip', value: pet.microchipNumber || 'No tiene' },
     { label: 'Registrado', value: format(pet.createdAt, 'dd MMM yyyy', { locale: es }) },
   ];
