@@ -1,12 +1,23 @@
 /**
  * Reports Page
  *
- * PLAN FEATURES:
- * - Plan Básico: Basic reports (lists, simple statistics)
- * - Plan Profesional: Advanced analytics, trends, detailed insights
+ * PLAN FEATURES IMPLEMENTATION (COMPLETED):
+ * - Plan Básico: Basic reports (overview metrics, top 5 lists, basic export)
+ *   - Rendered by: BasicReportsClient
+ *   - Always visible to all users
  *
- * TODO: Split EnhancedReportsClient into basic vs advanced components
- * TODO: Wrap advanced features with <FeatureGate feature="advancedReports">
+ * - Plan Profesional: Advanced analytics (charts, trends, detailed insights)
+ *   - Rendered by: AdvancedReportsSection
+ *   - Protected by: <FeatureGate feature="advancedReports">
+ *   - Fallback: AdvancedReportsUpgradePrompt
+ *
+ * ARCHITECTURE:
+ * - EnhancedReportsClient: Main orchestrator component
+ * - BasicReportsClient: Core metrics and simple lists
+ * - AdvancedReportsSection: Interactive charts and analytics
+ * - AdvancedReportsUpgradePrompt: Upgrade CTA for Plan Básico users
+ *
+ * Related: VETIF-1 - Refactor Reports by subscription plan
  */
 import { Suspense } from 'react';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
