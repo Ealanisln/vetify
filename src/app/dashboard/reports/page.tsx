@@ -20,11 +20,11 @@
  * Related: VETIF-1 - Refactor Reports by subscription plan
  */
 import { Suspense } from 'react';
-import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import { redirect } from 'next/navigation';
 import { getFullReportsData } from '../../../lib/reports';
 import EnhancedReportsClient from '../../../components/reports/EnhancedReportsClient';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { requireAuth } from '../../../lib/auth';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -82,20 +82,17 @@ function ReportsLoading() {
 }
 
 export default async function ReportsPage() {
-  const { getUser } = getKindeServerSession();
-  const user = await getUser();
+  // Get authenticated user and tenant
+  const { user, tenant } = await requireAuth();
 
-  if (!user) {
-    redirect('/sign-in');
+  if (!tenant?.id) {
+    redirect('/onboarding');
   }
-
-  // Get tenant info from user metadata
-  const tenantId = user.email?.split('@')[0] || 'default';
 
   return (
     <div className="container mx-auto px-4 py-6">
       <Suspense fallback={<ReportsLoading />}>
-        <ReportsContent tenantId={tenantId} />
+        <ReportsContent tenantId={tenant.id} />
       </Suspense>
     </div>
   );
