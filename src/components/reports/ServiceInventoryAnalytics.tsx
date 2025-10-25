@@ -44,9 +44,24 @@ export default function ServiceInventoryAnalytics({ serviceData, inventoryData }
     count: service.count
   }));
 
-  // Prepare service categories chart data
+  // Category translations for Spanish display
+  const categoryTranslations: Record<string, string> = {
+    'SURGERY': 'Cirugía',
+    'CONSULTATION': 'Consulta',
+    'DENTAL_CARE': 'Cuidado Dental',
+    'VACCINATION': 'Vacunación',
+    'GROOMING': 'Estética',
+    'DEWORMING': 'Desparasitación',
+    'LABORATORY_TEST': 'Laboratorio',
+    'IMAGING_RADIOLOGY': 'Radiología',
+    'HOSPITALIZATION': 'Hospitalización',
+    'EMERGENCY_CARE': 'Emergencias',
+    'EUTHANASIA': 'Eutanasia'
+  };
+
+  // Prepare service categories chart data with Spanish names
   const serviceCategoriesData = serviceData.serviceCategories.map(category => ({
-    name: category.category,
+    name: categoryTranslations[category.category] || category.category,
     revenue: category.revenue,
     count: category.count
   }));
@@ -117,18 +132,19 @@ export default function ServiceInventoryAnalytics({ serviceData, inventoryData }
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={topServicesChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name" 
-                  fontSize={12}
+                <XAxis
+                  dataKey="name"
+                  fontSize={11}
                   angle={-45}
                   textAnchor="end"
-                  height={80}
+                  height={100}
+                  interval={0}
                 />
-                <YAxis 
+                <YAxis
                   tickFormatter={formatCurrency}
                   fontSize={12}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: number, name: string) => [
                     name === 'revenue' ? formatCurrency(value) : value,
                     name === 'revenue' ? 'Ingresos' : 'Cantidad'
@@ -177,18 +193,19 @@ export default function ServiceInventoryAnalytics({ serviceData, inventoryData }
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={topProductsChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name" 
-                  fontSize={12}
+                <XAxis
+                  dataKey="name"
+                  fontSize={11}
                   angle={-45}
                   textAnchor="end"
-                  height={80}
+                  height={100}
+                  interval={0}
                 />
-                <YAxis 
+                <YAxis
                   tickFormatter={formatCurrency}
                   fontSize={12}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: number, name: string) => [
                     name === 'revenue' || name === 'profit' ? formatCurrency(value) : value,
                     name === 'revenue' ? 'Ingresos' : name === 'profit' ? 'Ganancia' : 'Cantidad'
@@ -209,18 +226,19 @@ export default function ServiceInventoryAnalytics({ serviceData, inventoryData }
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={topProductsChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  dataKey="name" 
-                  fontSize={12}
+                <XAxis
+                  dataKey="name"
+                  fontSize={11}
                   angle={-45}
                   textAnchor="end"
-                  height={80}
+                  height={100}
+                  interval={0}
                 />
-                <YAxis 
+                <YAxis
                   tickFormatter={formatCurrency}
                   fontSize={12}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: number) => [formatCurrency(value), 'Ganancia']}
                 />
                 <Bar dataKey="profit" fill="#ffc658" />

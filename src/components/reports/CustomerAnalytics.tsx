@@ -147,20 +147,21 @@ export default function CustomerAnalytics({ data }: CustomerAnalyticsProps) {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={topCustomersChartData} layout="horizontal">
+              <BarChart data={topCustomersChartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis 
-                  type="number" 
+                <XAxis
+                  dataKey="name"
+                  fontSize={10}
+                  angle={-45}
+                  textAnchor="end"
+                  height={100}
+                  interval={0}
+                />
+                <YAxis
                   tickFormatter={formatCurrency}
                   fontSize={12}
                 />
-                <YAxis 
-                  type="category" 
-                  dataKey="name" 
-                  fontSize={12}
-                  width={100}
-                />
-                <Tooltip 
+                <Tooltip
                   formatter={(value: number) => [formatCurrency(value), 'Total Gastado']}
                 />
                 <Bar dataKey="totalSpent" fill="#8884d8" />
