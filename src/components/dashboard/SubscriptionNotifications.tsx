@@ -1,20 +1,22 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useSubscription } from '../../hooks/useSubscription';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { 
-  AlertTriangle, 
-  Clock, 
-  CreditCard, 
+import {
+  AlertTriangle,
+  Clock,
+  CreditCard,
   CheckCircle,
   XCircle,
   Star,
   ArrowRight,
   CalendarX,
   Zap,
-  Gift
+  Gift,
+  X
 } from 'lucide-react';
 import type { Tenant } from '@prisma/client';
 import { format, differenceInDays } from 'date-fns';
@@ -26,6 +28,8 @@ interface SubscriptionNotificationsProps {
 }
 
 export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsProps) {
+  const [isDismissed, setIsDismissed] = useState(false);
+
   const {
     hasActiveSubscription,
     isInTrial,
@@ -34,6 +38,22 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
     planName,
     subscriptionEndsAt
   } = useSubscription(tenant);
+
+  // Load dismissed state from localStorage on mount
+  useEffect(() => {
+    const dismissedKey = `subscription-notification-dismissed-${tenant.id}`;
+    const dismissed = localStorage.getItem(dismissedKey);
+    if (dismissed) {
+      setIsDismissed(true);
+    }
+  }, [tenant.id]);
+
+  // Handle dismiss
+  const handleDismiss = () => {
+    const dismissedKey = `subscription-notification-dismissed-${tenant.id}`;
+    localStorage.setItem(dismissedKey, 'true');
+    setIsDismissed(true);
+  };
 
   // Calcular días restantes - usar trialEndsAt para períodos de prueba
   const getDaysRemaining = () => {
@@ -138,7 +158,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
 
   const config = getNotificationConfig();
 
-  if (!config) return null;
+  if (!config || isDismissed) return null;
 
   const Icon = config.icon;
 
@@ -157,7 +177,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between mb-3">
-            <div>
+            <div className="flex-1 min-w-0 mr-4">
               <h3 className={`text-lg font-bold ${config.textColor} mb-1`}>
                 {config.title}
               </h3>
@@ -165,11 +185,20 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
                 {config.description}
               </p>
             </div>
-            {planName && (
-              <Badge variant="outline" className="text-xs">
-                {planName}
-              </Badge>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {planName && (
+                <Badge variant="outline" className="text-xs">
+                  {planName}
+                </Badge>
+              )}
+              <button
+                onClick={handleDismiss}
+                className={`p-1 rounded-full hover:bg-white/20 transition-colors ${config.textColor}`}
+                aria-label="Cerrar notificación"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 mt-4">

@@ -26,7 +26,7 @@ export default async function DashboardPage() {
       <SubscriptionNotifications tenant={tenant} />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <StatsCard
           title="Mascotas Registradas"
           value={stats.totalPets}
@@ -62,13 +62,12 @@ export default async function DashboardPage() {
         </div>
         
         <div className="lg:col-span-1">
-          <PlanLimitsDisplay 
+          <PlanLimitsDisplay
             tenant={{
               ...tenant,
               tenantUsageStats: {
                 totalUsers: 1, // Placeholder - would come from actual stats
-                totalPets: stats.totalPets,
-                storageUsedBytes: BigInt(0) // Placeholder
+                totalPets: stats.totalPets
               }
             }}
           />
