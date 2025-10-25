@@ -83,7 +83,7 @@ function ReportsLoading() {
 
 export default async function ReportsPage() {
   // Get authenticated user and tenant
-  const { user, tenant } = await requireAuth();
+  const { tenant } = await requireAuth();
 
   if (!tenant?.id) {
     redirect('/onboarding');

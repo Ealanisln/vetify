@@ -82,28 +82,72 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus | null
 
 /**
  * Check if a specific feature is accessible with current subscription
+ * Now uses plan-limits.ts logic to check actual plan features
  */
 export async function checkFeatureAccess(feature: string): Promise<boolean> {
   try {
-    const status = await getSubscriptionStatus();
+    const { getUser, isAuthenticated } = getKindeServerSession();
 
-    if (!status) {
+    if (!(await isAuthenticated())) {
       return false;
     }
 
-    // Active paid subscriptions have access to everything
-    if (status.isActive && !status.isTrialPeriod) {
-      return true;
+    const user = await getUser();
+    if (!user?.id) {
+      return false;
     }
 
-    // Trial users have access to basic features only
-    if (status.isTrialPeriod && status.isActive) {
-      // Premium features require paid subscription (Plan Profesional+)
-      const premiumFeatures = ['advancedInventory', 'advancedReports', 'multiLocation', 'automations', 'apiAccess'];
-      return !premiumFeatures.includes(feature);
+    // Get user's tenant
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: {
+        tenant: {
+          include: {
+            tenantSubscription: {
+              include: {
+                plan: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!dbUser?.tenant) {
+      return false;
     }
 
-    return false;
+    const tenant = dbUser.tenant;
+    const subscription = tenant.tenantSubscription;
+
+    // If no subscription, user is in trial with basic plan limits
+    if (!subscription?.plan) {
+      // Trial users have basic plan features (no advanced features)
+      const trialRestrictedFeatures = ['advancedInventory', 'advancedReports', 'multiLocation', 'automations', 'apiAccess'];
+      return !trialRestrictedFeatures.includes(feature);
+    }
+
+    // Check plan features from database
+    const planFeatures = subscription.plan.features as Record<string, boolean | number | undefined>;
+
+    switch (feature) {
+      case 'advancedReports':
+        return planFeatures?.advancedReports === true;
+      case 'advancedInventory':
+        return planFeatures?.advancedInventory === true;
+      case 'multiLocation':
+        return planFeatures?.multiLocation === true;
+      case 'automations':
+        return planFeatures?.automations === true;
+      case 'apiAccess':
+        return planFeatures?.apiAccess === true;
+      case 'multiDoctor':
+        return planFeatures?.multiDoctor === true;
+      case 'smsReminders':
+        return planFeatures?.smsReminders === true;
+      default:
+        return false;
+    }
   } catch (error) {
     console.error('Error checking feature access:', error);
     return false;
