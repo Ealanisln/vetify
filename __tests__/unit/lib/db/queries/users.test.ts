@@ -6,8 +6,9 @@ import { UserWithTenant } from '@/types';
 jest.mock('@/lib/prisma', () => ({
   prisma: {
     user: {
-      upsert: jest.fn(),
       findUnique: jest.fn(),
+      update: jest.fn(),
+      create: jest.fn(),
     },
   },
 }));
@@ -51,20 +52,26 @@ describe('findOrCreateUser', () => {
   });
 
   it('creates new user when not exists', async () => {
-    mockPrisma.user.upsert.mockResolvedValue(mockUser);
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+    mockPrisma.user.create.mockResolvedValue(mockUser);
 
     const result = await findOrCreateUser(validUserData);
 
-    expect(mockPrisma.user.upsert).toHaveBeenCalledWith({
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: validUserData.id },
-      update: {
-        email: validUserData.email,
-        firstName: validUserData.firstName,
-        lastName: validUserData.lastName,
-        name: validUserData.name,
-        isActive: true,
-      },
-      create: {
+      include: {
+        tenant: {
+          include: {
+            tenantSubscription: {
+              include: { plan: true }
+            }
+          }
+        }
+      }
+    });
+
+    expect(mockPrisma.user.create).toHaveBeenCalledWith({
+      data: {
         id: validUserData.id,
         email: validUserData.email,
         firstName: validUserData.firstName,
@@ -88,12 +95,14 @@ describe('findOrCreateUser', () => {
 
   it('returns existing user when already exists', async () => {
     const existingUser = { ...mockUser, updatedAt: new Date() };
-    mockPrisma.user.upsert.mockResolvedValue(existingUser);
+    mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+    mockPrisma.user.update.mockResolvedValue(existingUser);
 
     const result = await findOrCreateUser(validUserData);
 
     expect(result).toEqual(existingUser);
-    expect(mockPrisma.user.upsert).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledTimes(1);
+    expect(mockPrisma.user.update).toHaveBeenCalledTimes(1);
   });
 
   it('updates user data on subsequent calls', async () => {
@@ -104,13 +113,15 @@ describe('findOrCreateUser', () => {
       name: 'Jane Smith',
     };
 
-    mockPrisma.user.upsert.mockResolvedValue({ ...mockUser, ...updatedData });
+    mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+    mockPrisma.user.update.mockResolvedValue({ ...mockUser, ...updatedData });
 
     const result = await findOrCreateUser(updatedData);
 
-    expect(mockPrisma.user.upsert).toHaveBeenCalledWith(
+    expect(mockPrisma.user.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        update: expect.objectContaining({
+        where: { id: updatedData.id },
+        data: expect.objectContaining({
           firstName: 'Jane',
           lastName: 'Smith',
           name: 'Jane Smith',
@@ -120,7 +131,12 @@ describe('findOrCreateUser', () => {
   });
 
   it('handles concurrent calls without error', async () => {
-    mockPrisma.user.upsert.mockResolvedValue(mockUser);
+    // First call creates, subsequent calls update
+    mockPrisma.user.findUnique
+      .mockResolvedValueOnce(null) // First call: no existing user
+      .mockResolvedValue(mockUser); // Subsequent calls: user exists
+    mockPrisma.user.create.mockResolvedValue(mockUser);
+    mockPrisma.user.update.mockResolvedValue(mockUser);
 
     // Simulate concurrent calls
     const promises = [
@@ -136,8 +152,8 @@ describe('findOrCreateUser', () => {
       expect(result).toEqual(mockUser);
     });
 
-    // Upsert should handle concurrent requests gracefully
-    expect(mockPrisma.user.upsert).toHaveBeenCalledTimes(3);
+    // Should handle concurrent requests gracefully
+    expect(mockPrisma.user.findUnique).toHaveBeenCalledTimes(3);
   });
 
   it('validates required fields - missing id', async () => {
@@ -147,7 +163,8 @@ describe('findOrCreateUser', () => {
       'User ID and email are required'
     );
 
-    expect(mockPrisma.user.upsert).not.toHaveBeenCalled();
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.user.create).not.toHaveBeenCalled();
   });
 
   it('validates required fields - missing email', async () => {
@@ -157,7 +174,8 @@ describe('findOrCreateUser', () => {
       'User ID and email are required'
     );
 
-    expect(mockPrisma.user.upsert).not.toHaveBeenCalled();
+    expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+    expect(mockPrisma.user.create).not.toHaveBeenCalled();
   });
 
   it('handles missing name gracefully', async () => {
@@ -168,17 +186,15 @@ describe('findOrCreateUser', () => {
       lastName: 'Doe',
     };
 
-    mockPrisma.user.upsert.mockResolvedValue(mockUser);
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+    mockPrisma.user.create.mockResolvedValue(mockUser);
 
     await findOrCreateUser(dataWithoutName);
 
-    expect(mockPrisma.user.upsert).toHaveBeenCalledWith(
+    expect(mockPrisma.user.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           name: 'John Doe', // Should generate from firstName + lastName
-        }),
-        update: expect.objectContaining({
-          name: 'John Doe',
         }),
       })
     );
@@ -192,13 +208,14 @@ describe('findOrCreateUser', () => {
       lastName: null,
     };
 
-    mockPrisma.user.upsert.mockResolvedValue(mockUser);
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+    mockPrisma.user.create.mockResolvedValue(mockUser);
 
     await findOrCreateUser(dataWithoutNames);
 
-    expect(mockPrisma.user.upsert).toHaveBeenCalledWith(
+    expect(mockPrisma.user.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        create: expect.objectContaining({
+        data: expect.objectContaining({
           name: 'john.doe', // Should use email username as fallback
         }),
       })
@@ -207,7 +224,7 @@ describe('findOrCreateUser', () => {
 
   it('handles database errors gracefully', async () => {
     const dbError = new Error('Database connection failed');
-    mockPrisma.user.upsert.mockRejectedValue(dbError);
+    mockPrisma.user.findUnique.mockRejectedValue(dbError);
 
     await expect(findOrCreateUser(validUserData)).rejects.toThrow(
       'Failed to find or create user: Database connection failed'

@@ -184,7 +184,7 @@ export function FullCalendarView({
 
   if (error) {
     return (
-      <Card className={cn("w-full", className)}>
+      <Card className={cn("w-full border-gray-200 dark:border-gray-800", className)}>
         <CardContent className="flex items-center justify-center h-96">
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -200,7 +200,7 @@ export function FullCalendarView({
   }
 
   return (
-    <Card className={cn("w-full", className)}>
+    <Card className={cn("w-full border-gray-200 dark:border-gray-800", className)}>
       {showToolbar && (
         <CardHeader className="pb-2">
           {/* Mobile header - Stack vertically */}
@@ -431,27 +431,27 @@ export function FullCalendarView({
 function EventContent({ event }: { event: EventContentArg }) {
   const appointment = event.event.extendedProps.appointment;
   const priority = event.event.extendedProps.priority;
-  
+
   return (
     <div className="p-1 h-full flex flex-col justify-center">
       <div className="flex items-center gap-1 mb-1">
         {priority === 'emergency' && (
-          <AlertCircle className="h-3 w-3 text-red-200" />
+          <AlertCircle className="h-3 w-3 text-gray-900 dark:text-white" />
         )}
-        <span className="text-xs font-medium truncate">
+        <span className="text-xs font-bold truncate text-gray-900 dark:text-white drop-shadow-sm">
           {event.event.start ? format(new Date(event.event.start), 'HH:mm') : ''}
         </span>
       </div>
-      
-      <div className="text-xs truncate font-medium">
+
+      <div className="text-xs truncate font-semibold text-gray-900 dark:text-white drop-shadow-sm">
         {appointment.pet.name}
       </div>
-      
-      <div className="text-xs truncate opacity-90">
+
+      <div className="text-xs truncate text-gray-900 dark:text-white drop-shadow-sm">
         {appointment.customer.name}
       </div>
-      
-      <div className="text-xs truncate opacity-75">
+
+      <div className="text-xs truncate text-gray-800 dark:text-white/95 drop-shadow-sm">
         {appointment.reason}
       </div>
     </div>

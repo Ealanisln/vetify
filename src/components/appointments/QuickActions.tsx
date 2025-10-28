@@ -105,19 +105,9 @@ export function QuickActions({
   if (variant === 'compact') {
     return (
       <div className="flex items-center gap-2">
-        <Badge 
-          variant="secondary" 
-          className={cn(
-            "text-white text-xs",
-            `bg-${getAppointmentStatusColor(appointment.status)}-500`
-          )}
-        >
-          {getAppointmentStatusLabel(appointment.status)}
-        </Badge>
-        
-        <Menu as="div" className="relative">
+        <Menu as="div" className="relative ml-auto">
           <Menu.Button as={Button}
-            variant="ghost" 
+            variant="ghost"
             size={size}
             className="h-8 w-8 p-0"
             disabled={loading !== null}
