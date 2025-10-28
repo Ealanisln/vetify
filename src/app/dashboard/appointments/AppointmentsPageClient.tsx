@@ -106,7 +106,7 @@ export function AppointmentsPageClient({
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+        <Card className="border-gray-200 dark:border-gray-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Clientes</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
@@ -119,7 +119,7 @@ export function AppointmentsPageClient({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-gray-200 dark:border-gray-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Mascotas</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -132,7 +132,7 @@ export function AppointmentsPageClient({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-gray-200 dark:border-gray-800">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Personal</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
@@ -149,32 +149,25 @@ export function AppointmentsPageClient({
       {/* Appointment Stats */}
       <AppointmentStats />
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 gap-4 lg:gap-6 lg:grid-cols-4">
-        {/* Calendar - Takes up 3 columns, full width on mobile */}
-        <div className="lg:col-span-3 order-2 lg:order-1">
-          <FullCalendarView
-            onEventClick={handleEventClick}
-            onDateSelect={handleDateSelect}
-            defaultView="timeGridWeek"
-            editable={true}
-            selectable={true}
-            className="mobile-calendar"
-          />
-        </div>
-        
-        {/* Today's Appointments Sidebar - Takes up 1 column, shows first on mobile */}
-        <div className="lg:col-span-1 order-1 lg:order-2">
-          <TodayAppointments 
-            onQuickAction={handleQuickAction}
-            onWhatsApp={handleWhatsApp}
-          />
-        </div>
-      </div>
+      {/* Today's Appointments */}
+      <TodayAppointments
+        onQuickAction={handleQuickAction}
+        onWhatsApp={handleWhatsApp}
+      />
+
+      {/* Calendar */}
+      <FullCalendarView
+        onEventClick={handleEventClick}
+        onDateSelect={handleDateSelect}
+        defaultView="timeGridWeek"
+        editable={true}
+        selectable={true}
+        className="mobile-calendar"
+      />
 
       {/* Data Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
+        <Card className="border-gray-200 dark:border-gray-800">
           <CardHeader>
             <CardTitle className="text-lg">Clientes Recientes</CardTitle>
           </CardHeader>
@@ -200,7 +193,7 @@ export function AppointmentsPageClient({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-gray-200 dark:border-gray-800">
           <CardHeader>
             <CardTitle className="text-lg">Especies</CardTitle>
           </CardHeader>
@@ -221,7 +214,7 @@ export function AppointmentsPageClient({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-gray-200 dark:border-gray-800">
           <CardHeader>
             <CardTitle className="text-lg">Personal</CardTitle>
           </CardHeader>
