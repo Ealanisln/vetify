@@ -67,8 +67,8 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
         },
         body: JSON.stringify({
           ...data,
-          pet_id: petId,
-          tenant_id: tenantId,
+          petId: petId,
+          tenantId: tenantId,
         }),
       });
 
