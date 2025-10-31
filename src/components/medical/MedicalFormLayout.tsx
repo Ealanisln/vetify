@@ -51,30 +51,30 @@ export function MedicalFormLayout({
       <div className={`bg-gradient-to-r ${getFormColor()} shadow-lg`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="py-6">
-            {/* Breadcrumb */}
-            <nav className="flex items-center space-x-2 text-white mb-4">
+            {/* Breadcrumb - Responsive and mobile-optimized */}
+            <nav className="flex items-center space-x-2 text-white mb-4 text-sm md:text-base overflow-x-auto scrollbar-hide">
               <Link 
                 href="/dashboard" 
-                className="hover:text-white/80 transition-colors"
+                className="hover:text-white/80 transition-colors whitespace-nowrap"
               >
                 Dashboard
               </Link>
               <span className="text-white/60">/</span>
               <Link 
                 href="/dashboard/pets" 
-                className="hover:text-white/80 transition-colors"
+                className="hover:text-white/80 transition-colors whitespace-nowrap"
               >
                 Mascotas
               </Link>
               <span className="text-white/60">/</span>
               <Link 
                 href={`/dashboard/pets/${petInfo.id}`}
-                className="hover:text-white/80 transition-colors"
+                className="hover:text-white/80 transition-colors whitespace-nowrap truncate max-w-[100px] md:max-w-none"
               >
                 {petInfo.name}
               </Link>
-              <span className="text-white/60">/</span>
-              <span className="text-white/80">{formTitle}</span>
+              <span className="text-white/60 hidden md:inline">/</span>
+              <span className="text-white/80 hidden md:inline whitespace-nowrap">{formTitle}</span>
             </nav>
 
             {/* Form Header */}
@@ -127,42 +127,44 @@ export function MedicalFormLayout({
         </div>
       </div>
 
-      {/* Pet Info Bar */}
+      {/* Pet Info Bar - Mobile optimized */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-4">
+          <div className="py-3 md:py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-6">
-                <div className="flex items-center space-x-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-bold text-lg">
+              <div className="flex items-center space-x-3 md:space-x-6 flex-1 min-w-0">
+                <div className="flex items-center space-x-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-bold text-base md:text-lg flex-shrink-0">
                     {petInfo.name.charAt(0).toUpperCase()}
                   </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900">{petInfo.name}</h2>
-                    <p className="text-sm text-gray-500">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-base md:text-lg font-semibold text-gray-900 truncate">
+                      {petInfo.name}
+                    </h2>
+                    <p className="text-xs md:text-sm text-gray-500 truncate">
                       {petInfo.species} • {petInfo.breed} • {petInfo.gender}
                     </p>
                   </div>
                 </div>
 
-                <div className="hidden md:flex items-center space-x-6 text-sm">
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Calendar className="h-4 w-4" />
+                <div className="hidden md:flex items-center space-x-4 lg:space-x-6 text-sm">
+                  <div className="flex items-center space-x-2 text-gray-600 whitespace-nowrap">
+                    <Calendar className="h-4 w-4 flex-shrink-0" />
                     <span>
                       {Math.floor((Date.now() - petInfo.dateOfBirth.getTime()) / (1000 * 60 * 60 * 24 * 365))} años
                     </span>
                   </div>
                   
                   {petInfo.weight && (
-                    <div className="flex items-center space-x-2 text-gray-600">
-                      <Activity className="h-4 w-4" />
-                      <span>{petInfo.weight.toString()} kg</span>
+                    <div className="flex items-center space-x-2 text-gray-600 whitespace-nowrap">
+                      <Activity className="h-4 w-4 flex-shrink-0" />
+                      <span>{Number(petInfo.weight).toFixed(1)} kg</span>
                     </div>
                   )}
 
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Users className="h-4 w-4" />
-                    <span>{petInfo.customer.name}</span>
+                  <div className="flex items-center space-x-2 text-gray-600 whitespace-nowrap">
+                    <Users className="h-4 w-4 flex-shrink-0" />
+                    <span className="truncate max-w-[150px]">{petInfo.customer.name}</span>
                   </div>
                 </div>
               </div>
@@ -215,7 +217,7 @@ export function MedicalFormLayout({
       </div>
 
       {/* Add padding at bottom for mobile save bar */}
-      <div className="lg:hidden h-20"></div>
+      <div className="lg:hidden h-24"></div>
     </div>
   );
 } 
