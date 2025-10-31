@@ -1,11 +1,11 @@
 import { prisma } from './prisma';
 import { TreatmentType } from '@prisma/client';
-import { n8nService } from './n8n';
-import type { 
-  ConsultationFormData, 
-  TreatmentFormData, 
-  VaccinationFormData, 
-  VitalSignsFormData 
+// NOTE: n8nService import removed - integration temporarily disabled for future implementation
+import type {
+  ConsultationFormData,
+  TreatmentFormData,
+  VaccinationFormData,
+  VitalSignsFormData
 } from './medical-validation';
 
 // Create a new consultation (medical history entry)

@@ -30,9 +30,7 @@ export const PlanDetector: React.FC<PlanDetectorProps> = ({
     const detectPlan = async () => {
       try {
         onLoading?.(true);
-        
-        console.log('PlanDetector: Fetching current plan...');
-        
+
         const response = await fetch('/api/subscription/current', {
           method: 'GET',
           headers: {
@@ -55,8 +53,7 @@ export const PlanDetector: React.FC<PlanDetectorProps> = ({
         }
 
         const planData: PlanData = await response.json();
-        console.log('PlanDetector: Plan data received:', planData);
-        
+
         onPlanDetected(planData);
       } catch (error) {
         console.error('PlanDetector: Error fetching plan data:', error);

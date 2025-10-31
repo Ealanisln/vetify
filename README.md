@@ -2,6 +2,18 @@
 
 A comprehensive, multi-tenant SaaS platform for veterinary practices built with Next.js 15, React 19, and TypeScript. Features include appointment management, pet health records, inventory tracking, client communication via WhatsApp, and subscription-based access control.
 
+## 🎉 Latest Release Highlights
+
+**Recent Updates (January 2025)**:
+- ✨ **Enhanced Medical Module**: Inline veterinarian creation during medical forms, improved consultation/treatment/vaccination forms
+- 🎨 **Appointment Calendar**: Enhanced UI/UX with better navigation and visual improvements
+- 💳 **Subscription UX**: Improved plan upgrade/downgrade experience with visual indicators and proper feature gating
+- 📊 **Tiered Reports**: Basic and advanced reports split by subscription plan (VETIF-1)
+- 🔧 **Onboarding Improvements**: URL slug validation for Spanish clinic names, Plan Corporativo handling
+- 🐾 **Pet Data Standardization**: Standardized species/gender enum values across the application
+- ⚡ **Code Quality**: Comprehensive type safety improvements and data integrity fixes
+- 🔮 **Future-Ready**: n8n automation integration prepared (currently disabled, will be enabled in future release)
+
 ## 🚀 Quick Start
 
 ```bash
