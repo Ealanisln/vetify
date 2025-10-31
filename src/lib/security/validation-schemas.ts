@@ -83,14 +83,20 @@ export const petSchemas = {
 export const medicalSchemas = {
   consultation: z.object({
     petId: commonSchemas.id,
-    staffId: commonSchemas.id,
-    type: z.enum(['ROUTINE_CHECKUP', 'EMERGENCY', 'FOLLOW_UP', 'VACCINATION', 'SURGERY', 'DENTAL', 'GROOMING', 'OTHER']),
+    veterinarian_id: commonSchemas.id,
+    staffId: commonSchemas.id.optional(), // Support both field names
+    type: z.enum(['ROUTINE_CHECKUP', 'EMERGENCY', 'FOLLOW_UP', 'VACCINATION', 'SURGERY', 'DENTAL', 'GROOMING', 'OTHER']).optional(),
     reason: commonSchemas.safeString,
-    symptoms: commonSchemas.medicalText.optional(),
+    symptoms: z.union([
+      z.array(z.string()),
+      commonSchemas.medicalText,
+    ]).optional(),
     diagnosis: commonSchemas.medicalText.optional(),
     treatment: commonSchemas.medicalText.optional(),
+    treatment_plan: commonSchemas.medicalText.optional(), // Support both field names
     prescription: commonSchemas.medicalText.optional(),
     notes: commonSchemas.medicalText.optional(),
+    next_appointment: z.union([z.string().datetime(), z.date()]).optional(),
     followUpDate: z.string().datetime().optional(),
     cost: commonSchemas.amount.optional(),
     status: z.enum(['SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).default('SCHEDULED'),
