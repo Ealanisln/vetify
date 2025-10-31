@@ -6,7 +6,6 @@ import { PetInfoCard } from '../../../../components/pets/PetInfoCard';
 import { MedicalHistoryCard } from '../../../../components/pets/MedicalHistoryCard';
 import { TreatmentTimelineCard } from '../../../../components/pets/TreatmentTimelineCard';
 import { QuickActionsCard } from '../../../../components/pets/QuickActionsCard';
-import { UpcomingRemindersCard } from '../../../../components/pets/UpcomingRemindersCard';
 
 interface PetProfilePageProps {
   params: Promise<{ id: string }>;
@@ -30,7 +29,6 @@ export default async function PetProfilePage({ params }: PetProfilePageProps) {
         <div className="space-y-6">
           <PetInfoCard pet={pet} />
           <QuickActionsCard pet={pet} />
-          <UpcomingRemindersCard />
         </div>
         
         {/* Right Column - Medical Activity */}

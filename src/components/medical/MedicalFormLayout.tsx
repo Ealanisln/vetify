@@ -161,10 +161,10 @@ export function MedicalFormLayout({
                     </span>
                   </div>
                   
-                  {petInfo.weight && (
+                  {petInfo.weight && !isNaN(Number(petInfo.weight)) && (
                     <div className="flex items-center space-x-2 text-gray-600 whitespace-nowrap">
                       <Activity className="h-4 w-4 flex-shrink-0" />
-                      <span>{Number(petInfo.weight).toFixed(1)} kg</span>
+                      <span>{Number(petInfo.weight).toFixed(1)} {petInfo.weightUnit || 'kg'}</span>
                     </div>
                   )}
 

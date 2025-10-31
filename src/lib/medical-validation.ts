@@ -8,7 +8,9 @@ export const consultationSchema = z.object({
   diagnosis: z.string().min(5, "Ingresa un diagnóstico válido"),
   treatment_plan: z.string().min(10, "Describe el plan de tratamiento"),
   notes: z.string().optional(),
-  next_appointment: z.date().optional(),
+  next_appointment: z.union([z.date(), z.string().datetime()]).transform((val) => 
+    typeof val === 'string' ? new Date(val) : val
+  ).optional(),
   veterinarian_id: z.string().min(1, "Selecciona un veterinario"),
 });
 
@@ -19,7 +21,9 @@ export const treatmentSchema = z.object({
   frequency: z.string().min(5, "Especifica la frecuencia de administración"),
   duration_days: z.number().min(1, "Duración mínima 1 día").max(365, "Duración máxima 365 días"),
   instructions: z.string().min(10, "Proporciona instrucciones detalladas"),
-  start_date: z.date(),
+  start_date: z.union([z.date(), z.string().datetime()]).transform((val) => 
+    typeof val === 'string' ? new Date(val) : val
+  ),
   treatment_type: z.nativeEnum(TreatmentType),
   consultation_id: z.string().optional(),
   veterinarian_id: z.string().optional(),
@@ -30,8 +34,12 @@ export const vaccinationSchema = z.object({
   vaccine_type: z.literal(TreatmentType.VACCINATION),
   vaccine_brand: z.string().min(2, "Especifica la marca de la vacuna"),
   batch_number: z.string().min(1, "Número de lote requerido"),
-  administered_date: z.date(),
-  next_due_date: z.date(),
+  administered_date: z.union([z.date(), z.string().datetime()]).transform((val) => 
+    typeof val === 'string' ? new Date(val) : val
+  ),
+  next_due_date: z.union([z.date(), z.string().datetime()]).transform((val) => 
+    typeof val === 'string' ? new Date(val) : val
+  ),
   veterinarian_id: z.string().min(1, "Selecciona un veterinario"),
   side_effects: z.string().optional(),
   vaccine_stage: z.nativeEnum(VaccinationStage).optional(),
@@ -47,7 +55,9 @@ export const vitalSignsSchema = z.object({
   respiratory_rate: z.number().min(5, "Frecuencia respiratoria muy baja").max(100, "Frecuencia respiratoria muy alta"),
   blood_pressure: z.string().optional(),
   notes: z.string().optional(),
-  recorded_date: z.date(),
+  recorded_date: z.union([z.date(), z.string().datetime()]).transform((val) => 
+    typeof val === 'string' ? new Date(val) : val
+  ),
   consultation_id: z.string().optional(),
 });
 
