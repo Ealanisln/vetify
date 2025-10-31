@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 import { PlusIcon, TrashIcon, CheckCircleIcon, CalendarIcon, UserGroupIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { getThemeClasses } from '../../utils/theme-colors';
+import { mapSpeciesToEnglish, mapGenderToEnglish } from '@/lib/utils/pet-enum-mapping';
 
 interface NewCustomerFormProps {
   tenantId: string;
@@ -90,27 +91,6 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
 
   const updateCustomer = (customerData: Partial<CustomerFormData>) => {
     setFormData(prev => ({ ...prev, ...customerData }));
-  };
-
-  // Map Spanish values to English enum values for API
-  const mapSpeciesToEnglish = (species: string): string => {
-    const speciesMap: Record<string, string> = {
-      'Perro': 'dog',
-      'Gato': 'cat',
-      'Ave': 'bird',
-      'Conejo': 'rabbit',
-      'Reptil': 'other',
-      'Otro': 'other'
-    };
-    return speciesMap[species] || 'other';
-  };
-
-  const mapGenderToEnglish = (gender: string): string => {
-    const genderMap: Record<string, string> = {
-      'Macho': 'male',
-      'Hembra': 'female'
-    };
-    return genderMap[gender] || 'male';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

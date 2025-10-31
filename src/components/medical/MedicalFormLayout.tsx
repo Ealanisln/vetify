@@ -151,7 +151,13 @@ export function MedicalFormLayout({
                   <div className="flex items-center space-x-2 text-gray-600 whitespace-nowrap">
                     <Calendar className="h-4 w-4 flex-shrink-0" />
                     <span>
-                      {Math.floor((Date.now() - petInfo.dateOfBirth.getTime()) / (1000 * 60 * 60 * 24 * 365))} años
+                      {(() => {
+                        const birthDate = petInfo.dateOfBirth instanceof Date
+                          ? petInfo.dateOfBirth
+                          : new Date(petInfo.dateOfBirth);
+                        const age = Math.floor((Date.now() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365));
+                        return `${age} años`;
+                      })()}
                     </span>
                   </div>
                   
