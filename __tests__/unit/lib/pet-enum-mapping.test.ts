@@ -50,9 +50,17 @@ describe('Pet Enum Mapping', () => {
 
       it('should log error for unknown species', () => {
         mapSpeciesToEnglish('InvalidSpecies');
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          '[Translation Error] Invalid species value: "InvalidSpecies". Defaulting to "other".'
-        );
+        expect(consoleErrorSpy).toHaveBeenCalled();
+        const callArgs = consoleErrorSpy.mock.calls[consoleErrorSpy.mock.calls.length - 1];
+        expect(callArgs[0]).toBe('[PET_ENUM_MAPPING_ERROR]');
+        const logData = JSON.parse(callArgs[1]);
+        expect(logData).toMatchObject({
+          type: 'PET_ENUM_MAPPING',
+          operation: 'species',
+          input: 'InvalidSpecies',
+          output: 'other',
+          level: 'ERROR'
+        });
       });
 
       it('should handle empty string gracefully', () => {
@@ -90,9 +98,17 @@ describe('Pet Enum Mapping', () => {
 
       it('should log error for unknown gender', () => {
         mapGenderToEnglish('InvalidGender');
-        expect(consoleErrorSpy).toHaveBeenCalledWith(
-          '[Translation Error] Invalid gender value: "InvalidGender". Defaulting to "male".'
-        );
+        expect(consoleErrorSpy).toHaveBeenCalled();
+        const callArgs = consoleErrorSpy.mock.calls[consoleErrorSpy.mock.calls.length - 1];
+        expect(callArgs[0]).toBe('[PET_ENUM_MAPPING_ERROR]');
+        const logData = JSON.parse(callArgs[1]);
+        expect(logData).toMatchObject({
+          type: 'PET_ENUM_MAPPING',
+          operation: 'gender',
+          input: 'InvalidGender',
+          output: 'male',
+          level: 'ERROR'
+        });
       });
 
       it('should handle empty string gracefully', () => {
@@ -134,14 +150,30 @@ describe('Pet Enum Mapping', () => {
       mapGenderToEnglish('Invalid');
 
       expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
-      expect(consoleErrorSpy).toHaveBeenNthCalledWith(
-        1,
-        '[Translation Error] Invalid species value: "Invalid". Defaulting to "other".'
-      );
-      expect(consoleErrorSpy).toHaveBeenNthCalledWith(
-        2,
-        '[Translation Error] Invalid gender value: "Invalid". Defaulting to "male".'
-      );
+
+      // Check first call (species)
+      const firstCall = consoleErrorSpy.mock.calls[0];
+      expect(firstCall[0]).toBe('[PET_ENUM_MAPPING_ERROR]');
+      const firstLogData = JSON.parse(firstCall[1]);
+      expect(firstLogData).toMatchObject({
+        type: 'PET_ENUM_MAPPING',
+        operation: 'species',
+        input: 'Invalid',
+        output: 'other',
+        level: 'ERROR'
+      });
+
+      // Check second call (gender)
+      const secondCall = consoleErrorSpy.mock.calls[1];
+      expect(secondCall[0]).toBe('[PET_ENUM_MAPPING_ERROR]');
+      const secondLogData = JSON.parse(secondCall[1]);
+      expect(secondLogData).toMatchObject({
+        type: 'PET_ENUM_MAPPING',
+        operation: 'gender',
+        input: 'Invalid',
+        output: 'male',
+        level: 'ERROR'
+      });
     });
   });
 });

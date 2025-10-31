@@ -5,6 +5,28 @@
  * This ensures data consistency while maintaining Spanish UI for better UX.
  */
 
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+/**
+ * Structured logger for pet enum mapping operations
+ */
+function logMapping(type: 'species' | 'gender', input: string, output: string, isError = false) {
+  const logData = {
+    timestamp: new Date().toISOString(),
+    type: 'PET_ENUM_MAPPING',
+    operation: type,
+    input,
+    output,
+    level: isError ? 'ERROR' : 'DEBUG'
+  };
+
+  if (isError) {
+    console.error('[PET_ENUM_MAPPING_ERROR]', JSON.stringify(logData, null, 2));
+  } else if (isDevelopment) {
+    console.debug('[PET_ENUM_MAPPING]', JSON.stringify(logData, null, 2));
+  }
+}
+
 /**
  * Maps Spanish species names to English enum values expected by the API
  * @param species - Spanish species name from the UI
@@ -21,10 +43,13 @@ export function mapSpeciesToEnglish(species: string): string {
   };
 
   const mapped = speciesMap[species];
+
   if (!mapped) {
-    console.error(`[Translation Error] Invalid species value: "${species}". Defaulting to "other".`);
+    logMapping('species', species, 'other', true);
     return 'other';
   }
+
+  logMapping('species', species, mapped);
   return mapped;
 }
 
@@ -40,10 +65,13 @@ export function mapGenderToEnglish(gender: string): string {
   };
 
   const mapped = genderMap[gender];
+
   if (!mapped) {
-    console.error(`[Translation Error] Invalid gender value: "${gender}". Defaulting to "male".`);
+    logMapping('gender', gender, 'male', true);
     return 'male';
   }
+
+  logMapping('gender', gender, mapped);
   return mapped;
 }
 
