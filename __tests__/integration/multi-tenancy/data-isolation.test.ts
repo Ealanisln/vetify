@@ -3,10 +3,6 @@
  *
  * This test verifies that tenants can only access their own data
  * and cannot see or modify data from other tenants.
- *
- * TEMPORARILY SKIPPED: Database initialization issues need to be resolved.
- * This test requires proper Prisma client initialization with test database configuration.
- * Follow-up: Create ticket to fix integration test database setup.
  */
 
 // Unmock Prisma for integration tests
@@ -16,7 +12,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-describe.skip('Multi-Tenancy Data Isolation (CRITICAL)', () => {
+describe('Multi-Tenancy Data Isolation (CRITICAL)', () => {
   let tenant1Id: string;
   let tenant2Id: string;
   let user1Id: string;
@@ -46,7 +42,7 @@ describe.skip('Multi-Tenancy Data Isolation (CRITICAL)', () => {
       data: {
         name: 'Clinic 2',
         slug: `clinic-2-${Date.now()}`,
-        planType: 'CLINICA',
+        planType: 'BASICO',
         status: 'ACTIVE',
         isTrialPeriod: true,
         subscriptionStatus: 'TRIALING',
@@ -113,10 +109,10 @@ describe.skip('Multi-Tenancy Data Isolation (CRITICAL)', () => {
     const pet2 = await prisma.pet.create({
       data: {
         name: 'Luna',
-        species: 'Gato',
+        species: 'cat',
         breed: 'Siamés',
         dateOfBirth: new Date('2021-01-01'),
-        gender: 'Hembra',
+        gender: 'female',
         tenantId: tenant2Id,
         customerId: customer2Id,
       },
