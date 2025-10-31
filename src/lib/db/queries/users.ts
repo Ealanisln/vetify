@@ -1,4 +1,4 @@
-import { prisma } from '../../prisma';
+import { prisma, setRLSTenantId } from '../../prisma';
 import { serializeUser } from '../../serializers';
 import { UserWithTenant } from "@/types";
 
@@ -27,21 +27,26 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
   }
 
   try {
-    // First, try to find the existing user
+    // Step 1: Find the user WITHOUT tenant relations (to avoid RLS blocking)
+    // User table has permissive RLS policy, so this will work
     const existingUser = await prisma.user.findUnique({
       where: { id },
-      include: {
-        tenant: {
-          include: {
-            tenantSubscription: { include: { plan: true } },
-          },
-        },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        name: true,
+        isActive: true,
+        tenantId: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
-    // If user exists, update and return
+    // If user exists, update basic info
     if (existingUser) {
-      const updatedUser = await prisma.user.update({
+      const updatedUserBasic = await prisma.user.update({
         where: { id },
         data: {
           email,
@@ -50,15 +55,51 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
           name: name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
           isActive: true,
         },
-        include: {
-          tenant: {
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          name: true,
+          isActive: true,
+          tenantId: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      // Step 2: If user has a tenant, configure RLS and load tenant data
+      if (updatedUserBasic.tenantId) {
+        try {
+          await setRLSTenantId(updatedUserBasic.tenantId);
+
+          // Now we can safely load the tenant with RLS context set
+          const tenant = await prisma.tenant.findUnique({
+            where: { id: updatedUserBasic.tenantId },
             include: {
               tenantSubscription: { include: { plan: true } },
             },
-          },
-        },
+          });
+
+          return serializeUser({
+            ...updatedUserBasic,
+            tenant: tenant || null,
+          });
+        } catch (rlsError) {
+          console.warn('Failed to load tenant with RLS:', rlsError);
+          // If RLS fails, return user without tenant data
+          return serializeUser({
+            ...updatedUserBasic,
+            tenant: null,
+          });
+        }
+      }
+
+      // User exists but has no tenant (onboarding not complete)
+      return serializeUser({
+        ...updatedUserBasic,
+        tenant: null,
       });
-      return serializeUser(updatedUser);
     }
 
     // If user doesn't exist, try to create
@@ -72,31 +113,67 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
           name: name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
           isActive: true,
         },
-        include: {
-          tenant: {
-            include: {
-              tenantSubscription: { include: { plan: true } },
-            },
-          },
+        select: {
+          id: true,
+          email: true,
+          firstName: true,
+          lastName: true,
+          name: true,
+          isActive: true,
+          tenantId: true,
+          createdAt: true,
+          updatedAt: true,
         },
       });
-      return serializeUser(newUser);
+
+      // New users don't have tenant yet (will be set during onboarding)
+      return serializeUser({
+        ...newUser,
+        tenant: null,
+      });
     } catch (createError: unknown) {
       // Handle race condition: if create fails due to duplicate, fetch the existing user
       if (createError && typeof createError === 'object' && 'code' in createError && createError.code === 'P2002') {
         const user = await prisma.user.findUnique({
           where: { id },
-          include: {
-            tenant: {
-              include: {
-                tenantSubscription: { include: { plan: true } },
-              },
-            },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            name: true,
+            isActive: true,
+            tenantId: true,
+            createdAt: true,
+            updatedAt: true,
           },
         });
 
         if (user) {
-          return serializeUser(user);
+          // If user has tenant, configure RLS and load it
+          if (user.tenantId) {
+            try {
+              await setRLSTenantId(user.tenantId);
+              const tenant = await prisma.tenant.findUnique({
+                where: { id: user.tenantId },
+                include: {
+                  tenantSubscription: { include: { plan: true } },
+                },
+              });
+
+              return serializeUser({
+                ...user,
+                tenant: tenant || null,
+              });
+            } catch (rlsError) {
+              console.warn('Failed to load tenant with RLS:', rlsError);
+            }
+          }
+
+          return serializeUser({
+            ...user,
+            tenant: null,
+          });
         }
       }
       throw createError;
@@ -109,26 +186,63 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
 
 /**
  * Find user by ID with tenant information
- * 
+ *
  * @param userId - User ID to find
  * @returns User with tenant information or null if not found
  */
 export async function findUserById(userId: string): Promise<UserWithTenant | null> {
   try {
+    // Step 1: Find user without tenant relations (avoids RLS blocking)
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        tenant: {
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        name: true,
+        isActive: true,
+        tenantId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      return null;
+    }
+
+    // Step 2: If user has tenant, configure RLS and load tenant
+    if (user.tenantId) {
+      try {
+        await setRLSTenantId(user.tenantId);
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: user.tenantId },
           include: {
             tenantSubscription: {
               include: { plan: true }
             }
           }
-        }
-      }
-    });
+        });
 
-    return user ? serializeUser(user) : null;
+        return serializeUser({
+          ...user,
+          tenant: tenant || null,
+        });
+      } catch (rlsError) {
+        console.warn('Failed to load tenant with RLS:', rlsError);
+        return serializeUser({
+          ...user,
+          tenant: null,
+        });
+      }
+    }
+
+    // User exists but has no tenant
+    return serializeUser({
+      ...user,
+      tenant: null,
+    });
   } catch (error) {
     console.error('Error finding user by ID:', error);
     throw new Error(`Failed to find user: ${error instanceof Error ? error.message : 'Unknown error'}`);
