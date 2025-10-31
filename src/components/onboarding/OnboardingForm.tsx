@@ -67,7 +67,6 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
         // Handle specific error cases
         if (response.status === 400 && errorData.message?.includes('ya tiene una clínica')) {
           // User already has a tenant, redirect to dashboard
-          console.log('User already has a clinic, redirecting to dashboard');
           router.push('/dashboard');
           router.refresh();
           return;
@@ -76,8 +75,7 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
         throw new Error(errorData.message || 'Error al crear la clínica');
       }
 
-      const data = await response.json();
-      console.log('Onboarding successful:', data);
+      await response.json();
 
       // Redirect to dashboard after successful onboarding
       router.push('/dashboard');
