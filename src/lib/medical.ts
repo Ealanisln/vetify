@@ -70,7 +70,7 @@ export async function createTreatment(
         treatmentType: data.treatment_type,
         productName: data.medication_name,
         administrationDate: data.start_date,
-        staffId: veterinarianId || data.consultation_id,
+        staffId: data.veterinarian_id || veterinarianId,
         notes: `Dosis: ${data.dosage}\nFrecuencia: ${data.frequency}\nDuración: ${data.duration_days} días\nInstrucciones: ${data.instructions}`,
       },
       include: {
