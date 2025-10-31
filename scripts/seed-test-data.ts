@@ -192,7 +192,7 @@ async function createPetsForCustomers(tenantId: string, customers: any[], petsPe
             species,
             breed,
             dateOfBirth,
-            gender: faker.helpers.arrayElement(['Macho', 'Hembra']),
+            gender: faker.helpers.arrayElement(['male', 'female']),
             weight: new Prisma.Decimal(weight),
             weightUnit: 'kg',
             microchipNumber: faker.helpers.maybe(() => faker.string.numeric(15), { probability: 0.3 }),

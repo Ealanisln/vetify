@@ -1,6 +1,6 @@
 import { requireAuth } from '../../../lib/auth';
 import { getPetsByTenant } from '../../../lib/pets';
-import { PetWithOwner } from '@/types';
+import { PetsList } from '@/components/pets/PetsList';
 import Link from 'next/link';
 
 export default async function PetsPage() {
@@ -16,7 +16,7 @@ export default async function PetsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Mascotas</h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {pets.length} de {maxPets} mascotas registradas
+            Gestiona todas las mascotas registradas en tu clínica
           </p>
         </div>
         
@@ -42,6 +42,7 @@ export default async function PetsPage() {
         </div>
       )}
 
+      {/* Pets list with search functionality */}
       {pets.length === 0 ? (
         <div className="text-center py-12">
           <span className="text-6xl">🐕</span>
@@ -61,45 +62,7 @@ export default async function PetsPage() {
           )}
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-200 dark:border-gray-700">
-          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-            {pets.map((pet: PetWithOwner) => (
-              <li key={pet.id}>
-                <Link href={`/dashboard/pets/${pet.id}`} className="block hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <div className="px-4 py-4 flex items-center justify-between">
-                    <div className="flex items-center">
-                      <div className="text-2xl mr-3">
-                        {pet.species === 'dog' ? '🐕' : 
-                         pet.species === 'cat' ? '🐱' : 
-                         pet.species === 'bird' ? '🐦' : 
-                         pet.species === 'rabbit' ? '🐰' : '🐾'}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{pet.name}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {pet.breed} • {pet.gender === 'male' ? 'Macho' : 'Hembra'}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500">
-                          Dueño: {pet.customer?.name || pet.customer?.email || 'Sin datos'}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="flex space-x-1">
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-                          {pet.appointments.length} citas
-                        </span>
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-                          {pet.medicalHistories.length} consultas
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <PetsList pets={pets} maxPets={maxPets} />
       )}
     </div>
   );

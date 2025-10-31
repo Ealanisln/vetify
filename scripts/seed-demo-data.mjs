@@ -23,20 +23,20 @@ const fakeCustomers = [
     pets: [
       {
         name: "Luna",
-        species: "Perro",
+        species: "dog",
         breed: "Golden Retriever",
         dateOfBirth: new Date("2020-03-15"),
-        gender: "Hembra",
+        gender: "female",
         weight: 28.5,
         weightUnit: "kg",
         isNeutered: true
       },
       {
         name: "Max",
-        species: "Perro",
+        species: "dog",
         breed: "Labrador",
         dateOfBirth: new Date("2019-07-22"),
-        gender: "Macho",
+        gender: "male",
         weight: 32.0,
         weightUnit: "kg",
         isNeutered: true
@@ -53,10 +53,10 @@ const fakeCustomers = [
     pets: [
       {
         name: "Michi",
-        species: "Gato",
+        species: "cat",
         breed: "Siamés",
         dateOfBirth: new Date("2021-01-10"),
-        gender: "Macho",
+        gender: "male",
         weight: 4.2,
         weightUnit: "kg",
         isNeutered: false
@@ -73,20 +73,20 @@ const fakeCustomers = [
     pets: [
       {
         name: "Pelusa",
-        species: "Gato",
+        species: "cat",
         breed: "Persa",
         dateOfBirth: new Date("2020-11-05"),
-        gender: "Hembra",
+        gender: "female",
         weight: 3.8,
         weightUnit: "kg",
         isNeutered: true
       },
       {
         name: "Rocky",
-        species: "Perro",
+        species: "dog",
         breed: "Beagle",
         dateOfBirth: new Date("2018-05-20"),
-        gender: "Macho",
+        gender: "male",
         weight: 12.5,
         weightUnit: "kg",
         isNeutered: true
@@ -103,10 +103,10 @@ const fakeCustomers = [
     pets: [
       {
         name: "Toby",
-        species: "Perro",
+        species: "dog",
         breed: "French Bulldog",
         dateOfBirth: new Date("2022-02-14"),
-        gender: "Macho",
+        gender: "male",
         weight: 10.2,
         weightUnit: "kg",
         isNeutered: false
@@ -123,20 +123,20 @@ const fakeCustomers = [
     pets: [
       {
         name: "Coco",
-        species: "Gato",
+        species: "cat",
         breed: "Maine Coon",
         dateOfBirth: new Date("2019-09-18"),
-        gender: "Macho",
+        gender: "male",
         weight: 6.5,
         weightUnit: "kg",
         isNeutered: true
       },
       {
         name: "Nala",
-        species: "Gato",
+        species: "cat",
         breed: "Bengalí",
         dateOfBirth: new Date("2021-06-30"),
-        gender: "Hembra",
+        gender: "female",
         weight: 4.0,
         weightUnit: "kg",
         isNeutered: true
@@ -153,10 +153,10 @@ const fakeCustomers = [
     pets: [
       {
         name: "Bruno",
-        species: "Perro",
+        species: "dog",
         breed: "Pastor Alemán",
         dateOfBirth: new Date("2019-12-08"),
-        gender: "Macho",
+        gender: "male",
         weight: 38.0,
         weightUnit: "kg",
         isNeutered: true
@@ -173,20 +173,20 @@ const fakeCustomers = [
     pets: [
       {
         name: "Chispas",
-        species: "Perro",
+        species: "dog",
         breed: "Chihuahua",
         dateOfBirth: new Date("2020-08-25"),
-        gender: "Hembra",
+        gender: "female",
         weight: 2.8,
         weightUnit: "kg",
         isNeutered: false
       },
       {
         name: "Simba",
-        species: "Gato",
+        species: "cat",
         breed: "Naranja Común",
         dateOfBirth: new Date("2021-04-12"),
-        gender: "Macho",
+        gender: "male",
         weight: 5.2,
         weightUnit: "kg",
         isNeutered: true
@@ -203,10 +203,10 @@ const fakeCustomers = [
     pets: [
       {
         name: "Bella",
-        species: "Perro",
+        species: "dog",
         breed: "Poodle",
         dateOfBirth: new Date("2021-10-03"),
-        gender: "Hembra",
+        gender: "female",
         weight: 8.5,
         weightUnit: "kg",
         isNeutered: true
