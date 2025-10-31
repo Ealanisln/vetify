@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { consultationSchema, COMMON_SYMPTOMS, type ConsultationFormData } from '../../lib/medical-validation';
 import { MedicalHistory } from '@prisma/client';
 import { getThemeClasses } from '../../utils/theme-colors';
+import { type ApiErrorResponse, getApiErrorMessage } from '@/types/api';
 
 interface ConsultationFormProps {
   petId: string;
@@ -93,11 +94,11 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData: ApiErrorResponse = await response.json();
         console.error('❌ API Error Response:', errorData);
-        
-        // Show more detailed error message if available
-        const errorMessage = errorData.details || errorData.error || errorData.message || 'Error al crear la consulta';
+
+        // Extract user-friendly error message
+        const errorMessage = getApiErrorMessage(errorData, 'Error al crear la consulta');
         throw new Error(errorMessage);
       }
 
