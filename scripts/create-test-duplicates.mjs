@@ -41,19 +41,19 @@ async function createTestDuplicates() {
           tenantId: tenant.id,
           customerId: primaryCustomer.id,
           name: 'Max',
-          species: 'Perro',
+          species: 'dog',
           breed: 'Golden Retriever',
-          birthDate: new Date('2020-05-15'),
-          gender: 'MALE'
+          dateOfBirth: new Date('2020-05-15'),
+          gender: 'male'
         },
         {
           tenantId: tenant.id,
           customerId: primaryCustomer.id,
           name: 'Luna',
-          species: 'Gato',
+          species: 'cat',
           breed: 'Siamés',
-          birthDate: new Date('2021-03-10'),
-          gender: 'FEMALE'
+          dateOfBirth: new Date('2021-03-10'),
+          gender: 'female'
         }
       ]
     });
@@ -167,10 +167,10 @@ async function createTestDuplicates() {
         tenantId: tenant.id,
         customerId: uniqueCustomer.id,
         name: 'Bobby',
-        species: 'Perro',
+        species: 'dog',
         breed: 'Poodle',
-        birthDate: new Date('2019-08-20'),
-        gender: 'MALE'
+        dateOfBirth: new Date('2019-08-20'),
+        gender: 'male'
       }
     });
 

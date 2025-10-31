@@ -80,13 +80,6 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
   const onSubmit = async (data: ConsultationFormData) => {
     setIsSubmitting(true);
     try {
-      // Debug logging - TODO: Remove before final commit
-      console.log('📋 Sending consultation data:', {
-        petId,
-        tenantId,
-        ...data,
-      });
-
       const response = await fetch('/api/medical/consultations', {
         method: 'POST',
         headers: {
@@ -109,7 +102,6 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
       }
 
       const consultation = await response.json();
-      console.log('✅ Consultation created successfully:', consultation);
       onSuccess?.(consultation);
     } catch (error) {
       console.error('❌ Error submitting consultation:', error);
