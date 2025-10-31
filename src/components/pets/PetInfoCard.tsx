@@ -2,6 +2,7 @@ import { Pet, Customer } from '@prisma/client';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { getThemeClasses } from '../../utils/theme-colors';
+import { formatWeight } from '../../utils/format';
 
 type PetWithOwner = Pet & { customer: Customer };
 
@@ -10,13 +11,10 @@ interface PetInfoCardProps {
 }
 
 export function PetInfoCard({ pet }: PetInfoCardProps) {
-  // Safely convert weight to number (handles both Decimal and number types)
-  const weightValue = pet.weight && !isNaN(Number(pet.weight)) ? Number(pet.weight) : null;
-
   const infoItems = [
     { label: 'ID Interno', value: pet.internalId || 'No asignado' },
     { label: 'Fecha de nacimiento', value: format(pet.dateOfBirth, 'dd MMMM yyyy', { locale: es }) },
-    { label: 'Peso', value: weightValue ? `${weightValue.toFixed(1)} ${pet.weightUnit || 'kg'}` : 'No registrado' },
+    { label: 'Peso', value: formatWeight(pet.weight, pet.weightUnit) },
     { label: 'Microchip', value: pet.microchipNumber || 'No tiene' },
     { label: 'Registrado', value: format(pet.createdAt, 'dd MMM yyyy', { locale: es }) },
   ];

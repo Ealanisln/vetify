@@ -3,6 +3,7 @@
 import { Pet, Customer } from '@prisma/client';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Users, FileText, Activity } from 'lucide-react';
+import { parseWeight } from '../../utils/format';
 
 type PetWithCustomer = Pet & { customer: Customer };
 
@@ -161,10 +162,10 @@ export function MedicalFormLayout({
                     </span>
                   </div>
                   
-                  {petInfo.weight && !isNaN(Number(petInfo.weight)) && (
+                  {parseWeight(petInfo.weight) !== null && (
                     <div className="flex items-center space-x-2 text-gray-600 whitespace-nowrap">
                       <Activity className="h-4 w-4 flex-shrink-0" />
-                      <span>{Number(petInfo.weight).toFixed(1)} {petInfo.weightUnit || 'kg'}</span>
+                      <span>{parseWeight(petInfo.weight)!.toFixed(1)} {petInfo.weightUnit || 'kg'}</span>
                     </div>
                   )}
 

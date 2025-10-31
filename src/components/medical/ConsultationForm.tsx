@@ -7,6 +7,7 @@ import { consultationSchema, COMMON_SYMPTOMS, type ConsultationFormData } from '
 import { MedicalHistory } from '@prisma/client';
 import { getThemeClasses } from '../../utils/theme-colors';
 import { type ApiErrorResponse, getApiErrorMessage } from '@/types/api';
+import { InlineVeterinarianCreator } from './InlineVeterinarianCreator';
 
 interface ConsultationFormProps {
   petId: string;
@@ -27,12 +28,6 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
   const [customSymptom, setCustomSymptom] = useState('');
-  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
-  const [newStaffData, setNewStaffData] = useState({
-    name: '',
-    position: 'Veterinario',
-    licenseNumber: ''
-  });
 
   const {
     register,
@@ -84,38 +79,9 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
     }
   };
 
-  const handleAddStaff = async () => {
-    if (!newStaffData.name.trim()) {
-      alert('Por favor ingresa el nombre del veterinario');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/medical/staff', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...newStaffData,
-          tenantId,
-          licenseNumber: newStaffData.licenseNumber || null
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Error al crear el veterinario');
-      }
-
-      const newStaff = await response.json();
-      setStaff(prev => [...prev, newStaff]);
-      setValue('veterinarian_id', newStaff.id);
-      setShowAddStaffModal(false);
-      setNewStaffData({ name: '', position: 'Veterinario', licenseNumber: '' });
-    } catch (error) {
-      console.error('Error adding staff:', error);
-      alert('Error al agregar el veterinario. Por favor intenta de nuevo.');
-    }
+  const handleVeterinarianCreated = (newStaff: StaffMember) => {
+    setStaff(prev => [...prev, newStaff]);
+    setValue('veterinarian_id', newStaff.id);
   };
 
   const onSubmit = async (data: ConsultationFormData) => {
@@ -317,16 +283,13 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
             </span>
             Veterinario Responsable
           </div>
-          <button
-            type="button"
-            onClick={() => setShowAddStaffModal(true)}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            Agregar Veterinario
-          </button>
+          <InlineVeterinarianCreator
+            tenantId={tenantId}
+            onVeterinarianCreated={handleVeterinarianCreated}
+            theme="blue"
+            buttonText="+ Agregar"
+            buttonClassName="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 bg-transparent border-0 px-2 py-1"
+          />
         </h3>
         
         <div>
@@ -417,87 +380,6 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
           <span>{isSubmitting ? 'Guardando...' : 'Guardar Consulta'}</span>
         </button>
       </div>
-
-      {/* Add Staff Modal */}
-      {showAddStaffModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Agregar Veterinario</h2>
-              <button
-                onClick={() => setShowAddStaffModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre completo *
-                </label>
-                <input
-                  type="text"
-                  value={newStaffData.name}
-                  onChange={(e) => setNewStaffData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Ej: Dr. Juan Pérez"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Posición
-                </label>
-                <select
-                  value={newStaffData.position}
-                  onChange={(e) => setNewStaffData(prev => ({ ...prev, position: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="Veterinario">Veterinario</option>
-                  <option value="Veterinario Especialista">Veterinario Especialista</option>
-                  <option value="Cirujano Veterinario">Cirujano Veterinario</option>
-                  <option value="Asistente Veterinario">Asistente Veterinario</option>
-                  <option value="Técnico Veterinario">Técnico Veterinario</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Número de licencia (opcional)
-                </label>
-                <input
-                  type="text"
-                  value={newStaffData.licenseNumber}
-                  onChange={(e) => setNewStaffData(prev => ({ ...prev, licenseNumber: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Ej: VET-12345"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={() => setShowAddStaffModal(false)}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={handleAddStaff}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Agregar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </form>
   );
 } 

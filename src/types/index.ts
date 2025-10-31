@@ -1,5 +1,25 @@
 import { prisma } from '../lib/prisma';
 
+// Pet Enum Types
+export type PetSpecies = 'dog' | 'cat' | 'bird' | 'rabbit' | 'other';
+export type PetGender = 'male' | 'female';
+export type WeightUnit = 'kg' | 'lbs';
+
+// Species display mapping for UI
+export const PET_SPECIES_MAP: Record<PetSpecies, { label: string; icon: string }> = {
+  dog: { label: 'Perro', icon: '🐕' },
+  cat: { label: 'Gato', icon: '🐱' },
+  bird: { label: 'Ave', icon: '🐦' },
+  rabbit: { label: 'Conejo', icon: '🐰' },
+  other: { label: 'Otro', icon: '🐾' }
+};
+
+// Gender display mapping for UI
+export const PET_GENDER_MAP: Record<PetGender, string> = {
+  male: 'Macho',
+  female: 'Hembra'
+};
+
 export type UserWithTenant = NonNullable<Awaited<ReturnType<typeof prisma.user.findUnique>>> & {
   tenant: TenantWithPlan | null;
 };
