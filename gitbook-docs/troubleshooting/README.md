@@ -6,7 +6,33 @@ Esta sección contiene soluciones para los problemas más frecuentes que puedes 
 
 ### Database Issues
 
-#### Connection Problems
+#### "Tenant or user not found" Error (Supabase)
+
+**Symptoms:**
+- Production: 504 Gateway Timeout after 10 seconds
+- Development: "FATAL: Tenant or user not found" error
+- Local development works fine
+
+**Root Cause:**
+This error occurs when Vercel environment variables contain placeholder credentials instead of actual Supabase service role keys.
+
+**Quick Fix:**
+1. Get your service role key from Supabase Dashboard → Settings → API
+2. Update Vercel environment variables:
+   - `DATABASE_URL` with actual key
+   - `DIRECT_URL` with actual key
+3. Redeploy application
+
+**Detailed Guide:**
+See [`VERCEL_FIX_GUIDE.md`](../../VERCEL_FIX_GUIDE.md) in the root directory for complete step-by-step instructions.
+
+**Verification:**
+```bash
+# Run verification script
+pnpm tsx scripts/verify-vercel-connection.ts
+```
+
+#### General Connection Problems
 ```typescript
 // Error: Can't connect to database
 // Solution: Check DATABASE_URL and DIRECT_URL

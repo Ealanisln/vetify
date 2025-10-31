@@ -49,6 +49,7 @@
     "db:migrate:production": "prisma migrate deploy",
     "health:check": "node scripts/health-check.mjs",
     "db:seed:production": "node scripts/seed-production.mjs",
+    "db:verify": "npx tsx scripts/verify-vercel-connection.ts",
     "stripe:verify": "node scripts/stripe-setup-verification.mjs",
     "stripe:setup": "node scripts/stripe-products-setup.mjs",
     "stripe:cleanup": "npx tsx scripts/cleanup-duplicate-subscriptions.ts",

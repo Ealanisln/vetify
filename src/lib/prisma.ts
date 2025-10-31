@@ -56,3 +56,31 @@ if (process.env.NODE_ENV === 'production') {
     await prisma.$disconnect()
   })
 }
+
+/**
+ * Set the tenant ID for Row Level Security (RLS) policies
+ * This must be called before any database queries to ensure proper multi-tenant isolation
+ *
+ * @param tenantId - The tenant ID to set for the current session
+ */
+export async function setRLSTenantId(tenantId: string): Promise<void> {
+  try {
+    await prisma.$executeRaw`SELECT set_config('app.current_tenant_id', ${tenantId}, true);`;
+  } catch (error) {
+    console.error('Failed to set RLS tenant ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Clear the tenant ID from the current session
+ * Should be called after completing database operations
+ */
+export async function clearRLSTenantId(): Promise<void> {
+  try {
+    await prisma.$executeRaw`SELECT set_config('app.current_tenant_id', '', true);`;
+  } catch (error) {
+    console.error('Failed to clear RLS tenant ID:', error);
+    // Don't throw - clearing is not critical
+  }
+}

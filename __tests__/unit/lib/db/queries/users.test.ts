@@ -2,6 +2,9 @@ import { findOrCreateUser, findUserById, CreateOrUpdateUserData } from '@/lib/db
 import { prisma } from '@/lib/prisma';
 import { UserWithTenant } from '@/types';
 
+// Mock setRLSTenantId
+const mockSetRLSTenantId = jest.fn();
+
 // Mock Prisma
 jest.mock('@/lib/prisma', () => ({
   prisma: {
@@ -10,7 +13,11 @@ jest.mock('@/lib/prisma', () => ({
       update: jest.fn(),
       create: jest.fn(),
     },
+    tenant: {
+      findUnique: jest.fn(),
+    },
   },
+  setRLSTenantId: (...args: unknown[]) => mockSetRLSTenantId(...args),
 }));
 
 // Mock serializers
@@ -44,11 +51,14 @@ describe('findOrCreateUser', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSetRLSTenantId.mockClear();
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
     (console.error as jest.Mock).mockRestore();
+    (console.warn as jest.Mock).mockRestore();
   });
 
   it('creates new user when not exists', async () => {
@@ -57,16 +67,19 @@ describe('findOrCreateUser', () => {
 
     const result = await findOrCreateUser(validUserData);
 
+    // New RLS pattern: First query uses select instead of include
     expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: validUserData.id },
-      include: {
-        tenant: {
-          include: {
-            tenantSubscription: {
-              include: { plan: true }
-            }
-          }
-        }
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        name: true,
+        isActive: true,
+        tenantId: true,
+        createdAt: true,
+        updatedAt: true,
       }
     });
 
@@ -79,14 +92,16 @@ describe('findOrCreateUser', () => {
         name: validUserData.name,
         isActive: true,
       },
-      include: {
-        tenant: {
-          include: {
-            tenantSubscription: {
-              include: { plan: true }
-            }
-          }
-        }
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        name: true,
+        isActive: true,
+        tenantId: true,
+        createdAt: true,
+        updatedAt: true,
       }
     });
 
@@ -266,29 +281,51 @@ describe('findUserById', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSetRLSTenantId.mockClear();
     jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
     (console.error as jest.Mock).mockRestore();
+    (console.warn as jest.Mock).mockRestore();
   });
 
   it('returns user with tenant data when found', async () => {
-    mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+    const userWithoutTenant = { ...mockUser };
+    delete (userWithoutTenant as { tenant?: unknown }).tenant;
+
+    mockPrisma.user.findUnique.mockResolvedValue(userWithoutTenant);
+    mockSetRLSTenantId.mockResolvedValue(undefined);
+    (mockPrisma.tenant.findUnique as jest.Mock).mockResolvedValue(mockUser.tenant);
 
     const result = await findUserById('kinde_user_123');
 
+    // New RLS pattern: First query uses select instead of include
     expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: 'kinde_user_123' },
-      include: {
-        tenant: {
-          include: {
-            tenantSubscription: {
-              include: { plan: true }
-            }
-          }
-        }
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        name: true,
+        isActive: true,
+        tenantId: true,
+        createdAt: true,
+        updatedAt: true,
       }
+    });
+
+    // Should set RLS context with tenantId
+    expect(mockSetRLSTenantId).toHaveBeenCalledWith('tenant_123');
+
+    // Then query tenant separately
+    expect(mockPrisma.tenant.findUnique).toHaveBeenCalledWith({
+      where: { id: 'tenant_123' },
+      include: {
+        tenantSubscription: { include: { plan: true } },
+      },
     });
 
     expect(result).toEqual(mockUser);
@@ -313,19 +350,39 @@ describe('findUserById', () => {
   });
 
   it('includes tenant with subscription data in query', async () => {
-    mockPrisma.user.findUnique.mockResolvedValue(mockUser);
+    const userWithoutTenant = { ...mockUser };
+    delete (userWithoutTenant as { tenant?: unknown }).tenant;
+
+    mockPrisma.user.findUnique.mockResolvedValue(userWithoutTenant);
+    mockSetRLSTenantId.mockResolvedValue(undefined);
+    (mockPrisma.tenant.findUnique as jest.Mock).mockResolvedValue(mockUser.tenant);
 
     await findUserById('kinde_user_123');
 
+    // New RLS pattern: Uses two-step approach
+    // Step 1: Query user without relations
     expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
       where: { id: 'kinde_user_123' },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        name: true,
+        isActive: true,
+        tenantId: true,
+        createdAt: true,
+        updatedAt: true,
+      }
+    });
+
+    // Step 2: Set RLS context and query tenant with subscription
+    expect(mockSetRLSTenantId).toHaveBeenCalledWith('tenant_123');
+    expect(mockPrisma.tenant.findUnique).toHaveBeenCalledWith({
+      where: { id: 'tenant_123' },
       include: {
-        tenant: {
-          include: {
-            tenantSubscription: {
-              include: { plan: true }
-            }
-          }
+        tenantSubscription: {
+          include: { plan: true }
         }
       }
     });
