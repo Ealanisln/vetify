@@ -21,6 +21,11 @@ export async function POST(request: NextRequest) {
     const validatedData = createPetSchema.parse(body);
     const pet = await createPet(tenant.id as string, validatedData);
     
+    // NOTE: N8N integration temporarily disabled - focusing on core functionality
+    // TODO: Re-enable once n8n webhooks are properly configured
+    console.log('ℹ️  N8N integration disabled - pet created without automation');
+    
+    /*
     // Get customer data for WhatsApp automation
     const customer = await prisma.customer.findUnique({
       where: { id: validatedData.customerId }
@@ -60,11 +65,12 @@ export async function POST(request: NextRequest) {
         });
       }
     }
+    */
 
     return NextResponse.json({ 
       pet, 
       automationTriggered: false,
-      message: 'Mascota registrada (sin WhatsApp - número no disponible)' 
+      message: 'Mascota registrada exitosamente' 
     });
 
   } catch (error) {
