@@ -81,10 +81,10 @@ export function PetHeader({ pet }: PetHeaderProps) {
               <span>{pet.gender === 'male' ? 'Macho' : 'Hembra'}</span>
               <span>•</span>
               <span>{displayAge}</span>
-              {pet.weight && (
+              {pet.weight && !isNaN(Number(pet.weight)) && (
                 <>
                   <span>•</span>
-                  <span>{pet.weight.toString()}{pet.weightUnit}</span>
+                  <span>{Number(pet.weight).toFixed(1)} {pet.weightUnit || 'kg'}</span>
                 </>
               )}
             </div>

@@ -15,6 +15,16 @@ export async function createConsultation(
   data: ConsultationFormData
 ) {
   try {
+    // Convert symptoms array to string if needed
+    const symptomsText = Array.isArray(data.symptoms) 
+      ? data.symptoms.join(', ') 
+      : data.symptoms;
+
+    // Combine notes with symptoms for storage
+    const combinedNotes = symptomsText 
+      ? `SÍNTOMAS: ${symptomsText}\n\n${data.notes || ''}`.trim()
+      : data.notes;
+
     const consultation = await prisma.medicalHistory.create({
       data: {
         petId,
@@ -23,7 +33,7 @@ export async function createConsultation(
         reasonForVisit: data.reason,
         diagnosis: data.diagnosis,
         treatment: data.treatment_plan,
-        notes: data.notes,
+        notes: combinedNotes,
         staffId: data.veterinarian_id,
       },
       include: {
@@ -36,17 +46,21 @@ export async function createConsultation(
       },
     });
 
+    // NOTE: N8N integration temporarily disabled - will be enabled later
+    /*
     // Trigger WhatsApp notification
     await n8nService.triggerWorkflow('consultation-summary', {
       tenantId,
       petName: consultation.pet.name,
       ownerName: consultation.pet.customer.name,
       ownerPhone: consultation.pet.customer.phone,
+      symptoms: symptomsText,
       diagnosis: data.diagnosis,
       treatment: data.treatment_plan,
       veterinarian: consultation.staff?.name || 'Dr. Veterinario',
       consultationDate: new Date().toLocaleDateString('es-MX'),
     });
+    */
 
     return consultation;
   } catch (error) {
@@ -97,6 +111,8 @@ export async function createTreatment(
       });
     }
 
+    // NOTE: N8N integration temporarily disabled - will be enabled later
+    /*
     // Trigger WhatsApp notification
     await n8nService.triggerWorkflow('treatment-prescribed', {
       tenantId,
@@ -109,6 +125,7 @@ export async function createTreatment(
       duration: `${data.duration_days} días`,
       instructions: data.instructions,
     });
+    */
 
     return treatment;
   } catch (error) {
@@ -162,6 +179,8 @@ export async function createVaccination(
       });
     }
 
+    // NOTE: N8N integration temporarily disabled - will be enabled later
+    /*
     // Trigger WhatsApp notification
     await n8nService.triggerWorkflow('vaccination-completed', {
       tenantId,
@@ -173,6 +192,7 @@ export async function createVaccination(
       nextDueDate: data.next_due_date?.toLocaleDateString('es-MX'),
       veterinarian: vaccination.staff?.name || 'Dr. Veterinario',
     });
+    */
 
     return vaccination;
   } catch (error) {
@@ -215,6 +235,8 @@ ${data.notes ? `Observaciones: ${data.notes}` : ''}`,
       },
     });
 
+    // NOTE: N8N integration temporarily disabled - will be enabled later
+    /*
     // Trigger WhatsApp notification
     await n8nService.triggerWorkflow('vital-signs-recorded', {
       tenantId,
@@ -227,6 +249,7 @@ ${data.notes ? `Observaciones: ${data.notes}` : ''}`,
       respiratoryRate: `${data.respiratory_rate} rpm`,
       recordDate: data.recorded_date.toLocaleDateString('es-MX'),
     });
+    */
 
     return vitals;
   } catch (error) {
@@ -258,6 +281,39 @@ export async function getStaffMembers(tenantId: string) {
   } catch (error) {
     console.error('Error fetching staff:', error);
     throw new Error('Error al cargar el personal');
+  }
+}
+
+// Create a new staff member
+export async function createStaffMember(
+  tenantId: string,
+  data: {
+    name: string;
+    position: string;
+    licenseNumber?: string | null;
+  }
+) {
+  try {
+    const staff = await prisma.staff.create({
+      data: {
+        tenantId,
+        name: data.name,
+        position: data.position,
+        licenseNumber: data.licenseNumber || null,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        position: true,
+        licenseNumber: true,
+      },
+    });
+
+    return staff;
+  } catch (error) {
+    console.error('Error creating staff member:', error);
+    throw new Error('Error al crear el miembro del personal');
   }
 }
 

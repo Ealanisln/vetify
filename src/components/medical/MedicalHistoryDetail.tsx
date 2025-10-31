@@ -142,10 +142,10 @@ export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHisto
                     <span className="font-medium">{history.pet.age} años</span>
                   </div>
                 )}
-                {history.pet.weight && (
+                {history.pet.weight && !isNaN(Number(history.pet.weight)) && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Peso:</span>
-                    <span className="font-medium">{history.pet.weight} kg</span>
+                    <span className="font-medium">{Number(history.pet.weight).toFixed(1)} {history.pet.weightUnit || 'kg'}</span>
                   </div>
                 )}
               </div>

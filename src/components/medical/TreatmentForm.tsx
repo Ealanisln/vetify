@@ -25,11 +25,18 @@ interface StaffMember {
 export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCancel }: TreatmentFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [newStaffData, setNewStaffData] = useState({
+    name: '',
+    position: 'Veterinario',
+    licenseNumber: ''
+  });
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<TreatmentFormData>({
     resolver: zodResolver(treatmentSchema),
     defaultValues: {
@@ -56,6 +63,40 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
     };
     loadStaff();
   }, [tenantId]);
+
+  const handleAddStaff = async () => {
+    if (!newStaffData.name.trim()) {
+      alert('Por favor ingresa el nombre del veterinario');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/medical/staff', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...newStaffData,
+          tenantId,
+          licenseNumber: newStaffData.licenseNumber || null
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al crear el veterinario');
+      }
+
+      const newStaff = await response.json();
+      setStaff(prev => [...prev, newStaff]);
+      setValue('veterinarian_id', newStaff.id);
+      setShowAddStaffModal(false);
+      setNewStaffData({ name: '', position: 'Veterinario', licenseNumber: '' });
+    } catch (error) {
+      console.error('Error adding staff:', error);
+      alert('Error al agregar el veterinario. Por favor intenta de nuevo.');
+    }
+  };
 
   const onSubmit = async (data: TreatmentFormData) => {
     setIsSubmitting(true);
@@ -218,10 +259,22 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
         </div>
 
         {/* Veterinarian */}
-        <div>
-          <label htmlFor="veterinarian_id" className="block text-sm font-medium text-gray-700 mb-2">
-            Veterinario responsable *
-          </label>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label htmlFor="veterinarian_id" className="block text-sm font-medium text-gray-700">
+              Veterinario responsable *
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowAddStaffModal(true)}
+              className="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Agregar Veterinario
+            </button>
+          </div>
           <select
             id="veterinarian_id"
             {...register('veterinarian_id')}
@@ -237,6 +290,14 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
           </select>
           {errors.veterinarian_id && (
             <p className="mt-1 text-sm text-red-600">{errors.veterinarian_id.message}</p>
+          )}
+          {staff.length === 0 && (
+            <p className="mt-2 text-sm text-amber-600 flex items-center gap-1">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              No hay veterinarios registrados. Por favor agrega uno usando el botón de arriba.
+            </p>
           )}
         </div>
 
@@ -275,6 +336,87 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
           </button>
         </div>
       </form>
+
+      {/* Add Staff Modal */}
+      {showAddStaffModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Agregar Veterinario</h2>
+              <button
+                onClick={() => setShowAddStaffModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nombre completo *
+                </label>
+                <input
+                  type="text"
+                  value={newStaffData.name}
+                  onChange={(e) => setNewStaffData(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  placeholder="Ej: Dr. Juan Pérez"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Posición
+                </label>
+                <select
+                  value={newStaffData.position}
+                  onChange={(e) => setNewStaffData(prev => ({ ...prev, position: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                >
+                  <option value="Veterinario">Veterinario</option>
+                  <option value="Veterinario Especialista">Veterinario Especialista</option>
+                  <option value="Cirujano Veterinario">Cirujano Veterinario</option>
+                  <option value="Asistente Veterinario">Asistente Veterinario</option>
+                  <option value="Técnico Veterinario">Técnico Veterinario</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Número de licencia (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={newStaffData.licenseNumber}
+                  onChange={(e) => setNewStaffData(prev => ({ ...prev, licenseNumber: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  placeholder="Ej: VET-12345"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => setShowAddStaffModal(false)}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleAddStaff}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                Agregar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

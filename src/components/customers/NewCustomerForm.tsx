@@ -136,7 +136,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
 
           if (petResponse.ok) {
             const createdPet = await petResponse.json();
-            petsCreated.push({ id: createdPet.id, name: createdPet.name });
+            petsCreated.push({ id: createdPet.pet.id, name: createdPet.pet.name });
           }
         }
       }
