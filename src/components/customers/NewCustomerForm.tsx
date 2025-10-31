@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
-import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, CheckCircleIcon, CalendarIcon, UserGroupIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { getThemeClasses } from '../../utils/theme-colors';
 
 interface NewCustomerFormProps {
@@ -37,6 +37,9 @@ interface CustomerFormData {
 export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessDialog, setShowSuccessDialog] = useState(false);
+  const [createdCustomerId, setCreatedCustomerId] = useState<string | null>(null);
+  const [createdPets, setCreatedPets] = useState<Array<{ id: string; name: string }>>([]);
   const [formData, setFormData] = useState<CustomerFormData>({
     name: '',
     firstName: '',
@@ -89,6 +92,27 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
     setFormData(prev => ({ ...prev, ...customerData }));
   };
 
+  // Map Spanish values to English enum values for API
+  const mapSpeciesToEnglish = (species: string): string => {
+    const speciesMap: Record<string, string> = {
+      'Perro': 'dog',
+      'Gato': 'cat',
+      'Ave': 'bird',
+      'Conejo': 'rabbit',
+      'Reptil': 'other',
+      'Otro': 'other'
+    };
+    return speciesMap[species] || 'other';
+  };
+
+  const mapGenderToEnglish = (gender: string): string => {
+    const genderMap: Record<string, string> = {
+      'Macho': 'male',
+      'Hembra': 'female'
+    };
+    return genderMap[gender] || 'male';
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -110,31 +134,53 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
       }
 
       const customer = await customerResponse.json();
+      setCreatedCustomerId(customer.id);
 
       // Create pets if any
+      const petsCreated: Array<{ id: string; name: string }> = [];
       if (formData.pets.length > 0) {
         for (const pet of formData.pets) {
-          await fetch('/api/pets', {
+          const petResponse = await fetch('/api/pets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               ...pet,
+              species: mapSpeciesToEnglish(pet.species),
+              gender: mapGenderToEnglish(pet.gender),
               customerId: customer.id,
               tenantId,
               weight: pet.weight ? parseFloat(pet.weight) : undefined,
               dateOfBirth: new Date(pet.dateOfBirth).toISOString()
             })
           });
+
+          if (petResponse.ok) {
+            const createdPet = await petResponse.json();
+            petsCreated.push({ id: createdPet.id, name: createdPet.name });
+          }
         }
       }
 
-      router.push('/dashboard/customers');
+      setCreatedPets(petsCreated);
+      setShowSuccessDialog(true);
     } catch (error) {
       console.error('Error:', error);
       alert('Error al crear el cliente. Inténtalo de nuevo.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleCreateAppointment = () => {
+    const params = new URLSearchParams({ customerId: createdCustomerId || '' });
+    if (createdPets.length > 0) {
+      params.append('petId', createdPets[0].id);
+    }
+    router.push(`/dashboard/appointments/new?${params.toString()}`);
+  };
+
+  const handleViewCustomers = () => {
+    router.push('/dashboard/customers');
   };
 
   return (
@@ -414,6 +460,76 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
           {isLoading ? 'Guardando...' : 'Crear Cliente'}
         </Button>
       </div>
+
+      {/* Success Modal */}
+      {showSuccessDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-lg shadow-xl w-full max-w-md border border-border">
+            <div className="flex items-center justify-between p-6 border-b border-border">
+              <h2 className="text-xl font-semibold text-foreground">¡Cliente creado exitosamente!</h2>
+              <button
+                onClick={handleViewCustomers}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="flex flex-col items-center text-center space-y-3">
+                <div className="rounded-full bg-green-100 dark:bg-green-900/20 p-3">
+                  <CheckCircleIcon className="h-12 w-12 text-green-600 dark:text-green-400" />
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="text-foreground">
+                    El cliente <strong>{formData.name}</strong> ha sido registrado en el sistema.
+                  </p>
+                  {createdPets.length > 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      {createdPets.length === 1 
+                        ? `Se agregó la mascota: ${createdPets[0].name}`
+                        : `Se agregaron ${createdPets.length} mascotas: ${createdPets.map(p => p.name).join(', ')}`
+                      }
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm text-center font-medium text-foreground">
+                  ¿Qué deseas hacer ahora?
+                </p>
+                
+                <div className="grid grid-cols-1 gap-3">
+                  <Button
+                    onClick={handleCreateAppointment}
+                    className="w-full flex items-center justify-center gap-2"
+                    size="lg"
+                  >
+                    <CalendarIcon className="h-5 w-5" />
+                    Crear Cita para {createdPets.length > 0 ? createdPets[0].name : 'este cliente'}
+                  </Button>
+                  
+                  <Button
+                    onClick={handleViewCustomers}
+                    variant="outline"
+                    className="w-full flex items-center justify-center gap-2"
+                    size="lg"
+                  >
+                    <UserGroupIcon className="h-5 w-5" />
+                    Ver Lista de Clientes
+                  </Button>
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground text-center">
+                Puedes crear citas en cualquier momento desde la lista de clientes
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 } 

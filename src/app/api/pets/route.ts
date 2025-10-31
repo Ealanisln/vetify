@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '../../../lib/auth';
 import { createPet, createPetSchema, getPetsByTenant } from '../../../lib/pets';
-import { n8nService } from '../../../lib/n8n';
-import { prisma } from '../../../lib/prisma';
 import { validatePlanAction, PlanLimitError } from '../../../lib/plan-limits';
 
 export async function POST(request: NextRequest) {
@@ -22,9 +20,6 @@ export async function POST(request: NextRequest) {
     const pet = await createPet(tenant.id as string, validatedData);
     
     // NOTE: N8N integration temporarily disabled - focusing on core functionality
-    // TODO: Re-enable once n8n webhooks are properly configured
-    console.log('ℹ️  N8N integration disabled - pet created without automation');
-    
     /*
     // Get customer data for WhatsApp automation
     const customer = await prisma.customer.findUnique({

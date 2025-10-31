@@ -95,10 +95,10 @@ describe('Multi-Tenancy Data Isolation (CRITICAL)', () => {
     const pet1 = await prisma.pet.create({
       data: {
         name: 'Max',
-        species: 'Perro',
+        species: 'dog',
         breed: 'Labrador',
         dateOfBirth: new Date('2020-01-01'),
-        gender: 'Macho',
+        gender: 'male',
         tenantId: tenant1Id,
         customerId: customer1Id,
       },
@@ -122,21 +122,33 @@ describe('Multi-Tenancy Data Isolation (CRITICAL)', () => {
 
   afterAll(async () => {
     // Cleanup in reverse order of dependencies
-    await prisma.pet.deleteMany({
-      where: { id: { in: [pet1Id, pet2Id] } },
-    });
+    const petIds = [pet1Id, pet2Id].filter(Boolean);
+    if (petIds.length > 0) {
+      await prisma.pet.deleteMany({
+        where: { id: { in: petIds } },
+      });
+    }
 
-    await prisma.customer.deleteMany({
-      where: { id: { in: [customer1Id, customer2Id] } },
-    });
+    const customerIds = [customer1Id, customer2Id].filter(Boolean);
+    if (customerIds.length > 0) {
+      await prisma.customer.deleteMany({
+        where: { id: { in: customerIds } },
+      });
+    }
 
-    await prisma.user.deleteMany({
-      where: { id: { in: [user1Id, user2Id] } },
-    });
+    const userIds = [user1Id, user2Id].filter(Boolean);
+    if (userIds.length > 0) {
+      await prisma.user.deleteMany({
+        where: { id: { in: userIds } },
+      });
+    }
 
-    await prisma.tenant.deleteMany({
-      where: { id: { in: [tenant1Id, tenant2Id] } },
-    });
+    const tenantIds = [tenant1Id, tenant2Id].filter(Boolean);
+    if (tenantIds.length > 0) {
+      await prisma.tenant.deleteMany({
+        where: { id: { in: tenantIds } },
+      });
+    }
 
     await prisma.$disconnect();
   });
