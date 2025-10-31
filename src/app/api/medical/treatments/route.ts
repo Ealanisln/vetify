@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ZodError } from 'zod';
 import { requireAuth } from '../../../../lib/auth';
 import { createTreatment } from '../../../../lib/medical';
 import { treatmentSchema } from '../../../../lib/medical-validation';
@@ -42,35 +43,26 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error creating treatment:', error);
 
+    // Handle Zod validation errors
+    if (error instanceof ZodError) {
+      const fieldErrors: Record<string, string> = {};
+
+      error.errors.forEach((err) => {
+        const field = err.path.join('.');
+        fieldErrors[field] = err.message;
+      });
+
+      return NextResponse.json(
+        {
+          message: 'Datos de tratamiento inválidos',
+          errors: fieldErrors
+        },
+        { status: 400 }
+      );
+    }
+
+    // Handle other errors
     if (error instanceof Error) {
-      // Handle Zod validation errors
-      if (error.name === 'ZodError') {
-        interface ZodError {
-          errors: Array<{
-            path: Array<string | number>;
-            message: string;
-          }>;
-        }
-        const zodError = error as Error & ZodError;
-        const fieldErrors: Record<string, string> = {};
-
-        if (zodError.errors) {
-          zodError.errors.forEach((err) => {
-            const field = err.path.join('.');
-            fieldErrors[field] = err.message;
-          });
-        }
-
-        return NextResponse.json(
-          {
-            message: 'Datos de tratamiento inválidos',
-            errors: fieldErrors
-          },
-          { status: 400 }
-        );
-      }
-
-      // Handle database/business logic errors
       return NextResponse.json(
         {
           message: error.message || 'Error al crear el tratamiento',

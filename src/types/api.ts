@@ -1,15 +1,39 @@
 /**
- * API Error Response Types
+ * API Response Types
  *
- * Standardized error response structure for API endpoints
+ * Standardized response structures for API endpoints
  */
 
+import { Pet } from '@prisma/client';
+
+/**
+ * API Error Response
+ */
 export interface ApiErrorResponse {
   message: string;
   error?: string;
   details?: string;
   code?: string;
   statusCode?: number;
+}
+
+/**
+ * Pet creation response from POST /api/pets
+ */
+export interface PetCreationResponse {
+  pet: Pet;
+  automationTriggered: boolean;
+  message: string;
+}
+
+/**
+ * Customer creation response from POST /api/customers
+ */
+export interface CustomerCreationResponse {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
 }
 
 /**

@@ -6,6 +6,7 @@ import { Button } from '../ui/button';
 import { PlusIcon, TrashIcon, CheckCircleIcon, CalendarIcon, UserGroupIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { getThemeClasses } from '../../utils/theme-colors';
 import { mapSpeciesToEnglish, mapGenderToEnglish } from '@/lib/utils/pet-enum-mapping';
+import { type PetCreationResponse, type CustomerCreationResponse } from '@/types/api';
 
 interface NewCustomerFormProps {
   tenantId: string;
@@ -113,7 +114,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
         throw new Error('Error al crear cliente');
       }
 
-      const customer = await customerResponse.json();
+      const customer: CustomerCreationResponse = await customerResponse.json();
       setCreatedCustomerId(customer.id);
 
       // Create pets if any
@@ -135,8 +136,14 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
           });
 
           if (petResponse.ok) {
-            const createdPet = await petResponse.json();
-            petsCreated.push({ id: createdPet.pet.id, name: createdPet.pet.name });
+            const petCreationResponse: PetCreationResponse = await petResponse.json();
+            petsCreated.push({
+              id: petCreationResponse.pet.id,
+              name: petCreationResponse.pet.name
+            });
+          } else {
+            // Log pet creation failure but continue with customer creation
+            console.error(`Failed to create pet: ${pet.name}`, await petResponse.text());
           }
         }
       }
