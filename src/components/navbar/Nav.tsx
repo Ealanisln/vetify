@@ -22,7 +22,7 @@ interface Tenant {
 }
 
 // Componente separado para la información del usuario que se hidrata después
-function UserSection() {
+function UserSection({ onNavigate }: { onNavigate?: () => void }) {
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
@@ -86,6 +86,7 @@ function UserSection() {
       <div className="flex items-center space-x-3">
         <Link
           href="/api/auth/login"
+          onClick={onNavigate}
           className="relative text-gray-700 hover:text-[#4DB8A3] dark:text-gray-200 dark:hover:text-[#4DB8A3] px-5 py-2.5 text-base font-medium transition-all duration-300 hover:bg-[#4DB8A3]/5 dark:hover:bg-[#4DB8A3]/10 rounded-xl group overflow-hidden"
         >
           <span className="relative z-10">Iniciar sesión</span>
@@ -93,6 +94,7 @@ function UserSection() {
         </Link>
         <Link
           href="/api/auth/register"
+          onClick={onNavigate}
           className="relative bg-gradient-to-r from-[#4DB8A3] to-[#45635C] hover:from-[#45635C] hover:to-[#4DB8A3] text-white px-6 py-2.5 rounded-xl text-base font-semibold transition-all duration-500 shadow-lg shadow-[#4DB8A3]/30 hover:shadow-xl hover:shadow-[#4DB8A3]/40 hover:scale-105 focus:ring-2 focus:ring-[#4DB8A3] focus:ring-offset-2 dark:focus:ring-offset-gray-900 group overflow-hidden"
         >
           <span className="relative z-10 flex items-center">
@@ -151,7 +153,7 @@ function UserSection() {
 
       {/* Dropdown Menu */}
       {userDropdownOpen && (
-        <div className="absolute right-0 mt-3 w-64 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
+        <div className="absolute right-0 mt-3 w-56 sm:w-64 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-200/50 dark:border-gray-700/50 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="px-4 py-3 border-b border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-[#4DB8A3]/5 to-transparent">
             <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {displayName}
@@ -202,6 +204,7 @@ export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const { mounted, theme, setTheme } = useThemeAware();
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -209,6 +212,10 @@ export default function Nav() {
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
+  };
+
+  const openMobileMenu = () => {
+    setMobileMenuOpen(true);
   };
 
   // Detect scroll for navbar background transition
@@ -223,14 +230,24 @@ export default function Nav() {
 
   // Close mobile menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
-        closeMobileMenu();
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
+
+      // Don't close if clicking on the menu itself or the hamburger button
+      if (
+        (mobileMenuRef.current && mobileMenuRef.current.contains(target)) ||
+        (hamburgerButtonRef.current && hamburgerButtonRef.current.contains(target))
+      ) {
+        return;
       }
+
+      closeMobileMenu();
     };
 
     if (mobileMenuOpen) {
+      // Use both mouse and touch events for better mobile support
       document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside, { passive: true });
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -238,6 +255,7 @@ export default function Nav() {
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
       document.body.style.overflow = 'unset';
     };
   }, [mobileMenuOpen]);
@@ -429,14 +447,20 @@ export default function Nav() {
               </button>
 
               <button
-                onClick={() => {
-                  if (window.innerWidth < 640) {
-                    setMobileMenuOpen(!mobileMenuOpen);
+                ref={hamburgerButtonRef}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (mobileMenuOpen) {
+                    closeMobileMenu();
+                  } else {
+                    openMobileMenu();
                   }
                 }}
                 className="p-2 rounded-lg text-gray-700 dark:text-gray-200 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-[#4DB8A3]/10 dark:hover:bg-[#4DB8A3]/20 transition-all duration-300 focus:ring-2 focus:ring-[#4DB8A3] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
                 aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
                 aria-expanded={mobileMenuOpen}
+                type="button"
               >
                 <div className="relative w-6 h-6">
                   <svg
@@ -511,7 +535,7 @@ export default function Nav() {
 
               {/* User Section for Mobile */}
               <div className="pt-2">
-                <UserSection />
+                <UserSection onNavigate={closeMobileMenu} />
               </div>
             </div>
           </div>

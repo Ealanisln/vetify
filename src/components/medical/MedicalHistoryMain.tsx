@@ -171,35 +171,46 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
           ) : (
             <div className={`divide-y ${getThemeClasses('border.primary')}`}>
               {histories.map((history) => (
-                <div key={history.id} className={`p-6 ${getThemeClasses('hover.card')} transition-colors`}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
+                <div key={history.id} className={`p-4 md:p-6 ${getThemeClasses('hover.card')} transition-colors`}>
+                  {/* Mobile: Date at top, Desktop: Date on the right */}
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 md:gap-0">
+                    {/* Date - Mobile Top */}
+                    <div className="flex items-center justify-between md:hidden mb-2">
+                      <div className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+                        <CalendarIcon className="h-3 w-3" />
+                        <span>
+                          {format(new Date(history.visitDate), 'dd/MM/yyyy HH:mm', { locale: es })}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 min-w-0">
                       {/* Header con mascota y cliente */}
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="flex items-center gap-2">
-                          <HeartIcon className="h-4 w-4 text-red-500 dark:text-red-400" />
-                          <span className={`font-medium ${getThemeClasses('text.primary')}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <HeartIcon className="h-4 w-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+                          <span className="font-medium text-gray-900 dark:text-gray-100">
                             {history.pet.name}
                           </span>
-                          <span className={`text-sm ${getThemeClasses('text.secondary')}`}>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
                             ({history.pet.species})
                           </span>
                         </div>
-                        <div className={`flex items-center gap-2 text-sm ${getThemeClasses('text.secondary')}`}>
-                          <UserIcon className="h-3 w-3" />
-                          <span>{history.pet.customer.name}</span>
+                        <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                          <UserIcon className="h-3 w-3 flex-shrink-0" />
+                          <span className="truncate">{history.pet.customer.name}</span>
                         </div>
                       </div>
 
                       {/* Motivo de consulta */}
                       <div className="mb-2">
-                        <h3 className={`text-lg font-medium ${getThemeClasses('text.primary')} mb-1`}>
+                        <h3 className="text-base md:text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
                           {history.reasonForVisit}
                         </h3>
                         {history.diagnosis && (
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className={`text-sm ${getThemeClasses('text.secondary')}`}>Diagnóstico:</span>
-                            <Badge variant={getDiagnosisColor(history.diagnosis)}>
+                          <div className="flex items-center gap-2 mb-2 flex-wrap">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Diagnóstico:</span>
+                            <Badge variant={getDiagnosisColor(history.diagnosis)} className="dark:border-gray-600">
                               {history.diagnosis}
                             </Badge>
                           </div>
@@ -209,18 +220,18 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
                       {/* Tratamiento */}
                       {history.treatment && (
                         <div className="mb-2">
-                          <span className={`text-sm ${getThemeClasses('text.secondary')}`}>Tratamiento: </span>
-                          <span className={`text-sm ${getThemeClasses('text.primary')}`}>{history.treatment}</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Tratamiento: </span>
+                          <span className="text-sm text-gray-900 dark:text-gray-100">{history.treatment}</span>
                         </div>
                       )}
 
                       {/* Prescripciones */}
                       {history.medicalOrder?.prescriptions && history.medicalOrder.prescriptions.length > 0 && (
                         <div className="mb-2">
-                          <span className={`text-sm ${getThemeClasses('text.secondary')}`}>Prescripciones: </span>
+                          <span className="text-sm text-gray-600 dark:text-gray-400">Prescripciones: </span>
                           <div className="flex flex-wrap gap-1 mt-1">
                             {history.medicalOrder.prescriptions.map((prescription, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
+                              <Badge key={index} variant="outline" className="text-xs dark:border-gray-600 dark:text-gray-300">
                                 {prescription.productName} ({prescription.quantity})
                               </Badge>
                             ))}
@@ -230,33 +241,47 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
 
                       {/* Notas */}
                       {history.notes && (
-                        <div className={`text-sm ${getThemeClasses('text.secondary')} mt-2 ${getThemeClasses('background.muted')} p-2 rounded`}>
+                        <div className="text-sm text-gray-700 dark:text-gray-300 mt-2 bg-gray-100 dark:bg-gray-800 p-2 rounded">
                           <strong>Notas:</strong> {history.notes}
                         </div>
                       )}
                     </div>
 
-                    {/* Fecha y acciones */}
-                    <div className="flex flex-col items-end gap-2 ml-4">
-                      <div className={`flex items-center gap-1 text-sm ${getThemeClasses('text.secondary')}`}>
+                    {/* Fecha y acciones - Desktop */}
+                    <div className="hidden md:flex md:flex-col items-end gap-2 ml-4 flex-shrink-0">
+                      <div className="flex items-center gap-1 text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
                         <CalendarIcon className="h-3 w-3" />
                         <span>
                           {format(new Date(history.visitDate), 'dd/MM/yyyy HH:mm', { locale: es })}
                         </span>
                       </div>
-                      
+
                       <div className="flex gap-2">
                         <Link href={`/dashboard/pets/${history.pet.id}`}>
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
                             Ver Mascota
                           </Button>
                         </Link>
                         <Link href={`/dashboard/medical-history/${history.id}`}>
-                          <Button size="sm">
+                          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700">
                             Ver Detalle
                           </Button>
                         </Link>
                       </div>
+                    </div>
+
+                    {/* Botones - Mobile Bottom */}
+                    <div className="flex flex-col sm:flex-row gap-2 mt-3 md:hidden">
+                      <Link href={`/dashboard/pets/${history.pet.id}`} className="flex-1">
+                        <Button variant="outline" size="sm" className="w-full dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800">
+                          Ver Mascota
+                        </Button>
+                      </Link>
+                      <Link href={`/dashboard/medical-history/${history.id}`} className="flex-1">
+                        <Button size="sm" className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700">
+                          Ver Detalle
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 </div>

@@ -15,22 +15,22 @@ export function StatsCard({ title, value, limit, icon, trend, className = "" }: 
   const isNearLimit = percentage > 80;
 
   return (
-    <div className={`card overflow-hidden ${className}`}>
-      <div className="card-content">
+    <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm overflow-hidden ${className}`}>
+      <div className="p-4 md:p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0">
             <span className="text-xl sm:text-2xl">{icon}</span>
           </div>
-          <div className="ml-3 sm:ml-5 w-0 flex-1 min-w-0">
+          <div className="ml-3 sm:ml-4 w-0 flex-1 min-w-0">
             <dl>
-              <dt className="text-sm font-medium text-muted-foreground truncate">
+              <dt className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 truncate">
                 {title}
               </dt>
-              <dd className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-0">
-                <div className="text-xl sm:text-2xl font-semibold text-foreground">
+              <dd className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-0 mt-1">
+                <div className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100">
                   {value.toLocaleString()}
                   {limit && (
-                    <span className="text-xs sm:text-sm text-muted-foreground ml-1">
+                    <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 ml-1">
                       / {limit.toLocaleString()}
                     </span>
                   )}
@@ -48,13 +48,13 @@ export function StatsCard({ title, value, limit, icon, trend, className = "" }: 
               </dd>
             </dl>
             {limit && (
-              <div className="mt-3">
-                <div className="bg-muted rounded-full h-2">
+              <div className="mt-2 sm:mt-3">
+                <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div
                     className={`h-2 rounded-full transition-all duration-300 ${
                       isNearLimit
                         ? 'bg-yellow-500 dark:bg-yellow-400'
-                        : 'bg-primary'
+                        : 'bg-blue-600 dark:bg-blue-500'
                     }`}
                     style={{ width: `${Math.min(percentage, 100)}%` }}
                   />
@@ -65,7 +65,7 @@ export function StatsCard({ title, value, limit, icon, trend, className = "" }: 
                       Cerca del límite
                     </p>
                   )}
-                  <span className="text-xs text-muted-foreground ml-auto">
+                  <span className="text-xs text-gray-500 dark:text-gray-400 ml-auto">
                     {percentage.toFixed(0)}%
                   </span>
                 </div>

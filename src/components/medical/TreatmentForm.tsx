@@ -157,41 +157,41 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
 
         {/* Dosage */}
         <div>
-          <label htmlFor="dosage" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="dosage" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Dosis *
           </label>
           <input
             type="text"
             id="dosage"
             {...register('dosage')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500 placeholder-gray-400 dark:placeholder-gray-500"
             placeholder="Ej: 250mg"
           />
           {errors.dosage && (
-            <p className="mt-1 text-sm text-red-600">{errors.dosage.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.dosage.message}</p>
           )}
         </div>
 
         {/* Frequency */}
         <div>
-          <label htmlFor="frequency" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="frequency" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Frecuencia *
           </label>
           <input
             type="text"
             id="frequency"
             {...register('frequency')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500 placeholder-gray-400 dark:placeholder-gray-500"
             placeholder="Ej: Cada 12 horas"
           />
           {errors.frequency && (
-            <p className="mt-1 text-sm text-red-600">{errors.frequency.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.frequency.message}</p>
           )}
         </div>
 
         {/* Duration */}
         <div>
-          <label htmlFor="duration_days" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="duration_days" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Duración (días) *
           </label>
           <input
@@ -199,35 +199,35 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
             id="duration_days"
             {...register('duration_days', { valueAsNumber: true })}
             min="1"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500 placeholder-gray-400 dark:placeholder-gray-500"
             placeholder="7"
           />
           {errors.duration_days && (
-            <p className="mt-1 text-sm text-red-600">{errors.duration_days.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.duration_days.message}</p>
           )}
         </div>
 
         {/* Instructions */}
         <div>
-          <label htmlFor="instructions" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="instructions" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Instrucciones *
           </label>
           <textarea
             id="instructions"
             {...register('instructions')}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500 placeholder-gray-400 dark:placeholder-gray-500"
             placeholder="Instrucciones para el tratamiento..."
           />
           {errors.instructions && (
-            <p className="mt-1 text-sm text-red-600">{errors.instructions.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.instructions.message}</p>
           )}
         </div>
 
         {/* Veterinarian */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label htmlFor="veterinarian_id" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="veterinarian_id" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
               Veterinario responsable *
             </label>
             <InlineVeterinarianCreator
@@ -235,13 +235,13 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
               onVeterinarianCreated={handleVeterinarianCreated}
               theme="green"
               buttonText="+ Agregar"
-              buttonClassName="text-sm text-green-600 hover:text-green-700 font-medium flex items-center gap-1 bg-transparent border-0 px-2 py-1"
+              buttonClassName="text-sm text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 font-medium flex items-center gap-1 bg-transparent border-0 px-2 py-1"
             />
           </div>
           <select
             id="veterinarian_id"
             {...register('veterinarian_id')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500"
           >
             <option value="">Seleccionar veterinario</option>
             {staff.map((member) => (
@@ -252,10 +252,10 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
             ))}
           </select>
           {errors.veterinarian_id && (
-            <p className="mt-1 text-sm text-red-600">{errors.veterinarian_id.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.veterinarian_id.message}</p>
           )}
           {staff.length === 0 && (
-            <p className="mt-2 text-sm text-amber-600 flex items-center gap-1">
+            <p className="mt-2 text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
@@ -266,17 +266,17 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
 
         {/* Start Date */}
         <div>
-          <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Fecha de inicio *
           </label>
           <input
             type="date"
             id="start_date"
             {...register('start_date', { valueAsDate: true })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500"
           />
           {errors.start_date && (
-            <p className="mt-1 text-sm text-red-600">{errors.start_date.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.start_date.message}</p>
           )}
         </div>
 
@@ -285,15 +285,15 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 bg-green-600 hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700 text-white font-medium py-3 px-6 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? 'Guardando...' : 'Guardar Tratamiento'}
           </button>
-          
+
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 border border-gray-300 text-gray-700 font-medium py-3 px-6 rounded-lg hover:bg-gray-50 transition-colors"
+            className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-medium py-3 px-6 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             Cancelar
           </button>
