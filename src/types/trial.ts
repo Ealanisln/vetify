@@ -23,7 +23,7 @@ export interface TrialStatus {
 // Feature access control
 // Note: 'automations' kept for backward compatibility but not actively used
 export interface FeatureAccess {
-  feature: 'pets' | 'appointments' | 'inventory' | 'reports' | 'automations';
+  feature: 'pets' | 'appointments' | 'customers' | 'inventory' | 'reports' | 'staff' | 'cash_register' | 'pos' | 'medical_history' | 'automations';
   allowed: boolean;
   reason?: string;
   limit?: number;
@@ -34,7 +34,7 @@ export interface FeatureAccess {
 // Note: 'automations' removed as it's a future feature
 export const TrialAccessSchema = z.object({
   tenantId: z.string().uuid().optional(), // Optional since it can be inferred from user
-  feature: z.enum(['pets', 'appointments', 'inventory', 'reports']).optional(),
+  feature: z.enum(['pets', 'appointments', 'customers', 'inventory', 'reports', 'staff', 'cash_register', 'pos', 'medical_history']).optional(),
   action: z.enum(['view', 'create', 'update', 'delete']).optional().default('view')
 });
 
@@ -97,11 +97,16 @@ export const TRIAL_LIMITS = {
 // Grace period configuration
 export const GRACE_PERIOD_DAYS = 3;
 
-// Features that require paid subscription
+// Features that require paid subscription (beyond trial period)
+// All operational features now require active subscription after trial expires
 // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
 export const PREMIUM_FEATURES = [
   'inventory',
-  'reports'
+  'reports',
+  'staff',
+  'cash_register',
+  'pos',
+  'medical_history'
   // 'automations' // Commented out - future feature
 ] as const;
 
@@ -113,6 +118,6 @@ export const TRIAL_FEATURES = [
 
 // Export feature type
 // Note: 'automations' kept in type for backward compatibility but not used
-export type Feature = 'pets' | 'appointments' | 'inventory' | 'reports' | 'automations';
+export type Feature = 'pets' | 'appointments' | 'customers' | 'inventory' | 'reports' | 'staff' | 'cash_register' | 'pos' | 'medical_history' | 'automations';
 export type TrialFeature = typeof TRIAL_FEATURES[number];
 export type PremiumFeature = typeof PREMIUM_FEATURES[number];

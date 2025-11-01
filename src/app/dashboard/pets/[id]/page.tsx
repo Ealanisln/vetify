@@ -1,4 +1,4 @@
-import { requireAuth } from '../../../../lib/auth';
+import { requireActiveSubscription } from '../../../../lib/auth';
 import { getPetById } from '../../../../lib/pets';
 import { notFound } from 'next/navigation';
 import { PetHeader } from '../../../../components/pets/PetHeader';
@@ -12,7 +12,8 @@ interface PetProfilePageProps {
 }
 
 export default async function PetProfilePage({ params }: PetProfilePageProps) {
-  const { tenant } = await requireAuth();
+  // CRITICAL FIX: Use requireActiveSubscription to block access with expired trial
+  const { tenant } = await requireActiveSubscription();
   const { id } = await params;
   const pet = await getPetById(id, tenant.id);
   

@@ -38,6 +38,9 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
     subscriptionStatus
   } = useSubscription(tenant);
 
+  // CRITICAL FIX: Check if trial has expired
+  const isTrialExpired = isInTrial && tenant.trialEndsAt && new Date(tenant.trialEndsAt) < new Date();
+
   const handleManageSubscription = async () => {
     setIsLoading(true);
     try {
@@ -69,6 +72,16 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
   };
 
   const getStatusConfig = (status: string) => {
+    // CRITICAL: Check if trial is expired - override TRIALING status
+    if (isTrialExpired) {
+      return {
+        icon: AlertTriangle,
+        color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-800',
+        text: 'Periodo de Prueba Expirado',
+        description: 'Tu periodo de prueba ha terminado. Suscríbete para continuar.'
+      };
+    }
+
     switch (status) {
       case 'ACTIVE':
         return {
@@ -116,7 +129,9 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
       {/* Status Overview Card */}
       <div className={`
         relative overflow-hidden rounded-lg border p-6
-        ${isInTrial
+        ${isTrialExpired
+          ? 'bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-200 dark:border-red-800'
+          : isInTrial
           ? 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200 dark:border-blue-800'
           : needsPayment
           ? 'bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border-yellow-200 dark:border-yellow-800'
@@ -126,8 +141,8 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
         <div className="relative z-10">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-xl ${isInTrial ? 'bg-blue-100 dark:bg-blue-900/40' : needsPayment ? 'bg-yellow-100 dark:bg-yellow-900/40' : 'bg-green-100 dark:bg-green-900/40'}`}>
-                <StatusIcon className={`h-6 w-6 ${isInTrial ? 'text-blue-600 dark:text-blue-400' : needsPayment ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`} />
+              <div className={`p-3 rounded-xl ${isTrialExpired ? 'bg-red-100 dark:bg-red-900/40' : isInTrial ? 'bg-blue-100 dark:bg-blue-900/40' : needsPayment ? 'bg-yellow-100 dark:bg-yellow-900/40' : 'bg-green-100 dark:bg-green-900/40'}`}>
+                <StatusIcon className={`h-6 w-6 ${isTrialExpired ? 'text-red-600 dark:text-red-400' : isInTrial ? 'text-blue-600 dark:text-blue-400' : needsPayment ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`} />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Estado de la Subscripción</p>
@@ -188,20 +203,52 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
 
           {/* Trial Info Banner */}
           {isInTrial && tenant.trialEndsAt && (
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className={`mt-6 p-4 rounded-lg ${
+              isTrialExpired
+                ? 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800'
+                : 'bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800'
+            }`}>
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg">
-                  <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div className={`p-2 rounded-lg ${
+                  isTrialExpired
+                    ? 'bg-red-100 dark:bg-red-900/50'
+                    : 'bg-blue-100 dark:bg-blue-900/50'
+                }`}>
+                  {isTrialExpired ? (
+                    <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                  ) : (
+                    <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  )}
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                    Periodo de Prueba Gratuito
+                  <p className={`text-sm font-semibold ${
+                    isTrialExpired
+                      ? 'text-red-900 dark:text-red-100'
+                      : 'text-blue-900 dark:text-blue-100'
+                  }`}>
+                    {isTrialExpired ? 'Periodo de Prueba Expirado' : 'Periodo de Prueba Gratuito'}
                   </p>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                    Tienes acceso completo hasta el{' '}
-                    <span className="font-semibold">
-                      {format(new Date(tenant.trialEndsAt), 'dd MMMM yyyy', { locale: es })}
-                    </span>
+                  <p className={`text-xs mt-1 ${
+                    isTrialExpired
+                      ? 'text-red-700 dark:text-red-300'
+                      : 'text-blue-700 dark:text-blue-300'
+                  }`}>
+                    {isTrialExpired ? (
+                      <>
+                        Tu periodo de prueba terminó el{' '}
+                        <span className="font-semibold">
+                          {format(new Date(tenant.trialEndsAt), 'dd MMMM yyyy', { locale: es })}
+                        </span>
+                        . Suscríbete ahora para continuar usando Vetify.
+                      </>
+                    ) : (
+                      <>
+                        Tienes acceso completo hasta el{' '}
+                        <span className="font-semibold">
+                          {format(new Date(tenant.trialEndsAt), 'dd MMMM yyyy', { locale: es })}
+                        </span>
+                      </>
+                    )}
                   </p>
                 </div>
               </div>
@@ -259,18 +306,28 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
             ) : (
               <Button
                 onClick={handleUpgradePlan}
-                className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+                className={`w-full h-12 text-base font-semibold ${
+                  isTrialExpired
+                    ? 'bg-red-600 hover:bg-red-700 text-white'
+                    : 'bg-primary hover:bg-primary/90'
+                }`}
                 size="lg"
               >
                 <div className="flex items-center gap-2">
-                  <CreditCard className="h-5 w-5" />
-                  {isInTrial ? 'Actualizar Plan' : 'Ver Planes Disponibles'}
+                  {isTrialExpired ? (
+                    <AlertTriangle className="h-5 w-5" />
+                  ) : (
+                    <CreditCard className="h-5 w-5" />
+                  )}
+                  {isTrialExpired ? 'Suscribirse Ahora' : isInTrial ? 'Actualizar Plan' : 'Ver Planes Disponibles'}
                 </div>
               </Button>
             )}
 
             <p className="text-xs text-muted-foreground text-center pt-2">
-              {isInTrial
+              {isTrialExpired
+                ? 'Tu periodo de prueba ha terminado. Suscríbete para recuperar el acceso completo a Vetify.'
+                : isInTrial
                 ? 'Explora todos nuestros planes y elige el que mejor se adapte a tu clínica'
                 : needsPayment
                 ? 'Actualiza tu información de pago para continuar sin interrupciones'

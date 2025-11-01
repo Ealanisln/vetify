@@ -78,14 +78,44 @@ export function VaccinationForm({ petId, tenantId, onSuccess, onCancel }: Vaccin
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al registrar la vacunación');
+        // Provide granular error messages based on HTTP status code
+        let errorMessage: string;
+
+        switch (response.status) {
+          case 400:
+            errorMessage = 'Datos inválidos. Por favor verifica la información de la vacunación.';
+            break;
+          case 401:
+            errorMessage = 'Sesión expirada. Por favor inicia sesión nuevamente.';
+            break;
+          case 403:
+            errorMessage = 'Sin permisos para registrar vacunaciones. Contacta al administrador.';
+            break;
+          case 409:
+            errorMessage = 'Conflicto detectado. Esta vacunación ya fue registrada.';
+            break;
+          case 500:
+            errorMessage = 'Error del servidor. Por favor intenta nuevamente.';
+            break;
+          default:
+            // Fallback to server-provided message or generic error
+            try {
+              const errorData = await response.json();
+              errorMessage = errorData.message || `Error al registrar la vacunación (${response.status})`;
+            } catch {
+              errorMessage = `Error al registrar la vacunación (${response.status})`;
+            }
+        }
+
+        console.error('❌ API Error Response:', { status: response.status, message: errorMessage });
+        throw new Error(errorMessage);
       }
 
       onSuccess?.();
     } catch (error) {
       console.error('Error submitting vaccination:', error);
-      alert(error instanceof Error ? error.message : 'Error al guardar la vacunación');
+      const errorMessage = error instanceof Error ? error.message : 'Error al guardar la vacunación';
+      alert(`Error: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }

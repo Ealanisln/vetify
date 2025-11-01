@@ -13,38 +13,66 @@ import {
 } from './lib/security/audit-logger';
 import { securityHeaders } from './lib/security/input-sanitization';
 
-// Protected routes that require trial/subscription access
-// NOTE: Basic features (inventory, reports, cash register) are NOT protected here
-// Advanced features are protected via FeatureGate within each page
+/**
+ * Protected routes that require trial/subscription access
+ * All operational features require active subscription
+ * Only Dashboard and Settings are accessible without active plan
+ *
+ * Routes are organized by feature with bilingual support (English/Spanish)
+ * Pattern: Both language variants map to the same feature for consistent access control
+ */
 const PROTECTED_ROUTES = {
-  // Create/Edit operations
-  '/dashboard/pets/new': 'pets',
-  '/dashboard/appointments/new': 'appointments',
-
-  // Main dashboard sections - require active subscription
+  // Customers (Clientes)
+  '/dashboard/customers/new': 'customers',
+  '/dashboard/customers': 'customers',
   '/dashboard/clientes': 'customers',
+
+  // Pets (Mascotas)
+  '/dashboard/pets/new': 'pets',
+  '/dashboard/pets': 'pets',
   '/dashboard/mascotas': 'pets',
+
+  // Appointments (Citas)
+  '/dashboard/appointments/new': 'appointments',
+  '/dashboard/appointments': 'appointments',
   '/dashboard/citas': 'appointments',
+
+  // Medical History (Historia Clínica)
+  '/dashboard/medical-history': 'medical_history',
   '/dashboard/historia-clinica': 'medical_history',
+
+  // Point of Sale (Punto de Venta)
+  '/dashboard/pos': 'pos',
+  '/dashboard/sales': 'pos',
   '/dashboard/punto-de-venta': 'pos',
+
+  // Staff/Personnel (Personal)
+  '/dashboard/staff': 'staff',
+  '/dashboard/personal': 'staff',
+
+  // Cash Register (Caja)
+  '/dashboard/cash-register': 'cash_register',
+  '/dashboard/caja': 'cash_register',
+
+  // Inventory (Inventario)
+  '/dashboard/inventory': 'inventory',
+  '/dashboard/inventario': 'inventory',
+
+  // Reports (Reportes)
+  '/dashboard/reports': 'reports',
+  '/dashboard/reportes': 'reports',
 
   // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
   // '/dashboard/settings/automations': 'automations'
 } as const;
 
 // Routes that are always accessible even without active subscription
-// Basic features are accessible to all plans; advanced features gated within pages
+// Only Dashboard and Settings remain accessible for navigation and subscription renewal
 const ALLOWED_WITHOUT_PLAN = [
-  '/dashboard',
-  '/dashboard/settings',
-  '/dashboard/inventory',      // Basic inventory accessible to all
-  '/dashboard/inventario',      // Spanish route for inventory
-  '/dashboard/reports',         // Basic reports accessible to all
-  '/dashboard/reportes',        // Spanish route for reports
-  '/dashboard/caja',            // Basic cash register accessible to all
-  '/dashboard/sales',           // Point of sale accessible to all
-  '/precios',
-  '/checkout'
+  '/dashboard',          // Main dashboard - needed to show subscription banner
+  '/dashboard/settings', // Settings - needed to renew subscription
+  '/precios',            // Pricing page
+  '/checkout'            // Checkout flow
 ] as const;
 
 // The `withAuth` middleware automatically handles authentication
@@ -160,9 +188,15 @@ export default withAuth(
           await auditMiddleware(req, kindeUser.id);
           
           // Check if this is an allowed route that doesn't require a subscription
-          const isAllowedRoute = ALLOWED_WITHOUT_PLAN.some(route =>
-            pathname === route || pathname.startsWith(route + '/')
-          );
+          // Special handling: /dashboard only matches EXACTLY, not subroutes
+          const isAllowedRoute = ALLOWED_WITHOUT_PLAN.some(route => {
+            if (route === '/dashboard') {
+              // Only match /dashboard exactly, not subroutes like /dashboard/staff
+              return pathname === '/dashboard';
+            }
+            // For other routes, allow exact match or subroutes
+            return pathname === route || pathname.startsWith(route + '/');
+          });
 
           // Check if this is a protected route requiring trial/subscription access
           const protectedRoute = Object.keys(PROTECTED_ROUTES).find(route =>
@@ -170,6 +204,12 @@ export default withAuth(
           );
 
           if (protectedRoute && !isAllowedRoute) {
+            // Validate that protectedRoute is actually a key in PROTECTED_ROUTES
+            if (!(protectedRoute in PROTECTED_ROUTES)) {
+              console.error(`Invalid protected route: ${protectedRoute}`);
+              return NextResponse.next();
+            }
+
             // This is a protected route - check trial access via API
             try {
               const baseUrl = req.nextUrl.origin;
@@ -189,7 +229,7 @@ export default withAuth(
 
               if (accessCheckResponse.ok) {
                 const result = await accessCheckResponse.json();
-                
+
                 if (!result.allowed) {
                   // Access denied - redirect to settings/subscription page
                   const url = new URL('/dashboard/settings', req.url);
