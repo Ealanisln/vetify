@@ -84,8 +84,7 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
       }
 
       const result = await response.json();
-      console.log('Treatment created:', result);
-      
+
       onSuccess?.();
     } catch (error) {
       console.error('Error submitting treatment:', error);
