@@ -202,13 +202,13 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
             {selectedSymptoms.map((symptom) => (
               <span
                 key={symptom}
-                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800"
+                className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
               >
                 {symptom}
                 <button
                   type="button"
                   onClick={() => handleSymptomToggle(symptom)}
-                  className="ml-2 text-blue-600 hover:text-blue-800"
+                  className="ml-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   ×
                 </button>
@@ -224,61 +224,61 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
 
       {/* Diagnóstico */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-          <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+          <span className="w-8 h-8 bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400 rounded-full flex items-center justify-center text-sm font-bold mr-3">
             3
           </span>
           Diagnóstico
         </h3>
-        
+
         <div>
-          <label htmlFor="diagnosis" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="diagnosis" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Diagnóstico médico *
           </label>
           <textarea
             id="diagnosis"
             {...register('diagnosis')}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
             placeholder="Ingresa el diagnóstico basado en la evaluación..."
           />
           {errors.diagnosis && (
-            <p className="mt-1 text-sm text-red-600">{errors.diagnosis.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.diagnosis.message}</p>
           )}
         </div>
       </div>
 
       {/* Plan de Tratamiento */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-          <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+          <span className="w-8 h-8 bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400 rounded-full flex items-center justify-center text-sm font-bold mr-3">
             4
           </span>
           Plan de Tratamiento
         </h3>
-        
+
         <div>
-          <label htmlFor="treatment_plan" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="treatment_plan" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Describe el plan de tratamiento *
           </label>
           <textarea
             id="treatment_plan"
             {...register('treatment_plan')}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
             placeholder="Detalla el tratamiento recomendado, medicamentos, cuidados especiales..."
           />
           {errors.treatment_plan && (
-            <p className="mt-1 text-sm text-red-600">{errors.treatment_plan.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.treatment_plan.message}</p>
           )}
         </div>
       </div>
 
       {/* Veterinario */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center justify-between">
           <div className="flex items-center">
-            <span className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
+            <span className="w-8 h-8 bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400 rounded-full flex items-center justify-center text-sm font-bold mr-3">
               5
             </span>
             Veterinario Responsable
@@ -288,18 +288,18 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
             onVeterinarianCreated={handleVeterinarianCreated}
             theme="blue"
             buttonText="+ Agregar"
-            buttonClassName="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 bg-transparent border-0 px-2 py-1"
+            buttonClassName="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium flex items-center gap-1 bg-transparent border-0 px-2 py-1"
           />
         </h3>
-        
+
         <div>
-          <label htmlFor="veterinarian_id" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="veterinarian_id" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Selecciona el veterinario *
           </label>
           <select
             id="veterinarian_id"
             {...register('veterinarian_id')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500"
           >
             <option value="">Selecciona un veterinario...</option>
             {staff.map((member) => (
@@ -310,10 +310,10 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
             ))}
           </select>
           {errors.veterinarian_id && (
-            <p className="mt-1 text-sm text-red-600">{errors.veterinarian_id.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.veterinarian_id.message}</p>
           )}
           {staff.length === 0 && (
-            <p className="mt-2 text-sm text-amber-600 flex items-center gap-1">
+            <p className="mt-2 text-sm text-amber-600 dark:text-amber-400 flex items-center gap-1">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
@@ -325,28 +325,28 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
 
       {/* Observaciones Adicionales */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-          <span className="w-8 h-8 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+          <span className="w-8 h-8 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 rounded-full flex items-center justify-center text-sm font-bold mr-3">
             6
           </span>
           Observaciones Adicionales
         </h3>
-        
+
         <div>
-          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Notas adicionales (opcional)
           </label>
           <textarea
             id="notes"
             {...register('notes')}
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
             placeholder="Cualquier observación adicional, recomendaciones especiales..."
           />
         </div>
 
         <div>
-          <label htmlFor="next_appointment" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="next_appointment" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Próxima cita (opcional)
           </label>
           <input
@@ -355,24 +355,24 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
             {...register('next_appointment', {
               setValueAs: (value) => value ? new Date(value) : undefined,
             })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500"
           />
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+      <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700">
         <button
           type="button"
           onClick={onCancel}
-          className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
-          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-colors"
+          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 transition-colors"
         >
           {isSubmitting && (
             <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>

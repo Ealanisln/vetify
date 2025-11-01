@@ -47,30 +47,30 @@ export function MedicalFormLayout({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
       <div className={`bg-gradient-to-r ${getFormColor()} shadow-lg`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-6">
+          <div className="py-4 md:py-6">
             {/* Breadcrumb - Responsive and mobile-optimized */}
-            <nav className="flex items-center space-x-2 text-white mb-4 text-sm md:text-base overflow-x-auto scrollbar-hide">
-              <Link 
-                href="/dashboard" 
+            <nav className="flex items-center space-x-2 text-white mb-3 md:mb-4 text-xs md:text-sm overflow-x-auto scrollbar-hide">
+              <Link
+                href="/dashboard"
                 className="hover:text-white/80 transition-colors whitespace-nowrap"
               >
                 Dashboard
               </Link>
               <span className="text-white/60">/</span>
-              <Link 
-                href="/dashboard/pets" 
+              <Link
+                href="/dashboard/pets"
                 className="hover:text-white/80 transition-colors whitespace-nowrap"
               >
                 Mascotas
               </Link>
               <span className="text-white/60">/</span>
-              <Link 
+              <Link
                 href={`/dashboard/pets/${petInfo.id}`}
-                className="hover:text-white/80 transition-colors whitespace-nowrap truncate max-w-[100px] md:max-w-none"
+                className="hover:text-white/80 transition-colors whitespace-nowrap truncate max-w-[80px] sm:max-w-[120px] md:max-w-none"
               >
                 {petInfo.name}
               </Link>
@@ -80,30 +80,30 @@ export function MedicalFormLayout({
 
             {/* Form Header */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2 sm:space-x-4 flex-1 min-w-0">
                 <Link
                   href={`/dashboard/pets/${petInfo.id}`}
-                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors flex-shrink-0"
                 >
-                  <ArrowLeft className="h-5 w-5 text-white" />
+                  <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
                 </Link>
-                
-                <div className="flex items-center space-x-3">
+
+                <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
                   {typeof getFormIcon() === 'string' ? (
-                    <span className="text-2xl">{getFormIcon()}</span>
+                    <span className="text-xl sm:text-2xl flex-shrink-0">{getFormIcon()}</span>
                   ) : (
-                    <div className="p-2 rounded-lg bg-white/10">
+                    <div className="p-1.5 sm:p-2 rounded-lg bg-white/10 flex-shrink-0">
                       {getFormIcon()}
                     </div>
                   )}
-                  <h1 className="text-2xl font-bold text-white">
+                  <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">
                     {formTitle}
                   </h1>
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center space-x-3">
+              {/* Action Buttons - Hidden on mobile (using mobile save bar below instead) */}
+              <div className="hidden lg:flex items-center space-x-3 flex-shrink-0">
                 <button
                   type="button"
                   onClick={onCancel}
@@ -129,28 +129,28 @@ export function MedicalFormLayout({
       </div>
 
       {/* Pet Info Bar - Mobile optimized */}
-      <div className="bg-white border-b border-gray-200 shadow-sm">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="py-3 md:py-4">
+          <div className="py-2 md:py-3 lg:py-4">
             <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3 md:space-x-6 flex-1 min-w-0">
-                <div className="flex items-center space-x-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-bold text-base md:text-lg flex-shrink-0">
+              <div className="flex items-center space-x-2 sm:space-x-3 md:space-x-6 flex-1 min-w-0">
+                <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-white font-bold text-sm sm:text-base md:text-lg flex-shrink-0">
                     {petInfo.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h2 className="text-base md:text-lg font-semibold text-gray-900 truncate">
+                    <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
                       {petInfo.name}
                     </h2>
-                    <p className="text-xs md:text-sm text-gray-500 truncate">
+                    <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 truncate">
                       {petInfo.species} • {petInfo.breed} • {petInfo.gender}
                     </p>
                   </div>
                 </div>
 
-                <div className="hidden md:flex items-center space-x-4 lg:space-x-6 text-sm">
-                  <div className="flex items-center space-x-2 text-gray-600 whitespace-nowrap">
-                    <Calendar className="h-4 w-4 flex-shrink-0" />
+                <div className="hidden md:flex items-center space-x-3 lg:space-x-6 text-xs lg:text-sm">
+                  <div className="flex items-center space-x-1 lg:space-x-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                    <Calendar className="h-3 w-3 lg:h-4 lg:w-4 flex-shrink-0" />
                     <span>
                       {(() => {
                         const birthDate = petInfo.dateOfBirth instanceof Date
@@ -161,27 +161,27 @@ export function MedicalFormLayout({
                       })()}
                     </span>
                   </div>
-                  
+
                   {parseWeight(petInfo.weight) !== null && (
-                    <div className="flex items-center space-x-2 text-gray-600 whitespace-nowrap">
-                      <Activity className="h-4 w-4 flex-shrink-0" />
+                    <div className="flex items-center space-x-1 lg:space-x-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                      <Activity className="h-3 w-3 lg:h-4 lg:w-4 flex-shrink-0" />
                       <span>{parseWeight(petInfo.weight)!.toFixed(1)} {petInfo.weightUnit || 'kg'}</span>
                     </div>
                   )}
 
-                  <div className="flex items-center space-x-2 text-gray-600 whitespace-nowrap">
-                    <Users className="h-4 w-4 flex-shrink-0" />
-                    <span className="truncate max-w-[150px]">{petInfo.customer.name}</span>
+                  <div className="flex items-center space-x-1 lg:space-x-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                    <Users className="h-3 w-3 lg:h-4 lg:w-4 flex-shrink-0" />
+                    <span className="truncate max-w-[120px] lg:max-w-[150px]">{petInfo.customer.name}</span>
                   </div>
                 </div>
               </div>
 
-              {/* Progress Indicator */}
+              {/* Progress Indicator - Hidden on mobile */}
               <div className="hidden lg:flex items-center space-x-2">
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center space-x-1">
                     <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                    <span className="text-xs text-gray-500">Paso 1 de 1</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Paso 1 de 1</span>
                   </div>
                 </div>
               </div>
@@ -191,21 +191,21 @@ export function MedicalFormLayout({
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="p-4 md:p-6">
             {children}
           </div>
         </div>
       </div>
 
       {/* Mobile Save Bar - Fixed at bottom on mobile */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 shadow-lg z-50">
         <div className="flex items-center space-x-3">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+            className="flex-1 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             Cancelar
           </button>
@@ -213,7 +213,7 @@ export function MedicalFormLayout({
             type="button"
             onClick={onSave}
             disabled={isLoading}
-            className={`flex-1 px-4 py-2 rounded-lg bg-gradient-to-r ${getFormColor()} text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2`}
+            className={`flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r ${getFormColor()} text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2`}
           >
             {isLoading && (
               <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white"></div>
@@ -224,7 +224,7 @@ export function MedicalFormLayout({
       </div>
 
       {/* Add padding at bottom for mobile save bar */}
-      <div className="lg:hidden h-24"></div>
+      <div className="lg:hidden h-20"></div>
     </div>
   );
 } 

@@ -167,27 +167,27 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
   };
 
   return (
-    <Card className={`${config.bgColor} border-2 p-6 shadow-lg`}>
-      <div className="flex items-start gap-4">
+    <Card className={`${config.bgColor} border-2 p-4 md:p-6 shadow-lg`}>
+      <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
         <div className="flex-shrink-0">
-          <div className={`p-3 rounded-full bg-white/80 ${config.iconColor}`}>
-            <Icon className="h-6 w-6" />
+          <div className={`p-2 md:p-3 rounded-full bg-white/80 ${config.iconColor}`}>
+            <Icon className="h-5 w-5 md:h-6 md:w-6" />
           </div>
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1 min-w-0 mr-4">
-              <h3 className={`text-lg font-bold ${config.textColor} mb-1`}>
+        <div className="flex-1 min-w-0 w-full">
+          <div className="flex items-start justify-between mb-3 gap-2">
+            <div className="flex-1 min-w-0">
+              <h3 className={`text-base md:text-lg font-bold ${config.textColor} mb-1`}>
                 {config.title}
               </h3>
-              <p className={`text-sm ${config.textColor} opacity-90`}>
+              <p className={`text-xs md:text-sm ${config.textColor} opacity-90`}>
                 {config.description}
               </p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               {planName && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs hidden sm:inline-flex">
                   {planName}
                 </Badge>
               )}
@@ -201,10 +201,10 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
             </div>
           </div>
 
-          <div className="flex items-center gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mt-4">
             <Button
               onClick={handleAction}
-              className={`${config.buttonColor} text-white flex items-center gap-2`}
+              className={`${config.buttonColor} text-white flex items-center justify-center gap-2 w-full sm:w-auto`}
               size="sm"
             >
               <CreditCard className="h-4 w-4" />
@@ -213,7 +213,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
             </Button>
 
             {config.type === 'trial-ending' && daysRemaining !== null && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-xs md:text-sm">
                 <CalendarX className={`h-4 w-4 ${config.iconColor}`} />
                 <span className={config.textColor}>
                   {daysRemaining === 0 ? 'Termina hoy' : `${daysRemaining} días restantes`}
@@ -222,7 +222,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
             )}
 
             {config.type === 'trial-expired' && daysRemaining !== null && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-xs md:text-sm">
                 <CalendarX className={`h-4 w-4 ${config.iconColor}`} />
                 <span className={config.textColor}>
                   Expirado hace {Math.abs(daysRemaining)} día{Math.abs(daysRemaining) !== 1 ? 's' : ''}
@@ -231,7 +231,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
             )}
 
             {config.type === 'trial-active' && daysRemaining !== null && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-xs md:text-sm">
                 <Clock className={`h-4 w-4 ${config.iconColor}`} />
                 <span className={config.textColor}>
                   {daysRemaining} días restantes
@@ -240,7 +240,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
             )}
 
             {config.type === 'upgrade' && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-xs md:text-sm">
                 <Zap className={`h-4 w-4 ${config.iconColor}`} />
                 <span className={config.textColor}>
                   Prueba gratuita de 30 días
@@ -251,14 +251,14 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
 
           {/* Beneficios específicos por tipo */}
           {config.type === 'upgrade' && (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="mt-3 md:mt-4 grid grid-cols-1 md:grid-cols-3 gap-2">
               {[
                 'WhatsApp automático',
                 'Inventario completo',
                 'Reportes avanzados'
               ].map((benefit, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
                   <span className="text-xs text-gray-700 dark:text-gray-300">{benefit}</span>
                 </div>
               ))}
@@ -267,14 +267,14 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
 
           {/* Beneficios del trial activo */}
           {config.type === 'trial-active' && (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="mt-3 md:mt-4 grid grid-cols-1 md:grid-cols-3 gap-2">
               {[
                 'Acceso completo a todas las funciones',
                 'Sin compromiso - cancela cuando quieras',
                 'Soporte prioritario incluido'
               ].map((benefit, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <CheckCircle className="h-3 w-3 text-green-600" />
+                  <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />
                   <span className="text-xs text-gray-700 dark:text-gray-300">{benefit}</span>
                 </div>
               ))}
@@ -283,14 +283,14 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
 
           {/* Beneficios para trial expirado - mostrar lo que se perdió */}
           {config.type === 'trial-expired' && (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="mt-3 md:mt-4 grid grid-cols-1 md:grid-cols-3 gap-2">
               {[
                 'WhatsApp automático',
                 'Inventario completo',
                 'Reportes avanzados'
               ].map((benefit, index) => (
                 <div key={index} className="flex items-center gap-2">
-                  <XCircle className="h-3 w-3 text-red-500" />
+                  <XCircle className="h-3 w-3 text-red-500 flex-shrink-0" />
                   <span className="text-xs text-gray-600 dark:text-gray-400">{benefit}</span>
                 </div>
               ))}

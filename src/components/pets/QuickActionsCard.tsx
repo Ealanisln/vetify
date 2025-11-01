@@ -35,7 +35,7 @@ export function QuickActionsCard({ pet }: QuickActionsCardProps) {
         router.push(`/dashboard/pets/${pet.id}/vitals/new`);
         break;
       case 'appointment':
-        alert('Abriendo calendario...');
+        router.push(`/dashboard/appointments/new?petId=${pet.id}&customerId=${pet.customer.id}`);
         break;
       case 'whatsapp':
         if (pet.customer?.phone) {
