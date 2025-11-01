@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '../../../lib/auth';
+import { requireActiveSubscription } from '../../../lib/auth';
 import { createPet, createPetSchema, getPetsByTenant } from '../../../lib/pets';
 import { validatePlanAction, PlanLimitError } from '../../../lib/plan-limits';
 
 export async function POST(request: NextRequest) {
   try {
-    const { tenant } = await requireAuth();
+    // CRITICAL FIX: Use requireActiveSubscription to block access with expired trial
+    const { tenant } = await requireActiveSubscription();
     const body = await request.json();
-    
-    // Check plan limits before creating pet
+
+    // Check plan limits before creating pet (also checks trial expiration now)
     await validatePlanAction(tenant.id, 'addPet');
     
     // Convert dateOfBirth string to Date object if needed
@@ -101,9 +102,10 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const { tenant } = await requireAuth();
+    // CRITICAL FIX: Use requireActiveSubscription to block access with expired trial
+    const { tenant } = await requireActiveSubscription();
     const pets = await getPetsByTenant(tenant.id as string);
-    
+
     return NextResponse.json(pets);
   } catch (error) {
     console.error('Error fetching pets:', error);

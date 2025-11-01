@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { serializeTenant } from './serializers';
+import { hasActiveSubscription } from './auth';
 
 interface PlanFeatures {
   whatsappMessages?: number;
@@ -37,6 +38,7 @@ export interface PlanUsageStats {
 /**
  * Get plan limits for a tenant
  * Falls back to PROFESIONAL plan limits if no subscription exists (30-day trial)
+ * CRITICAL: Returns zero limits if trial expired and no active subscription
  */
 export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
   const tenant = await prisma.tenant.findUnique({
@@ -48,7 +50,31 @@ export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
     }
   });
 
+  if (!tenant) {
+    throw new Error('Tenant not found');
+  }
+
+  // CRITICAL FIX: Check if tenant has active subscription or valid trial
+  // If trial expired and no active subscription, return zero limits
+  if (!hasActiveSubscription(tenant)) {
+    return {
+      maxPets: 0,
+      maxUsers: 0,
+      maxMonthlyWhatsApp: 0,
+      maxStorageGB: 0,
+      maxCashRegisters: 0,
+      canUseAutomations: false,
+      canUseAdvancedReports: false,
+      canUseAdvancedInventory: false,
+      canUseMultiLocation: false,
+      canUseMultiDoctor: false,
+      canUseSMSReminders: false,
+      canUseApiAccess: false
+    };
+  }
+
   // If no tenant subscription exists, return BASICO plan limits (30-day trial)
+  // This will only execute if trial is still valid (checked above)
   if (!tenant?.tenantSubscription?.plan) {
     return {
       maxPets: 300,
@@ -353,12 +379,37 @@ export class PlanLimitError extends Error {
 
 /**
  * Validate action against plan limits with detailed error information
+ * CRITICAL: Checks trial expiration FIRST before checking quantity limits
  */
 export async function validatePlanAction(
   tenantId: string,
   action: 'addPet' | 'addUser' | 'sendWhatsApp' | 'addCashRegister',
   quantity: number = 1
 ): Promise<void> {
+  // CRITICAL FIX: Check trial expiration BEFORE checking quantity limits
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    include: {
+      tenantSubscription: {
+        include: { plan: true }
+      }
+    }
+  });
+
+  if (!tenant) {
+    throw new Error('Tenant not found');
+  }
+
+  // If trial expired or no active subscription, deny all actions
+  if (!hasActiveSubscription(tenant)) {
+    throw new PlanLimitError(
+      'subscription',
+      0,
+      0,
+      'Tu período de prueba ha expirado. Suscríbete para continuar usando Vetify.'
+    );
+  }
+
   switch (action) {
     case 'addPet': {
       const petCheck = await checkPetLimit(tenantId);

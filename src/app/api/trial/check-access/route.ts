@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import { prisma } from '../../../../lib/prisma';
 import { calculateTrialStatus } from '../../../../lib/trial/utils';
-import { 
-  TrialAccessSchema, 
+import { hasActiveSubscription } from '../../../../lib/auth';
+import {
+  TrialAccessSchema,
   type TrialAccessResult,
+  type PremiumFeature,
   TRIAL_LIMITS,
-  PREMIUM_FEATURES 
+  PREMIUM_FEATURES
 } from '../../../../types/trial';
 
 export async function POST(request: NextRequest) {
@@ -82,10 +84,41 @@ export async function POST(request: NextRequest) {
 
     const tenant = dbUser.tenant;
 
-    // If has active paid subscription, allow all features
+    // CRITICAL: Check if tenant has active subscription or valid trial FIRST
+    const hasAccess = hasActiveSubscription(tenant);
+
+    // If no active subscription or valid trial, deny all access
+    if (!hasAccess) {
+      const denialReason = 'No tienes un plan activo. Suscríbete para continuar usando Vetify.';
+
+      await logAccess(
+        tenant.id,
+        user.id,
+        { feature, action },
+        false,
+        request,
+        denialReason
+      );
+
+      return NextResponse.json({
+        allowed: false,
+        trialStatus: {
+          status: 'expired',
+          daysRemaining: 0,
+          displayMessage: 'Plan expirado',
+          bannerType: 'danger',
+          showUpgradePrompt: true,
+          blockedFeatures: []
+        },
+        reason: denialReason,
+        redirectTo: '/precios'
+      } satisfies TrialAccessResult);
+    }
+
+    // If has active paid subscription (not trial), allow all features
     if (tenant.subscriptionStatus === 'ACTIVE' && !tenant.isTrialPeriod) {
       await logAccess(tenant.id, user.id, { feature, action }, true, request);
-      
+
       return NextResponse.json({
         allowed: true,
         trialStatus: {
@@ -99,17 +132,19 @@ export async function POST(request: NextRequest) {
       } satisfies TrialAccessResult);
     }
 
-    // Calculate trial status
+    // At this point, user is in valid trial period
+    // Calculate trial status for display
     const trialStatus = calculateTrialStatus(tenant);
 
-    // Check if trial has expired (no grace period for critical features)
-    if (trialStatus.status === 'expired') {
-      const denialReason = `Trial expirado hace ${Math.abs(trialStatus.daysRemaining)} días`;
-      
+    // Check feature-specific access for trial users
+    if (feature && PREMIUM_FEATURES.includes(feature as PremiumFeature)) {
+      // Premium features require paid subscription (not available in trial)
+      const denialReason = `Función ${feature} requiere suscripción de pago`;
+
       await logAccess(
-        tenant.id, 
-        user.id, 
-        { feature, action }, 
+        tenant.id,
+        user.id,
+        { feature, action },
         false,
         request,
         denialReason
@@ -123,55 +158,31 @@ export async function POST(request: NextRequest) {
       } satisfies TrialAccessResult);
     }
 
-    // Check feature-specific access for trial users
-    if (tenant.isTrialPeriod && feature) {
-      // Check if feature is premium-only
-      if (PREMIUM_FEATURES.includes(feature as 'inventory' | 'reports' | 'automations')) {
-        const denialReason = `Función ${feature} requiere suscripción`;
-        
+    // Check usage limits for trial features (pets, appointments)
+    if (action === 'create') {
+      const usageCheck = await checkUsageLimits(tenant.id, feature);
+
+      if (!usageCheck.allowed) {
         await logAccess(
-          tenant.id, 
-          user.id, 
-          { feature, action }, 
+          tenant.id,
+          user.id,
+          { feature, action },
           false,
           request,
-          denialReason
+          usageCheck.reason
         );
 
         return NextResponse.json({
           allowed: false,
           trialStatus,
-          reason: denialReason,
-          redirectTo: '/precios'
+          reason: usageCheck.reason,
+          redirectTo: '/precios',
+          remainingQuota: usageCheck.quota
         } satisfies TrialAccessResult);
-      }
-
-      // Check usage limits for trial features
-      if (action === 'create') {
-        const usageCheck = await checkUsageLimits(tenant.id, feature);
-        
-        if (!usageCheck.allowed) {
-          await logAccess(
-            tenant.id, 
-            user.id, 
-            { feature, action }, 
-            false,
-            request,
-            usageCheck.reason
-          );
-
-          return NextResponse.json({
-            allowed: false,
-            trialStatus,
-            reason: usageCheck.reason,
-            redirectTo: '/precios',
-            remainingQuota: usageCheck.quota
-          } satisfies TrialAccessResult);
-        }
       }
     }
 
-    // Access allowed
+    // Access allowed - valid trial with allowed feature
     await logAccess(tenant.id, user.id, { feature, action }, true, request);
 
     // Update last trial check timestamp

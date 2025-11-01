@@ -1,10 +1,11 @@
-import { requireAuth } from '../../../lib/auth';
+import { requireActiveSubscription } from '../../../lib/auth';
 import { getPetsByTenant } from '../../../lib/pets';
 import { PetsList } from '@/components/pets/PetsList';
 import Link from 'next/link';
 
 export default async function PetsPage() {
-  const { tenant } = await requireAuth();
+  // CRITICAL FIX: Use requireActiveSubscription to block access with expired trial
+  const { tenant } = await requireActiveSubscription();
   const pets = await getPetsByTenant(tenant.id);
   
   const maxPets = tenant.tenantSubscription?.plan?.maxPets || 50;

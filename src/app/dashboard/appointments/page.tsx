@@ -1,4 +1,4 @@
-import { requireAuth } from '../../../lib/auth';
+import { requireActiveSubscription } from '../../../lib/auth';
 import { AppointmentsPageClient } from './AppointmentsPageClient';
 import { getCustomersByTenant } from '../../../lib/customers';
 import { getPetsByTenant } from '../../../lib/pets';
@@ -6,8 +6,9 @@ import { getStaffMembers } from '../../../lib/medical';
 // Serializers not needed for this simple data transformation
 
 export default async function AppointmentsPage() {
-  const { tenant } = await requireAuth();
-  
+  // CRITICAL FIX: Use requireActiveSubscription to block access with expired trial
+  const { tenant } = await requireActiveSubscription();
+
   // Fetch all necessary data for the appointments page
   const [customers, pets, staff] = await Promise.all([
     getCustomersByTenant(tenant.id),

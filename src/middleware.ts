@@ -14,37 +14,47 @@ import {
 import { securityHeaders } from './lib/security/input-sanitization';
 
 // Protected routes that require trial/subscription access
-// NOTE: Basic features (inventory, reports, cash register) are NOT protected here
-// Advanced features are protected via FeatureGate within each page
+// All operational features now require active subscription
+// Only Dashboard and Settings are accessible without active plan
 const PROTECTED_ROUTES = {
-  // Create/Edit operations
+  // Create/Edit operations (English routes)
   '/dashboard/pets/new': 'pets',
   '/dashboard/appointments/new': 'appointments',
+  '/dashboard/customers/new': 'customers',
 
-  // Main dashboard sections - require active subscription
+  // Main dashboard sections - require active subscription (English routes)
+  '/dashboard/pets': 'pets',
+  '/dashboard/appointments': 'appointments',
+  '/dashboard/customers': 'customers',
+  '/dashboard/medical-history': 'medical_history',
+  '/dashboard/pos': 'pos',
+  '/dashboard/personal': 'staff',
+  '/dashboard/staff': 'staff',
+  '/dashboard/caja': 'cash_register',
+  '/dashboard/cash-register': 'cash_register',
+  '/dashboard/inventory': 'inventory',
+  '/dashboard/reports': 'reports',
+
+  // Spanish routes (full support)
   '/dashboard/clientes': 'customers',
   '/dashboard/mascotas': 'pets',
   '/dashboard/citas': 'appointments',
   '/dashboard/historia-clinica': 'medical_history',
   '/dashboard/punto-de-venta': 'pos',
+  '/dashboard/inventario': 'inventory',
+  '/dashboard/reportes': 'reports',
 
   // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
   // '/dashboard/settings/automations': 'automations'
 } as const;
 
 // Routes that are always accessible even without active subscription
-// Basic features are accessible to all plans; advanced features gated within pages
+// Only Dashboard and Settings remain accessible for navigation and subscription renewal
 const ALLOWED_WITHOUT_PLAN = [
-  '/dashboard',
-  '/dashboard/settings',
-  '/dashboard/inventory',      // Basic inventory accessible to all
-  '/dashboard/inventario',      // Spanish route for inventory
-  '/dashboard/reports',         // Basic reports accessible to all
-  '/dashboard/reportes',        // Spanish route for reports
-  '/dashboard/caja',            // Basic cash register accessible to all
-  '/dashboard/sales',           // Point of sale accessible to all
-  '/precios',
-  '/checkout'
+  '/dashboard',          // Main dashboard - needed to show subscription banner
+  '/dashboard/settings', // Settings - needed to renew subscription
+  '/precios',            // Pricing page
+  '/checkout'            // Checkout flow
 ] as const;
 
 // The `withAuth` middleware automatically handles authentication
@@ -160,9 +170,15 @@ export default withAuth(
           await auditMiddleware(req, kindeUser.id);
           
           // Check if this is an allowed route that doesn't require a subscription
-          const isAllowedRoute = ALLOWED_WITHOUT_PLAN.some(route =>
-            pathname === route || pathname.startsWith(route + '/')
-          );
+          // Special handling: /dashboard only matches EXACTLY, not subroutes
+          const isAllowedRoute = ALLOWED_WITHOUT_PLAN.some(route => {
+            if (route === '/dashboard') {
+              // Only match /dashboard exactly, not subroutes like /dashboard/staff
+              return pathname === '/dashboard';
+            }
+            // For other routes, allow exact match or subroutes
+            return pathname === route || pathname.startsWith(route + '/');
+          });
 
           // Check if this is a protected route requiring trial/subscription access
           const protectedRoute = Object.keys(PROTECTED_ROUTES).find(route =>
@@ -189,7 +205,7 @@ export default withAuth(
 
               if (accessCheckResponse.ok) {
                 const result = await accessCheckResponse.json();
-                
+
                 if (!result.allowed) {
                   // Access denied - redirect to settings/subscription page
                   const url = new URL('/dashboard/settings', req.url);

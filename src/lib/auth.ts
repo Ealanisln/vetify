@@ -101,4 +101,56 @@ export async function getAuthenticatedUserWithOptionalTenant() {
   const cleanTenant = serializedTenant ? JSON.parse(JSON.stringify(serializedTenant)) : null;
 
   return { user: cleanUser, tenant: cleanTenant };
+}
+
+/**
+ * Check if tenant has an active subscription or valid trial period
+ * @returns true if tenant can access premium features, false otherwise
+ */
+export function hasActiveSubscription(tenant: {
+  subscriptionStatus: string;
+  isTrialPeriod: boolean;
+  trialEndsAt: Date | string | null;
+}): boolean {
+  // Has active paid subscription (not in trial)
+  if (tenant.subscriptionStatus === 'ACTIVE' && !tenant.isTrialPeriod) {
+    return true;
+  }
+
+  // In trial period - check if trial has expired
+  if (tenant.isTrialPeriod && tenant.trialEndsAt) {
+    const trialEnd = new Date(tenant.trialEndsAt);
+    const now = new Date();
+
+    // Trial is still valid if trialEndsAt is in the future
+    if (trialEnd > now && tenant.subscriptionStatus === 'TRIALING') {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Require active subscription (paid or valid trial).
+ * If subscription is not active or trial expired, redirect to pricing page.
+ *
+ * Use this in pages/API routes that require active subscription.
+ *
+ * @example
+ * ```typescript
+ * export default async function PetsPage() {
+ *   const { user, tenant } = await requireActiveSubscription();
+ *   // ... rest of page logic
+ * }
+ * ```
+ */
+export async function requireActiveSubscription() {
+  const { user, tenant } = await requireAuth();
+
+  if (!hasActiveSubscription(tenant)) {
+    redirect('/dashboard/settings?tab=subscription&reason=trial_expired');
+  }
+
+  return { user, tenant };
 } 

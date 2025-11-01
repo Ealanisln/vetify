@@ -1,4 +1,4 @@
-import { requireAuth } from '../../../lib/auth';
+import { requireActiveSubscription } from '../../../lib/auth';
 import { getCustomers } from '../../../lib/customers';
 import { CustomersList } from '../../../components/customers/CustomersList';
 import { CustomerStats } from '../../../components/customers/CustomerStats';
@@ -7,8 +7,9 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
 export default async function CustomersPage() {
-  const { tenant } = await requireAuth();
-  
+  // CRITICAL FIX: Use requireActiveSubscription to block access with expired trial
+  const { tenant } = await requireActiveSubscription();
+
   // Get customers with their pets
   const customers = await getCustomers(tenant.id);
   
