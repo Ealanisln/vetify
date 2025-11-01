@@ -100,11 +100,36 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
       });
 
       if (!response.ok) {
-        const errorData: ApiErrorResponse = await response.json();
-        console.error('❌ API Error Response:', errorData);
+        // Provide granular error messages based on HTTP status code
+        let errorMessage: string;
 
-        // Extract user-friendly error message
-        const errorMessage = getApiErrorMessage(errorData, 'Error al crear la consulta');
+        switch (response.status) {
+          case 400:
+            errorMessage = 'Datos inválidos. Por favor verifica la información ingresada.';
+            break;
+          case 401:
+            errorMessage = 'Sesión expirada. Por favor inicia sesión nuevamente.';
+            break;
+          case 403:
+            errorMessage = 'Sin permisos para crear consultas. Contacta al administrador.';
+            break;
+          case 409:
+            errorMessage = 'Conflicto de horario. Este veterinario ya tiene otra cita programada.';
+            break;
+          case 500:
+            errorMessage = 'Error del servidor. Por favor intenta nuevamente.';
+            break;
+          default:
+            // Fallback to generic API error message extraction
+            try {
+              const errorData: ApiErrorResponse = await response.json();
+              errorMessage = getApiErrorMessage(errorData, 'Error al crear la consulta');
+            } catch {
+              errorMessage = `Error al crear la consulta (${response.status})`;
+            }
+        }
+
+        console.error('❌ API Error Response:', { status: response.status, message: errorMessage });
         throw new Error(errorMessage);
       }
 

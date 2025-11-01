@@ -80,7 +80,31 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
       });
 
       if (!response.ok) {
-        throw new Error('Error al guardar el tratamiento');
+        // Provide granular error messages based on HTTP status code
+        let errorMessage: string;
+
+        switch (response.status) {
+          case 400:
+            errorMessage = 'Datos inválidos. Por favor verifica la información del tratamiento.';
+            break;
+          case 401:
+            errorMessage = 'Sesión expirada. Por favor inicia sesión nuevamente.';
+            break;
+          case 403:
+            errorMessage = 'Sin permisos para crear tratamientos. Contacta al administrador.';
+            break;
+          case 409:
+            errorMessage = 'Conflicto de horario. Este tratamiento interfiere con otro existente.';
+            break;
+          case 500:
+            errorMessage = 'Error del servidor. Por favor intenta nuevamente.';
+            break;
+          default:
+            errorMessage = `Error al guardar el tratamiento (${response.status})`;
+        }
+
+        console.error('❌ API Error Response:', { status: response.status, message: errorMessage });
+        throw new Error(errorMessage);
       }
 
       await response.json();
@@ -88,7 +112,8 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
       onSuccess?.();
     } catch (error) {
       console.error('Error submitting treatment:', error);
-      alert('Error al guardar el tratamiento. Por favor, inténtelo de nuevo.');
+      const errorMessage = error instanceof Error ? error.message : 'Error al guardar el tratamiento';
+      alert(`Error: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }

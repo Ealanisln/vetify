@@ -13,36 +13,53 @@ import {
 } from './lib/security/audit-logger';
 import { securityHeaders } from './lib/security/input-sanitization';
 
-// Protected routes that require trial/subscription access
-// All operational features now require active subscription
-// Only Dashboard and Settings are accessible without active plan
+/**
+ * Protected routes that require trial/subscription access
+ * All operational features require active subscription
+ * Only Dashboard and Settings are accessible without active plan
+ *
+ * Routes are organized by feature with bilingual support (English/Spanish)
+ * Pattern: Both language variants map to the same feature for consistent access control
+ */
 const PROTECTED_ROUTES = {
-  // Create/Edit operations (English routes)
-  '/dashboard/pets/new': 'pets',
-  '/dashboard/appointments/new': 'appointments',
+  // Customers (Clientes)
   '/dashboard/customers/new': 'customers',
-
-  // Main dashboard sections - require active subscription (English routes)
-  '/dashboard/pets': 'pets',
-  '/dashboard/appointments': 'appointments',
   '/dashboard/customers': 'customers',
+  '/dashboard/clientes': 'customers',
+
+  // Pets (Mascotas)
+  '/dashboard/pets/new': 'pets',
+  '/dashboard/pets': 'pets',
+  '/dashboard/mascotas': 'pets',
+
+  // Appointments (Citas)
+  '/dashboard/appointments/new': 'appointments',
+  '/dashboard/appointments': 'appointments',
+  '/dashboard/citas': 'appointments',
+
+  // Medical History (Historia Clínica)
   '/dashboard/medical-history': 'medical_history',
+  '/dashboard/historia-clinica': 'medical_history',
+
+  // Point of Sale (Punto de Venta)
   '/dashboard/pos': 'pos',
   '/dashboard/sales': 'pos',
-  '/dashboard/personal': 'staff',
-  '/dashboard/staff': 'staff',
-  '/dashboard/caja': 'cash_register',
-  '/dashboard/cash-register': 'cash_register',
-  '/dashboard/inventory': 'inventory',
-  '/dashboard/reports': 'reports',
-
-  // Spanish routes (full support)
-  '/dashboard/clientes': 'customers',
-  '/dashboard/mascotas': 'pets',
-  '/dashboard/citas': 'appointments',
-  '/dashboard/historia-clinica': 'medical_history',
   '/dashboard/punto-de-venta': 'pos',
+
+  // Staff/Personnel (Personal)
+  '/dashboard/staff': 'staff',
+  '/dashboard/personal': 'staff',
+
+  // Cash Register (Caja)
+  '/dashboard/cash-register': 'cash_register',
+  '/dashboard/caja': 'cash_register',
+
+  // Inventory (Inventario)
+  '/dashboard/inventory': 'inventory',
   '/dashboard/inventario': 'inventory',
+
+  // Reports (Reportes)
+  '/dashboard/reports': 'reports',
   '/dashboard/reportes': 'reports',
 
   // FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented
@@ -187,6 +204,12 @@ export default withAuth(
           );
 
           if (protectedRoute && !isAllowedRoute) {
+            // Validate that protectedRoute is actually a key in PROTECTED_ROUTES
+            if (!(protectedRoute in PROTECTED_ROUTES)) {
+              console.error(`Invalid protected route: ${protectedRoute}`);
+              return NextResponse.next();
+            }
+
             // This is a protected route - check trial access via API
             try {
               const baseUrl = req.nextUrl.origin;

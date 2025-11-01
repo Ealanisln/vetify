@@ -87,18 +87,10 @@ export async function POST(request: NextRequest) {
     // CRITICAL: Check if tenant has active subscription or valid trial FIRST
     const hasAccess = hasActiveSubscription(tenant);
 
-    // If no active subscription or valid trial, deny all access
+    // Early return: If no active subscription or valid trial, deny all access
     if (!hasAccess) {
       const denialReason = 'No tienes un plan activo. Suscríbete para continuar usando Vetify.';
-
-      await logAccess(
-        tenant.id,
-        user.id,
-        { feature, action },
-        false,
-        request,
-        denialReason
-      );
+      await logAccess(tenant.id, user.id, { feature, action }, false, request, denialReason);
 
       return NextResponse.json({
         allowed: false,
@@ -115,8 +107,9 @@ export async function POST(request: NextRequest) {
       } satisfies TrialAccessResult);
     }
 
-    // If has active paid subscription (not trial), allow all features
-    if (tenant.subscriptionStatus === 'ACTIVE' && !tenant.isTrialPeriod) {
+    // Early return: If has active paid subscription (not trial), allow all features
+    const isPaidSubscription = !tenant.isTrialPeriod && tenant.subscriptionStatus === 'ACTIVE';
+    if (isPaidSubscription) {
       await logAccess(tenant.id, user.id, { feature, action }, true, request);
 
       return NextResponse.json({
