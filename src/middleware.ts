@@ -28,6 +28,7 @@ const PROTECTED_ROUTES = {
   '/dashboard/customers': 'customers',
   '/dashboard/medical-history': 'medical_history',
   '/dashboard/pos': 'pos',
+  '/dashboard/sales': 'pos',
   '/dashboard/personal': 'staff',
   '/dashboard/staff': 'staff',
   '/dashboard/caja': 'cash_register',
