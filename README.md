@@ -218,6 +218,42 @@ Required variables:
 
 See `/deployment/VERCEL_SETUP_INSTRUCTIONS.md` for complete setup guide.
 
+### 🔍 Troubleshooting: Database Connection
+
+If you encounter `FATAL: Tenant or user not found` errors in Vercel:
+
+#### ✅ Correct Supabase Connection String Format
+
+The connection string format **varies by project** - always use the exact format from your Supabase dashboard.
+
+**Get your connection strings from:**
+1. Go to: `https://supabase.com/dashboard/project/YOUR-PROJECT-REF/settings/database`
+2. Click on "Connection string" → "Connection pooling"
+3. Select "Transaction pooler" mode
+4. Copy the exact connection string shown
+
+**Key requirements:**
+- **Pooler host varies**: May be `aws-0-us-east-1` or `aws-1-us-east-1` (check dashboard)
+- **Critical parameters**: Must include `prepared_statements=false&statement_cache_size=0`
+- **Username format**: Use `postgres.PROJECT_REF` as shown in dashboard
+- **Database password**: Use the database password, NOT service role JWT
+
+**Example (format varies per project):**
+```bash
+# DATABASE_URL (Transaction pooler - Port 6543)
+postgresql://postgres.PROJECT_REF:PASSWORD@aws-1-us-east-1.pooler.supabase.com:6543/postgres?pgbouncer=true&prepared_statements=false&statement_cache_size=0
+
+# DIRECT_URL (Direct connection - Port 5432)
+postgresql://postgres.PROJECT_REF:PASSWORD@db.PROJECT_REF.supabase.co:5432/postgres
+```
+
+**Why these parameters matter:**
+- `prepared_statements=false`: Required for pgbouncer transaction mode
+- `statement_cache_size=0`: Prevents Prisma statement caching issues
+- `pgbouncer=true`: Enables connection pooling for serverless
+
+**Pro tip:** Always copy the connection string from your Supabase dashboard rather than constructing it manually - the pooler host and format can vary between projects.
+
 ## 📚 Documentation
 
 - **Main Guide**: `CLAUDE.md` - Comprehensive development guide
