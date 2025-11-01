@@ -83,7 +83,7 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
         throw new Error('Error al guardar el tratamiento');
       }
 
-      const result = await response.json();
+      await response.json();
 
       onSuccess?.();
     } catch (error) {
