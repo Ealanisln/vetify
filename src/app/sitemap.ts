@@ -1,22 +1,20 @@
 import type { MetadataRoute } from 'next';
 import { getBaseUrl } from '@/lib/seo/config';
 import { SUPPORTED_LANGUAGES } from '@/lib/seo/language';
+import { prisma } from '@/lib/prisma';
 
 /**
- * Generate sitemap.xml
+ * Generate sitemap.xml with static and dynamic routes
  * This helps search engines discover and index your pages
  *
  * Next.js will automatically serve this at /sitemap.xml
- *
- * For large sites with dynamic content, consider using dynamic sitemap generation
- * by fetching data from your database
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = getBaseUrl();
   const currentDate = new Date();
   const defaultLanguage = 'es'; // Current default language
 
-  // Static pages configuration
+  // Static pages configuration (using Spanish routes)
   const staticPages = [
     {
       path: '',
@@ -24,29 +22,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'daily' as const,
     },
     {
-      path: '/pricing',
+      path: '/precios',
       priority: 0.9,
       changeFrequency: 'weekly' as const,
     },
     {
-      path: '/features',
+      path: '/funcionalidades',
       priority: 0.8,
       changeFrequency: 'weekly' as const,
     },
     {
-      path: '/about',
+      path: '/contacto',
       priority: 0.7,
       changeFrequency: 'monthly' as const,
-    },
-    {
-      path: '/contact',
-      priority: 0.7,
-      changeFrequency: 'monthly' as const,
-    },
-    {
-      path: '/blog',
-      priority: 0.8,
-      changeFrequency: 'daily' as const,
     },
     // Add more static pages as needed
   ];
@@ -75,39 +63,89 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   }));
 
-  // TODO: Add dynamic routes here
-  // Example: Fetch blog posts from database
-  // const blogPosts = await fetchBlogPosts();
-  // const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
-  //   url: `${baseUrl}/blog/${post.slug}`,
-  //   lastModified: post.updatedAt,
-  //   changeFrequency: 'monthly',
-  //   priority: 0.7,
-  //   alternates: {
-  //     languages: {
-  //       es: `${baseUrl}/blog/${post.slug}`,
-  //       // en: `${baseUrl}/en/blog/${post.slug}`,
-  //     },
-  //   },
-  // }));
+  // Fetch dynamic clinic routes from database
+  const clinicEntries = await fetchPublicClinicRoutes(baseUrl, defaultLanguage);
 
   // Combine all entries
   return [
     ...staticEntries,
-    // ...blogEntries, // Uncomment when you have dynamic content
+    ...clinicEntries,
   ];
 }
 
 /**
- * Helper function to fetch dynamic routes for sitemap
- * Use this pattern for blog posts, products, etc.
+ * Fetch public clinic pages for sitemap
+ * Includes both main clinic pages and booking pages
  */
-// async function fetchBlogPosts() {
-//   // Example using Prisma
-//   // const posts = await prisma.post.findMany({
-//   //   where: { published: true },
-//   //   select: { slug: true, updatedAt: true },
-//   // });
-//   // return posts;
-//   return [];
-// }
+async function fetchPublicClinicRoutes(
+  baseUrl: string,
+  defaultLanguage: string
+): Promise<MetadataRoute.Sitemap> {
+  try {
+    // Fetch all tenants with public pages enabled
+    const publicClinics = await prisma.tenant.findMany({
+      where: {
+        publicPageEnabled: true,
+        status: 'ACTIVE',
+      },
+      select: {
+        slug: true,
+        publicBookingEnabled: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    const clinicRoutes: MetadataRoute.Sitemap = [];
+
+    for (const clinic of publicClinics) {
+      // Main clinic page
+      clinicRoutes.push({
+        url: `${baseUrl}/${clinic.slug}`,
+        lastModified: clinic.updatedAt || new Date(),
+        changeFrequency: 'weekly',
+        priority: 0.8,
+        alternates: {
+          languages: SUPPORTED_LANGUAGES.reduce(
+            (acc, lang) => {
+              if (lang === defaultLanguage) {
+                acc[lang] = `${baseUrl}/${clinic.slug}`;
+              }
+              return acc;
+            },
+            {} as Record<string, string>
+          ),
+        },
+      });
+
+      // Booking page (if enabled)
+      if (clinic.publicBookingEnabled) {
+        clinicRoutes.push({
+          url: `${baseUrl}/${clinic.slug}/agendar`,
+          lastModified: clinic.updatedAt || new Date(),
+          changeFrequency: 'weekly',
+          priority: 0.7,
+          alternates: {
+            languages: SUPPORTED_LANGUAGES.reduce(
+              (acc, lang) => {
+                if (lang === defaultLanguage) {
+                  acc[lang] = `${baseUrl}/${clinic.slug}/agendar`;
+                }
+                return acc;
+              },
+              {} as Record<string, string>
+            ),
+          },
+        });
+      }
+    }
+
+    return clinicRoutes;
+  } catch (error) {
+    console.error('Error fetching clinic routes for sitemap:', error);
+    // Return empty array on error to prevent sitemap generation failure
+    return [];
+  }
+}
