@@ -412,13 +412,17 @@ export default function Nav() {
               <button
                 onClick={toggleTheme}
                 className="p-2.5 rounded-xl bg-gradient-to-br from-[#4DB8A3]/10 to-[#75a99c]/5 hover:from-[#4DB8A3]/20 hover:to-[#75a99c]/10 dark:from-[#2a3630] dark:to-[#1a2620] dark:hover:from-[#3a4640] dark:hover:to-[#2a3630] transition-all duration-300 w-10 h-10 flex items-center justify-center hover:scale-110 hover:rotate-12 focus:ring-2 focus:ring-[#4DB8A3] focus:ring-offset-2 dark:focus:ring-offset-gray-900 shadow-sm hover:shadow-md group"
-                aria-label="Cambiar tema"
+                aria-label={`Cambiar tema. Tema actual: ${theme === 'system' ? 'sistema' : theme}`}
+                aria-pressed={theme === 'dark'}
+                title="Cambiar tema (luz/oscuro/sistema)"
               >
-                <Sparkles className={`h-4 w-4 transition-all duration-300 ${
-                  resolvedTheme === "dark"
-                    ? "text-yellow-400 group-hover:text-yellow-300"
-                    : "text-[#4DB8A3] group-hover:text-[#45635C]"
-                }`} />
+                <span aria-hidden="true">
+                  <Sparkles className={`h-4 w-4 transition-all duration-300 ${
+                    resolvedTheme === "dark"
+                      ? "text-yellow-400 group-hover:text-yellow-300"
+                      : "text-[#4DB8A3] group-hover:text-[#45635C]"
+                  }`} />
+                </span>
               </button>
 
               <UserSection />
@@ -448,11 +452,15 @@ export default function Nav() {
               <button
                 onClick={toggleTheme}
                 className="p-2 rounded-lg bg-gradient-to-br from-[#4DB8A3]/10 to-[#75a99c]/5 hover:from-[#4DB8A3]/20 hover:to-[#75a99c]/10 dark:from-[#2a3630] dark:to-[#1a2620] transition-all duration-300 hover:scale-110 focus:ring-2 focus:ring-[#4DB8A3] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                aria-label="Cambiar tema"
+                aria-label={`Cambiar tema. Tema actual: ${theme === 'system' ? 'sistema' : theme}`}
+                aria-pressed={theme === 'dark'}
+                title="Cambiar tema (luz/oscuro/sistema)"
               >
-                <Sparkles className={`h-4 w-4 transition-colors duration-300 ${
-                  resolvedTheme === "dark" ? "text-yellow-400" : "text-[#4DB8A3]"
-                }`} />
+                <span aria-hidden="true">
+                  <Sparkles className={`h-4 w-4 transition-colors duration-300 ${
+                    resolvedTheme === "dark" ? "text-yellow-400" : "text-[#4DB8A3]"
+                  }`} />
+                </span>
               </button>
 
               <button

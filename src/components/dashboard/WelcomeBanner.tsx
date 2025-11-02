@@ -30,6 +30,7 @@ interface PlanConfig {
   emoji: string;
 }
 
+// Move PLAN_CONFIGS outside component to prevent recreation on every render
 const PLAN_CONFIGS: Record<string, PlanConfig> = {
   'basico': {
     icon: Sparkles,
@@ -140,7 +141,7 @@ export function WelcomeBanner({ tenant }: WelcomeBannerProps) {
 
   return (
     <div
-      className={`transition-all duration-300 ease-in-out ${
+      className={`transition-[opacity,transform] duration-300 ease-in-out ${
         isClosing ? 'opacity-0 scale-95 translate-y-2' : 'opacity-100 scale-100 translate-y-0'
       }`}
     >

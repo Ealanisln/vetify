@@ -144,16 +144,18 @@ export function DashboardHeader({ user, tenant, onMenuClick }: DashboardHeaderPr
             onClick={toggleTheme}
             disabled={loading}
             className={`p-2 rounded-lg transition-all duration-200 w-10 h-10 flex items-center justify-center ${
-              loading 
-                ? 'bg-gray-200 dark:bg-gray-700 animate-pulse' 
+              loading
+                ? 'bg-gray-200 dark:bg-gray-700 animate-pulse'
                 : 'bg-[#75a99c] hover:bg-[#5b9788] text-white dark:bg-[#2a3630] dark:hover:bg-[#1a2620] hover:scale-105 active:scale-95'
             }`}
-            aria-label={loading ? "Cargando..." : "Cambiar tema"}
+            aria-label={loading ? "Cargando..." : `Cambiar tema. Tema actual: ${theme === 'system' ? 'sistema' : theme}`}
+            aria-pressed={theme === 'dark'}
+            title="Cambiar tema (luz/oscuro/sistema)"
           >
             {loading ? (
               <div className="w-4 h-4 bg-gray-400 rounded-full" />
             ) : (
-              <span className="text-sm">{resolvedTheme === "dark" ? "☀️" : "🌙"}</span>
+              <span className="text-sm" aria-hidden="true">{resolvedTheme === "dark" ? "☀️" : "🌙"}</span>
             )}
           </button>
 
