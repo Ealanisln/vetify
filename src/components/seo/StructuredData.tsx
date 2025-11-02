@@ -3,17 +3,32 @@ import type {
   SoftwareApplication,
   WebPage,
   Article,
+  Product,
+  LocalBusiness,
+  Service,
 } from '@/lib/seo/structured-data';
+import type { BreadcrumbList } from '@/lib/seo/breadcrumbs';
+import type { FAQPage } from '@/lib/seo/faq-schema';
 
 type StructuredDataType =
   | Organization
   | SoftwareApplication
   | WebPage
   | Article
+  | Product
+  | LocalBusiness
+  | Service
+  | BreadcrumbList
+  | FAQPage
   | Organization[]
   | SoftwareApplication[]
   | WebPage[]
-  | Article[];
+  | Article[]
+  | Product[]
+  | LocalBusiness[]
+  | Service[]
+  | BreadcrumbList[]
+  | FAQPage[];
 
 /**
  * Render structured data script tag
