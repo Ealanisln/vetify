@@ -40,6 +40,7 @@ export interface BreadcrumbSegment {
  */
 export function generateBreadcrumbSchema(
   segments: BreadcrumbSegment[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _lang: SupportedLanguage = 'es'
 ): BreadcrumbList {
   const baseUrl = getBaseUrl();

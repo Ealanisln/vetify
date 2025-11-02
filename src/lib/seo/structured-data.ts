@@ -529,6 +529,7 @@ export function generateLocalBusinessSchema(
     }>;
     images?: string[];
   },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _lang: SupportedLanguage = 'es'
 ): LocalBusiness {
   const schema: LocalBusiness = {
@@ -634,6 +635,7 @@ export function generateServiceSchema(
     };
     image?: string;
   },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _lang: SupportedLanguage = 'es'
 ): Service {
   const schema: Service = {
