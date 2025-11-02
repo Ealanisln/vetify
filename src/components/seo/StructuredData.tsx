@@ -4,6 +4,8 @@ import type {
   WebPage,
   Article,
   Product,
+  LocalBusiness,
+  Service,
 } from '@/lib/seo/structured-data';
 import type { BreadcrumbList } from '@/lib/seo/breadcrumbs';
 import type { FAQPage } from '@/lib/seo/faq-schema';
@@ -14,6 +16,8 @@ type StructuredDataType =
   | WebPage
   | Article
   | Product
+  | LocalBusiness
+  | Service
   | BreadcrumbList
   | FAQPage
   | Organization[]
@@ -21,6 +25,8 @@ type StructuredDataType =
   | WebPage[]
   | Article[]
   | Product[]
+  | LocalBusiness[]
+  | Service[]
   | BreadcrumbList[]
   | FAQPage[];
 

@@ -408,6 +408,349 @@ export function generatePricingProductSchema(
 }
 
 /**
+ * LocalBusiness schema interfaces for veterinary clinic pages
+ */
+export interface LocalBusiness {
+  '@context': 'https://schema.org';
+  '@type': 'LocalBusiness' | 'VeterinaryCare';
+  name: string;
+  description?: string;
+  image?: string | string[];
+  url: string;
+  telephone?: string;
+  email?: string;
+  address: PostalAddress;
+  geo?: GeoCoordinates;
+  priceRange?: string;
+  openingHoursSpecification?: OpeningHoursSpecification[];
+  servesCuisine?: string;
+  acceptsReservations?: boolean;
+}
+
+export interface GeoCoordinates {
+  '@type': 'GeoCoordinates';
+  latitude: number;
+  longitude: number;
+}
+
+export interface OpeningHoursSpecification {
+  '@type': 'OpeningHoursSpecification';
+  dayOfWeek: DayOfWeek | DayOfWeek[];
+  opens: string; // HH:MM format
+  closes: string; // HH:MM format
+}
+
+export type DayOfWeek =
+  | 'Monday'
+  | 'Tuesday'
+  | 'Wednesday'
+  | 'Thursday'
+  | 'Friday'
+  | 'Saturday'
+  | 'Sunday';
+
+/**
+ * Service schema interfaces for veterinary services
+ */
+export interface Service {
+  '@context': 'https://schema.org';
+  '@type': 'Service';
+  name: string;
+  description: string;
+  provider: {
+    '@type': 'Organization' | 'LocalBusiness';
+    name: string;
+    url?: string;
+  };
+  serviceType?: string;
+  areaServed?: {
+    '@type': 'City' | 'State' | 'Country';
+    name: string;
+  };
+  offers?: Offer;
+  image?: string;
+}
+
+/**
+ * Generate LocalBusiness schema for individual veterinary clinic pages
+ * Use VeterinaryCare type for more specific veterinary business representation
+ *
+ * @example
+ * ```ts
+ * const clinicSchema = generateLocalBusinessSchema({
+ *   name: 'Clínica Veterinaria San Miguel',
+ *   description: 'Atención veterinaria de calidad en CDMX',
+ *   url: 'https://vetify.com/san-miguel',
+ *   telephone: '+52 55 1234 5678',
+ *   address: {
+ *     streetAddress: 'Av. Insurgentes Sur 123',
+ *     addressLocality: 'Ciudad de México',
+ *     addressRegion: 'CDMX',
+ *     postalCode: '03100',
+ *     addressCountry: 'MX',
+ *   },
+ *   openingHours: [
+ *     {
+ *       dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+ *       opens: '09:00',
+ *       closes: '18:00',
+ *     },
+ *     {
+ *       dayOfWeek: 'Saturday',
+ *       opens: '10:00',
+ *       closes: '14:00',
+ *     },
+ *   ],
+ * });
+ * ```
+ */
+export function generateLocalBusinessSchema(
+  clinic: {
+    name: string;
+    description?: string;
+    url: string;
+    telephone?: string;
+    email?: string;
+    address: {
+      streetAddress?: string;
+      addressLocality?: string;
+      addressRegion?: string;
+      postalCode?: string;
+      addressCountry: string;
+    };
+    geo?: {
+      latitude: number;
+      longitude: number;
+    };
+    priceRange?: string;
+    openingHours?: Array<{
+      dayOfWeek: DayOfWeek | DayOfWeek[];
+      opens: string;
+      closes: string;
+    }>;
+    images?: string[];
+  },
+  lang: SupportedLanguage = 'es'
+): LocalBusiness {
+  const schema: LocalBusiness = {
+    '@context': 'https://schema.org',
+    '@type': 'VeterinaryCare',
+    name: clinic.name,
+    url: clinic.url,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: clinic.address.streetAddress,
+      addressLocality: clinic.address.addressLocality,
+      addressRegion: clinic.address.addressRegion,
+      postalCode: clinic.address.postalCode,
+      addressCountry: clinic.address.addressCountry,
+    },
+  };
+
+  if (clinic.description) {
+    schema.description = clinic.description;
+  }
+
+  if (clinic.telephone) {
+    schema.telephone = clinic.telephone;
+  }
+
+  if (clinic.email) {
+    schema.email = clinic.email;
+  }
+
+  if (clinic.images && clinic.images.length > 0) {
+    schema.image = clinic.images.length === 1 ? clinic.images[0] : clinic.images;
+  }
+
+  if (clinic.geo) {
+    schema.geo = {
+      '@type': 'GeoCoordinates',
+      latitude: clinic.geo.latitude,
+      longitude: clinic.geo.longitude,
+    };
+  }
+
+  if (clinic.priceRange) {
+    schema.priceRange = clinic.priceRange;
+  }
+
+  if (clinic.openingHours && clinic.openingHours.length > 0) {
+    schema.openingHoursSpecification = clinic.openingHours.map((hours) => ({
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: hours.dayOfWeek,
+      opens: hours.opens,
+      closes: hours.closes,
+    }));
+  }
+
+  // Veterinary clinics accept appointments/reservations
+  schema.acceptsReservations = true;
+
+  return schema;
+}
+
+/**
+ * Generate Service schema for veterinary services
+ * Use this to represent specific services offered by the veterinary clinic
+ *
+ * @example
+ * ```ts
+ * const serviceSchema = generateServiceSchema({
+ *   name: 'Consulta Veterinaria General',
+ *   description: 'Examen físico completo de tu mascota...',
+ *   serviceType: 'Veterinary Consultation',
+ *   provider: {
+ *     name: 'Clínica Veterinaria San Miguel',
+ *     url: 'https://vetify.com/san-miguel',
+ *   },
+ *   areaServed: {
+ *     type: 'City',
+ *     name: 'Ciudad de México',
+ *   },
+ *   price: {
+ *     price: '500',
+ *     priceCurrency: 'MXN',
+ *   },
+ * });
+ * ```
+ */
+export function generateServiceSchema(
+  service: {
+    name: string;
+    description: string;
+    serviceType?: string;
+    provider: {
+      name: string;
+      url?: string;
+    };
+    areaServed?: {
+      type: 'City' | 'State' | 'Country';
+      name: string;
+    };
+    price?: {
+      price: string;
+      priceCurrency: string;
+      priceValidUntil?: string;
+    };
+    image?: string;
+  },
+  lang: SupportedLanguage = 'es'
+): Service {
+  const schema: Service = {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    name: service.name,
+    description: service.description,
+    provider: {
+      '@type': service.provider.url ? 'LocalBusiness' : 'Organization',
+      name: service.provider.name,
+      url: service.provider.url,
+    },
+  };
+
+  if (service.serviceType) {
+    schema.serviceType = service.serviceType;
+  }
+
+  if (service.areaServed) {
+    schema.areaServed = {
+      '@type': service.areaServed.type,
+      name: service.areaServed.name,
+    };
+  }
+
+  if (service.price) {
+    schema.offers = {
+      '@type': 'Offer',
+      price: service.price.price,
+      priceCurrency: service.price.priceCurrency,
+      availability: 'https://schema.org/InStock',
+      priceValidUntil: service.price.priceValidUntil,
+    };
+  }
+
+  if (service.image) {
+    schema.image = service.image;
+  }
+
+  return schema;
+}
+
+/**
+ * Generate multiple Service schemas for common veterinary services
+ * Returns an array of Service schemas for typical veterinary offerings
+ */
+export function generateCommonVeterinaryServices(
+  clinicName: string,
+  clinicUrl: string,
+  areaServed: string,
+  lang: SupportedLanguage = 'es'
+): Service[] {
+  const services = [
+    {
+      name: lang === 'es' ? 'Consulta Veterinaria' : 'Veterinary Consultation',
+      description:
+        lang === 'es'
+          ? 'Examen físico completo de tu mascota con diagnóstico profesional'
+          : 'Complete physical examination of your pet with professional diagnosis',
+      serviceType: 'Veterinary Consultation',
+    },
+    {
+      name: lang === 'es' ? 'Vacunación' : 'Vaccination',
+      description:
+        lang === 'es'
+          ? 'Aplicación de vacunas esenciales para la protección de tu mascota'
+          : 'Application of essential vaccines for your pet protection',
+      serviceType: 'Vaccination',
+    },
+    {
+      name: lang === 'es' ? 'Cirugía Veterinaria' : 'Veterinary Surgery',
+      description:
+        lang === 'es'
+          ? 'Procedimientos quirúrgicos realizados por veterinarios especializados'
+          : 'Surgical procedures performed by specialized veterinarians',
+      serviceType: 'Surgery',
+    },
+    {
+      name: lang === 'es' ? 'Análisis Clínicos' : 'Clinical Analysis',
+      description:
+        lang === 'es'
+          ? 'Estudios de laboratorio para diagnóstico preciso'
+          : 'Laboratory studies for accurate diagnosis',
+      serviceType: 'Laboratory Services',
+    },
+    {
+      name: lang === 'es' ? 'Urgencias 24/7' : '24/7 Emergency',
+      description:
+        lang === 'es'
+          ? 'Atención veterinaria de emergencia disponible las 24 horas'
+          : '24-hour emergency veterinary care available',
+      serviceType: 'Emergency Services',
+    },
+  ];
+
+  return services.map((service) =>
+    generateServiceSchema(
+      {
+        name: service.name,
+        description: service.description,
+        serviceType: service.serviceType,
+        provider: {
+          name: clinicName,
+          url: clinicUrl,
+        },
+        areaServed: {
+          type: 'City',
+          name: areaServed,
+        },
+      },
+      lang
+    )
+  );
+}
+
+/**
  * Combine multiple structured data schemas
  */
 export function combineSchemas(
@@ -422,11 +765,15 @@ type StructuredDataType =
   | WebPage
   | Article
   | Product
+  | LocalBusiness
+  | Service
   | Organization[]
   | SoftwareApplication[]
   | WebPage[]
   | Article[]
-  | Product[];
+  | Product[]
+  | LocalBusiness[]
+  | Service[];
 
 /**
  * Convert structured data to JSON string for script tag

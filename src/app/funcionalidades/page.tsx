@@ -9,6 +9,8 @@ import { Footer } from "@/components/footer"
 import { generateMetadata as generateSEOMetadata, createPageSEO } from '@/lib/seo';
 import { PAGE_METADATA } from '@/lib/seo/config';
 import { createBreadcrumbsFromPath } from '@/lib/seo/breadcrumbs';
+import { generateFAQPageSchema, COMMON_FAQS_ES } from '@/lib/seo/faq-schema';
+import { generateCommonVeterinaryServices } from '@/lib/seo/structured-data';
 import { StructuredData } from '@/components/seo/StructuredData';
 import type { Metadata } from 'next';
 
@@ -45,6 +47,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function FunctionalitiesPage() {
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://vetify.com';
+
   // Generate breadcrumb structured data
   const breadcrumbSchema = createBreadcrumbsFromPath(
     '/funcionalidades',
@@ -52,10 +56,22 @@ export default function FunctionalitiesPage() {
     'es'
   );
 
+  // Generate FAQ structured data for features FAQs
+  const faqSchema = generateFAQPageSchema(COMMON_FAQS_ES.features);
+
+  // Generate Service schemas for common veterinary services
+  // This helps search engines understand what services veterinary clinics can offer using Vetify
+  const serviceSchemas = generateCommonVeterinaryServices(
+    'Vetify',
+    baseUrl,
+    'México',
+    'es'
+  );
+
   return (
     <>
       {/* Structured data for SEO */}
-      <StructuredData data={breadcrumbSchema} />
+      <StructuredData data={[breadcrumbSchema, faqSchema, ...serviceSchemas]} />
       <div className="min-h-screen">
         <Navigation />
         <main>
