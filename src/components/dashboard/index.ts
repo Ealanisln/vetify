@@ -5,4 +5,5 @@ export { StatsCard } from './StatsCard';
 export { RecentPetsCard } from './RecentPetsCard';
 export { UpcomingAppointmentsCard } from './UpcomingAppointmentsCard';
 export { SubscriptionNotifications } from './SubscriptionNotifications';
+export { WelcomeBanner } from './WelcomeBanner';
 export { PlanLimitsCard } from './PlanLimitsCard';

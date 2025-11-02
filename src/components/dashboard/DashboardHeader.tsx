@@ -1,6 +1,7 @@
 "use client";
 
 import { useThemeAware } from '../../hooks/useThemeAware';
+import { useTheme } from 'next-themes';
 import { usePathname, useRouter } from 'next/navigation';
 import { Bars3Icon, BellIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, UserIcon } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
@@ -44,7 +45,8 @@ const getPageTitle = (pathname: string): string => {
 };
 
 export function DashboardHeader({ user, tenant, onMenuClick }: DashboardHeaderProps) {
-  const { mounted, theme, setTheme } = useThemeAware();
+  const { mounted, theme: resolvedTheme } = useThemeAware();
+  const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
   const pageTitle = getPageTitle(pathname);
@@ -52,7 +54,14 @@ export function DashboardHeader({ user, tenant, onMenuClick }: DashboardHeaderPr
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    // Cycle through: light -> dark -> system
+    if (theme === "light") {
+      setTheme("dark");
+    } else if (theme === "dark") {
+      setTheme("system");
+    } else {
+      setTheme("light");
+    }
   };
 
   const handleLogout = () => {
@@ -135,16 +144,18 @@ export function DashboardHeader({ user, tenant, onMenuClick }: DashboardHeaderPr
             onClick={toggleTheme}
             disabled={loading}
             className={`p-2 rounded-lg transition-all duration-200 w-10 h-10 flex items-center justify-center ${
-              loading 
-                ? 'bg-gray-200 dark:bg-gray-700 animate-pulse' 
+              loading
+                ? 'bg-gray-200 dark:bg-gray-700 animate-pulse'
                 : 'bg-[#75a99c] hover:bg-[#5b9788] text-white dark:bg-[#2a3630] dark:hover:bg-[#1a2620] hover:scale-105 active:scale-95'
             }`}
-            aria-label={loading ? "Cargando..." : "Cambiar tema"}
+            aria-label={loading ? "Cargando..." : `Cambiar tema. Tema actual: ${theme === 'system' ? 'sistema' : theme}`}
+            aria-pressed={theme === 'dark'}
+            title="Cambiar tema (luz/oscuro/sistema)"
           >
             {loading ? (
               <div className="w-4 h-4 bg-gray-400 rounded-full" />
             ) : (
-              <span className="text-sm">{theme === "dark" ? "☀️" : "🌙"}</span>
+              <span className="text-sm" aria-hidden="true">{resolvedTheme === "dark" ? "☀️" : "🌙"}</span>
             )}
           </button>
 

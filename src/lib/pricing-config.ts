@@ -258,4 +258,76 @@ export const GRANDFATHER_PRICING = {
   'STARTER': { monthly: 299, yearly: 239 },
   'STANDARD': { monthly: 449, yearly: 349 },
   'PROFESSIONAL': { monthly: 899, yearly: 649 }
-}; 
+};
+
+/**
+ * Get Stripe Price ID for a plan based on the tenant's plan name
+ * Maps plan names like "Plan Básico" to their corresponding Stripe Price IDs
+ *
+ * @param planName - The plan name from tenant (e.g., "Plan Básico", "Plan Profesional")
+ * @param billingInterval - Monthly or yearly billing (defaults to monthly)
+ * @returns The Stripe Price ID or defaults to Profesional if plan not found
+ */
+export function getStripePriceIdForPlan(
+  planName: string | null | undefined,
+  billingInterval: 'monthly' | 'yearly' = 'monthly'
+): string {
+  if (!planName) {
+    // Default to Profesional (most popular) if no plan specified
+    return PRICING_CONFIG.PLANS.PROFESIONAL.stripePriceMonthly;
+  }
+
+  const normalizedPlanName = planName.toLowerCase();
+
+  // Map plan names to Stripe Price IDs
+  if (normalizedPlanName.includes('básico') || normalizedPlanName.includes('basico')) {
+    return billingInterval === 'yearly'
+      ? PRICING_CONFIG.PLANS.BASICO.stripePriceYearly
+      : PRICING_CONFIG.PLANS.BASICO.stripePriceMonthly;
+  }
+
+  if (normalizedPlanName.includes('profesional') || normalizedPlanName.includes('professional')) {
+    return billingInterval === 'yearly'
+      ? PRICING_CONFIG.PLANS.PROFESIONAL.stripePriceYearly
+      : PRICING_CONFIG.PLANS.PROFESIONAL.stripePriceMonthly;
+  }
+
+  if (normalizedPlanName.includes('corporativo') || normalizedPlanName.includes('corporate') || normalizedPlanName.includes('empresa')) {
+    return billingInterval === 'yearly'
+      ? PRICING_CONFIG.PLANS.CORPORATIVO.stripePriceYearly
+      : PRICING_CONFIG.PLANS.CORPORATIVO.stripePriceMonthly;
+  }
+
+  // Default fallback to Profesional (most popular)
+  return billingInterval === 'yearly'
+    ? PRICING_CONFIG.PLANS.PROFESIONAL.stripePriceYearly
+    : PRICING_CONFIG.PLANS.PROFESIONAL.stripePriceMonthly;
+}
+
+/**
+ * Get plan key (BASICO, PROFESIONAL, CORPORATIVO) from plan name
+ *
+ * @param planName - The plan name from tenant
+ * @returns The plan key in uppercase
+ */
+export function getPlanKeyFromName(planName: string | null | undefined): string {
+  if (!planName) {
+    return 'PROFESIONAL'; // Default
+  }
+
+  const normalizedPlanName = planName.toLowerCase();
+
+  if (normalizedPlanName.includes('básico') || normalizedPlanName.includes('basico')) {
+    return 'BASICO';
+  }
+
+  if (normalizedPlanName.includes('profesional') || normalizedPlanName.includes('professional')) {
+    return 'PROFESIONAL';
+  }
+
+  if (normalizedPlanName.includes('corporativo') || normalizedPlanName.includes('corporate') || normalizedPlanName.includes('empresa')) {
+    return 'CORPORATIVO';
+  }
+
+  return 'PROFESIONAL'; // Default
+} 

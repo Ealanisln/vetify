@@ -1,8 +1,9 @@
 import { requireAuth } from '../../lib/auth';
 import { getDashboardStats } from '../../lib/dashboard';
-import { StatsCard, RecentPetsCard, UpcomingAppointmentsCard, SubscriptionNotifications } from '../../components/dashboard';
+import { StatsCard, RecentPetsCard, UpcomingAppointmentsCard, SubscriptionNotifications, WelcomeBanner } from '../../components/dashboard';
 import { PlanLimitsDisplay } from '../../components/subscription';
 import Link from 'next/link';
+import { Suspense } from 'react';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,11 @@ export default async function DashboardPage() {
           Aquí tienes un resumen de {tenant.name}
         </p>
       </div>
+
+      {/* Welcome Banner - Shows once after successful subscription */}
+      <Suspense fallback={null}>
+        <WelcomeBanner tenant={tenant} />
+      </Suspense>
 
       {/* Subscription Notifications */}
       <SubscriptionNotifications tenant={tenant} />

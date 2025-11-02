@@ -189,7 +189,7 @@ const session = await stripe.checkout.sessions.create({
     ],
     mode: 'subscription',
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/precios?canceled=true`,
+    cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`,
     allow_promotion_codes: true,
     subscription_data: subscriptionData,
     // Configuración para México - SIN automatic tax ya que no está soportado en todos los países
@@ -279,7 +279,7 @@ export async function createCheckoutSessionForAPI({
     ],
     mode: 'subscription',
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/precios?canceled=true`,
+    cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`,
     allow_promotion_codes: true,
     subscription_data: subscriptionData,
     // Configuración para México - SIN automatic tax ya que no está soportado en todos los países

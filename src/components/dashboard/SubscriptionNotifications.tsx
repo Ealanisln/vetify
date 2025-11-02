@@ -22,6 +22,7 @@ import type { Tenant } from '@prisma/client';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { calculateTrialDaysRemaining } from '../../lib/trial/utils';
+import { getStripePriceIdForPlan, getPlanKeyFromName } from '../../lib/pricing-config';
 
 interface SubscriptionNotificationsProps {
   tenant: Tenant;
@@ -29,6 +30,7 @@ interface SubscriptionNotificationsProps {
 
 export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsProps) {
   const [isDismissed, setIsDismissed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     hasActiveSubscription,
@@ -162,7 +164,55 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
 
   const Icon = config.icon;
 
-  const handleAction = () => {
+  const handleAction = async () => {
+    // CRITICAL FIX: If trial expired, go directly to Stripe checkout
+    if (config.type === 'trial-expired') {
+      setIsLoading(true);
+      try {
+        // Use the plan that the user selected during onboarding
+        const userPriceId = getStripePriceIdForPlan(tenant.planName, 'monthly');
+        const userPlanKey = getPlanKeyFromName(tenant.planName);
+
+        const response = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            priceId: userPriceId,
+            planKey: userPlanKey,
+            billingInterval: 'monthly'
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+
+          if (errorData.redirectUrl) {
+            window.location.href = errorData.redirectUrl;
+            return;
+          }
+
+          throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error('No se recibió URL de checkout');
+        }
+      } catch (error) {
+        console.error('Error al crear sesión de checkout:', error);
+        setIsLoading(false);
+        // Fallback to pricing page if checkout fails
+        window.location.href = config.link;
+      }
+      return;
+    }
+
+    // For other types, redirect to the configured link
     window.location.href = config.link;
   };
 
@@ -204,12 +254,22 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mt-4">
             <Button
               onClick={handleAction}
+              disabled={isLoading}
               className={`${config.buttonColor} text-white flex items-center justify-center gap-2 w-full sm:w-auto`}
               size="sm"
             >
-              <CreditCard className="h-4 w-4" />
-              {config.buttonText}
-              <ArrowRight className="h-4 w-4" />
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                  Redirigiendo...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="h-4 w-4" />
+                  {config.buttonText}
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Button>
 
             {config.type === 'trial-ending' && daysRemaining !== null && (
