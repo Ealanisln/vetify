@@ -1,6 +1,7 @@
 "use client";
 
 import { useThemeAware } from '../../hooks/useThemeAware';
+import { useTheme } from 'next-themes';
 import { usePathname, useRouter } from 'next/navigation';
 import { Bars3Icon, BellIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, UserIcon } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
@@ -44,7 +45,8 @@ const getPageTitle = (pathname: string): string => {
 };
 
 export function DashboardHeader({ user, tenant, onMenuClick }: DashboardHeaderProps) {
-  const { mounted, theme, setTheme } = useThemeAware();
+  const { mounted, theme: resolvedTheme } = useThemeAware();
+  const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
   const pageTitle = getPageTitle(pathname);
@@ -52,7 +54,14 @@ export function DashboardHeader({ user, tenant, onMenuClick }: DashboardHeaderPr
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    // Cycle through: light -> dark -> system
+    if (theme === "light") {
+      setTheme("dark");
+    } else if (theme === "dark") {
+      setTheme("system");
+    } else {
+      setTheme("light");
+    }
   };
 
   const handleLogout = () => {
@@ -144,7 +153,7 @@ export function DashboardHeader({ user, tenant, onMenuClick }: DashboardHeaderPr
             {loading ? (
               <div className="w-4 h-4 bg-gray-400 rounded-full" />
             ) : (
-              <span className="text-sm">{theme === "dark" ? "☀️" : "🌙"}</span>
+              <span className="text-sm">{resolvedTheme === "dark" ? "☀️" : "🌙"}</span>
             )}
           </button>
 

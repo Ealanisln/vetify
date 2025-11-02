@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getStripePriceIdForPlan, getPlanKeyFromName } from '../../lib/pricing-config';
 
 interface SubscriptionManagerProps {
   tenant: Tenant;
@@ -27,6 +28,7 @@ interface SubscriptionManagerProps {
 export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const {
     isPastDue,
     isCanceled,
@@ -52,7 +54,54 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
     }
   };
 
-  const handleUpgradePlan = () => {
+  const handleUpgradePlan = async () => {
+    // CRITICAL FIX: If trial expired, go directly to Stripe checkout
+    if (isTrialExpired) {
+      setIsCheckoutLoading(true);
+      try {
+        // Use the plan that the user selected during onboarding
+        const userPriceId = getStripePriceIdForPlan(tenant.planName, 'monthly');
+        const userPlanKey = getPlanKeyFromName(tenant.planName);
+
+        const response = await fetch('/api/checkout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            priceId: userPriceId,
+            planKey: userPlanKey,
+            billingInterval: 'monthly'
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+
+          if (errorData.redirectUrl) {
+            window.location.href = errorData.redirectUrl;
+            return;
+          }
+
+          throw new Error(errorData.error || `Error ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error('No se recibió URL de checkout');
+        }
+      } catch (error) {
+        console.error('Error al crear sesión de checkout:', error);
+        alert(`Error al procesar el pago: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+        setIsCheckoutLoading(false);
+      }
+      return;
+    }
+
+    // For active trials or existing subscriptions, show pricing page for comparison
     // Determinar el plan actual basado en el nombre del plan
     let planKey = 'BASICO'; // Default
 
@@ -306,6 +355,7 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
             ) : (
               <Button
                 onClick={handleUpgradePlan}
+                disabled={isCheckoutLoading}
                 className={`w-full h-12 text-base font-semibold ${
                   isTrialExpired
                     ? 'bg-red-600 hover:bg-red-700 text-white'
@@ -313,14 +363,21 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
                 }`}
                 size="lg"
               >
-                <div className="flex items-center gap-2">
-                  {isTrialExpired ? (
-                    <AlertTriangle className="h-5 w-5" />
-                  ) : (
-                    <CreditCard className="h-5 w-5" />
-                  )}
-                  {isTrialExpired ? 'Suscribirse Ahora' : isInTrial ? 'Actualizar Plan' : 'Ver Planes Disponibles'}
-                </div>
+                {isCheckoutLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Redirigiendo a pago...
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    {isTrialExpired ? (
+                      <AlertTriangle className="h-5 w-5" />
+                    ) : (
+                      <CreditCard className="h-5 w-5" />
+                    )}
+                    {isTrialExpired ? 'Suscribirse Ahora' : isInTrial ? 'Actualizar Plan' : 'Ver Planes Disponibles'}
+                  </div>
+                )}
               </Button>
             )}
 

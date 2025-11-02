@@ -5,6 +5,7 @@ import Link from "next/link";
 import { User, Settings, LogOut, Building2, ChevronDown, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useThemeAware } from '../../hooks/useThemeAware';
+import { useTheme } from 'next-themes';
 import { LogoutLink } from '@kinde-oss/kinde-auth-nextjs/components';
 
 interface User {
@@ -202,12 +203,20 @@ function UserSection({ onNavigate }: { onNavigate?: () => void }) {
 export default function Nav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { mounted, theme, setTheme } = useThemeAware();
+  const { mounted, theme: resolvedTheme } = useThemeAware();
+  const { theme, setTheme } = useTheme();
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
 
   const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
+    // Cycle through: light -> dark -> system
+    if (theme === "light") {
+      setTheme("dark");
+    } else if (theme === "dark") {
+      setTheme("system");
+    } else {
+      setTheme("light");
+    }
   };
 
   const closeMobileMenu = () => {
@@ -406,7 +415,7 @@ export default function Nav() {
                 aria-label="Cambiar tema"
               >
                 <Sparkles className={`h-4 w-4 transition-all duration-300 ${
-                  theme === "dark"
+                  resolvedTheme === "dark"
                     ? "text-yellow-400 group-hover:text-yellow-300"
                     : "text-[#4DB8A3] group-hover:text-[#45635C]"
                 }`} />
@@ -442,7 +451,7 @@ export default function Nav() {
                 aria-label="Cambiar tema"
               >
                 <Sparkles className={`h-4 w-4 transition-colors duration-300 ${
-                  theme === "dark" ? "text-yellow-400" : "text-[#4DB8A3]"
+                  resolvedTheme === "dark" ? "text-yellow-400" : "text-[#4DB8A3]"
                 }`} />
               </button>
 

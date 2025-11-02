@@ -37,11 +37,9 @@ function getDatabaseUrl(): string {
 
 // Optimized Prisma client for serverless environments (Vercel)
 export const prisma = globalForPrisma.prisma ?? new PrismaClient({
-  // Enhanced logging for development: includes query logging for debugging
-  // Production: only log errors to minimize performance impact
-  log: process.env.NODE_ENV === 'development'
-    ? ['query', 'error', 'warn']
-    : ['error'],
+  // Logging: only errors and warnings to minimize console noise
+  // To enable query logging for debugging, set log: ['query', 'error', 'warn']
+  log: ['error', 'warn'],
   datasources: {
     db: {
       url: getDatabaseUrl(),
