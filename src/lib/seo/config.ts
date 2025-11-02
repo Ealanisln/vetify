@@ -63,7 +63,8 @@ export const SITE_METADATA: SiteMetadata = {
       'veterinary SaaS',
     ],
   },
-  defaultOGImage: '/images/og/default-og-image.jpg',
+  // Use dynamic OG image API instead of static images
+  defaultOGImage: '/api/og',
   twitterHandle: '@vetify', // Update with actual Twitter handle
   locale: {
     default: DEFAULT_LANGUAGE,

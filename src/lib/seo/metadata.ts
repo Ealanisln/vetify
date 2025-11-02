@@ -59,7 +59,7 @@ export function generateMetadata(
           width: config.ogImage?.width || OG_IMAGE_WIDTH,
           height: config.ogImage?.height || OG_IMAGE_HEIGHT,
           alt: config.ogImage?.alt || config.title,
-          type: config.ogImage?.type || 'image/jpeg',
+          type: config.ogImage?.type || 'image/png',
         },
       ],
     },
