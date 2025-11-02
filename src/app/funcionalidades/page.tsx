@@ -21,6 +21,7 @@ import type { Metadata } from 'next';
 export async function generateMetadata(): Promise<Metadata> {
   const lang = 'es' as const;
   const pageMetadata = PAGE_METADATA.features;
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://vetify.com';
 
   const seoConfig = createPageSEO(
     pageMetadata.title[lang],
@@ -40,6 +41,14 @@ export async function generateMetadata(): Promise<Metadata> {
         'expediente clínico digital',
       ],
       lang,
+      images: [
+        {
+          url: `${baseUrl}/api/og?page=features`,
+          width: 1200,
+          height: 630,
+          alt: 'Vetify - Funcionalidades',
+        },
+      ],
     }
   );
 

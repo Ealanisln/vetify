@@ -32,6 +32,11 @@ export async function generateMetadata({
   const title = `Agendar Cita - ${tenant.name}`;
   const description = `Agenda una cita en ${tenant.name}. Reserva online de forma rápida y sencilla para la atención veterinaria de tu mascota.`;
 
+  // Use clinic logo or fallback to dynamic OG image
+  const ogImage = tenant.logo
+    ? tenant.logo
+    : `${baseUrl}/api/og?clinic=${encodeURIComponent(tenant.name)}&title=${encodeURIComponent('Agendar Cita')}`;
+
   return {
     title,
     description,
@@ -40,22 +45,20 @@ export async function generateMetadata({
       description,
       url: bookingUrl,
       type: 'website',
-      images: tenant.logo
-        ? [
-            {
-              url: tenant.logo,
-              width: 1200,
-              height: 630,
-              alt: `${tenant.name} logo`,
-            },
-          ]
-        : undefined,
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: `${tenant.name} - Agendar Cita`,
+        },
+      ],
     },
     twitter: {
       card: 'summary',
       title,
       description,
-      images: tenant.logo ? [tenant.logo] : undefined,
+      images: [ogImage],
     },
     alternates: {
       canonical: bookingUrl,

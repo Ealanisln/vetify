@@ -36,6 +36,11 @@ export async function generateMetadata({
     tenant.publicDescription ||
     `${tenant.name} - Atención veterinaria profesional. Agenda tu cita online de forma rápida y sencilla.`;
 
+  // Use clinic logo or fallback to dynamic OG image
+  const ogImage = tenant.logo
+    ? tenant.logo
+    : `${baseUrl}/api/og?clinic=${encodeURIComponent(tenant.name)}`;
+
   return {
     title,
     description,
@@ -44,22 +49,20 @@ export async function generateMetadata({
       description,
       url: clinicUrl,
       type: 'website',
-      images: tenant.logo
-        ? [
-            {
-              url: tenant.logo,
-              width: 1200,
-              height: 630,
-              alt: `${tenant.name} logo`,
-            },
-          ]
-        : undefined,
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: `${tenant.name} logo`,
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: tenant.logo ? [tenant.logo] : undefined,
+      images: [ogImage],
     },
     alternates: {
       canonical: clinicUrl,
