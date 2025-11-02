@@ -11,9 +11,10 @@ export const runtime = 'edge';
  */
 const OG_PAGE_CONFIGS = {
   home: {
-    title: 'Vetify',
-    description: 'Software para clínicas veterinarias',
-    accentColor: '#75a99c',
+    title: 'Vetify – Software de Gestión Veterinaria',
+    description:
+      'Administra citas, historiales médicos, inventario y más. Prueba gratis por 30 días.',
+    accentColor: '#74A49D',
   },
   pricing: {
     title: 'Planes y Precios',
@@ -39,9 +40,89 @@ const OG_PAGE_CONFIGS = {
 const ogParamsSchema = z.object({
   page: z.enum(['home', 'pricing', 'features', 'contact']).optional(),
   clinic: z.string().max(100).optional(),
-  title: z.string().max(100).optional(),
-  description: z.string().max(200).optional(),
+  title: z.string().max(120).optional(),
+  description: z.string().max(240).optional(),
 });
+
+const dmSansMediumPromise = fetch(
+  'https://fonts.gstatic.com/s/dmsans/v17/rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwAkJxhTg.ttf',
+  {
+    cache: 'force-cache',
+  }
+)
+  .then((res) => res.arrayBuffer())
+  .catch(() => null);
+
+const dmSansBoldPromise = fetch(
+  'https://fonts.gstatic.com/s/dmsans/v17/rP2tp2ywxg089UriI5-g4vlH9VoD8CmcqZG40F9JadbnoEwARZthTg.ttf',
+  {
+    cache: 'force-cache',
+  }
+)
+  .then((res) => res.arrayBuffer())
+  .catch(() => null);
+
+const vetifyLogoPromise = fetch(
+  new URL('../../../../public/logo/vetify-logo.png', import.meta.url)
+)
+  .then((res) => res.arrayBuffer())
+  .catch(() => null);
+
+const dogSilhouetteSvg = `<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M54 112C46 76 68 54 98 48C118 44 146 44 170 60C186 70 194 92 190 112" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M58 122C44 138 42 166 58 184C76 204 112 208 142 202C170 196 190 174 190 150C190 130 180 112 162 102" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M108 114C120 108 138 108 150 114" stroke="%230B2D29" stroke-width="6" stroke-linecap="round"/><path d="M120 146C130 160 152 162 166 150" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="108" cy="138" r="6" fill="%230B2D29"/><circle cx="150" cy="138" r="6" fill="%230B2D29"/></svg>`;
+
+const catSilhouetteSvg = `<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M34 120L42 74L70 94L96 72L104 120" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M44 120C32 132 28 154 40 170C54 188 86 192 110 184C134 176 152 156 148 134C146 120 138 110 126 104" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M70 132C80 140 96 140 106 132" stroke="%230B2D29" stroke-width="6" stroke-linecap="round"/><circle cx="74" cy="118" r="5" fill="%230B2D29"/><circle cx="102" cy="118" r="5" fill="%230B2D29"/></svg>`;
+
+const dogSilhouetteDataUrl = `data:image/svg+xml,${encodeURIComponent(dogSilhouetteSvg)}`;
+const catSilhouetteDataUrl = `data:image/svg+xml,${encodeURIComponent(catSilhouetteSvg)}`;
+
+const titleColor = '#0B2D29';
+
+const featureHighlights = [
+  'Citas inteligentes',
+  'Historias clínicas seguras',
+  'Inventario en tiempo real',
+];
+
+function blendWithWhite(hexColor: string, ratio = 0.75): string {
+  const normalized = hexColor.replace('#', '');
+  const fullHex =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((char) => char + char)
+          .join('')
+      : normalized;
+
+  const red = parseInt(fullHex.slice(0, 2), 16);
+  const green = parseInt(fullHex.slice(2, 4), 16);
+  const blue = parseInt(fullHex.slice(4, 6), 16);
+
+  const mixChannel = (channel: number) =>
+    Math.round(channel + (255 - channel) * Math.min(Math.max(ratio, 0), 1));
+
+  const r = mixChannel(red).toString(16).padStart(2, '0');
+  const g = mixChannel(green).toString(16).padStart(2, '0');
+  const b = mixChannel(blue).toString(16).padStart(2, '0');
+
+  return `#${r}${g}${b}`;
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
+}
+
+function optionalParam(value: string | null): string | undefined {
+  return value === null ? undefined : value;
+}
 
 /**
  * Dynamic OG Image Generator
@@ -65,18 +146,19 @@ export async function GET(request: NextRequest) {
 
     // Validate and sanitize input parameters
     const validatedParams = ogParamsSchema.parse({
-      page: searchParams.get('page'),
-      clinic: searchParams.get('clinic'),
-      title: searchParams.get('title'),
-      description: searchParams.get('description'),
+      page: optionalParam(searchParams.get('page')),
+      clinic: optionalParam(searchParams.get('clinic')),
+      title: optionalParam(searchParams.get('title')),
+      description: optionalParam(searchParams.get('description')),
     });
 
     // Determine title, description, and accent color
     let title: string;
     let description: string;
     let accentColor: string;
+    const hasClinic = Boolean(validatedParams.clinic);
 
-    if (validatedParams.clinic) {
+    if (hasClinic) {
       // Clinic-specific OG image
       title = validatedParams.title || validatedParams.clinic;
       description = validatedParams.description || 'Clínica Veterinaria Profesional';
@@ -90,6 +172,62 @@ export async function GET(request: NextRequest) {
     }
 
     // Generate the OG image
+    const [fontMedium, fontBold, logoBuffer] = await Promise.all([
+      dmSansMediumPromise,
+      dmSansBoldPromise,
+      vetifyLogoPromise,
+    ]);
+
+    const logoSrc =
+      logoBuffer !== null
+        ? `data:image/png;base64,${arrayBufferToBase64(logoBuffer)}`
+        : null;
+
+    const fonts: {
+      name: string;
+      data: ArrayBuffer;
+      weight: number;
+      style: 'normal';
+    }[] = [];
+
+    if (fontMedium) {
+      fonts.push({
+        name: 'DM Sans',
+        data: fontMedium,
+        weight: 500,
+        style: 'normal',
+      });
+    }
+
+    if (fontBold) {
+      fonts.push({
+        name: 'DM Sans',
+        data: fontBold,
+        weight: 700,
+        style: 'normal',
+      });
+    }
+
+    const gradientEnd = blendWithWhite(accentColor, 0.82);
+    const accentOutline = blendWithWhite(accentColor, 0.35);
+
+    const featureBadges = featureHighlights.map((feature) => (
+      <div
+        key={feature}
+        style={{
+          padding: '14px 22px',
+          borderRadius: '18px',
+          border: `1px solid ${accentOutline}`,
+          backgroundColor: 'rgba(255, 255, 255, 0.65)',
+          color: 'rgba(19, 69, 63, 0.78)',
+          fontSize: '26px',
+          fontWeight: 600,
+        }}
+      >
+        {feature}
+      </div>
+    ));
+
     const imageResponse = new ImageResponse(
       (
         <div
@@ -100,96 +238,119 @@ export async function GET(request: NextRequest) {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: '#ffffff',
-            backgroundImage: `
-              radial-gradient(circle at 25px 25px, ${accentColor}15 2%, transparent 0%),
-              radial-gradient(circle at 75px 75px, ${accentColor}15 2%, transparent 0%)
-            `,
-            backgroundSize: '100px 100px',
+            backgroundImage: `linear-gradient(135deg, ${accentColor} 0%, ${gradientEnd} 65%, #f6f8f6 100%)`,
+            color: titleColor,
+            padding: '56px 88px',
+            position: 'relative',
+            fontFamily: 'DM Sans',
+            gap: '40px',
           }}
         >
-          {/* Logo/Brand Section */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginBottom: '40px',
-            }}
-          >
-            <div
-              style={{
-                fontSize: '72px',
-                fontWeight: 'bold',
-                background: `linear-gradient(135deg, ${accentColor} 0%, ${accentColor}dd 100%)`,
-                backgroundClip: 'text',
-                color: 'transparent',
-                display: 'flex',
-              }}
-            >
-              Vetify
-            </div>
-          </div>
-
-          {/* Main Content */}
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 120px',
-              textAlign: 'center',
-              maxWidth: '1000px',
+              gap: '16px',
+              position: 'relative',
             }}
           >
-            <h1
+            {logoSrc ? (
+              <img
+                src={logoSrc}
+                alt="Vetify"
+                style={{
+                  height: '108px',
+                  objectFit: 'contain',
+                }}
+              />
+            ) : (
+              <div
+                style={{
+                  fontSize: '90px',
+                  fontWeight: 700,
+                  letterSpacing: '0.04em',
+                }}
+              >
+                Vetify
+              </div>
+            )}
+
+            <div
+              style={{
+                fontSize: '30px',
+                fontWeight: 500,
+                color: 'rgba(19, 69, 63, 0.74)',
+              }}
+            >
+              Gestión integral para clínicas veterinarias
+            </div>
+          </div>
+
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              maxWidth: '900px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '24px',
+            }}
+          >
+            <div
               style={{
                 fontSize: '64px',
-                fontWeight: 'bold',
-                color: '#1f2937',
-                marginBottom: '20px',
-                lineHeight: 1.2,
+                fontWeight: 700,
+                lineHeight: 1.1,
+                color: titleColor,
+                letterSpacing: '-0.02em',
+                textAlign: 'center',
               }}
             >
               {title}
-            </h1>
-            <p
+            </div>
+            <div
               style={{
                 fontSize: '32px',
-                color: '#6b7280',
                 lineHeight: 1.4,
-                margin: 0,
+                color: 'rgba(19, 69, 63, 0.82)',
+                fontWeight: 500,
+                textAlign: 'center',
               }}
             >
               {description}
-            </p>
+            </div>
           </div>
 
-          {/* Footer Badge */}
-          {clinic && (
+          <div
+            style={{
+              position: 'relative',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
             <div
               style={{
-                position: 'absolute',
-                bottom: '40px',
-                right: '40px',
-                display: 'flex',
-                alignItems: 'center',
+                fontSize: '28px',
+                fontWeight: 600,
+                color: 'rgba(19, 69, 63, 0.78)',
                 padding: '16px 24px',
-                backgroundColor: accentColor,
-                borderRadius: '12px',
-                color: 'white',
-                fontSize: '24px',
-                fontWeight: '600',
+                borderRadius: '16px',
+                backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                border: `1px solid ${accentOutline}`,
               }}
             >
-              🐾 Reserva Online
+              vetify.pro
             </div>
-          )}
+          </div>
         </div>
       ),
       {
         width: 1200,
         height: 630,
+        fonts,
       }
     );
 
