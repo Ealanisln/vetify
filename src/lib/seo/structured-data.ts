@@ -298,6 +298,116 @@ export function generateMedicalOrganizationSchema(
 }
 
 /**
+ * Generate Product schema with pricing offers
+ * Used for pricing pages to show multiple subscription tiers
+ */
+export interface Product {
+  '@context': 'https://schema.org';
+  '@type': 'Product';
+  name: string;
+  description: string;
+  brand?: {
+    '@type': 'Brand';
+    name: string;
+  };
+  offers?: Offer | Offer[];
+}
+
+export interface PricingOffer extends Offer {
+  name?: string;
+  description?: string;
+  priceSpecification?: {
+    '@type': 'UnitPriceSpecification';
+    price: string;
+    priceCurrency: string;
+    billingIncrement?: {
+      '@type': 'QuantitativeValue';
+      value: number;
+      unitText: string;
+    };
+  };
+}
+
+/**
+ * Generate Product with multiple pricing offers
+ * For SaaS pricing pages with different subscription tiers
+ */
+export function generatePricingProductSchema(
+  plans: Array<{
+    name: string;
+    description: string;
+    monthlyPrice: number;
+    yearlyPrice?: number;
+  }>,
+  lang: SupportedLanguage = 'es'
+): Product {
+  const baseUrl = getBaseUrl();
+  const siteName = getLocalizedContent(SITE_METADATA.siteName, lang);
+
+  const offers: PricingOffer[] = plans.flatMap((plan) => {
+    const monthlyOffer: PricingOffer = {
+      '@type': 'Offer',
+      name: `${plan.name} - ${lang === 'es' ? 'Mensual' : 'Monthly'}`,
+      description: plan.description,
+      price: plan.monthlyPrice.toString(),
+      priceCurrency: 'MXN',
+      availability: 'https://schema.org/InStock',
+      priceSpecification: {
+        '@type': 'UnitPriceSpecification',
+        price: plan.monthlyPrice.toString(),
+        priceCurrency: 'MXN',
+        billingIncrement: {
+          '@type': 'QuantitativeValue',
+          value: 1,
+          unitText: lang === 'es' ? 'MES' : 'MONTH',
+        },
+      },
+    };
+
+    const offers = [monthlyOffer];
+
+    if (plan.yearlyPrice) {
+      const yearlyOffer: PricingOffer = {
+        '@type': 'Offer',
+        name: `${plan.name} - ${lang === 'es' ? 'Anual' : 'Yearly'}`,
+        description: plan.description,
+        price: plan.yearlyPrice.toString(),
+        priceCurrency: 'MXN',
+        availability: 'https://schema.org/InStock',
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          price: plan.yearlyPrice.toString(),
+          priceCurrency: 'MXN',
+          billingIncrement: {
+            '@type': 'QuantitativeValue',
+            value: 1,
+            unitText: lang === 'es' ? 'AÑO' : 'YEAR',
+          },
+        },
+      };
+      offers.push(yearlyOffer);
+    }
+
+    return offers;
+  });
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: siteName,
+    description:
+      lang === 'es'
+        ? 'Software de gestión para clínicas veterinarias con múltiples planes de suscripción'
+        : 'Veterinary clinic management software with multiple subscription plans',
+    brand: {
+      '@type': 'Brand',
+      name: 'Vetify',
+    },
+    offers,
+  };
+}
+
+/**
  * Combine multiple structured data schemas
  */
 export function combineSchemas(
@@ -311,10 +421,12 @@ type StructuredDataType =
   | SoftwareApplication
   | WebPage
   | Article
+  | Product
   | Organization[]
   | SoftwareApplication[]
   | WebPage[]
-  | Article[];
+  | Article[]
+  | Product[];
 
 /**
  * Convert structured data to JSON string for script tag
