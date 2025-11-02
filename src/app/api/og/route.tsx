@@ -1,8 +1,47 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
+import { z } from 'zod';
 
 export const runtime = 'edge';
+
+/**
+ * OG page configuration constants
+ * Centralized configuration for all page-specific OG images
+ */
+const OG_PAGE_CONFIGS = {
+  home: {
+    title: 'Vetify',
+    description: 'Software para clínicas veterinarias',
+    accentColor: '#75a99c',
+  },
+  pricing: {
+    title: 'Planes y Precios',
+    description: 'Encuentra el plan perfecto para tu clínica veterinaria',
+    accentColor: '#10b981',
+  },
+  features: {
+    title: 'Funcionalidades',
+    description: 'Todo lo que necesitas para gestionar tu clínica',
+    accentColor: '#3b82f6',
+  },
+  contact: {
+    title: 'Contáctanos',
+    description: 'Estamos aquí para ayudarte',
+    accentColor: '#8b5cf6',
+  },
+} as const;
+
+/**
+ * Validation schema for OG image query parameters
+ * Prevents XSS, memory issues, and malicious input
+ */
+const ogParamsSchema = z.object({
+  page: z.enum(['home', 'pricing', 'features', 'contact']).optional(),
+  clinic: z.string().max(100).optional(),
+  title: z.string().max(100).optional(),
+  description: z.string().max(200).optional(),
+});
 
 /**
  * Dynamic OG Image Generator
@@ -16,53 +55,38 @@ export const runtime = 'edge';
  *
  * Query Parameters:
  * - page: 'home' | 'pricing' | 'features' | 'contact'
- * - clinic: Clinic name for dynamic clinic pages
- * - title: Custom title override
- * - description: Custom description override
+ * - clinic: Clinic name for dynamic clinic pages (max 100 chars)
+ * - title: Custom title override (max 100 chars)
+ * - description: Custom description override (max 200 chars)
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    // Get parameters
-    const page = searchParams.get('page') || 'home';
-    const clinic = searchParams.get('clinic');
-    const customTitle = searchParams.get('title');
-    const customDescription = searchParams.get('description');
+    // Validate and sanitize input parameters
+    const validatedParams = ogParamsSchema.parse({
+      page: searchParams.get('page'),
+      clinic: searchParams.get('clinic'),
+      title: searchParams.get('title'),
+      description: searchParams.get('description'),
+    });
 
-    // Determine title and description
+    // Determine title, description, and accent color
     let title: string;
     let description: string;
     let accentColor: string;
 
-    if (clinic) {
+    if (validatedParams.clinic) {
       // Clinic-specific OG image
-      title = customTitle || clinic;
-      description = customDescription || 'Clínica Veterinaria Profesional';
+      title = validatedParams.title || validatedParams.clinic;
+      description = validatedParams.description || 'Clínica Veterinaria Profesional';
       accentColor = '#75a99c';
     } else {
-      // Page-specific OG images
-      switch (page) {
-        case 'pricing':
-          title = customTitle || 'Planes y Precios';
-          description = customDescription || 'Encuentra el plan perfecto para tu clínica veterinaria';
-          accentColor = '#10b981';
-          break;
-        case 'features':
-          title = customTitle || 'Funcionalidades';
-          description = customDescription || 'Todo lo que necesitas para gestionar tu clínica';
-          accentColor = '#3b82f6';
-          break;
-        case 'contact':
-          title = customTitle || 'Contáctanos';
-          description = customDescription || 'Estamos aquí para ayudarte';
-          accentColor = '#8b5cf6';
-          break;
-        default:
-          title = customTitle || 'Vetify';
-          description = customDescription || 'Software para clínicas veterinarias';
-          accentColor = '#75a99c';
-      }
+      // Page-specific OG images using configuration
+      const pageConfig = OG_PAGE_CONFIGS[validatedParams.page || 'home'];
+      title = validatedParams.title || pageConfig.title;
+      description = validatedParams.description || pageConfig.description;
+      accentColor = pageConfig.accentColor;
     }
 
     // Generate the OG image

@@ -27,7 +27,10 @@ export interface BreadcrumbSegment {
  * Helps search engines understand page hierarchy and display breadcrumbs in search results
  *
  * @param segments - Array of breadcrumb segments with name and path
- * @param lang - Language for localization (default: 'es')
+ * @param _lang - Reserved for future i18n implementation when English version launches.
+ *                Currently unused as all content is in Spanish. Will be used to generate
+ *                localized breadcrumb names when multi-language support is added.
+ *                @todo Implement localization when English version launches (VETIF-I18N)
  * @returns BreadcrumbList JSON-LD schema
  *
  * @example

@@ -4,6 +4,9 @@ import { SUPPORTED_LANGUAGES } from '@/lib/seo/language';
 import { prisma } from '@/lib/prisma';
 import * as Sentry from '@sentry/nextjs';
 
+// Revalidate sitemap every hour to reduce database load from crawlers
+export const revalidate = 3600;
+
 /**
  * Generate sitemap.xml with static and dynamic routes
  * This helps search engines discover and index your pages
@@ -145,18 +148,28 @@ async function fetchPublicClinicRoutes(
 
     return clinicRoutes;
   } catch (error) {
-    // Track error in Sentry for production monitoring
+    // Track error in Sentry with elevated severity for production monitoring
     Sentry.captureException(error, {
-      tags: { context: 'sitemap-generation' },
+      level: 'error',
+      tags: {
+        context: 'sitemap-generation',
+        critical: true,
+        impact: 'seo',
+      },
       extra: {
         message: 'Failed to fetch clinic routes for sitemap',
       },
     });
 
-    // Keep console.error for local development
-    console.error('Error fetching clinic routes for sitemap:', error);
+    // Log with CRITICAL prefix for visibility
+    console.error('[CRITICAL] Sitemap clinic fetch failed:', error);
 
-    // Return empty array on error to prevent sitemap generation failure
+    // Throw in development to surface issues early
+    if (process.env.NODE_ENV === 'development') {
+      throw error;
+    }
+
+    // Return empty array on error to prevent sitemap generation failure in production
     return [];
   }
 }

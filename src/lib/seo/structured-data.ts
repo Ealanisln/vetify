@@ -474,6 +474,12 @@ export interface Service {
  * Generate LocalBusiness schema for individual veterinary clinic pages
  * Use VeterinaryCare type for more specific veterinary business representation
  *
+ * @param clinic - Clinic information including name, address, contact details, and hours
+ * @param _lang - Reserved for future i18n implementation when English version launches.
+ *                Currently unused as all content is in Spanish. Will be used to generate
+ *                localized schema descriptions and labels when multi-language support is added.
+ *                @todo Implement localization when English version launches (VETIF-I18N)
+ *
  * @example
  * ```ts
  * const clinicSchema = generateLocalBusinessSchema({
@@ -593,6 +599,12 @@ export function generateLocalBusinessSchema(
 /**
  * Generate Service schema for veterinary services
  * Use this to represent specific services offered by the veterinary clinic
+ *
+ * @param service - Service details including name, description, provider, and pricing
+ * @param _lang - Reserved for future i18n implementation when English version launches.
+ *                Currently unused as all content is in Spanish. Will be used to generate
+ *                localized service names and descriptions when multi-language support is added.
+ *                @todo Implement localization when English version launches (VETIF-I18N)
  *
  * @example
  * ```ts
