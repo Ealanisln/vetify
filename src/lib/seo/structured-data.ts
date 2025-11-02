@@ -341,7 +341,6 @@ export function generatePricingProductSchema(
   }>,
   lang: SupportedLanguage = 'es'
 ): Product {
-  const baseUrl = getBaseUrl();
   const siteName = getLocalizedContent(SITE_METADATA.siteName, lang);
 
   const offers: PricingOffer[] = plans.flatMap((plan) => {
@@ -530,7 +529,7 @@ export function generateLocalBusinessSchema(
     }>;
     images?: string[];
   },
-  lang: SupportedLanguage = 'es'
+  _lang: SupportedLanguage = 'es'
 ): LocalBusiness {
   const schema: LocalBusiness = {
     '@context': 'https://schema.org',
@@ -635,7 +634,7 @@ export function generateServiceSchema(
     };
     image?: string;
   },
-  lang: SupportedLanguage = 'es'
+  _lang: SupportedLanguage = 'es'
 ): Service {
   const schema: Service = {
     '@context': 'https://schema.org',

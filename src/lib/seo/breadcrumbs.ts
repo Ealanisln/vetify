@@ -40,7 +40,7 @@ export interface BreadcrumbSegment {
  */
 export function generateBreadcrumbSchema(
   segments: BreadcrumbSegment[],
-  lang: SupportedLanguage = 'es'
+  _lang: SupportedLanguage = 'es'
 ): BreadcrumbList {
   const baseUrl = getBaseUrl();
 
