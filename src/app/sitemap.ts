@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getBaseUrl } from '@/lib/seo/config';
 import { SUPPORTED_LANGUAGES } from '@/lib/seo/language';
 import { prisma } from '@/lib/prisma';
+import * as Sentry from '@sentry/nextjs';
 
 /**
  * Generate sitemap.xml with static and dynamic routes
@@ -144,7 +145,17 @@ async function fetchPublicClinicRoutes(
 
     return clinicRoutes;
   } catch (error) {
+    // Track error in Sentry for production monitoring
+    Sentry.captureException(error, {
+      tags: { context: 'sitemap-generation' },
+      extra: {
+        message: 'Failed to fetch clinic routes for sitemap',
+      },
+    });
+
+    // Keep console.error for local development
     console.error('Error fetching clinic routes for sitemap:', error);
+
     // Return empty array on error to prevent sitemap generation failure
     return [];
   }

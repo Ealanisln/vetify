@@ -1,5 +1,6 @@
 import { ImageResponse } from '@vercel/og';
 import { NextRequest } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 
 export const runtime = 'edge';
 
@@ -64,7 +65,8 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return new ImageResponse(
+    // Generate the OG image
+    const imageResponse = new ImageResponse(
       (
         <div
           style={{
@@ -166,7 +168,26 @@ export async function GET(request: NextRequest) {
         height: 630,
       }
     );
+
+    // Add cache headers for better performance
+    // Cache for 7 days - OG images rarely change
+    imageResponse.headers.set(
+      'Cache-Control',
+      'public, max-age=604800, immutable'
+    );
+
+    return imageResponse;
   } catch (error) {
+    // Track error in Sentry for production monitoring
+    Sentry.captureException(error, {
+      tags: { context: 'og-image-generation' },
+      extra: {
+        page: request.nextUrl.searchParams.get('page'),
+        clinic: request.nextUrl.searchParams.get('clinic'),
+      },
+    });
+
+    // Keep console.error for local development
     console.error('Error generating OG image:', error);
 
     // Return a simple fallback image
