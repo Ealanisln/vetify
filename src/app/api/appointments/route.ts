@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
+import { sendAppointmentConfirmation } from '@/lib/email/email-service';
+import type { AppointmentConfirmationData } from '@/lib/email/types';
 
 // Schema de validación para las citas
 const appointmentSchema = z.object({
@@ -212,10 +214,54 @@ export async function POST(request: Request) {
             name: true,
             position: true,
           }
+        },
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            publicPhone: true,
+            publicAddress: true,
+          }
         }
       }
     });
-    
+
+    // Send confirmation email asynchronously (don't block response)
+    if (appointment.customer.email) {
+      const appointmentTime = appointmentDateTime.toLocaleTimeString('es-MX', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const emailData: AppointmentConfirmationData = {
+        template: 'appointment-confirmation',
+        to: {
+          email: appointment.customer.email,
+          name: appointment.customer.name,
+        },
+        subject: `Confirmación de Cita - ${appointment.pet.name}`,
+        tenantId: tenant.id,
+        data: {
+          appointmentId: appointment.id,
+          petName: appointment.pet.name,
+          ownerName: appointment.customer.name,
+          appointmentDate: appointmentDateTime,
+          appointmentTime,
+          serviceName: appointment.reason,
+          clinicName: appointment.tenant.name,
+          clinicAddress: appointment.tenant.publicAddress || undefined,
+          clinicPhone: appointment.tenant.publicPhone || undefined,
+          veterinarianName: appointment.staff?.name,
+          notes: appointment.notes || undefined,
+        },
+      };
+
+      // Send email without awaiting (fire and forget)
+      sendAppointmentConfirmation(emailData).catch((error) => {
+        console.error('[APPOINTMENT] Failed to send confirmation email:', error);
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: appointment
