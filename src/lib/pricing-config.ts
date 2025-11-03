@@ -36,6 +36,18 @@ export const PRICING_CONFIG = {
     enableTrialForAllPlans: true,
     promotionEndDate: new Date('2025-12-31'),
     enableABTesting: false
+  },
+
+  // Promoción de lanzamiento - Early Adopter Discount
+  LAUNCH_PROMOTION: {
+    enabled: true, // ✅ ACTIVADO con cupón de test mode
+    discountPercent: 25,
+    durationMonths: 6,
+    endDate: new Date('2025-12-31'), // Fecha límite para nuevos clientes
+    couponCode: 'so8R0UHY', // ✅ ID del cupón en Stripe test mode
+    displayBadge: true,
+    badgeText: '🎉 Oferta de Lanzamiento',
+    description: '25% de descuento los primeros 6 meses'
   }
 };
 
@@ -330,4 +342,51 @@ export function getPlanKeyFromName(planName: string | null | undefined): string 
   }
 
   return 'PROFESIONAL'; // Default
+}
+
+/**
+ * Verifica si la promoción de lanzamiento está activa
+ */
+export function isLaunchPromotionActive(): boolean {
+  const promo = PRICING_CONFIG.LAUNCH_PROMOTION;
+  if (!promo.enabled) return false;
+  
+  const now = new Date();
+  return now <= promo.endDate;
+}
+
+/**
+ * Calcula el precio con descuento de lanzamiento
+ */
+export function getDiscountedPrice(originalPrice: number): number {
+  if (!isLaunchPromotionActive()) return originalPrice;
+  
+  const discount = PRICING_CONFIG.LAUNCH_PROMOTION.discountPercent / 100;
+  return Math.round(originalPrice * (1 - discount));
+}
+
+/**
+ * Obtiene el precio mensual equivalente durante la promoción
+ * (precio con descuento por los primeros 6 meses, luego precio normal)
+ */
+export function getLaunchPromotionDetails(planKey: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO') {
+  const promo = PRICING_CONFIG.LAUNCH_PROMOTION;
+  const plan = PRICING_CONFIG.PLANS[planKey];
+  
+  if (!isLaunchPromotionActive()) {
+    return null;
+  }
+
+  const discountedMonthly = getDiscountedPrice(plan.monthly);
+  const monthlySavings = plan.monthly - discountedMonthly;
+  const totalSavings = monthlySavings * promo.durationMonths;
+
+  return {
+    originalPrice: plan.monthly,
+    discountedPrice: discountedMonthly,
+    monthlySavings,
+    totalSavings,
+    durationMonths: promo.durationMonths,
+    discountPercent: promo.discountPercent
+  };
 } 
