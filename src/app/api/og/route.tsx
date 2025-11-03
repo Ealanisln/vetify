@@ -68,20 +68,20 @@ const vetifyLogoPromise = fetch(
   .then((res) => res.arrayBuffer())
   .catch(() => null);
 
-const dogSilhouetteSvg = `<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M54 112C46 76 68 54 98 48C118 44 146 44 170 60C186 70 194 92 190 112" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M58 122C44 138 42 166 58 184C76 204 112 208 142 202C170 196 190 174 190 150C190 130 180 112 162 102" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M108 114C120 108 138 108 150 114" stroke="%230B2D29" stroke-width="6" stroke-linecap="round"/><path d="M120 146C130 160 152 162 166 150" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="108" cy="138" r="6" fill="%230B2D29"/><circle cx="150" cy="138" r="6" fill="%230B2D29"/></svg>`;
-
-const catSilhouetteSvg = `<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M34 120L42 74L70 94L96 72L104 120" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M44 120C32 132 28 154 40 170C54 188 86 192 110 184C134 176 152 156 148 134C146 120 138 110 126 104" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M70 132C80 140 96 140 106 132" stroke="%230B2D29" stroke-width="6" stroke-linecap="round"/><circle cx="74" cy="118" r="5" fill="%230B2D29"/><circle cx="102" cy="118" r="5" fill="%230B2D29"/></svg>`;
-
-const dogSilhouetteDataUrl = `data:image/svg+xml,${encodeURIComponent(dogSilhouetteSvg)}`;
-const catSilhouetteDataUrl = `data:image/svg+xml,${encodeURIComponent(catSilhouetteSvg)}`;
+// These SVG silhouettes are reserved for future use in OG images
+// const dogSilhouetteSvg = `<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M54 112C46 76 68 54 98 48C118 44 146 44 170 60C186 70 194 92 190 112" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M58 122C44 138 42 166 58 184C76 204 112 208 142 202C170 196 190 174 190 150C190 130 180 112 162 102" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M108 114C120 108 138 108 150 114" stroke="%230B2D29" stroke-width="6" stroke-linecap="round"/><path d="M120 146C130 160 152 162 166 150" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="108" cy="138" r="6" fill="%230B2D29"/><circle cx="150" cy="138" r="6" fill="%230B2D29"/></svg>`;
+// const catSilhouetteSvg = `<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M34 120L42 74L70 94L96 72L104 120" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M44 120C32 132 28 154 40 170C54 188 86 192 110 184C134 176 152 156 148 134C146 120 138 110 126 104" stroke="%230B2D29" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M70 132C80 140 96 140 106 132" stroke="%230B2D29" stroke-width="6" stroke-linecap="round"/><circle cx="74" cy="118" r="5" fill="%230B2D29"/><circle cx="102" cy="118" r="5" fill="%230B2D29"/></svg>`;
+// const dogSilhouetteDataUrl = `data:image/svg+xml,${encodeURIComponent(dogSilhouetteSvg)}`;
+// const catSilhouetteDataUrl = `data:image/svg+xml,${encodeURIComponent(catSilhouetteSvg)}`;
 
 const titleColor = '#0B2D29';
 
-const featureHighlights = [
-  'Citas inteligentes',
-  'Historias clínicas seguras',
-  'Inventario en tiempo real',
-];
+// Reserved for future use: Feature highlights to display in OG images
+// const featureHighlights = [
+//   'Citas inteligentes',
+//   'Historias clínicas seguras',
+//   'Inventario en tiempo real',
+// ];
 
 function blendWithWhite(hexColor: string, ratio = 0.75): string {
   const normalized = hexColor.replace('#', '');
@@ -211,22 +211,23 @@ export async function GET(request: NextRequest) {
     const gradientEnd = blendWithWhite(accentColor, 0.82);
     const accentOutline = blendWithWhite(accentColor, 0.35);
 
-    const featureBadges = featureHighlights.map((feature) => (
-      <div
-        key={feature}
-        style={{
-          padding: '14px 22px',
-          borderRadius: '18px',
-          border: `1px solid ${accentOutline}`,
-          backgroundColor: 'rgba(255, 255, 255, 0.65)',
-          color: 'rgba(19, 69, 63, 0.78)',
-          fontSize: '26px',
-          fontWeight: 600,
-        }}
-      >
-        {feature}
-      </div>
-    ));
+    // Reserved for future use: Feature badges to display in OG images
+    // const featureBadges = featureHighlights.map((feature) => (
+    //   <div
+    //     key={feature}
+    //     style={{
+    //       padding: '14px 22px',
+    //       borderRadius: '18px',
+    //       border: `1px solid ${accentOutline}`,
+    //       backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    //       color: 'rgba(19, 69, 63, 0.78)',
+    //       fontSize: '26px',
+    //       fontWeight: 600,
+    //     }}
+    //   >
+    //     {feature}
+    //   </div>
+    // ));
 
     const imageResponse = new ImageResponse(
       (
@@ -256,6 +257,7 @@ export async function GET(request: NextRequest) {
             }}
           >
             {logoSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={logoSrc}
                 alt="Vetify"

@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation';
 import { prisma } from '../prisma';
 import { isLaunchPromotionActive, PRICING_CONFIG } from '../pricing-config';
 
+import type { Tenant, SubscriptionStatus } from '@prisma/client';
+
 // Type for Stripe subscription creation data
 interface StripeSubscriptionData {
   metadata: {
@@ -13,7 +15,31 @@ interface StripeSubscriptionData {
   };
   trial_period_days?: number;
 }
-import type { Tenant, SubscriptionStatus } from '@prisma/client';
+
+// Type for Stripe checkout session configuration
+interface StripeCheckoutSessionConfig {
+  customer: string;
+  payment_method_types: string[];
+  line_items: Array<{
+    price: string;
+    quantity: number;
+  }>;
+  mode: 'subscription';
+  success_url: string;
+  cancel_url: string;
+  subscription_data: StripeSubscriptionData;
+  locale: string;
+  metadata: {
+    tenantId: string;
+    planKey: string;
+    userId: string;
+    billingInterval: string;
+  };
+  discounts?: Array<{
+    coupon: string;
+  }>;
+  allow_promotion_codes?: boolean;
+}
 
 /**
  * Determina si un tenant debe recibir trial en Stripe
@@ -180,7 +206,7 @@ export async function createCheckoutSession({
   }
 
   // Preparar configuración de la sesión de checkout
-  const sessionConfig: any = {
+  const sessionConfig: StripeCheckoutSessionConfig = {
     customer: customer.id,
     payment_method_types: ['card'],
     line_items: [
@@ -283,7 +309,7 @@ export async function createCheckoutSessionForAPI({
   }
 
   // Preparar configuración de la sesión de checkout
-  const sessionConfig: any = {
+  const sessionConfig: StripeCheckoutSessionConfig = {
     customer: customer.id,
     payment_method_types: ['card'],
     line_items: [
