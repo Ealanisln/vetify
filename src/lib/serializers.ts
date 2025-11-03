@@ -1,13 +1,18 @@
-import { Decimal } from '@prisma/client/runtime/library';
+import 'server-only';
 
 /**
  * Converts Prisma Decimal fields to regular numbers for client component serialization
  */
-export function serializeDecimal(value: Decimal | null | undefined): number | null {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function serializeDecimal(value: any): number | null {
   if (value === null || value === undefined) {
     return null;
   }
-  return value.toNumber();
+  // Check if it's a Decimal instance without importing the class
+  if (value && typeof value.toNumber === 'function') {
+    return value.toNumber();
+  }
+  return value;
 }
 
 /**
@@ -21,8 +26,8 @@ export function serializeObject(obj: any): any {
     return obj;
   }
 
-  // Handle Decimal objects
-  if (obj instanceof Decimal) {
+  // Handle Decimal objects (check for toNumber method without importing class)
+  if (obj && typeof obj.toNumber === 'function') {
     return obj.toNumber();
   }
 

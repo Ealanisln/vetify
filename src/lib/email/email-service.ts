@@ -17,8 +17,18 @@ import type {
 } from './types';
 import { logEmailSend } from '../notifications/notification-logger';
 
-// Initialize Resend client
-const resend = new Resend(process.env.RESEND_API_KEY || '');
+// Lazy-load Resend client to avoid initialization during build
+let resendClient: Resend | null = null;
+function getResendClient(): Resend {
+  if (!resendClient) {
+    const apiKey = process.env.RESEND_API_KEY || '';
+    if (!apiKey) {
+      throw new Error('RESEND_API_KEY is not configured');
+    }
+    resendClient = new Resend(apiKey);
+  }
+  return resendClient;
+}
 
 // Default configuration
 const DEFAULT_CONFIG: EmailServiceConfig = {
@@ -74,6 +84,7 @@ export async function sendEmail(
     };
 
     // Send email via Resend
+    const resend = getResendClient();
     const response = await resend.emails.send(payload);
 
     if (!response.data?.id) {
