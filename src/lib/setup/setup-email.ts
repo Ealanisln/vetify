@@ -1,7 +1,14 @@
 import { Resend } from 'resend';
 import { generateSetupToken } from './setup-token';
 
-const resend = new Resend(process.env.RESEND_API_KEY || '');
+// Lazy-load Resend client to avoid initialization during build
+function getResendClient(): Resend {
+  const apiKey = process.env.RESEND_API_KEY || '';
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY is not configured');
+  }
+  return new Resend(apiKey);
+}
 
 const FROM_EMAIL = process.env.SETUP_FROM_EMAIL || 'support@vetify.pro';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -22,6 +29,7 @@ export async function sendSetupVerificationEmail(email: string) {
     <p>— Equipo Vetify</p>
   `;
 
+  const resend = getResendClient();
   await resend.emails.send({
     from: FROM_EMAIL,
     to: email,

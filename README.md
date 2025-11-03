@@ -4,7 +4,8 @@ A comprehensive, multi-tenant SaaS platform for veterinary practices built with 
 
 ## 🎉 Latest Release Highlights
 
-**Recent Updates (January 2025)**:
+**Recent Updates (November 2025)**:
+- 📧 **Email System**: Professional transactional emails with Resend (appointment confirmations, reminders, inventory alerts)
 - ✨ **Enhanced Medical Module**: Inline veterinarian creation during medical forms, improved consultation/treatment/vaccination forms
 - 🎨 **Appointment Calendar**: Enhanced UI/UX with better navigation and visual improvements
 - 💳 **Subscription UX**: Improved plan upgrade/downgrade experience with visual indicators and proper feature gating
@@ -40,6 +41,7 @@ Visit `http://localhost:3000` to access the application.
 - **Database**: PostgreSQL with Prisma ORM
 - **Authentication**: Kinde Auth
 - **Payments**: Stripe (Subscriptions & Trials)
+- **Email**: Resend (Transactional Emails)
 - **Storage**: Supabase
 - **Rate Limiting**: Upstash Redis
 - **Monitoring**: Sentry
@@ -53,6 +55,7 @@ Visit `http://localhost:3000` to access the application.
 - PostgreSQL database
 - Supabase account
 - Stripe account (for payments)
+- Resend account (for emails)
 - Kinde Auth account
 
 ### Available Commands
