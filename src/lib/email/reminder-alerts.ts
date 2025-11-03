@@ -76,13 +76,6 @@ export async function processTreatmentReminders(): Promise<{
         );
 
         // Get treatment type from reminder title
-        const treatmentTypes = {
-          VACCINATION: 'VACCINATION' as const,
-          DEWORMING: 'MEDICATION' as const,
-          CHECKUP: 'CHECKUP' as const,
-          OTHER: 'OTHER' as const,
-        };
-
         let treatmentType: 'VACCINATION' | 'MEDICATION' | 'CHECKUP' | 'OTHER' =
           'OTHER';
         if (reminder.title.toLowerCase().includes('vacun')) {

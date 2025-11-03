@@ -493,6 +493,7 @@ function renderAppointmentReminderTemplate(
  */
 function renderLowStockAlertTemplate(
   emailData: LowStockAlertData,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   brandColor: string
 ): string {
   const { data: d } = emailData;

@@ -6,7 +6,7 @@
  */
 
 import { prisma } from '@/lib/prisma';
-import type { EmailData, EmailSendResult, EmailLogEntry } from '../email/types';
+import type { EmailData, EmailSendResult } from '../email/types';
 import { EmailStatus, EmailTemplate } from '@prisma/client';
 
 /**

@@ -9,7 +9,7 @@ import {
  * POST /api/inventory/alerts
  * Manually trigger low stock alert for current tenant
  */
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const { tenant } = await requireAuth();
 
