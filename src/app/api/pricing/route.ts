@@ -45,8 +45,8 @@ export async function GET() {
     // Filter only the correct Vetify products (basico, profesional)
     // Corporativo se maneja por separado en el frontend como cotización
     const VALID_PRODUCT_IDS = [
-      'prod_TCuXLEJNsZUevo', // Plan Básico
-      'prod_TCuY69NLP7G9Xf'  // Plan Profesional
+      'prod_TGDXKD2ksDenYm', // Plan Básico
+      'prod_TGDXLJxNFGsF9X'  // Plan Profesional
     ];
 
     const activePlans = pricingData

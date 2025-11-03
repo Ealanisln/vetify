@@ -41,7 +41,13 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
   } = useSubscription(tenant);
 
   // CRITICAL FIX: Check if trial has expired
-  const isTrialExpired = isInTrial && tenant.trialEndsAt && new Date(tenant.trialEndsAt) < new Date();
+  // Trial is expired if: status is TRIALING AND trialEndsAt is in the past
+  const isTrialExpired = 
+    tenant.subscriptionStatus === 'TRIALING' && 
+    tenant.isTrialPeriod && 
+    tenant.trialEndsAt && 
+    new Date(tenant.trialEndsAt) < new Date() &&
+    !tenant.stripeSubscriptionId; // No tiene suscripción de pago
 
   const handleManageSubscription = async () => {
     setIsLoading(true);
@@ -332,7 +338,7 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
       <Card>
         <CardContent className="p-6">
           <div className="space-y-3">
-            {tenant.stripeCustomerId && (hasActiveSubscription || isPastDue) ? (
+            {tenant.stripeCustomerId && (hasActiveSubscription || isPastDue) && !isTrialExpired ? (
               <Button
                 onClick={handleManageSubscription}
                 disabled={isLoading}

@@ -17,9 +17,9 @@ interface PricingPageEnhancedProps {
 
 // Mapeo de IDs de Stripe a IDs locales para compatibilidad
 const STRIPE_TO_LOCAL_ID_MAP: Record<string, string> = {
-  'prod_TDdWhTHiV65YFG': 'basico',
-  'prod_TDdW2nRtxwKws9': 'profesional',
-  'prod_TDdWMKyrMfoOJd': 'corporativo'
+  'prod_TGDXKD2ksDenYm': 'basico',
+  'prod_TGDXLJxNFGsF9X': 'profesional',
+  'prod_TGDXxUkqhta3cp': 'corporativo'
 };
 
 export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
@@ -234,12 +234,19 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
         const transformedPlans: PricingPlan[] = data.plans.map((plan: APIPlan) => {
           const localId = STRIPE_TO_LOCAL_ID_MAP[plan.id] || plan.id.toLowerCase();
+          
+          // Obtener features de la configuración local si Stripe no las proporciona
+          const localPlanKey = localId.toUpperCase() as keyof typeof COMPLETE_PLANS;
+          const localPlan = COMPLETE_PLANS[localPlanKey];
+          const planFeatures = plan.features && plan.features.length > 0 
+            ? plan.features 
+            : (localPlan ? localPlan.features.map(f => f.name) : []);
 
           return {
             id: localId,
             name: plan.name,
             description: plan.description || `Plan ${plan.name}`,
-            features: plan.features || [],
+            features: planFeatures,
             prices: {
               monthly: plan.prices.monthly,
               yearly: plan.prices.yearly
