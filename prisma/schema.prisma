@@ -75,6 +75,7 @@ model Tenant {
   treatmentSchedules  TreatmentSchedule[]
   users               User[]
   trialAccessLogs     TrialAccessLog[]
+  emailLogs           EmailLog[]
 
   @@index([status])
   @@index([slug])
@@ -1046,4 +1047,48 @@ model TrialAccessLog {
   @@index([createdAt])
   @@index([tenantId, feature])
   @@index([tenantId, userId])
+}
+
+model EmailLog {
+  id             String      @id @default(uuid())
+  tenantId       String
+  recipientEmail String
+  recipientName  String?
+  subject        String
+  template       EmailTemplate
+  status         EmailStatus @default(PENDING)
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  bouncedAt      DateTime?
+  failedAt       DateTime?
+  error          String?     @db.Text
+  resendId       String?     @unique
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, template])
+  @@index([recipientEmail])
+  @@index([status])
+  @@index([createdAt])
+  @@index([resendId])
+}
+
+enum EmailTemplate {
+  APPOINTMENT_CONFIRMATION
+  APPOINTMENT_REMINDER
+  LOW_STOCK_ALERT
+  TREATMENT_REMINDER
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  DELIVERED
+  BOUNCED
+  FAILED
 }

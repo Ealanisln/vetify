@@ -39,4 +39,4 @@ ON "MedicalHistory"("tenantId");
 -- Sale tenant + date filtering
 -- Used by: reports, sales analytics
 CREATE INDEX IF NOT EXISTS "idx_sale_tenant_date"
-ON "Sale"("tenantId", "saleDate");
+ON "Sale"("tenantId", "createdAt");
