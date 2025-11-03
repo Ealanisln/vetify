@@ -64,7 +64,7 @@ const contactMethods = [
     icon: <Mail className="h-6 w-6" />,
     title: "Email",
     description: "Responderemos a tu mensaje en menos de 24 horas.",
-    link: "mailto:contacto@vetify.mx",
+    link: "mailto:contacto@vetify.pro",
   },
 ];
 
