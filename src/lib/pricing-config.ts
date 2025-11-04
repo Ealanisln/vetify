@@ -40,11 +40,11 @@ export const PRICING_CONFIG = {
 
   // Promoción de lanzamiento - Early Adopter Discount
   LAUNCH_PROMOTION: {
-    enabled: true, // ✅ ACTIVADO con cupón de test mode
+    enabled: true,
     discountPercent: 25,
     durationMonths: 6,
     endDate: new Date('2025-12-31'), // Fecha límite para nuevos clientes
-    couponCode: 'so8R0UHY', // ✅ ID del cupón en Stripe test mode
+    couponCode: process.env.STRIPE_COUPON || '', // Set via environment variable
     displayBadge: true,
     badgeText: '🎉 Oferta de Lanzamiento',
     description: '25% de descuento los primeros 6 meses'
