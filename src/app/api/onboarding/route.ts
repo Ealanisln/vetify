@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUserWithOptionalTenant } from '../../../lib/auth';
 import { createTenantWithDefaults, isSlugAvailable } from '../../../lib/tenant';
+import { notifyNewUserRegistration } from '../../../lib/email/admin-notifications';
 import { z } from 'zod';
 
 const onboardingSchema = z.object({
@@ -57,6 +58,22 @@ export async function POST(request: NextRequest) {
       billingInterval: validatedData.billingInterval,
       phone: validatedData.phone,
       address: validatedData.address,
+    });
+
+    // Send admin notification (non-blocking)
+    notifyNewUserRegistration({
+      userName: user.given_name && user.family_name
+        ? `${user.given_name} ${user.family_name}`
+        : user.email || 'Usuario',
+      userEmail: user.email || '',
+      tenantId: result.tenant.id,
+      tenantName: result.tenant.name,
+      tenantSlug: result.tenant.slug,
+      planType: 'TRIAL', // New registrations start with trial
+      trialEndsAt: result.tenant.trialEndsAt ?? undefined,
+    }).catch(error => {
+      // Log error but don't fail the request
+      console.error('[ONBOARDING] Failed to send admin notification:', error);
     });
 
     return NextResponse.json({

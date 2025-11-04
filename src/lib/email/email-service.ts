@@ -14,6 +14,8 @@ import type {
   AppointmentReminderData,
   LowStockAlertData,
   TreatmentReminderData,
+  NewUserRegistrationData,
+  NewSubscriptionPaymentData,
 } from './types';
 import { logEmailSend } from '../notifications/notification-logger';
 
@@ -174,6 +176,12 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'treatment-reminder':
       return renderTreatmentReminderTemplate(emailData, brandColor);
+
+    case 'new-user-registration':
+      return renderNewUserRegistrationTemplate(emailData, brandColor);
+
+    case 'new-subscription-payment':
+      return renderNewSubscriptionPaymentTemplate(emailData, brandColor);
 
     default:
       throw new Error(`Unknown template: ${(emailData as EmailData).template}`);
@@ -774,6 +782,375 @@ function renderTreatmentReminderTemplate(
               </p>
               <p style="margin: 0; color: #999999; font-size: 12px;">
                 Enviado por Vetify - Sistema de Gestión Veterinaria
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Render new user registration template
+ */
+function renderNewUserRegistrationTemplate(
+  emailData: NewUserRegistrationData,
+  brandColor: string
+): string {
+  const { data: d } = emailData;
+  const registrationDateStr = d.registrationDate.toLocaleDateString('es-MX', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const trialEndsStr = d.trialEndsAt
+    ? d.trialEndsAt.toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      })
+    : '';
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nuevo Usuario Registrado - Vetify</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: ${brandColor}; padding: 30px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
+                🎉 Nuevo Usuario Registrado
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="margin: 0 0 30px 0; color: #333333; font-size: 16px;">
+                ¡Hola Emmanuel! Un nuevo usuario se ha registrado en Vetify.
+              </p>
+
+              <!-- User Info Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 6px; margin-bottom: 30px;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">👤 Usuario:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: #333333; font-size: 14px;">${d.userName}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">📧 Email:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: #333333; font-size: 14px;">${d.userEmail}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">🏥 Clínica:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: #333333; font-size: 14px;">${d.tenantName}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">🔗 Slug:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: #333333; font-size: 14px;">${d.tenantSlug}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">📅 Fecha:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: #333333; font-size: 14px;">${registrationDateStr}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">📋 Tipo:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: ${d.planType === 'TRIAL' ? '#ffc107' : '#28a745'}; font-size: 14px;">
+                            ${d.planType === 'TRIAL' ? '🎁 Período de Prueba' : '💳 Suscripción Pagada'}
+                          </strong>
+                        </td>
+                      </tr>
+                      ${
+                        d.trialEndsAt
+                          ? `
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">⏰ Prueba termina:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: #333333; font-size: 14px;">${trialEndsStr}</strong>
+                        </td>
+                      </tr>
+                      `
+                          : ''
+                      }
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Quick Actions -->
+              <div style="margin-bottom: 30px;">
+                <h3 style="margin: 0 0 15px 0; color: #333333; font-size: 18px; font-weight: 600;">
+                  🔗 Enlaces Rápidos
+                </h3>
+                <p style="margin: 0 0 8px 0;">
+                  <a href="https://app.vetify.pro/${d.tenantSlug}" style="color: ${brandColor}; text-decoration: none; font-size: 14px;">
+                    📊 Ver Dashboard del Tenant
+                  </a>
+                </p>
+                <p style="margin: 0;">
+                  <a href="mailto:${d.userEmail}" style="color: ${brandColor}; text-decoration: none; font-size: 14px;">
+                    📧 Contactar Usuario
+                  </a>
+                </p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="margin: 0; color: #666666; font-size: 12px;">
+                Notificación automática de Vetify
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `.trim();
+}
+
+/**
+ * Render new subscription payment template
+ */
+function renderNewSubscriptionPaymentTemplate(
+  emailData: NewSubscriptionPaymentData,
+  brandColor: string
+): string {
+  const { data: d } = emailData;
+  const paymentDateStr = d.paymentDate.toLocaleDateString('es-MX', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const formattedAmount = new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency: d.currency.toUpperCase(),
+  }).format(d.planAmount / 100); // Amount is in cents
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nueva Suscripción Pagada - Vetify</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f5; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #28a745; padding: 30px; text-align: center;">
+              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 600;">
+                💰 Nueva Suscripción Pagada
+              </h1>
+            </td>
+          </tr>
+
+          <!-- Content -->
+          <tr>
+            <td style="padding: 40px 30px;">
+              <p style="margin: 0 0 30px 0; color: #333333; font-size: 16px;">
+                ¡Excelente! Un usuario ha pagado una suscripción en Vetify.
+              </p>
+
+              <!-- Payment Info Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #d4edda; border-radius: 6px; margin-bottom: 30px; border: 2px solid #28a745;">
+                <tr>
+                  <td style="padding: 20px; text-align: center;">
+                    <p style="margin: 0 0 10px 0; color: #155724; font-size: 14px; font-weight: 600;">
+                      Monto Pagado
+                    </p>
+                    <p style="margin: 0; color: #155724; font-size: 32px; font-weight: bold;">
+                      ${formattedAmount}
+                    </p>
+                    <p style="margin: 10px 0 0 0; color: #155724; font-size: 14px;">
+                      ${d.billingInterval === 'month' ? 'Mensual' : 'Anual'}
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- User Info Card -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fa; border-radius: 6px; margin-bottom: 30px;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">👤 Usuario:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: #333333; font-size: 14px;">${d.userName}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">📧 Email:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: #333333; font-size: 14px;">${d.userEmail}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">🏥 Clínica:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: #333333; font-size: 14px;">${d.tenantName}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">🔗 Slug:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: #333333; font-size: 14px;">${d.tenantSlug}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">📋 Plan:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: #28a745; font-size: 14px;">${d.planName}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">📅 Fecha de pago:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <strong style="color: #333333; font-size: 14px;">${paymentDateStr}</strong>
+                        </td>
+                      </tr>
+                      ${
+                        d.stripeCustomerId
+                          ? `
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">💳 Stripe Customer:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <a href="https://dashboard.stripe.com/customers/${d.stripeCustomerId}" style="color: ${brandColor}; font-size: 14px; text-decoration: none;">
+                            ${d.stripeCustomerId}
+                          </a>
+                        </td>
+                      </tr>
+                      `
+                          : ''
+                      }
+                      ${
+                        d.stripeSubscriptionId
+                          ? `
+                      <tr>
+                        <td style="padding: 8px 0;">
+                          <span style="color: #666666; font-size: 14px;">🔄 Stripe Subscription:</span>
+                        </td>
+                        <td style="padding: 8px 0; text-align: right;">
+                          <a href="https://dashboard.stripe.com/subscriptions/${d.stripeSubscriptionId}" style="color: ${brandColor}; font-size: 14px; text-decoration: none;">
+                            ${d.stripeSubscriptionId}
+                          </a>
+                        </td>
+                      </tr>
+                      `
+                          : ''
+                      }
+                    </table>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Quick Actions -->
+              <div style="margin-bottom: 30px;">
+                <h3 style="margin: 0 0 15px 0; color: #333333; font-size: 18px; font-weight: 600;">
+                  🔗 Enlaces Rápidos
+                </h3>
+                <p style="margin: 0 0 8px 0;">
+                  <a href="https://app.vetify.pro/${d.tenantSlug}" style="color: ${brandColor}; text-decoration: none; font-size: 14px;">
+                    📊 Ver Dashboard del Tenant
+                  </a>
+                </p>
+                <p style="margin: 0 0 8px 0;">
+                  <a href="mailto:${d.userEmail}" style="color: ${brandColor}; text-decoration: none; font-size: 14px;">
+                    📧 Contactar Usuario
+                  </a>
+                </p>
+                ${
+                  d.stripeCustomerId
+                    ? `
+                <p style="margin: 0;">
+                  <a href="https://dashboard.stripe.com/customers/${d.stripeCustomerId}" style="color: ${brandColor}; text-decoration: none; font-size: 14px;">
+                    💳 Ver en Stripe Dashboard
+                  </a>
+                </p>
+                `
+                    : ''
+                }
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="margin: 0; color: #666666; font-size: 12px;">
+                Notificación automática de Vetify
               </p>
             </td>
           </tr>
