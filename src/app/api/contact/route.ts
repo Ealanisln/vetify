@@ -1,12 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { Resend } from 'resend';
+import { createCSRFProtectedHandler } from '@/lib/security/csrf-protection';
+import { createSecureResponse, createSecureErrorResponse, commonSchemas } from '@/lib/security/input-sanitization';
 
 // Lazy-load Resend client
 let resendClient: Resend | null = null;
 function getResendClient(): Resend {
   if (!resendClient) {
-    const apiKey = process.env.RESEND_API_KEY || '';
+    const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
       throw new Error('RESEND_API_KEY is not configured');
     }
@@ -15,11 +17,11 @@ function getResendClient(): Resend {
   return resendClient;
 }
 
-// Validation schema for contact form
+// Validation schema for contact form with HTML sanitization
 const contactFormSchema = z.object({
-  nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
-  email: z.string().email('Email inválido'),
-  telefono: z.string().optional(),
+  nombre: commonSchemas.name.min(2, 'El nombre debe tener al menos 2 caracteres'),
+  email: z.string().email('Email inválido').max(254),
+  telefono: z.string().max(20).optional(),
   asunto: z.enum([
     'informacion',
     'demo',
@@ -28,7 +30,7 @@ const contactFormSchema = z.object({
     'downgrade',
     'otro',
   ]),
-  mensaje: z.string().min(10, 'El mensaje debe tener al menos 10 caracteres'),
+  mensaje: commonSchemas.safeString.min(10, 'El mensaje debe tener al menos 10 caracteres').max(5000),
 });
 
 // Map subject values to Spanish
@@ -41,22 +43,29 @@ const subjectMap: Record<string, string> = {
   otro: 'Consulta General',
 };
 
-export async function POST(request: NextRequest) {
+// Internal handler function
+async function handleContactSubmission(request: NextRequest, body: unknown) {
   try {
-    const body = await request.json();
-
     // Validate request body
     const validatedData = contactFormSchema.parse(body);
 
-    // Get environment variables
-    const fromEmail = process.env.RESEND_FROM_EMAIL || 'notifications@vetify.pro';
-    const contactEmail = process.env.CONTACT_EMAIL || 'contacto@vetify.pro';
+    // Get environment variables with validation
+    const fromEmail = process.env.RESEND_FROM_EMAIL;
+    const contactEmail = process.env.CONTACT_EMAIL;
+
+    if (!fromEmail || !contactEmail) {
+      console.error('[CONTACT] Missing required email configuration');
+      return createSecureErrorResponse(
+        'Servicio de contacto no disponible temporalmente',
+        503
+      );
+    }
 
     // Create subject line
     const subjectType = subjectMap[validatedData.asunto] || 'Consulta General';
     const emailSubject = `[Vetify Contacto] ${subjectType} - ${validatedData.nombre}`;
 
-    // Create email HTML
+    // Create email HTML (data is already sanitized by Zod schema)
     const emailHtml = renderContactEmail(validatedData);
 
     // Send email via Resend
@@ -73,7 +82,7 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to send email: No message ID returned');
     }
 
-    // Log successful send (optional - for debugging)
+    // Log successful send (for monitoring)
     console.log('[CONTACT] Email sent successfully:', {
       messageId: response.data.id,
       to: contactEmail,
@@ -81,43 +90,56 @@ export async function POST(request: NextRequest) {
       subject: emailSubject,
     });
 
-    return NextResponse.json({
+    return createSecureResponse({
       success: true,
       message: 'Mensaje enviado exitosamente',
-      messageId: response.data.id,
     });
   } catch (error) {
     console.error('[CONTACT] Failed to send email:', error);
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Datos inválidos',
-          details: error.errors,
-        },
-        { status: 400 }
+      return createSecureErrorResponse(
+        'Datos inválidos. Por favor verifica la información.',
+        400
       );
     }
 
-    // Handle other errors
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Error al enviar el mensaje',
-      },
-      { status: 500 }
+    // Handle Resend API errors
+    if (error instanceof Error && error.message.includes('Resend')) {
+      return createSecureErrorResponse(
+        'Error al enviar el mensaje. Por favor intenta nuevamente.',
+        500
+      );
+    }
+
+    // Handle other errors without exposing internals
+    return createSecureErrorResponse(
+      'Error al procesar tu mensaje. Por favor intenta nuevamente.',
+      500
     );
   }
 }
 
+// Export POST handler with CSRF protection
+export const POST = createCSRFProtectedHandler(handleContactSubmission);
+
 /**
  * Render contact email template
+ * Note: All data is already sanitized by Zod schema with commonSchemas.safeString
  */
 function renderContactEmail(data: z.infer<typeof contactFormSchema>): string {
   const brandColor = '#75a99c';
   const subjectType = subjectMap[data.asunto] || 'Consulta General';
+
+  // HTML escape function for extra safety
+  const escapeHtml = (text: string) =>
+    text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
 
   return `
 <!DOCTYPE html>
@@ -154,7 +176,7 @@ function renderContactEmail(data: z.infer<typeof contactFormSchema>): string {
                           <span style="color: #666666; font-size: 14px;">👤 Nombre:</span>
                         </td>
                         <td style="padding: 8px 0; text-align: right;">
-                          <strong style="color: #333333; font-size: 14px;">${data.nombre}</strong>
+                          <strong style="color: #333333; font-size: 14px;">${escapeHtml(data.nombre)}</strong>
                         </td>
                       </tr>
                       <tr>
@@ -162,7 +184,7 @@ function renderContactEmail(data: z.infer<typeof contactFormSchema>): string {
                           <span style="color: #666666; font-size: 14px;">📧 Email:</span>
                         </td>
                         <td style="padding: 8px 0; text-align: right;">
-                          <strong style="color: #333333; font-size: 14px;">${data.email}</strong>
+                          <strong style="color: #333333; font-size: 14px;">${escapeHtml(data.email)}</strong>
                         </td>
                       </tr>
                       ${
@@ -173,7 +195,7 @@ function renderContactEmail(data: z.infer<typeof contactFormSchema>): string {
                           <span style="color: #666666; font-size: 14px;">📞 Teléfono:</span>
                         </td>
                         <td style="padding: 8px 0; text-align: right;">
-                          <strong style="color: #333333; font-size: 14px;">${data.telefono}</strong>
+                          <strong style="color: #333333; font-size: 14px;">${escapeHtml(data.telefono)}</strong>
                         </td>
                       </tr>
                       `
@@ -184,7 +206,7 @@ function renderContactEmail(data: z.infer<typeof contactFormSchema>): string {
                           <span style="color: #666666; font-size: 14px;">📋 Asunto:</span>
                         </td>
                         <td style="padding: 8px 0; text-align: right;">
-                          <strong style="color: #333333; font-size: 14px;">${subjectType}</strong>
+                          <strong style="color: #333333; font-size: 14px;">${escapeHtml(subjectType)}</strong>
                         </td>
                       </tr>
                     </table>
@@ -199,7 +221,7 @@ function renderContactEmail(data: z.infer<typeof contactFormSchema>): string {
                 </h3>
                 <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; border-left: 4px solid ${brandColor};">
                   <p style="margin: 0; color: #333333; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">
-${data.mensaje}
+${escapeHtml(data.mensaje)}
                   </p>
                 </div>
               </div>

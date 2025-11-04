@@ -4,6 +4,7 @@ import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { Mail, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
+import { toast } from 'sonner';
 
 interface ContactMethodProps {
   icon: React.ReactNode;
@@ -131,8 +132,28 @@ export default function Contacto() {
 
       const data = await response.json();
 
-      if (data.success) {
+      // Handle rate limiting (429)
+      if (response.status === 429) {
+        toast.error('Has excedido el límite de mensajes. Por favor espera unos minutos e intenta nuevamente.', {
+          duration: 5000,
+        });
+        return;
+      }
+
+      // Handle CSRF errors (403)
+      if (response.status === 403) {
+        toast.error('Error de seguridad. Por favor recarga la página e intenta nuevamente.', {
+          duration: 5000,
+        });
+        return;
+      }
+
+      // Handle success
+      if (response.ok && data.success) {
         setSubmitted(true);
+        toast.success('¡Mensaje enviado exitosamente! Te responderemos en menos de 24 horas.', {
+          duration: 5000,
+        });
 
         // Resetear el formulario después de 5 segundos
         setTimeout(() => {
@@ -146,13 +167,21 @@ export default function Contacto() {
           });
         }, 5000);
       } else {
-        // Manejar error
+        // Handle validation or other errors
+        const errorMessage = data.error || 'Error al enviar el mensaje';
+        toast.error(errorMessage, {
+          description: 'Si el problema persiste, contacta directamente a contacto@vetify.pro',
+          duration: 5000,
+        });
         console.error('Error al enviar mensaje:', data.error);
-        alert('Error al enviar el mensaje. Por favor, intenta nuevamente o contacta directamente a contacto@vetify.pro');
       }
     } catch (error) {
+      // Handle network errors
+      toast.error('Error de conexión. Por favor verifica tu internet e intenta nuevamente.', {
+        description: 'O contacta directamente a contacto@vetify.pro',
+        duration: 5000,
+      });
       console.error('Error al enviar mensaje:', error);
-      alert('Error al enviar el mensaje. Por favor, intenta nuevamente o contacta directamente a contacto@vetify.pro');
     } finally {
       setIsSubmitting(false);
     }
