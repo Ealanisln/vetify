@@ -357,6 +357,12 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
     return formatPrice(Math.round(amountInCents / 100));
   };
 
+  // Aplicar descuento del 25% (Early Adopter)
+  const applyEarlyAdopterDiscount = (amountInCents: number) => {
+    const discountedAmount = amountInCents * 0.75; // 25% OFF = 75% del precio original
+    return Math.round(discountedAmount);
+  };
+
   // Calcular descuento anual
   const calculateAnnualDiscount = (productId: string) => {
     const plan = pricingPlans.find(p => p.id === productId);
@@ -592,7 +598,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
       {!pricingLoading && !pricingError && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 pt-16">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 gap-y-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 gap-y-16 items-stretch">
             {pricingPlans.map((product: PricingPlan) => {
               const price = getProductPrice(product.id);
               const { isCurrentPlan, isUpgrade, isDowngrade } = getPlanStatus(product.id);
@@ -603,7 +609,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
               const isPopular = planConfig?.popular;
 
               return (
-                <div key={product.id} className={`relative ${isPopular ? 'mt-10' : 'mt-8'}`}>
+                <div key={product.id} className={`relative ${isPopular ? 'mt-10' : 'mt-8'} flex flex-col h-full`}>
                   {/* Current Plan or Popular Badge - Outside the card */}
                   {isCurrentPlan ? (
                     <div className="absolute left-1/2 -translate-x-1/2 z-20 whitespace-nowrap -top-4">
@@ -621,7 +627,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
                   {/* Pricing Card */}
                   <div
-                    className={`relative flex flex-col rounded-2xl border-2 transition-all duration-300 ${
+                    className={`relative flex flex-col flex-1 h-full rounded-2xl border-2 transition-all duration-300 ${
                       isCurrentPlan
                         ? 'border-green-500 shadow-lg shadow-green-500/20 bg-green-50/50 dark:bg-green-950/10'
                         : isPopular
@@ -652,14 +658,39 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                         </div>
                       ) : (
                         <>
+                          {/* Early Adopter Badge with 25% OFF */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <Sparkles className="h-4 w-4 text-orange-500" />
+                            <Badge className="bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20 text-xs font-semibold">
+                              25% OFF
+                            </Badge>
+                          </div>
+
+                          {/* Discounted Price */}
                           <div className="flex items-baseline gap-1">
                             <span className="text-4xl font-bold text-foreground">
-                              {formatPriceFromCents(isYearly ? price.unitAmount / 12 : price.unitAmount)}
+                              {formatPriceFromCents(applyEarlyAdopterDiscount(isYearly ? price.unitAmount / 12 : price.unitAmount))}
                             </span>
                             <span className="text-muted-foreground">/mes</span>
                           </div>
+
+                          {/* Original Price with Strikethrough */}
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="text-muted-foreground line-through">
+                              {formatPrice(product.id === 'basico' ? 599 : 1199)}/mes
+                            </span>
+                            <span className="text-orange-500 dark:text-orange-400 font-medium">
+                              Ahorras {formatPrice(product.id === 'basico' ? 150 : 300)}/mes
+                            </span>
+                          </div>
+
+                          {/* Promotion Duration Notice */}
+                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                            Por 6 meses • Luego {formatPrice(product.id === 'basico' ? 599 : 1199)}/mes
+                          </p>
+
                           {isYearly && (
-                            <div className="space-y-1">
+                            <div className="space-y-1 mt-2 pt-2 border-t border-border">
                               <p className="text-sm text-muted-foreground">
                                 Facturado anualmente: {formatPriceFromCents(price.unitAmount)}
                               </p>

@@ -7,46 +7,49 @@ import Link from "next/link"
 
 const plans = [
   {
-    name: "Starter",
-    price: "$299",
-    discountedPrice: "$224",
+    name: "Plan Básico",
+    price: "$599",
+    discountedPrice: "$449",
     period: "/mes",
-    description: "Ideal para clínicas pequeñas",
-    features: ["Hasta 500 mascotas", "WhatsApp automático", "Gestión básica", "Soporte por email", "Reportes básicos"],
+    description: "Ideal para clínicas pequeñas que están comenzando.",
+    features: ["Hasta 500 mascotas", "3 usuarios veterinarios", "Historiales médicos completos", "Gestión de citas", "Control de inventario básico", "Punto de venta básico"],
     popular: false,
-    savings: "$75",
+    savings: "$150",
   },
   {
-    name: "Standard",
-    price: "$449",
-    discountedPrice: "$337",
+    name: "Plan Profesional",
+    price: "$1,199",
+    discountedPrice: "$899",
     period: "/mes",
-    description: "Para clínicas en crecimiento",
+    description: "Perfecto para clínicas establecidas con múltiples sucursales.",
     features: [
       "Hasta 2,000 mascotas",
-      "Automación avanzada",
-      "Reportes detallados",
-      "Soporte prioritario",
-      "Integraciones",
+      "8 usuarios veterinarios",
+      "Todo del plan Básico",
+      "Gestión multi-sucursal",
+      "Múltiples cajas por sucursal",
+      "Control de inventario avanzado",
     ],
     popular: true,
-    savings: "$112",
+    savings: "$300",
   },
   {
-    name: "Professional",
-    price: "$899",
-    discountedPrice: "$674",
+    name: "Plan Corporativo",
+    price: "$6,667",
+    discountedPrice: "$5,000",
     period: "/mes",
-    description: "Para hospitales veterinarios",
+    description: "Solución personalizada para grandes organizaciones.",
     features: [
       "Mascotas ilimitadas",
-      "Multi-sucursal",
-      "Soporte prioritario",
+      "20 usuarios veterinarios",
+      "Todo del plan Profesional",
       "API personalizada",
-      "Capacitación incluida",
+      "Múltiples sucursales ilimitadas",
+      "Soporte 24/7",
     ],
     popular: false,
-    savings: "$225",
+    savings: "$1,667",
+    isEnterprise: true,
   },
 ]
 
@@ -69,11 +72,11 @@ export function PricingSection() {
           gratis.
         </p>
 
-        <div className="grid gap-6 sm:gap-8 md:grid-cols-3 max-w-6xl mx-auto">
+        <div className="grid gap-6 sm:gap-8 md:grid-cols-3 max-w-6xl mx-auto items-stretch">
           {plans.map((plan) => (
             <Card
               key={plan.name}
-              className={`relative border-border bg-card transition-all hover:shadow-xl ${
+              className={`relative border-border bg-card transition-all hover:shadow-xl flex flex-col ${
                 plan.popular ? "border-primary shadow-lg md:scale-105" : ""
               }`}
             >
@@ -82,37 +85,50 @@ export function PricingSection() {
                   <Badge className="bg-accent text-accent-foreground text-xs">Más popular</Badge>
                 </div>
               )}
+              {plan.isEnterprise && (
+                <div className="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-purple-500 text-white text-xs">EMPRESARIAL</Badge>
+                </div>
+              )}
               <CardHeader className="p-4 sm:p-8 pb-4 sm:pb-6">
                 <div className="mb-1 sm:mb-2 text-xs sm:text-sm font-medium text-muted-foreground">{plan.name}</div>
 
                 {/* Early Adopter Pricing */}
                 <div className="mb-2">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Sparkles className="h-4 w-4 text-orange-500" />
-                    <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs">
-                      25% OFF
-                    </Badge>
-                  </div>
-                  <div className="mb-1 sm:mb-2 flex items-baseline gap-2">
-                    <span className="text-3xl sm:text-5xl font-bold text-foreground">{plan.discountedPrice}</span>
-                    <span className="text-sm sm:text-base text-muted-foreground">{plan.period}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs sm:text-sm">
-                    <span className="text-muted-foreground line-through">{plan.price}/mes</span>
-                    <span className="text-orange-500 font-medium">Ahorras {plan.savings}/mes</span>
-                  </div>
-                  <p className="text-xs text-orange-600 mt-1">Por 6 meses • Luego {plan.price}/mes</p>
+                  {plan.isEnterprise ? (
+                    <div className="mb-1 sm:mb-2 flex items-baseline gap-2">
+                      <span className="text-3xl sm:text-5xl font-bold text-foreground">Cotización</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Sparkles className="h-4 w-4 text-orange-500" />
+                        <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs">
+                          25% OFF
+                        </Badge>
+                      </div>
+                      <div className="mb-1 sm:mb-2 flex items-baseline gap-2">
+                        <span className="text-3xl sm:text-5xl font-bold text-foreground">{plan.discountedPrice}</span>
+                        <span className="text-sm sm:text-base text-muted-foreground">{plan.period}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs sm:text-sm">
+                        <span className="text-muted-foreground line-through">{plan.price}/mes</span>
+                        <span className="text-orange-500 font-medium">Ahorras {plan.savings}/mes</span>
+                      </div>
+                      <p className="text-xs text-orange-600 mt-1">Por 6 meses • Luego {plan.price}/mes</p>
+                    </>
+                  )}
                 </div>
 
                 <p className="text-xs sm:text-sm text-muted-foreground">{plan.description}</p>
               </CardHeader>
-              <CardContent className="p-4 sm:p-8 pt-0">
-                <Link href="/api/auth/register">
+              <CardContent className="p-4 sm:p-8 pt-0 flex flex-col flex-1">
+                <Link href={plan.isEnterprise ? "/contacto" : "/api/auth/register"}>
                   <Button className="mb-4 sm:mb-6 w-full text-xs sm:text-sm" variant={plan.popular ? "default" : "outline"} size="lg">
-                    Comenzar prueba gratis
+                    {plan.isEnterprise ? "Contactar Ventas" : "Comenzar prueba gratis"}
                   </Button>
                 </Link>
-                <ul className="space-y-2 sm:space-y-3">
+                <ul className="space-y-2 sm:space-y-3 flex-1">
                   {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-start gap-2 sm:gap-3">
                       <Check className="mt-0.5 h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0 text-primary" />
@@ -125,12 +141,9 @@ export function PricingSection() {
           ))}
         </div>
 
-        <div className="mt-8 sm:mt-12 text-center px-4 space-y-2">
+        <div className="mt-8 sm:mt-12 text-center px-4">
           <p className="text-xs sm:text-sm text-muted-foreground">
             ✨ Todos los planes incluyen 30 días de prueba gratis • Cancela en cualquier momento
-          </p>
-          <p className="text-xs text-orange-600 font-medium">
-            🎁 Usa el código <span className="font-mono bg-orange-100 px-2 py-1 rounded">FUNDADOR25</span> al momento de pago
           </p>
         </div>
       </div>

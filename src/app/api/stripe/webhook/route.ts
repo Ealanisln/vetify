@@ -1,6 +1,8 @@
 import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe, handleSubscriptionChange } from '../../../../lib/payments/stripe';
+import { notifyNewSubscriptionPayment } from '../../../../lib/email/admin-notifications';
+import { prisma } from '../../../../lib/prisma';
 import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
@@ -123,7 +125,7 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_succeeded': {
         console.log('Webhook: Processing invoice.payment_succeeded');
         const invoice = event.data.object as Stripe.Invoice;
-        
+
         console.log('Webhook: Invoice details:', {
           id: invoice.id,
           subscription: invoice.subscription,
@@ -138,6 +140,53 @@ export async function POST(request: NextRequest) {
           );
           await handleSubscriptionChange(subscription);
           console.log('Webhook: Invoice payment processed successfully');
+
+          // Send admin notification for successful payment (non-blocking)
+          try {
+            // Get tenant and user information from Stripe customer
+            const customer = await stripe.customers.retrieve(
+              invoice.customer as string
+            ) as Stripe.Customer;
+
+            if (customer.metadata?.tenantId) {
+              const tenant = await prisma.tenant.findUnique({
+                where: { id: customer.metadata.tenantId },
+                include: {
+                  staff: {
+                    where: { role: 'OWNER' },
+                    take: 1,
+                  },
+                },
+              });
+
+              if (tenant && tenant.staff[0]) {
+                const planItem = subscription.items.data[0];
+                const planName = planItem.price.nickname || 'Plan Desconocido';
+                const amount = invoice.amount_paid;
+                const currency = invoice.currency;
+                const billingInterval = planItem.price.recurring?.interval === 'year' ? 'year' : 'month';
+
+                notifyNewSubscriptionPayment({
+                  userName: tenant.staff[0].name || 'Usuario',
+                  userEmail: tenant.staff[0].email,
+                  tenantId: tenant.id,
+                  tenantName: tenant.name,
+                  tenantSlug: tenant.slug,
+                  planName,
+                  planAmount: amount,
+                  currency,
+                  billingInterval,
+                  stripeCustomerId: customer.id,
+                  stripeSubscriptionId: subscription.id,
+                }).catch(notifError => {
+                  console.error('[WEBHOOK] Failed to send payment notification:', notifError);
+                });
+              }
+            }
+          } catch (notifError) {
+            // Log but don't fail the webhook
+            console.error('[WEBHOOK] Error preparing payment notification:', notifError);
+          }
         }
         break;
       }

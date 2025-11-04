@@ -8,7 +8,9 @@ export type EmailTemplate =
   | 'appointment-confirmation'
   | 'appointment-reminder'
   | 'low-stock-alert'
-  | 'treatment-reminder';
+  | 'treatment-reminder'
+  | 'new-user-registration'
+  | 'new-subscription-payment';
 
 export type EmailStatus =
   | 'PENDING'
@@ -125,13 +127,51 @@ export interface TreatmentReminderData extends BaseEmailData {
 }
 
 /**
+ * New User Registration Alert Email Data
+ */
+export interface NewUserRegistrationData extends BaseEmailData {
+  template: 'new-user-registration';
+  data: {
+    userName: string;
+    userEmail: string;
+    tenantName: string;
+    tenantSlug: string;
+    registrationDate: Date;
+    planType: 'TRIAL' | 'PAID';
+    trialEndsAt?: Date;
+  };
+}
+
+/**
+ * New Subscription Payment Alert Email Data
+ */
+export interface NewSubscriptionPaymentData extends BaseEmailData {
+  template: 'new-subscription-payment';
+  data: {
+    userName: string;
+    userEmail: string;
+    tenantName: string;
+    tenantSlug: string;
+    planName: string;
+    planAmount: number;
+    currency: string;
+    billingInterval: 'month' | 'year';
+    paymentDate: Date;
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+  };
+}
+
+/**
  * Union type for all email data types
  */
 export type EmailData =
   | AppointmentConfirmationData
   | AppointmentReminderData
   | LowStockAlertData
-  | TreatmentReminderData;
+  | TreatmentReminderData
+  | NewUserRegistrationData
+  | NewSubscriptionPaymentData;
 
 /**
  * Email send result

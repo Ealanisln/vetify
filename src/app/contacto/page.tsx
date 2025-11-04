@@ -116,27 +116,46 @@ export default function Contacto() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Simulación de envío de formulario
-    setTimeout(() => {
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formState),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSubmitted(true);
+
+        // Resetear el formulario después de 5 segundos
+        setTimeout(() => {
+          setSubmitted(false);
+          setFormState({
+            nombre: '',
+            email: '',
+            telefono: '',
+            asunto: '',
+            mensaje: '',
+          });
+        }, 5000);
+      } else {
+        // Manejar error
+        console.error('Error al enviar mensaje:', data.error);
+        alert('Error al enviar el mensaje. Por favor, intenta nuevamente o contacta directamente a contacto@vetify.pro');
+      }
+    } catch (error) {
+      console.error('Error al enviar mensaje:', error);
+      alert('Error al enviar el mensaje. Por favor, intenta nuevamente o contacta directamente a contacto@vetify.pro');
+    } finally {
       setIsSubmitting(false);
-      setSubmitted(true);
-      
-      // Resetear el formulario después de 3 segundos
-      setTimeout(() => {
-        setSubmitted(false);
-        setFormState({
-          nombre: '',
-          email: '',
-          telefono: '',
-          asunto: '',
-          mensaje: '',
-        });
-      }, 3000);
-    }, 1500);
+    }
   };
 
   if (!mounted) {
@@ -195,9 +214,17 @@ export default function Contacto() {
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-8 text-center">Envíanos un mensaje</h2>
               
               {submitted ? (
-                <div className="bg-green-50 dark:bg-green-900/30 p-6 rounded-lg text-center">
-                  <p className="text-green-700 dark:text-green-300 font-medium text-lg">
-                    ¡Gracias por contactarnos! Te responderemos a la brevedad.
+                <div className="bg-vetify-accent-50 dark:bg-vetify-accent-900/30 p-6 rounded-lg text-center border border-vetify-accent-200 dark:border-vetify-accent-700">
+                  <div className="flex items-center justify-center mb-3">
+                    <svg className="h-12 w-12 text-vetify-accent-600 dark:text-vetify-accent-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-vetify-accent-800 dark:text-vetify-accent-200 font-medium text-lg mb-2">
+                    ¡Mensaje enviado exitosamente!
+                  </p>
+                  <p className="text-vetify-accent-700 dark:text-vetify-accent-300 text-sm">
+                    Te responderemos en menos de 24 horas.
                   </p>
                 </div>
               ) : (
@@ -264,6 +291,7 @@ export default function Contacto() {
                         <option value="demo">Agendar una demo</option>
                         <option value="soporte">Soporte técnico</option>
                         <option value="facturacion">Facturación</option>
+                        <option value="downgrade">Cambiar a plan inferior</option>
                         <option value="otro">Otro</option>
                       </select>
                     </div>
@@ -301,7 +329,7 @@ export default function Contacto() {
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full py-4 px-6 border border-transparent rounded-xl text-white bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-vetify-accent-500 dark:focus:ring-offset-gray-800 flex justify-center items-center font-medium text-lg transition-colors"
+                      className="w-full py-4 px-6 border border-transparent rounded-xl text-white bg-vetify-accent-600 hover:bg-vetify-accent-700 dark:bg-vetify-accent-500 dark:hover:bg-vetify-accent-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-vetify-accent-500 dark:focus:ring-offset-gray-800 flex justify-center items-center font-medium text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSubmitting ? (
                         <span className="flex items-center">
