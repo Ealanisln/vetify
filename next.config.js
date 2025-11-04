@@ -21,6 +21,8 @@ const nextConfig = {
     // Exclude OpenTelemetry packages from being externalized to fix warnings
     '!import-in-the-middle',
     '!require-in-the-middle',
+    // Keep Prisma client as external to prevent webpack bundling issues
+    '@prisma/client',
   ],
 
   // Add transpilation for ESM packages that need bundling

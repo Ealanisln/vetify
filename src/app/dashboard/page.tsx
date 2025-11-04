@@ -10,7 +10,8 @@ export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const { user, tenant } = await requireAuth();
-  const stats = await getDashboardStats(tenant.id);
+  // Pass tenant object to avoid duplicate query
+  const stats = await getDashboardStats(tenant.id, tenant);
 
   return (
     <div className="space-y-6">

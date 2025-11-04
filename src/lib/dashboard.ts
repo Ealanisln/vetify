@@ -1,53 +1,100 @@
 import { prisma } from './prisma';
 import { DashboardStats } from '@/types';
-import { serializeTenant, serializePets, serializeObject } from './serializers';
+import { serializePets, serializeObject } from './serializers';
+import type { Tenant } from '@prisma/client';
 
-export async function getDashboardStats(tenantId: string): Promise<DashboardStats> {
+/**
+ * Get dashboard statistics for a tenant
+ * @param tenantId - The tenant ID
+ * @param tenant - Optional tenant object (if already fetched) to avoid duplicate query
+ */
+export async function getDashboardStats(
+  tenantId: string,
+  tenant?: Tenant & {
+    tenantSubscription?: {
+      plan?: { maxPets?: number; maxUsers?: number; storageGB?: number }
+    } | null
+  }
+): Promise<DashboardStats> {
   const [
     totalPets,
     totalAppointments,
     recentPets,
-    upcomingAppointments,
-    tenant
+    upcomingAppointments
   ] = await Promise.all([
     prisma.pet.count({ where: { tenantId } }),
     prisma.appointment.count({ where: { tenantId } }),
+    // Optimized: Only select fields needed for dashboard display
     prisma.pet.findMany({
       where: { tenantId },
-      include: { customer: true, appointments: true, medicalHistories: true },
+      select: {
+        id: true,
+        name: true,
+        species: true,
+        breed: true,
+        dateOfBirth: true,
+        createdAt: true,
+        customer: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            phone: true
+          }
+        },
+        _count: {
+          select: {
+            appointments: true,
+            medicalHistories: true
+          }
+        }
+      },
       orderBy: { createdAt: 'desc' },
       take: 5
     }),
+    // Optimized: Reduce nested include depth
     prisma.appointment.findMany({
-      where: { 
+      where: {
         tenantId,
         dateTime: { gte: new Date() }
       },
-      include: { 
+      select: {
+        id: true,
+        dateTime: true,
+        reason: true,
+        status: true,
+        notes: true,
         pet: {
-          include: {
-            customer: true
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            customer: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true
+              }
+            }
           }
-        }, 
-        customer: true,
-        user: true 
+        },
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            name: true
+          }
+        }
       },
       orderBy: { dateTime: 'asc' },
       take: 5
-    }),
-    prisma.tenant.findUnique({
-      where: { id: tenantId },
-      include: { 
-        tenantSubscription: { 
-          include: { plan: true } 
-        } 
-      }
     })
   ]);
 
-  // Serialize the tenant data to convert Decimal fields to numbers
-  const serializedTenant = serializeTenant(tenant);
-  const plan = serializedTenant?.tenantSubscription?.plan;
+  // Use provided tenant object if available (avoids duplicate query)
+  const plan = tenant?.tenantSubscription?.plan;
 
   // Serialize the pets data to convert Decimal fields to numbers
   const serializedRecentPets = serializePets(recentPets);
