@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { PetWithOwner } from '@/types';
 import Link from 'next/link';
-import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, MapPinIcon } from '@heroicons/react/24/outline';
 
 interface PetsListProps {
   pets: PetWithOwner[];
@@ -143,9 +143,17 @@ export function PetsList({ pets, maxPets }: PetsListProps) {
                         <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
                           {pet.breed} • {pet.gender === 'male' ? 'Macho' : 'Hembra'}
                         </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                          Dueño: {pet.customer?.name || pet.customer?.email || 'Sin datos'}
-                        </p>
+                        <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
+                          <span className="truncate">
+                            Dueño: {pet.customer?.name || pet.customer?.email || 'Sin datos'}
+                          </span>
+                          {'location' in pet && pet.location && (
+                            <span className="flex items-center gap-1 flex-shrink-0">
+                              <MapPinIcon className="h-3 w-3" />
+                              {pet.location.name}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="text-right ml-4 flex-shrink-0">

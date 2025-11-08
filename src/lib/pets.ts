@@ -74,7 +74,8 @@ export async function getPetsByTenant(tenantId: string) {
     include: {
       customer: true,
       appointments: true,
-      medicalHistories: true
+      medicalHistories: true,
+      location: true
     },
     orderBy: { createdAt: 'desc' }
   });
@@ -88,6 +89,7 @@ export async function getPetById(petId: string, tenantId: string) {
     where: { id: petId, tenantId },
     include: {
       customer: true,
+      location: true,
       medicalHistories: {
         orderBy: { visitDate: 'desc' }
       },
