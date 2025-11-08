@@ -75,10 +75,6 @@ export const COMPLETE_PLANS = {
       { name: 'Sistema de recordatorios', included: true },
       { name: 'Reportes básicos', included: true },
       { name: 'Soporte profesional', included: true },
-      { name: 'Multi-sucursal', included: false },
-      { name: 'Inventario avanzado', included: false },
-      { name: 'Reportes avanzados', included: false },
-      { name: 'API personalizada', included: false },
     ],
     limits: {
       maxPets: 500,
@@ -119,7 +115,6 @@ export const COMPLETE_PLANS = {
       { name: 'Gestión de turnos de caja', included: true },
       { name: 'Reportes de ventas avanzados', included: true },
       { name: 'Soporte prioritario', included: true },
-      { name: 'API personalizada', included: false },
     ],
     limits: {
       maxPets: 2000,
