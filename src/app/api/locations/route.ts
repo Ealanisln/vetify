@@ -5,6 +5,7 @@ import {
   createLocation,
   type CreateLocationInput,
 } from '@/lib/locations';
+import { checkLocationLimit } from '@/lib/plan-limits';
 
 // Force dynamic rendering to prevent static generation issues with Kinde Auth
 export const dynamic = 'force-dynamic';
@@ -77,6 +78,26 @@ export async function POST(request: Request) {
   try {
     // Authenticate and get tenant
     const { tenant } = await requireAuth();
+
+    // Check location limits based on plan
+    const locationCheck = await checkLocationLimit(tenant.id);
+    if (!locationCheck.canAdd) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Has alcanzado el límite de ubicaciones de tu plan',
+          details: {
+            current: locationCheck.current,
+            limit: locationCheck.limit,
+            requiresUpgrade: locationCheck.requiresUpgrade,
+            message: locationCheck.requiresUpgrade
+              ? 'El Plan Básico solo permite 1 ubicación. Actualiza a Plan Profesional para más ubicaciones.'
+              : 'Has alcanzado el límite de ubicaciones'
+          }
+        },
+        { status: 403 }
+      );
+    }
 
     // Parse request body
     const body = await request.json();

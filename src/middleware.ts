@@ -58,6 +58,10 @@ const PROTECTED_ROUTES = {
   '/dashboard/inventory': 'inventory',
   '/dashboard/inventario': 'inventory',
 
+  // Locations (Ubicaciones) - Multi-location feature
+  '/dashboard/locations': 'multiLocation',
+  '/dashboard/ubicaciones': 'multiLocation',
+
   // Reports (Reportes)
   '/dashboard/reports': 'reports',
   '/dashboard/reportes': 'reports',

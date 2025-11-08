@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { checkLocationLimit } from './plan-limits';
 
 // ============================================================================
 // Validation Schemas
@@ -153,6 +154,16 @@ export async function createLocation(
 
   if (existing) {
     throw new Error('Ya existe una ubicación con este slug');
+  }
+
+  // Check if tenant can create more locations based on plan
+  const locationCheck = await checkLocationLimit(tenantId);
+  if (!locationCheck.canAdd) {
+    throw new Error(
+      locationCheck.requiresUpgrade
+        ? 'Plan limit reached: El Plan Básico solo permite 1 ubicación. Actualiza tu plan para agregar más ubicaciones.'
+        : 'Has alcanzado el límite de ubicaciones de tu plan'
+    );
   }
 
   // If this is set as primary, unset other primary locations first
