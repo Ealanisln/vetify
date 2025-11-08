@@ -739,3 +739,116 @@ export async function getInventoryTransfers(
     orderBy: { createdAt: 'desc' },
   });
 }
+
+// ============================================================================
+// Location-Based Permission Helpers
+// ============================================================================
+
+/**
+ * Get all location IDs that a staff member is assigned to
+ *
+ * @param staffId - The ID of the staff member
+ * @returns Array of location IDs the staff member has access to
+ */
+export async function getStaffLocationIds(staffId: string): Promise<string[]> {
+  const assignments = await prisma.staffLocation.findMany({
+    where: { staffId },
+    select: { locationId: true },
+  });
+
+  return assignments.map((a) => a.locationId);
+}
+
+/**
+ * Get the primary location ID for a staff member
+ *
+ * @param staffId - The ID of the staff member
+ * @returns The primary location ID or null if no primary location is set
+ */
+export async function getStaffPrimaryLocationId(
+  staffId: string
+): Promise<string | null> {
+  const primaryAssignment = await prisma.staffLocation.findFirst({
+    where: {
+      staffId,
+      isPrimary: true,
+    },
+    select: { locationId: true },
+  });
+
+  return primaryAssignment?.locationId || null;
+}
+
+/**
+ * Filter a Prisma where clause to include only resources from staff's assigned locations
+ *
+ * Usage example:
+ * ```typescript
+ * const pets = await prisma.pet.findMany({
+ *   where: {
+ *     tenantId,
+ *     ...await filterByStaffLocations(staffId, 'locationId'),
+ *   },
+ * });
+ * ```
+ *
+ * @param staffId - The ID of the staff member
+ * @param locationFieldName - The name of the location field in the model (default: 'locationId')
+ * @returns Prisma where clause object to filter by staff's assigned locations
+ */
+export async function filterByStaffLocations(
+  staffId: string,
+  locationFieldName: string = 'locationId'
+): Promise<Record<string, { in: string[] }>> {
+  const locationIds = await getStaffLocationIds(staffId);
+
+  return {
+    [locationFieldName]: {
+      in: locationIds,
+    },
+  };
+}
+
+/**
+ * Check if staff member has any location assignments
+ *
+ * @param staffId - The ID of the staff member
+ * @returns True if the staff member has at least one location assignment
+ */
+export async function hasAnyLocationAssignment(
+  staffId: string
+): Promise<boolean> {
+  const count = await prisma.staffLocation.count({
+    where: { staffId },
+  });
+
+  return count > 0;
+}
+
+/**
+ * Validate that a resource belongs to one of the staff member's assigned locations
+ * Throws an error if access is denied
+ *
+ * @param staffId - The ID of the staff member
+ * @param resourceLocationId - The location ID of the resource being accessed
+ * @param resourceType - Type of resource for error message (e.g., 'pet', 'appointment')
+ * @throws Error if staff member doesn't have access to the resource's location
+ */
+export async function requireLocationAccess(
+  staffId: string,
+  resourceLocationId: string | null,
+  resourceType: string = 'resource'
+): Promise<void> {
+  // If resource has no location, allow access (backwards compatibility)
+  if (!resourceLocationId) {
+    return;
+  }
+
+  const hasAccess = await staffHasAccessToLocation(staffId, resourceLocationId);
+
+  if (!hasAccess) {
+    throw new Error(
+      `Access denied: This ${resourceType} belongs to a location you don't have access to`
+    );
+  }
+}
