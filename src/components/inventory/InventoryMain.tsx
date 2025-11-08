@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  MagnifyingGlassIcon, 
-  PlusIcon, 
+import {
+  MagnifyingGlassIcon,
+  PlusIcon,
   FunnelIcon,
   PencilIcon,
-  TrashIcon
+  TrashIcon,
+  MapPinIcon
 } from '@heroicons/react/24/outline';
 import { InventoryItemWithStock } from '@/types';
 import { Badge } from '../ui/badge';
@@ -15,27 +16,37 @@ import { EditProductModal } from './EditProductModal';
 import { getInventoryCategories } from '../../lib/inventory';
 import { ResponsiveTable } from '../ui/ResponsiveTable';
 import { themeColors, responsive } from '../../utils/theme-colors';
+import { useLocation } from '@/components/providers/LocationProvider';
 
 interface InventoryMainProps {
   tenantId: string;
 }
 
 export function InventoryMain({ tenantId }: InventoryMainProps) {
+  const { currentLocation, availableLocations } = useLocation();
   const [items, setItems] = useState<InventoryItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedLocationId, setSelectedLocationId] = useState<string>('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItemWithStock | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
-  
+
   const itemsPerPage = 20;
   const categories = getInventoryCategories();
 
-  const fetchItems = useCallback(async (page = 1, search = '', category = '') => {
+  // Use current location as default filter
+  useEffect(() => {
+    if (currentLocation?.id && !selectedLocationId) {
+      setSelectedLocationId(currentLocation.id);
+    }
+  }, [currentLocation, selectedLocationId]);
+
+  const fetchItems = useCallback(async (page = 1, search = '', category = '', locationId = '') => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -43,7 +54,8 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
         page: page.toString(),
         limit: itemsPerPage.toString(),
         ...(search && { search }),
-        ...(category && { category })
+        ...(category && { category }),
+        ...(locationId && { locationId })
       });
 
       const response = await fetch(`/api/inventory?${params}`);
@@ -60,8 +72,8 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
   }, [tenantId, itemsPerPage]);
 
   useEffect(() => {
-    fetchItems(currentPage, searchQuery, selectedCategory);
-  }, [fetchItems, currentPage, searchQuery, selectedCategory]);
+    fetchItems(currentPage, searchQuery, selectedCategory, selectedLocationId);
+  }, [fetchItems, currentPage, searchQuery, selectedCategory, selectedLocationId]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -70,6 +82,11 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
 
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
+    setCurrentPage(1);
+  };
+
+  const handleLocationChange = (locationId: string) => {
+    setSelectedLocationId(locationId);
     setCurrentPage(1);
   };
 
@@ -89,7 +106,7 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
       });
 
       if (response.ok) {
-        fetchItems(currentPage, searchQuery, selectedCategory);
+        fetchItems(currentPage, searchQuery, selectedCategory, selectedLocationId);
       }
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -143,6 +160,19 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
         <span className={`text-sm ${themeColors.text.primary}`}>
           {categories.find(c => c.value === item.category)?.label || item.category}
         </span>
+      ),
+    },
+    {
+      key: 'location',
+      header: 'Ubicación',
+      mobileLabel: 'Ubicación',
+      render: (item: InventoryItemWithStock) => (
+        <div className="flex items-center gap-1.5">
+          <MapPinIcon className="h-4 w-4 text-gray-400" />
+          <span className={`text-sm ${themeColors.text.primary}`}>
+            {item.location?.name || 'Sin ubicación'}
+          </span>
+        </div>
       ),
     },
     {
@@ -290,6 +320,25 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
                   ))}
                 </select>
               </div>
+              {availableLocations.length > 1 && (
+                <div>
+                  <label className="form-label">
+                    Ubicación
+                  </label>
+                  <select
+                    value={selectedLocationId}
+                    onChange={(e) => handleLocationChange(e.target.value)}
+                    className="form-select"
+                  >
+                    <option value="">Todas las ubicaciones</option>
+                    {availableLocations.map((location) => (
+                      <option key={location.id} value={location.id}>
+                        {location.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -341,11 +390,11 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
         onClose={() => setShowAddModal(false)}
         onSuccess={() => {
           setShowAddModal(false);
-          fetchItems(currentPage, searchQuery, selectedCategory);
+          fetchItems(currentPage, searchQuery, selectedCategory, selectedLocationId);
         }}
         tenantId={tenantId}
       />
-      
+
       {selectedItem && (
         <EditProductModal
           isOpen={showEditModal}
@@ -356,7 +405,7 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
           onSuccess={() => {
             setShowEditModal(false);
             setSelectedItem(null);
-            fetchItems(currentPage, searchQuery, selectedCategory);
+            fetchItems(currentPage, searchQuery, selectedCategory, selectedLocationId);
           }}
           item={selectedItem}
           tenantId={tenantId}

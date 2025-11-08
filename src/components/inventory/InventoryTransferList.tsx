@@ -120,6 +120,7 @@ export function InventoryTransferList({
     if (initialTransfers.length === 0) {
       fetchTransfers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   // Complete transfer

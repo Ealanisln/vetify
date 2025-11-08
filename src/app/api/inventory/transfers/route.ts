@@ -16,7 +16,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(request: NextRequest) {
   try {
-    const { user, tenant } = await requireAuth();
+    const { tenant } = await requireAuth();
 
     // Parse query parameters for filtering
     const { searchParams } = new URL(request.url);
