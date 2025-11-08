@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useLocation } from '@/components/providers/LocationProvider';
 
 interface CashDrawerMainProps {
   tenantId: string;
@@ -41,6 +42,7 @@ interface TransactionSummary {
 }
 
 export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
+  const { currentLocation } = useLocation();
   const [currentDrawer, setCurrentDrawer] = useState<CashDrawer | null>(null);
   const [transactionSummary, setTransactionSummary] = useState<TransactionSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +55,8 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
 
   const fetchCurrentDrawer = useCallback(async () => {
     try {
-      const response = await fetch(`/api/caja?tenantId=${tenantId}`);
+      const locationParam = currentLocation?.id ? `&locationId=${currentLocation.id}` : '';
+      const response = await fetch(`/api/caja?tenantId=${tenantId}${locationParam}`);
       if (response.ok) {
         const data = await response.json();
         setCurrentDrawer(data.drawer);
@@ -63,11 +66,12 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
     } finally {
       setLoading(false);
     }
-  }, [tenantId]);
+  }, [tenantId, currentLocation?.id]);
 
   const fetchTransactionSummary = useCallback(async () => {
     try {
-      const response = await fetch(`/api/caja/transactions?tenantId=${tenantId}&summary=true`);
+      const locationParam = currentLocation?.id ? `&locationId=${currentLocation.id}` : '';
+      const response = await fetch(`/api/caja/transactions?tenantId=${tenantId}${locationParam}&summary=true`);
       if (response.ok) {
         const data = await response.json();
         setTransactionSummary(data);
@@ -75,7 +79,7 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
     } catch (error) {
       console.error('Error fetching transaction summary:', error);
     }
-  }, [tenantId]);
+  }, [tenantId, currentLocation?.id]);
 
   useEffect(() => {
     fetchCurrentDrawer();
@@ -95,6 +99,7 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenantId,
+          locationId: currentLocation?.id,
           initialAmount: parseFloat(initialAmount)
         })
       });
@@ -128,6 +133,7 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenantId,
+          locationId: currentLocation?.id,
           finalAmount: parseFloat(finalAmount)
         })
       });
