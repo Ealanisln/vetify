@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 
 // ============================================================================
@@ -607,33 +608,36 @@ export async function completeInventoryTransfer(
     }
 
     // Create inventory movements for audit trail
+    const movementData: Prisma.InventoryMovementCreateManyInput[] = [
+      {
+        tenantId,
+        itemId: transfer.inventoryItemId,
+        type: 'TRANSFER_OUT',
+        quantity: transfer.quantity,
+        staffId: transfer.requestedById,
+        reason: `Transferencia a ${transfer.toLocation?.name}`,
+        notes: transfer.notes,
+        relatedRecordId: transfer.id,
+        relatedRecordType: 'InventoryTransfer',
+      },
+    ];
+
+    if (destItem) {
+      movementData.push({
+        tenantId,
+        itemId: destItem.id,
+        type: 'TRANSFER_IN',
+        quantity: transfer.quantity,
+        staffId: transfer.requestedById,
+        reason: `Transferencia desde ${transfer.fromLocation?.name}`,
+        notes: transfer.notes,
+        relatedRecordId: transfer.id,
+        relatedRecordType: 'InventoryTransfer',
+      });
+    }
+
     await tx.inventoryMovement.createMany({
-      data: [
-        {
-          tenantId,
-          itemId: transfer.inventoryItemId,
-          type: 'TRANSFER_OUT',
-          quantity: transfer.quantity,
-          staffId: transfer.requestedById,
-          reason: `Transferencia a ${transfer.toLocation?.name}`,
-          notes: transfer.notes,
-          relatedRecordId: transfer.id,
-          relatedRecordType: 'InventoryTransfer',
-        },
-        destItem
-          ? {
-              tenantId,
-              itemId: destItem.id,
-              type: 'TRANSFER_IN',
-              quantity: transfer.quantity,
-              staffId: transfer.requestedById,
-              reason: `Transferencia desde ${transfer.fromLocation?.name}`,
-              notes: transfer.notes,
-              relatedRecordId: transfer.id,
-              relatedRecordType: 'InventoryTransfer',
-            }
-          : null,
-      ].filter(Boolean) as any[],
+      data: movementData,
     });
 
     // Update transfer status
@@ -707,10 +711,10 @@ export async function getInventoryTransfers(
     inventoryItemId?: string;
   }
 ) {
-  const where: any = { tenantId };
+  const where: Prisma.InventoryTransferWhereInput = { tenantId };
 
   if (options?.status) {
-    where.status = options.status;
+    where.status = options.status as Prisma.EnumTransferStatusFilter;
   }
 
   if (options?.locationId) {

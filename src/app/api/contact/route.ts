@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { Resend } from 'resend';
 import { createCSRFProtectedHandler } from '@/lib/security/csrf-protection';
-import { createSecureResponse, createSecureErrorResponse, commonSchemas } from '@/lib/security/input-sanitization';
+import { createSecureResponse, createSecureErrorResponse } from '@/lib/security/input-sanitization';
 
 // Lazy-load Resend client
 let resendClient: Resend | null = null;
@@ -19,7 +19,7 @@ function getResendClient(): Resend {
 
 // Validation schema for contact form with HTML sanitization
 const contactFormSchema = z.object({
-  nombre: commonSchemas.name.min(2, 'El nombre debe tener al menos 2 caracteres'),
+  nombre: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100),
   email: z.string().email('Email inválido').max(254),
   telefono: z.string().max(20).optional(),
   asunto: z.enum([
@@ -30,7 +30,7 @@ const contactFormSchema = z.object({
     'downgrade',
     'otro',
   ]),
-  mensaje: commonSchemas.safeString.min(10, 'El mensaje debe tener al menos 10 caracteres').max(5000),
+  mensaje: z.string().min(10, 'El mensaje debe tener al menos 10 caracteres').max(5000),
 });
 
 // Map subject values to Spanish

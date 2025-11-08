@@ -74,7 +74,7 @@ export function useCurrentLocation() {
   // Initial load
   useEffect(() => {
     fetchLocations();
-  }, []);
+  }, [fetchLocations]);
 
   // Switch to a different location
   const switchLocation = useCallback((locationId: string) => {
