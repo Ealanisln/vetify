@@ -19,6 +19,7 @@ import {
   MapPinIcon
 } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
+import { LocationSwitcher } from '@/components/locations/LocationSwitcher';
 
 interface SidebarProps {
   user: UserWithTenant;
@@ -115,7 +116,12 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
                   Vetify
                 </span>
               </div>
-              
+
+              {/* Location Switcher */}
+              <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
+                <LocationSwitcher />
+              </div>
+
               {/* Navigation */}
               <nav className="flex flex-1 flex-col" aria-label="Navegación principal">
                 <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -180,7 +186,12 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
               Vetify
             </span>
           </div>
-          
+
+          {/* Location Switcher */}
+          <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
+            <LocationSwitcher />
+          </div>
+
           {/* Navigation */}
           <nav className="flex flex-1 flex-col" aria-label="Navegación principal">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
