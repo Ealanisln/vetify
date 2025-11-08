@@ -17,29 +17,35 @@ const appointmentSchema = z.object({
   status: z.enum(['SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']).default('SCHEDULED'),
   notes: z.string().optional(),
   staffId: z.string().optional(),
+  locationId: z.string().optional(),
 });
 
 export async function GET(request: Request) {
   try {
     const { tenant } = await requireAuth();
     const { searchParams } = new URL(request.url);
-    
+
     const startDate = searchParams.get('start_date');
     const endDate = searchParams.get('end_date');
     const status = searchParams.get('status');
-    
+    const locationId = searchParams.get('locationId') || undefined;
+
     // Construir filtros
     const where: Record<string, unknown> = {
       tenantId: tenant.id,
     };
-    
+
+    if (locationId) {
+      where.locationId = locationId;
+    }
+
     if (startDate && endDate) {
       where.dateTime = {
         gte: new Date(startDate),
         lte: new Date(endDate),
       };
     }
-    
+
     if (status) {
       where.status = status;
     }
@@ -69,6 +75,13 @@ export async function GET(request: Request) {
             id: true,
             name: true,
             position: true,
+          }
+        },
+        location: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
           }
         }
       },
@@ -149,10 +162,11 @@ export async function POST(request: Request) {
     // Verificar disponibilidad (no permitir citas superpuestas en el mismo horario)
     const appointmentDateTime = new Date(validatedData.dateTime);
     const endDateTime = new Date(appointmentDateTime.getTime() + validatedData.duration * 60000);
-    
+
     const conflictingAppointment = await prisma.appointment.findFirst({
       where: {
         tenantId: tenant.id,
+        ...(validatedData.locationId && { locationId: validatedData.locationId }),
         status: {
           notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']
         },
@@ -189,6 +203,7 @@ export async function POST(request: Request) {
         status: validatedData.status,
         notes: validatedData.notes,
         staffId: validatedData.staffId,
+        locationId: validatedData.locationId,
         tenantId: tenant.id
       },
       include: {
@@ -213,6 +228,13 @@ export async function POST(request: Request) {
             id: true,
             name: true,
             position: true,
+          }
+        },
+        location: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
           }
         },
         tenant: {

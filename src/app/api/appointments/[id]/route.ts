@@ -14,6 +14,7 @@ const updateAppointmentSchema = z.object({
   status: z.enum(['SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']).optional(),
   notes: z.string().optional(),
   staffId: z.string().nullable().optional(),
+  locationId: z.string().nullable().optional(),
 });
 
 export async function GET(
@@ -52,6 +53,13 @@ export async function GET(
             id: true,
             name: true,
             position: true,
+          }
+        },
+        location: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
           }
         }
       }
@@ -198,7 +206,7 @@ export async function PUT(
 
     // Actualizar la cita
     const updateData: Record<string, unknown> = {};
-    
+
     if (validatedData.dateTime) updateData.dateTime = new Date(validatedData.dateTime);
     if (validatedData.duration !== undefined) updateData.duration = validatedData.duration;
     if (validatedData.customerId) updateData.customerId = validatedData.customerId;
@@ -207,6 +215,7 @@ export async function PUT(
     if (validatedData.status) updateData.status = validatedData.status;
     if (validatedData.notes !== undefined) updateData.notes = validatedData.notes;
     if (validatedData.staffId !== undefined) updateData.staffId = validatedData.staffId;
+    if (validatedData.locationId !== undefined) updateData.locationId = validatedData.locationId;
 
     const appointment = await prisma.appointment.update({
       where: { id: appointmentId },
@@ -233,6 +242,13 @@ export async function PUT(
             id: true,
             name: true,
             position: true,
+          }
+        },
+        location: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
           }
         }
       }
