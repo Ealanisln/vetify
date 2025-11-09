@@ -1,55 +1,38 @@
 import 'server-only';
-import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { checkLocationLimit } from './plan-limits';
 
 // ============================================================================
-// Validation Schemas
+// Re-export client-safe utilities and schemas
 // ============================================================================
+// These can be imported by both client and server components
+// Exported from location-utils.ts to maintain backward compatibility
 
-export const createLocationSchema = z.object({
-  name: z.string().min(1, 'El nombre es requerido'),
-  slug: z
-    .string()
-    .min(1, 'El slug es requerido')
-    .regex(
-      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-      'El slug solo puede contener letras minúsculas, números y guiones'
-    ),
-  address: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email('Email inválido').optional().or(z.literal('')),
-  timezone: z.string().default('America/Mexico_City'),
-  isActive: z.boolean().default(true),
-  isPrimary: z.boolean().default(false),
-});
-
-export const updateLocationSchema = createLocationSchema.partial();
-
-export type CreateLocationInput = z.infer<typeof createLocationSchema>;
-export type UpdateLocationInput = z.infer<typeof updateLocationSchema>;
+export {
+  createLocationSchema,
+  updateLocationSchema,
+  generateSlug,
+  createTransferSchema,
+  type CreateLocationInput,
+  type UpdateLocationInput,
+  type CreateTransferInput,
+} from './location-utils';
 
 // ============================================================================
-// Helper Functions
+// Location-Based Permission Helpers (SERVER-ONLY)
 // ============================================================================
-
-/**
- * Generate a URL-friendly slug from a name
- * @param name - The location name
- * @returns A slugified version of the name
- */
-export function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .trim()
-    .normalize('NFD') // Normalize to decomposed form
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-    .replace(/\s+/g, '-') // Replace spaces with hyphens
-    .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
-}
+//
+// ⚠️ WARNING: These functions use Prisma database queries and are SERVER-SIDE ONLY.
+// Do NOT call these functions from:
+// - Edge Runtime middleware (src/middleware.ts)
+// - Client Components (use server actions instead)
+// - Edge API routes
+//
+// For client-side permission checks, use server actions that wrap these functions.
+// For middleware, pre-fetch location assignments during auth and store in session/token.
+//
+// ============================================================================
 
 // ============================================================================
 // CRUD Operations
@@ -472,16 +455,6 @@ export async function staffHasAccessToLocation(
 // ============================================================================
 // Inventory Transfer Operations
 // ============================================================================
-
-export const createTransferSchema = z.object({
-  inventoryItemId: z.string().uuid('ID de inventario inválido'),
-  fromLocationId: z.string().uuid('ID de ubicación origen inválido'),
-  toLocationId: z.string().uuid('ID de ubicación destino inválido'),
-  quantity: z.number().positive('La cantidad debe ser positiva'),
-  notes: z.string().optional(),
-});
-
-export type CreateTransferInput = z.infer<typeof createTransferSchema>;
 
 /**
  * Create a new inventory transfer

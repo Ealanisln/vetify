@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { generateSlug } from '@/lib/locations';
+import { generateSlug } from '@/lib/location-utils';
 
 interface LocationFormProps {
   mode: 'create' | 'edit';
