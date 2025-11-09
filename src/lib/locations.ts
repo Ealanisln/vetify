@@ -1,3 +1,4 @@
+import 'server-only';
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
@@ -754,9 +755,22 @@ export async function getInventoryTransfers(
 // ============================================================================
 // Location-Based Permission Helpers
 // ============================================================================
+//
+// ⚠️ WARNING: These functions use Prisma database queries and are SERVER-SIDE ONLY.
+// Do NOT call these functions from:
+// - Edge Runtime middleware (src/middleware.ts)
+// - Client Components (use server actions instead)
+// - Edge API routes
+//
+// For client-side permission checks, use server actions that wrap these functions.
+// For middleware, pre-fetch location assignments during auth and store in session/token.
+//
+// ============================================================================
 
 /**
  * Get all location IDs that a staff member is assigned to
+ *
+ * ⚠️ SERVER-SIDE ONLY - Uses Prisma, not compatible with Edge Runtime
  *
  * @param staffId - The ID of the staff member
  * @returns Array of location IDs the staff member has access to

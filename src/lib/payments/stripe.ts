@@ -76,13 +76,29 @@ function shouldGiveStripeTrial(tenant: Tenant): boolean {
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Seleccionar la key correcta según el entorno
-// En producción, intenta usar LIVE key, pero fallback a test key para builds locales
-const stripeSecretKey = isProduction
-  ? (process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY)
-  : process.env.STRIPE_SECRET_KEY;
+// En producción, REQUIERE LIVE key (fail fast)
+// En desarrollo/preview, usa test key
+let stripeSecretKey: string;
 
-if (!stripeSecretKey) {
-  throw new Error(`Stripe secret key not found for environment: ${process.env.NODE_ENV}`);
+if (isProduction) {
+  // En producción: SOLO aceptar LIVE key
+  if (!process.env.STRIPE_SECRET_KEY_LIVE) {
+    throw new Error(
+      'STRIPE_SECRET_KEY_LIVE is required in production environment. ' +
+      'Please set this environment variable in your deployment platform (e.g., Vercel). ' +
+      'Using test keys in production is not allowed.'
+    );
+  }
+  stripeSecretKey = process.env.STRIPE_SECRET_KEY_LIVE;
+} else {
+  // En desarrollo: usar test key
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error(
+      'STRIPE_SECRET_KEY is required in development environment. ' +
+      'Please add it to your .env.local file.'
+    );
+  }
+  stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 }
 
 // Stripe client configuration
@@ -114,6 +130,7 @@ const TEST_PRICES = {
 } as const;
 
 // IDs de productos PRODUCTION (Live - Vetify)
+// Fallback values are provided for backward compatibility, but should be set via env vars in production
 const PRODUCTION_PRODUCTS = {
   BASICO: process.env.STRIPE_PRODUCT_BASICO_LIVE || 'prod_TOO1tpvYblty9Y',
   PROFESIONAL: process.env.STRIPE_PRODUCT_PROFESIONAL_LIVE || 'prod_TOO1RsH4C7mQmr',
@@ -134,6 +151,21 @@ const PRODUCTION_PRICES = {
     annual: process.env.STRIPE_PRICE_CORPORATIVO_ANNUAL_LIVE || 'price_1SRbeGL0nsUWmd4XKgS6jCso',
   }
 } as const;
+
+// Validate production price IDs start with 'price_' to catch configuration errors early
+if (isProduction) {
+  const allPrices = [
+    ...Object.values(PRODUCTION_PRICES.BASICO),
+    ...Object.values(PRODUCTION_PRICES.PROFESIONAL),
+    ...Object.values(PRODUCTION_PRICES.CORPORATIVO),
+  ];
+
+  for (const priceId of allPrices) {
+    if (!priceId.startsWith('price_')) {
+      throw new Error(`Invalid Stripe price ID in production: ${priceId}. Price IDs must start with 'price_'`);
+    }
+  }
+}
 
 // Exportar productos y precios según el entorno
 export const STRIPE_PRODUCTS = isProduction ? PRODUCTION_PRODUCTS : TEST_PRODUCTS;

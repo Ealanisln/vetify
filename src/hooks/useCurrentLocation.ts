@@ -39,13 +39,23 @@ export function useCurrentLocation() {
       // If no current location is set, set it to the primary or first location
       if (!currentLocation && data.locations && data.locations.length > 0) {
         const storedLocationId = localStorage.getItem('currentLocationId');
-        let locationToSet = data.locations.find(
-          (loc: Location) => loc.id === storedLocationId
-        );
+        let locationToSet: Location | undefined;
+
+        // Try to use stored location ID, but validate it exists and is active
+        if (storedLocationId) {
+          locationToSet = data.locations.find(
+            (loc: Location) => loc.id === storedLocationId && loc.isActive
+          );
+
+          // If stored location is invalid (not found or inactive), clear it
+          if (!locationToSet) {
+            localStorage.removeItem('currentLocationId');
+          }
+        }
 
         // Fallback to primary location
         if (!locationToSet) {
-          locationToSet = data.locations.find((loc: Location) => loc.isPrimary);
+          locationToSet = data.locations.find((loc: Location) => loc.isPrimary && loc.isActive);
         }
 
         // Fallback to first active location
@@ -53,13 +63,14 @@ export function useCurrentLocation() {
           locationToSet = data.locations.find((loc: Location) => loc.isActive);
         }
 
-        // Fallback to first location
+        // Fallback to first location (even if inactive, as last resort)
         if (!locationToSet && data.locations.length > 0) {
           locationToSet = data.locations[0];
         }
 
         if (locationToSet) {
           setCurrentLocation(locationToSet);
+          // Update localStorage with validated location
           localStorage.setItem('currentLocationId', locationToSet.id);
         }
       }

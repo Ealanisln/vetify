@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { logDataAccessEvent } from '@/lib/security/audit-logger';
 import { z } from 'zod';
 
 const updateAssignmentSchema = z.object({
@@ -8,11 +9,11 @@ const updateAssignmentSchema = z.object({
 });
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ staffId: string; locationId: string }> }
 ) {
   try {
-    const { tenant } = await requireAuth();
+    const { user, tenant } = await requireAuth();
     const { staffId, locationId } = await context.params;
     const body = await request.json();
 
@@ -90,6 +91,24 @@ export async function PUT(
       },
     });
 
+    // Audit log: Staff location assignment updated
+    await logDataAccessEvent(
+      request,
+      'data_update',
+      user.id,
+      tenant.id,
+      'staff_location_assignment',
+      `${staffId}_${locationId}`,
+      true,
+      {
+        staffId,
+        locationId,
+        locationName: updatedAssignment.location.name,
+        isPrimary: validatedData.isPrimary,
+        previousIsPrimary: assignment.isPrimary,
+      }
+    );
+
     return NextResponse.json(updatedAssignment);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -108,11 +127,11 @@ export async function PUT(
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ staffId: string; locationId: string }> }
 ) {
   try {
-    const { tenant } = await requireAuth();
+    const { user, tenant } = await requireAuth();
     const { staffId, locationId } = await context.params;
 
     // Verify staff belongs to tenant
@@ -130,12 +149,19 @@ export async function DELETE(
       );
     }
 
-    // Verify assignment exists
+    // Verify assignment exists and get location details for audit log
     const assignment = await prisma.staffLocation.findUnique({
       where: {
         staffId_locationId: {
           staffId,
           locationId,
+        },
+      },
+      include: {
+        location: {
+          select: {
+            name: true,
+          },
         },
       },
     });
@@ -170,6 +196,23 @@ export async function DELETE(
         },
       },
     });
+
+    // Audit log: Staff removed from location
+    await logDataAccessEvent(
+      request,
+      'data_delete',
+      user.id,
+      tenant.id,
+      'staff_location_assignment',
+      `${staffId}_${locationId}`,
+      true,
+      {
+        staffId,
+        locationId,
+        locationName: assignment.location.name,
+        isPrimary: assignment.isPrimary,
+      }
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

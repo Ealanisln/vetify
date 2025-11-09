@@ -1,6 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { checkFeatureAccess } from '@/lib/plan-limits';
+import { logDataAccessEvent } from '@/lib/security/audit-logger';
 import { z } from 'zod';
 
 const assignLocationSchema = z.object({
@@ -65,11 +67,11 @@ export async function GET(
 }
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   context: { params: Promise<{ staffId: string }> }
 ) {
   try {
-    const { tenant } = await requireAuth();
+    const { user, tenant } = await requireAuth();
     const { staffId } = await context.params;
     const body = await request.json();
 
@@ -123,6 +125,30 @@ export async function POST(
       );
     }
 
+    // Check if staff already has location assignments (multi-location check)
+    const existingAssignments = await prisma.staffLocation.count({
+      where: { staffId },
+    });
+
+    // If staff already has a location assignment and trying to add another,
+    // verify tenant has multi-location feature
+    if (existingAssignments > 0) {
+      const hasMultiLocation = await checkFeatureAccess(tenant.id, 'multiLocation');
+
+      if (!hasMultiLocation) {
+        return NextResponse.json(
+          {
+            error: 'Multi-ubicación no disponible en tu plan',
+            details: {
+              message: 'El Plan Básico solo permite 1 ubicación. Actualiza a Plan Profesional para asignar staff a múltiples ubicaciones.',
+              requiresUpgrade: true,
+            },
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     // If setting as primary, unset other primary assignments
     if (validatedData.isPrimary) {
       await prisma.staffLocation.updateMany({
@@ -156,6 +182,23 @@ export async function POST(
         },
       },
     });
+
+    // Audit log: Staff assigned to location
+    await logDataAccessEvent(
+      request,
+      'data_create',
+      user.id,
+      tenant.id,
+      'staff_location_assignment',
+      assignment.id,
+      true,
+      {
+        staffId,
+        locationId: validatedData.locationId,
+        locationName: assignment.location.name,
+        isPrimary: validatedData.isPrimary,
+      }
+    );
 
     return NextResponse.json(assignment, { status: 201 });
   } catch (error) {

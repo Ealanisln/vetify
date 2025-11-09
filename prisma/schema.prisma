@@ -875,6 +875,7 @@ model StaffLocation {
   @@index([staffId])
   @@index([locationId])
   @@index([staffId, isPrimary])
+  @@index([staffId, locationId]) // Composite index for location permission checks
 }
 
 enum TransferStatus {
