@@ -76,8 +76,9 @@ function shouldGiveStripeTrial(tenant: Tenant): boolean {
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Seleccionar la key correcta según el entorno
+// En producción, intenta usar LIVE key, pero fallback a test key para builds locales
 const stripeSecretKey = isProduction
-  ? process.env.STRIPE_SECRET_KEY_LIVE
+  ? (process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY)
   : process.env.STRIPE_SECRET_KEY;
 
 if (!stripeSecretKey) {
