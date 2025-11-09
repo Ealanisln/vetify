@@ -9,10 +9,12 @@ export async function getInventoryItems(
   page: number = 1,
   limit: number = 20,
   category?: string,
-  search?: string
+  search?: string,
+  locationId?: string
 ): Promise<{ items: InventoryItemWithStock[], total: number }> {
   const where = {
     tenantId,
+    ...(locationId && { locationId }),
     ...(category && { category: category as 'MEDICINE' | 'VACCINE' | 'DEWORMER' | 'FLEA_TICK_PREVENTION' | 'FOOD_PRESCRIPTION' | 'FOOD_REGULAR' | 'SUPPLEMENT' | 'ACCESSORY' | 'CONSUMABLE_CLINIC' | 'SURGICAL_MATERIAL' | 'LAB_SUPPLIES' | 'HYGIENE_GROOMING' | 'OTHER' }),
     ...(search && {
       OR: [
@@ -30,6 +32,13 @@ export async function getInventoryItems(
         _count: {
           select: {
             saleItems: true
+          }
+        },
+        location: {
+          select: {
+            id: true,
+            name: true,
+            slug: true
           }
         }
       },

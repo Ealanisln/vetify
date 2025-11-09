@@ -16,6 +16,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import StaffModal from '../../../../components/staff/StaffModal';
+import { StaffLocationManager } from '../../../../components/staff/StaffLocationManager';
 import { toast } from 'sonner';
 
 interface StaffMember {
@@ -43,9 +44,10 @@ interface StaffMember {
 
 interface StaffDetailClientProps {
   initialStaff: StaffMember;
+  tenantId: string;
 }
 
-export default function StaffDetailClient({ initialStaff }: StaffDetailClientProps) {
+export default function StaffDetailClient({ initialStaff, tenantId }: StaffDetailClientProps) {
   const router = useRouter();
   const [staff, setStaff] = useState<StaffMember>(initialStaff);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -257,6 +259,11 @@ export default function StaffDetailClient({ initialStaff }: StaffDetailClientPro
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Location Assignments */}
+      <div className="mt-6">
+        <StaffLocationManager staffId={staff.id} tenantId={tenantId} />
       </div>
 
       {/* Edit Modal */}

@@ -7,6 +7,7 @@ import { PlusIcon, TrashIcon, CheckCircleIcon, CalendarIcon, UserGroupIcon, XMar
 import { getThemeClasses } from '../../utils/theme-colors';
 import { mapSpeciesToEnglish, mapGenderToEnglish } from '@/lib/utils/pet-enum-mapping';
 import { type PetCreationResponse, type CustomerCreationResponse } from '@/types/api';
+import LocationSelector from '@/components/locations/LocationSelector';
 
 interface NewCustomerFormProps {
   tenantId: string;
@@ -42,6 +43,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [createdCustomerId, setCreatedCustomerId] = useState<string | null>(null);
   const [createdPets, setCreatedPets] = useState<Array<{ id: string; name: string }>>([]);
+  const [locationId, setLocationId] = useState<string>('');
   const [formData, setFormData] = useState<CustomerFormData>({
     name: '',
     firstName: '',
@@ -106,7 +108,8 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
         body: JSON.stringify({
           ...formData,
           pets: undefined, // Remove pets from customer data
-          tenantId
+          tenantId,
+          locationId: locationId || null
         })
       });
 
@@ -130,6 +133,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
               gender: mapGenderToEnglish(pet.gender),
               customerId: customer.id,
               tenantId,
+              locationId: locationId || null,
               weight: pet.weight ? parseFloat(pet.weight) : undefined,
               dateOfBirth: new Date(pet.dateOfBirth).toISOString()
             })
@@ -240,6 +244,14 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
               value={formData.address}
               onChange={(e) => updateCustomer({ address: e.target.value })}
               className="form-input mt-1"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <LocationSelector
+              value={locationId}
+              onChange={setLocationId}
+              defaultToPrimary={true}
             />
           </div>
 

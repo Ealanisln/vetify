@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getThemeClasses } from '../../utils/theme-colors';
+import LocationSelector from '@/components/locations/LocationSelector';
 
 interface Customer {
   id: string;
@@ -29,6 +30,7 @@ export function AddPetForm() {
     microchipNumber: '',
     isNeutered: false,
     customerId: '',
+    locationId: '',
   });
 
   // Datos para nuevo cliente
@@ -96,6 +98,7 @@ export function AddPetForm() {
         body: JSON.stringify({
           ...formData,
           customerId,
+          locationId: formData.locationId || null,
           dateOfBirth: new Date(formData.dateOfBirth),
           weight: formData.weight ? Number(formData.weight) : undefined,
         }),
@@ -426,6 +429,14 @@ export function AddPetForm() {
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-green-500 focus:ring-green-500"
               placeholder="Ej: 123456789012345"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <LocationSelector
+              value={formData.locationId}
+              onChange={(locationId) => setFormData({ ...formData, locationId })}
+              defaultToPrimary={true}
             />
           </div>
 

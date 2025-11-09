@@ -1,7 +1,8 @@
-import 'server-only';
-
 /**
  * Converts Prisma Decimal fields to regular numbers for client component serialization
+ *
+ * Note: These utilities can be used in both server and client components as they only
+ * perform data transformation without any server-specific operations.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function serializeDecimal(value: any): number | null {

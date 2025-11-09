@@ -26,6 +26,20 @@ export async function notifyNewUserRegistration(data: {
   planType: 'TRIAL' | 'PAID';
   trialEndsAt?: Date;
 }): Promise<EmailSendResult> {
+  // Validate required fields
+  if (!data.userName || !data.userEmail || !data.tenantName || !data.tenantId) {
+    console.warn('[ADMIN_NOTIFICATIONS] Missing required data for new user notification, skipping:', {
+      hasUserName: !!data.userName,
+      hasUserEmail: !!data.userEmail,
+      hasTenantName: !!data.tenantName,
+      hasTenantId: !!data.tenantId,
+    });
+    return {
+      success: false,
+      error: 'Missing required notification data',
+    };
+  }
+
   const emailData: NewUserRegistrationData = {
     template: 'new-user-registration',
     to: {
@@ -84,6 +98,30 @@ export async function notifyNewSubscriptionPayment(data: {
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
 }): Promise<EmailSendResult> {
+  // Validate required fields
+  if (!data.userName || !data.userEmail || !data.tenantName || !data.tenantId || !data.planName) {
+    console.warn('[ADMIN_NOTIFICATIONS] Missing required data for subscription payment notification, skipping:', {
+      hasUserName: !!data.userName,
+      hasUserEmail: !!data.userEmail,
+      hasTenantName: !!data.tenantName,
+      hasTenantId: !!data.tenantId,
+      hasPlanName: !!data.planName,
+    });
+    return {
+      success: false,
+      error: 'Missing required notification data',
+    };
+  }
+
+  // Validate amount is a positive number
+  if (typeof data.planAmount !== 'number' || data.planAmount < 0) {
+    console.warn('[ADMIN_NOTIFICATIONS] Invalid plan amount for subscription payment notification:', data.planAmount);
+    return {
+      success: false,
+      error: 'Invalid plan amount',
+    };
+  }
+
   const emailData: NewSubscriptionPaymentData = {
     template: 'new-subscription-payment',
     to: {

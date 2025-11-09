@@ -44,7 +44,9 @@ export const PRICING_CONFIG = {
     discountPercent: 25,
     durationMonths: 6,
     endDate: new Date('2025-12-31'), // Fecha límite para nuevos clientes
-    couponCode: process.env.STRIPE_COUPON || '', // Set via environment variable
+    couponCode: process.env.NODE_ENV === 'production'
+      ? (process.env.STRIPE_COUPON_LIVE || 'u62SRvcw')
+      : (process.env.STRIPE_COUPON || ''),
     displayBadge: true,
     badgeText: '🎉 Oferta de Lanzamiento',
     description: '25% de descuento los primeros 6 meses'
@@ -75,10 +77,6 @@ export const COMPLETE_PLANS = {
       { name: 'Sistema de recordatorios', included: true },
       { name: 'Reportes básicos', included: true },
       { name: 'Soporte profesional', included: true },
-      { name: 'Multi-sucursal', included: false },
-      { name: 'Inventario avanzado', included: false },
-      { name: 'Reportes avanzados', included: false },
-      { name: 'API personalizada', included: false },
     ],
     limits: {
       maxPets: 500,
@@ -119,7 +117,6 @@ export const COMPLETE_PLANS = {
       { name: 'Gestión de turnos de caja', included: true },
       { name: 'Reportes de ventas avanzados', included: true },
       { name: 'Soporte prioritario', included: true },
-      { name: 'API personalizada', included: false },
     ],
     limits: {
       maxPets: 2000,

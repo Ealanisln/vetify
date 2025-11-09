@@ -50,6 +50,7 @@ model Tenant {
 
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
+  locations           Location[]
   appointments        Appointment[]
   appointmentRequests AppointmentRequest[]
   automationLogs      AutomationLog[]
@@ -76,12 +77,50 @@ model Tenant {
   users               User[]
   trialAccessLogs     TrialAccessLog[]
   emailLogs           EmailLog[]
+  inventoryTransfers  InventoryTransfer[]
 
   @@index([status])
   @@index([slug])
   @@index([domain])
   @@index([trialEndsAt])
   @@index([isTrialPeriod, subscriptionStatus])
+}
+
+model Location {
+  id               String    @id @default(uuid())
+  name             String
+  slug             String    // URL-friendly identifier
+  address          String?
+  phone            String?
+  email            String?
+  timezone         String?   @default("America/Mexico_City")
+  isActive         Boolean   @default(true)
+  isPrimary        Boolean   @default(false) // One primary location per tenant
+
+  // Multi-tenant isolation
+  tenantId         String
+  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  // Relations to location-scoped models
+  pets             Pet[]
+  appointments     Appointment[]
+  staff            Staff[]
+  inventoryItems   InventoryItem[]
+  cashDrawers      CashDrawer[]
+  services         Service[]
+  businessHours    BusinessHours[]
+  customers        Customer[]
+  transfersFrom    InventoryTransfer[] @relation("TransfersFrom")
+  transfersTo      InventoryTransfer[] @relation("TransfersTo")
+  staffLocations   StaffLocation[]
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime? // Soft delete support
+
+  @@unique([tenantId, slug])
+  @@index([tenantId, isActive])
+  @@index([tenantId, isPrimary])
 }
 
 model Plan {
@@ -162,6 +201,7 @@ model UserRole {
 model Customer {
   id                     String    @id @default(uuid())
   tenantId               String
+  locationId             String?
   email                  String?
   firstName              String?
   lastName               String?
@@ -180,6 +220,7 @@ model Customer {
   updatedAt              DateTime  @updatedAt
 
   tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location            Location?            @relation(fields: [locationId], references: [id], onDelete: Restrict)
   pets                Pet[]
   appointments        Appointment[]
   appointmentRequests AppointmentRequest[]
@@ -189,6 +230,8 @@ model Customer {
   userId              String?
 
   @@index([tenantId])
+  @@index([locationId])
+  @@index([tenantId, locationId])
   @@index([email])
   @@index([phone])
   @@index([tenantId, name])
@@ -199,6 +242,7 @@ model Customer {
 model Pet {
   id                 String              @id @default(uuid())
   tenantId           String
+  locationId         String?
   customerId         String
   internalId         String?
   name               String
@@ -217,6 +261,7 @@ model Pet {
   medicalHistories   MedicalHistory[]
   medicalOrders      MedicalOrder[]
   tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location           Location?           @relation(fields: [locationId], references: [id], onDelete: Restrict)
   customer           Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
   reminders          Reminder[]
   sales              Sale[]
@@ -225,6 +270,8 @@ model Pet {
 
   @@index([tenantId, customerId])
   @@index([tenantId])
+  @@index([locationId])
+  @@index([tenantId, locationId])
   @@index([customerId])
   @@index([name])
 }
@@ -305,6 +352,7 @@ model TreatmentSchedule {
 model Appointment {
   id         String            @id @default(uuid())
   tenantId   String
+  locationId String?
   petId      String
   customerId String?
   staffId    String?
@@ -318,12 +366,16 @@ model Appointment {
   updatedAt  DateTime          @updatedAt
 
   tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location Location? @relation(fields: [locationId], references: [id], onDelete: Restrict)
   pet      Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   staff    Staff?    @relation(fields: [staffId], references: [id])
   user     User?     @relation(fields: [userId], references: [id])
 
   @@index([tenantId])
+  @@index([locationId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, dateTime])
   @@index([petId])
   @@index([customerId])
   @@index([staffId])
@@ -365,6 +417,7 @@ model Reminder {
 model Staff {
   id                 String              @id @default(uuid())
   tenantId           String
+  locationId         String?
   userId             String?             @unique
   name               String
   position           String
@@ -380,9 +433,14 @@ model Staff {
   medicalOrders      MedicalOrder[]
   Sale               Sale[]
   tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location           Location?           @relation(fields: [locationId], references: [id], onDelete: Restrict)
   treatmentRecords   TreatmentRecord[]
+  inventoryTransfers InventoryTransfer[]
+  staffLocations     StaffLocation[]
 
   @@index([tenantId])
+  @@index([locationId])
+  @@index([tenantId, locationId])
   @@index([isActive])
   @@index([email])
   @@index([userId])
@@ -392,6 +450,7 @@ model Staff {
 model InventoryItem {
   id             String              @id @default(uuid())
   tenantId       String
+  locationId     String?
   name           String
   category       InventoryCategory
   description    String?
@@ -401,7 +460,6 @@ model InventoryItem {
   brand          String?
   quantity       Decimal             @default(0) @db.Decimal(8, 2)
   minStock       Decimal?            @db.Decimal(8, 2)
-  location       String?
   expirationDate DateTime?
   status         InventoryStatus     @default(ACTIVE)
   batchNumber    String?
@@ -411,11 +469,16 @@ model InventoryItem {
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location       Location?           @relation(fields: [locationId], references: [id], onDelete: Restrict)
   movements      InventoryMovement[]
   prescriptions  Prescription[]
   saleItems      SaleItem[]
+  transfers      InventoryTransfer[]
 
   @@index([tenantId])
+  @@index([locationId])
+  @@index([tenantId, locationId])
+  @@index([tenantId, locationId, status])
   @@index([category])
   @@index([name])
   @@index([status])
@@ -499,6 +562,7 @@ model Prescription {
 model CashDrawer {
   id               String            @id @default(uuid())
   tenantId         String
+  locationId       String?
   openedAt         DateTime          @default(now())
   closedAt         DateTime?
   openedById       String?
@@ -514,14 +578,18 @@ model CashDrawer {
   closedBy         User?             @relation("CashDrawer_closedByToUser", fields: [closedById], references: [id], onDelete: SetNull)
   openedBy         User?             @relation("CashDrawer_openedByToUser", fields: [openedById], references: [id], onDelete: SetNull)
   tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location         Location?         @relation(fields: [locationId], references: [id], onDelete: Restrict)
   cashTransactions CashTransaction[]
 
   @@index([tenantId])
+  @@index([locationId])
+  @@index([tenantId, locationId])
   @@index([openedAt])
   @@index([status])
   @@index([openedById])
   @@index([closedById])
   @@index([tenantId, status, openedAt])
+  @@index([tenantId, locationId, status])
 }
 
 model CashTransaction {
@@ -623,6 +691,7 @@ model SalePayment {
 model Service {
   id          String          @id @default(uuid())
   tenantId    String
+  locationId  String?
   name        String
   description String?
   category    ServiceCategory
@@ -633,12 +702,16 @@ model Service {
   updatedAt   DateTime        @updatedAt
   saleItems   SaleItem[]
   tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location    Location?       @relation(fields: [locationId], references: [id], onDelete: Restrict)
 
   @@index([tenantId])
+  @@index([locationId])
+  @@index([tenantId, locationId])
   @@index([category])
   @@index([isActive])
   @@index([name])
   @@index([tenantId, isActive, category])
+  @@index([tenantId, locationId, isActive])
 }
 
 model TenantInvitation {
@@ -681,6 +754,7 @@ model TenantSettings {
 model BusinessHours {
   id               String         @id @default(uuid())
   tenantId         String
+  locationId       String?
   tenantSettingsId String
   dayOfWeek        Int // 0 = Sunday, 1 = Monday, etc.
   isWorkingDay     Boolean        @default(true)
@@ -692,10 +766,13 @@ model BusinessHours {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   tenant           Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location         Location?      @relation(fields: [locationId], references: [id], onDelete: Restrict)
   tenantSettings   TenantSettings @relation(fields: [tenantSettingsId], references: [id], onDelete: Cascade)
 
-  @@unique([tenantId, dayOfWeek])
+  @@unique([tenantId, locationId, dayOfWeek])
   @@index([tenantId])
+  @@index([locationId])
+  @@index([tenantId, locationId])
   @@index([dayOfWeek])
 }
 
@@ -740,6 +817,72 @@ model TenantUsageStats {
   storageUsedBytes  BigInt   @default(0)
   lastUpdated       DateTime @updatedAt
   tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+}
+
+model InventoryTransfer {
+  id              String         @id @default(uuid())
+
+  inventoryItemId String
+  inventoryItem   InventoryItem  @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+
+  fromLocationId  String
+  fromLocation    Location       @relation("TransfersFrom", fields: [fromLocationId], references: [id], onDelete: Restrict)
+
+  toLocationId    String
+  toLocation      Location       @relation("TransfersTo", fields: [toLocationId], references: [id], onDelete: Restrict)
+
+  quantity        Decimal        @db.Decimal(8, 2)
+  status          TransferStatus @default(PENDING)
+  notes           String?        @db.Text
+
+  requestedById   String
+  requestedBy     Staff          @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+
+  completedAt     DateTime?
+
+  tenantId        String
+  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([tenantId])
+  @@index([inventoryItemId])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+  @@index([requestedById])
+  @@index([status])
+  @@index([tenantId, status])
+  @@index([tenantId, fromLocationId])
+  @@index([tenantId, toLocationId])
+}
+
+model StaffLocation {
+  id         String   @id @default(uuid())
+
+  staffId    String
+  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  isPrimary  Boolean  @default(false)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([staffId, locationId])
+  @@index([staffId])
+  @@index([locationId])
+  @@index([staffId, isPrimary])
+  @@index([staffId, locationId]) // Composite index for location permission checks
+}
+
+enum TransferStatus {
+  PENDING
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
 }
 
 enum PlanType {

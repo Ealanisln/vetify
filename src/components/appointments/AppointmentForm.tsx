@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
+import LocationSelector from '@/components/locations/LocationSelector';
 
 interface Customer {
   id: string;
@@ -62,6 +63,7 @@ export function AppointmentForm({
   const [selectedCustomer, setSelectedCustomer] = useState<string>(
     initialData?.customerId || ''
   );
+  const [locationId, setLocationId] = useState<string>('');
   const [availablePets, setAvailablePets] = useState<Pet[]>([]);
   // Time slots are shown based on availability data
   
@@ -131,9 +133,11 @@ export function AppointmentForm({
 
   const handleFormSubmit = async (data: Parameters<typeof onSubmit>[0]) => {
     try {
-      await onSubmit(data);
+      // Include locationId in the submission data
+      await onSubmit({ ...data, locationId: locationId || null } as Parameters<typeof onSubmit>[0] & { locationId: string | null });
       toast.success('Cita guardada exitosamente');
       reset();
+      setLocationId('');
     } catch (error) {
       toast.error('Error al guardar la cita');
       console.error('Error submitting appointment form:', error);
@@ -406,6 +410,14 @@ export function AppointmentForm({
             )}
           />
         </div>
+      </div>
+
+      <div>
+        <LocationSelector
+          value={locationId}
+          onChange={setLocationId}
+          defaultToPrimary={true}
+        />
       </div>
 
       <div className="space-y-2">

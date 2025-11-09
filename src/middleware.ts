@@ -58,6 +58,10 @@ const PROTECTED_ROUTES = {
   '/dashboard/inventory': 'inventory',
   '/dashboard/inventario': 'inventory',
 
+  // Locations (Ubicaciones) - Multi-location feature
+  '/dashboard/locations': 'multiLocation',
+  '/dashboard/ubicaciones': 'multiLocation',
+
   // Reports (Reportes)
   '/dashboard/reports': 'reports',
   '/dashboard/reportes': 'reports',
@@ -210,61 +214,26 @@ export default withAuth(
               return NextResponse.next();
             }
 
-            // OPTIMIZED: Check trial access directly without API overhead
-            // This avoids 300-800ms of fetch() overhead on every protected route access
-            try {
-              // Import at runtime to avoid edge runtime issues
-              const { findUserById } = await import('./lib/db/queries/users');
-              const { hasActiveSubscription } = await import('./lib/auth');
+            // NOTE: Subscription/trial access validation is handled at the page level
+            // via requireAuth() and server components, not in middleware.
+            //
+            // REASON: Middleware runs on Edge Runtime which doesn't support Prisma.
+            // Attempting database queries here causes "PrismaClient is unable to run
+            // in this browser environment" errors.
+            //
+            // VALIDATION LAYERS:
+            // 1. Middleware: Authentication only (via Kinde)
+            // 2. Pages: Subscription/trial checks via requireAuth() + server components
+            // 3. API Routes: Plan limit enforcement via checkFeatureAccess()
+            //
+            // This approach:
+            // - Avoids Edge Runtime limitations
+            // - Maintains security (auth required at middleware level)
+            // - Allows flexible subscription checks in server components
+            // - Prevents error noise from Prisma in middleware
 
-              // Get user with tenant in single query
-              const dbUser = await findUserById(kindeUser.id);
-
-              if (!dbUser?.tenant) {
-                // No tenant - redirect to onboarding
-                const url = new URL('/onboarding', req.url);
-                await logSecurityEvent(req, 'permission_denied', kindeUser.id, {
-                  reason: 'No tenant found',
-                  pathname,
-                });
-                return NextResponse.redirect(url);
-              }
-
-              // Check if tenant has active subscription or valid trial
-              const hasAccess = hasActiveSubscription(dbUser.tenant);
-
-              if (!hasAccess) {
-                // Access denied - redirect to settings/subscription page
-                const url = new URL('/dashboard/settings', req.url);
-                url.searchParams.set('tab', 'subscription');
-                url.searchParams.set('reason', 'no_plan');
-                url.searchParams.set('feature', PROTECTED_ROUTES[protectedRoute as keyof typeof PROTECTED_ROUTES]);
-                url.searchParams.set('from', pathname);
-
-                await logSecurityEvent(req, 'permission_denied', kindeUser.id, {
-                  reason: 'No active plan or trial',
-                  feature: PROTECTED_ROUTES[protectedRoute as keyof typeof PROTECTED_ROUTES],
-                  pathname,
-                });
-
-                return NextResponse.redirect(url);
-              }
-
-              // Access granted - user has valid trial or paid subscription
-              // Note: For more granular feature checks (premium vs trial), the page
-              // itself should call /api/trial/check-access for specific features
-
-            } catch (error) {
-              // Database error - log but allow access to prevent blocking
-              console.warn('Trial access check database error:', error);
-
-              await logSecurityEvent(req, 'security_event', kindeUser.id, {
-                error: 'Trial access check database error',
-                pathname,
-                message: error instanceof Error ? error.message : 'Unknown error'
-              });
-              // Allow access on error to prevent blocking legitimate users
-            }
+            // Protected routes require authentication (handled by withAuth wrapper)
+            // Subscription validation happens when the page loads via server components
           }
           
           // Continue with normal flow

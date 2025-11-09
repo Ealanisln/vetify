@@ -17,9 +17,10 @@ import {
   XCircle,
   ExternalLink
 } from 'lucide-react';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getStripePriceIdForPlan, getPlanKeyFromName } from '../../lib/pricing-config';
+import { toast } from 'sonner';
 
 interface SubscriptionManagerProps {
   tenant: Tenant;
@@ -27,6 +28,7 @@ interface SubscriptionManagerProps {
 
 export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
   const {
@@ -39,6 +41,29 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
     isInTrial,
     subscriptionStatus
   } = useSubscription(tenant);
+
+  // Detect return from Stripe portal and show success message
+  useEffect(() => {
+    const fromPortal = searchParams.get('from_portal');
+
+    if (fromPortal === 'true') {
+      // Show success toast
+      toast.success('Cambios guardados', {
+        description: 'Tu suscripción se está actualizando. Los cambios pueden tardar unos segundos en reflejarse.',
+        duration: 5000,
+      });
+
+      // Clean up URL parameter
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.delete('from_portal');
+      window.history.replaceState({}, '', currentUrl.toString());
+
+      // Force page refresh after a short delay to show updated data
+      setTimeout(() => {
+        router.refresh();
+      }, 2000);
+    }
+  }, [searchParams, router]);
 
   // CRITICAL FIX: Check if trial has expired
   // Trial is expired if: status is TRIALING AND trialEndsAt is in the past
@@ -53,9 +78,20 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
     setIsLoading(true);
     try {
       const portalUrl = await redirectToCustomerPortal();
+
+      // Redirect to Stripe portal
       window.location.href = portalUrl;
     } catch (error) {
       console.error('Error al abrir el portal de cliente:', error);
+
+      // Show user-friendly error message
+      toast.error('Error al abrir el portal', {
+        description: error instanceof Error
+          ? error.message
+          : 'No se pudo conectar con el portal de pagos. Por favor, intenta nuevamente.',
+        duration: 5000,
+      });
+
       setIsLoading(false);
     }
   };
@@ -101,7 +137,15 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
         }
       } catch (error) {
         console.error('Error al crear sesión de checkout:', error);
-        alert(`Error al procesar el pago: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+
+        // Show user-friendly error message
+        toast.error('Error al procesar el pago', {
+          description: error instanceof Error
+            ? error.message
+            : 'No se pudo crear la sesión de pago. Por favor, intenta nuevamente.',
+          duration: 5000,
+        });
+
         setIsCheckoutLoading(false);
       }
       return;
