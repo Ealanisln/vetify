@@ -4,9 +4,9 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { 
-  HomeIcon, 
-  UserGroupIcon, 
+import {
+  HomeIcon,
+  UserGroupIcon,
   CalendarIcon,
   CubeIcon,
   ChartBarIcon,
@@ -15,9 +15,11 @@ import {
   CreditCardIcon,
   DocumentTextIcon,
   CurrencyDollarIcon,
-  UsersIcon
+  UsersIcon,
+  MapPinIcon
 } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
+import { LocationSwitcher } from '@/components/locations/LocationSwitcher';
 
 interface SidebarProps {
   user: UserWithTenant;
@@ -36,6 +38,7 @@ const navigation = [
   { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon },
   { name: 'Mascotas', href: '/dashboard/pets', icon: UserGroupIcon },
   { name: 'Personal', href: '/dashboard/staff', icon: UsersIcon },
+  { name: 'Ubicaciones', href: '/dashboard/locations', icon: MapPinIcon },
   { name: 'Punto de Venta', href: '/dashboard/sales', icon: CreditCardIcon },
   { name: 'Caja', href: '/dashboard/caja', icon: CurrencyDollarIcon }, // Basic: 1 caja | Pro: múltiples cajas
   { name: 'Inventario', href: '/dashboard/inventory', icon: CubeIcon }, // Basic: inventario básico | Pro: avanzado
@@ -113,7 +116,12 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
                   Vetify
                 </span>
               </div>
-              
+
+              {/* Location Switcher */}
+              <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
+                <LocationSwitcher />
+              </div>
+
               {/* Navigation */}
               <nav className="flex flex-1 flex-col" aria-label="Navegación principal">
                 <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -178,7 +186,12 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
               Vetify
             </span>
           </div>
-          
+
+          {/* Location Switcher */}
+          <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
+            <LocationSwitcher />
+          </div>
+
           {/* Navigation */}
           <nav className="flex flex-1 flex-col" aria-label="Navegación principal">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">

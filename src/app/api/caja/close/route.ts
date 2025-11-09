@@ -5,6 +5,7 @@ import { z } from 'zod';
 
 const closeDrawerSchema = z.object({
   tenantId: z.string(),
+  locationId: z.string().optional(),
   finalAmount: z.number().min(0)
 });
 
@@ -12,15 +13,15 @@ export async function POST(request: Request) {
   try {
     const { user, tenant } = await requireAuth();
     const body = await request.json();
-    
-    const { tenantId, finalAmount } = closeDrawerSchema.parse(body);
+
+    const { tenantId, locationId, finalAmount } = closeDrawerSchema.parse(body);
 
     // Verificar que el tenant coincida
     if (tenantId !== tenant.id) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    // Buscar la caja abierta
+    // Buscar la caja abierta para esta ubicación
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
@@ -29,6 +30,7 @@ export async function POST(request: Request) {
     const openDrawer = await prisma.cashDrawer.findFirst({
       where: {
         tenantId,
+        ...(locationId && { locationId }),
         status: 'OPEN',
         openedAt: {
           gte: today,
@@ -45,6 +47,9 @@ export async function POST(request: Request) {
     }
 
     // Calcular ventas en efectivo del día
+    // TODO: Add location filtering to sales once Sale model includes locationId
+    // For now, we rely on the drawer's time-based scoping which implicitly
+    // scopes to sales made during this drawer's open period
     const cashPayments = await prisma.salePayment.aggregate({
       where: {
         paymentMethod: 'CASH',
@@ -55,6 +60,8 @@ export async function POST(request: Request) {
         sale: {
           tenantId,
           status: 'COMPLETED'
+          // Future: Add locationId filter when available
+          // ...(openDrawer.locationId && { locationId: openDrawer.locationId })
         }
       },
       _sum: {

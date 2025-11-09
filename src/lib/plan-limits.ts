@@ -290,6 +290,55 @@ export async function checkCashRegisterLimit(tenantId: string): Promise<{
 }
 
 /**
+ * Check if tenant can add a new location
+ * Plan Básico: 1 location only
+ * Higher plans: unlimited locations
+ */
+export async function checkLocationLimit(tenantId: string): Promise<{
+  canAdd: boolean;
+  current: number;
+  limit: number;
+  remaining: number;
+  requiresUpgrade: boolean;
+}> {
+  const limits = await getPlanLimits(tenantId);
+
+  // Count current active locations for this tenant
+  const currentLocations = await prisma.location.count({
+    where: {
+      tenantId,
+      isActive: true
+    }
+  });
+
+  // Plan Básico: 1 location, Higher plans (Profesional/Corporativo): unlimited
+  const maxLocations = limits.canUseMultiLocation ? Number.MAX_SAFE_INTEGER : 1;
+  const canAdd = currentLocations < maxLocations;
+
+  // Handle unlimited locations (Profesional+ plans)
+  if (limits.canUseMultiLocation) {
+    return {
+      canAdd: true,
+      current: currentLocations,
+      limit: -1, // Represent unlimited as -1 in response
+      remaining: -1,
+      requiresUpgrade: false
+    };
+  }
+
+  // Plan Básico: limited to 1 location
+  const remaining = Math.max(0, 1 - currentLocations);
+
+  return {
+    canAdd,
+    current: currentLocations,
+    limit: 1,
+    remaining,
+    requiresUpgrade: !canAdd
+  };
+}
+
+/**
  * Check if tenant can use a specific feature
  */
 export async function checkFeatureAccess(

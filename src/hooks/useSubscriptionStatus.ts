@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   getSubscriptionStatus,
   type SubscriptionStatus
@@ -10,27 +10,55 @@ import {
 /**
  * Hook to check and manage subscription status
  * Fetches subscription status from the server and provides helpers
+ * Auto-refreshes when returning from Stripe portal
  */
 export function useSubscriptionStatus() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
+  // Fetch subscription status with retry logic
+  const fetchStatus = useCallback(async (isRetry = false) => {
+    try {
+      const data = await getSubscriptionStatus();
+      setStatus(data);
+      setError(null);
+      setRetryCount(0);
+      return data;
+    } catch (err) {
+      console.error('Error fetching subscription status:', err);
+      setError(err as Error);
+
+      // Retry once after 2 seconds if first attempt fails
+      if (!isRetry && retryCount < 1) {
+        setRetryCount(prev => prev + 1);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return fetchStatus(true);
+      }
+      throw err;
+    }
+  }, [retryCount]);
+
+  // Initial load and auto-refresh on portal return
   useEffect(() => {
-    getSubscriptionStatus()
-      .then((data) => {
-        setStatus(data);
-        setError(null);
-      })
-      .catch((err) => {
-        console.error('Error fetching subscription status:', err);
-        setError(err);
-      })
+    const fromPortal = searchParams.get('from_portal');
+
+    setIsLoading(true);
+    fetchStatus()
       .finally(() => {
         setIsLoading(false);
+
+        // Clean up URL parameter after refresh
+        if (fromPortal) {
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.delete('from_portal');
+          window.history.replaceState({}, '', currentUrl.toString());
+        }
       });
-  }, []);
+  }, [searchParams, fetchStatus]);
 
   const requireActivePlan = (redirectTo: string = '/dashboard/settings?tab=subscription') => {
     if (!status?.isActive && !isLoading) {
@@ -40,19 +68,18 @@ export function useSubscriptionStatus() {
     return true;
   };
 
-  const refreshStatus = async () => {
+  const refreshStatus = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await getSubscriptionStatus();
-      setStatus(data);
-      setError(null);
+      const data = await fetchStatus();
+      return data;
     } catch (err) {
       console.error('Error refreshing subscription status:', err);
-      setError(err as Error);
+      throw err;
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchStatus]);
 
   return {
     status,

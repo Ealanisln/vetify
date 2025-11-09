@@ -18,6 +18,7 @@ export async function GET(request: Request) {
     const { tenant } = await requireAuth();
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId') || tenant.id;
+    const locationId = searchParams.get('locationId') || undefined;
     const limit = parseInt(searchParams.get('limit') || '20');
     const summary = searchParams.get('summary') === 'true';
 
@@ -32,6 +33,7 @@ export async function GET(request: Request) {
       const currentDrawer = await prisma.cashDrawer.findFirst({
         where: {
           tenantId,
+          ...(locationId && { locationId }),
           openedAt: {
             gte: today,
             lt: tomorrow
@@ -64,6 +66,7 @@ export async function GET(request: Request) {
       });
 
       // Obtener pagos con tarjeta del día
+      // TODO: Add location filtering once Sale model includes locationId
       const cardPayments = await prisma.salePayment.aggregate({
         where: {
           paymentMethod: {
@@ -76,6 +79,7 @@ export async function GET(request: Request) {
           sale: {
             tenantId,
             status: { in: ['COMPLETED', 'PAID'] }
+            // Future: Add locationId filter when available
           }
         },
         _sum: {
@@ -84,6 +88,7 @@ export async function GET(request: Request) {
       });
 
       // Obtener total de ventas del día
+      // TODO: Add location filtering once Sale model includes locationId
       const totalSales = await prisma.sale.aggregate({
         where: {
           tenantId,
@@ -92,6 +97,7 @@ export async function GET(request: Request) {
             gte: today,
             lt: tomorrow
           }
+          // Future: Add locationId filter when available
         },
         _sum: {
           total: true
@@ -119,6 +125,7 @@ export async function GET(request: Request) {
     const currentDrawer = await prisma.cashDrawer.findFirst({
       where: {
         tenantId,
+        ...(locationId && { locationId }),
         openedAt: {
           gte: today,
           lt: tomorrow

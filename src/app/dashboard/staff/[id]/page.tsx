@@ -25,9 +25,10 @@ export default async function StaffDetailPage({ params }: StaffDetailPageProps) 
     }
 
     return (
-      <StaffDetailClient 
+      <StaffDetailClient
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         initialStaff={staff as any}
+        tenantId={tenant.id}
       />
     );
   } catch (error) {

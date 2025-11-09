@@ -7,6 +7,7 @@ export async function GET(request: Request) {
     const { tenant } = await requireAuth();
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId') || tenant.id;
+    const locationId = searchParams.get('locationId') || undefined;
 
     // Buscar la caja actual del día
     const today = new Date();
@@ -17,6 +18,7 @@ export async function GET(request: Request) {
     const currentDrawer = await prisma.cashDrawer.findFirst({
       where: {
         tenantId,
+        ...(locationId && { locationId }),
         openedAt: {
           gte: today,
           lt: tomorrow

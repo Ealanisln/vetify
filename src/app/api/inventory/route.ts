@@ -47,13 +47,15 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const category = searchParams.get('category') || undefined;
     const search = searchParams.get('search') || undefined;
+    const locationId = searchParams.get('locationId') || undefined;
 
     const result = await getInventoryItems(
       userWithTenant.tenant.id,
       page,
       limit,
       category,
-      search
+      search,
+      locationId
     );
 
     return NextResponse.json(result);
