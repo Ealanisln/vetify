@@ -44,7 +44,9 @@ export const PRICING_CONFIG = {
     discountPercent: 25,
     durationMonths: 6,
     endDate: new Date('2025-12-31'), // Fecha límite para nuevos clientes
-    couponCode: process.env.STRIPE_COUPON || '', // Set via environment variable
+    couponCode: process.env.NODE_ENV === 'production'
+      ? (process.env.STRIPE_COUPON_LIVE || 'u62SRvcw')
+      : (process.env.STRIPE_COUPON || ''),
     displayBadge: true,
     badgeText: '🎉 Oferta de Lanzamiento',
     description: '25% de descuento los primeros 6 meses'

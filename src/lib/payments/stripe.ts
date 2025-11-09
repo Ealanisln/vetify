@@ -72,33 +72,71 @@ function shouldGiveStripeTrial(tenant: Tenant): boolean {
  * Para más información: https://stripe.com/docs/tax/set-up
  */
 
+// Determinar si estamos en producción
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Seleccionar la key correcta según el entorno
+const stripeSecretKey = isProduction
+  ? process.env.STRIPE_SECRET_KEY_LIVE
+  : process.env.STRIPE_SECRET_KEY;
+
+if (!stripeSecretKey) {
+  throw new Error(`Stripe secret key not found for environment: ${process.env.NODE_ENV}`);
+}
+
 // Stripe client configuration
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const stripe = new Stripe(stripeSecretKey, {
   apiVersion: '2024-06-20',
   typescript: true,
 });
 
-// IDs de productos y precios de Stripe - Nueva estructura B2B sincronizada
-export const STRIPE_PRODUCTS = {
-  BASICO: 'prod_TGDXKD2ksDenYm',      // Plan Básico - $599/mes
-  PROFESIONAL: 'prod_TGDXLJxNFGsF9X',  // Plan Profesional - $1,199/mes
-  CORPORATIVO: 'prod_TGDXxUkqhta3cp'   // Plan Corporativo - $5,000/mes
+// IDs de productos TEST (Sandbox - Vetify sandbox)
+const TEST_PRODUCTS = {
+  BASICO: 'prod_TGDXKD2ksDenYm',
+  PROFESIONAL: 'prod_TGDXLJxNFGsF9X',
+  CORPORATIVO: 'prod_TGDXxUkqhta3cp'
 } as const;
 
-export const STRIPE_PRICES = {
+const TEST_PRICES = {
   BASICO: {
-    monthly: 'price_1SJh6nPwxz1bHxlHQ15mCTij',  // $599/mes
-    annual: 'price_1SJh6oPwxz1bHxlH1gXSEuSF',   // $4,788/año
+    monthly: 'price_1SJh6nPwxz1bHxlHQ15mCTij',
+    annual: 'price_1SJh6oPwxz1bHxlH1gXSEuSF',
   },
   PROFESIONAL: {
-    monthly: 'price_1SJh6oPwxz1bHxlHkJudNKvL',  // $1,199/mes
-    annual: 'price_1SJh6pPwxz1bHxlHcMip7KIU',   // $9,588/año
+    monthly: 'price_1SJh6oPwxz1bHxlHkJudNKvL',
+    annual: 'price_1SJh6pPwxz1bHxlHcMip7KIU',
   },
   CORPORATIVO: {
-    monthly: 'price_1SJh6pPwxz1bHxlHY9cnLnPw',  // $5,000/mes
-    annual: 'price_1SJh6qPwxz1bHxlHd3ud2WZ3',   // $60,000/año
+    monthly: 'price_1SJh6pPwxz1bHxlHY9cnLnPw',
+    annual: 'price_1SJh6qPwxz1bHxlHd3ud2WZ3',
   }
 } as const;
+
+// IDs de productos PRODUCTION (Live - Vetify)
+const PRODUCTION_PRODUCTS = {
+  BASICO: process.env.STRIPE_PRODUCT_BASICO_LIVE || 'prod_TOO1tpvYblty9Y',
+  PROFESIONAL: process.env.STRIPE_PRODUCT_PROFESIONAL_LIVE || 'prod_TOO1RsH4C7mQmr',
+  CORPORATIVO: process.env.STRIPE_PRODUCT_CORPORATIVO_LIVE || 'prod_TOO1q6SDg9CGMP'
+} as const;
+
+const PRODUCTION_PRICES = {
+  BASICO: {
+    monthly: process.env.STRIPE_PRICE_BASICO_MONTHLY_LIVE || 'price_1SRbeEL0nsUWmd4XBFJ39Vos',
+    annual: process.env.STRIPE_PRICE_BASICO_ANNUAL_LIVE || 'price_1SRbeEL0nsUWmd4XKYm8XgQf',
+  },
+  PROFESIONAL: {
+    monthly: process.env.STRIPE_PRICE_PROFESIONAL_MONTHLY_LIVE || 'price_1SRbeEL0nsUWmd4XeqTWgtqf',
+    annual: process.env.STRIPE_PRICE_PROFESIONAL_ANNUAL_LIVE || 'price_1SRbeFL0nsUWmd4X3828tN8a',
+  },
+  CORPORATIVO: {
+    monthly: process.env.STRIPE_PRICE_CORPORATIVO_MONTHLY_LIVE || 'price_1SRbeFL0nsUWmd4XAVO4h9rv',
+    annual: process.env.STRIPE_PRICE_CORPORATIVO_ANNUAL_LIVE || 'price_1SRbeGL0nsUWmd4XKgS6jCso',
+  }
+} as const;
+
+// Exportar productos y precios según el entorno
+export const STRIPE_PRODUCTS = isProduction ? PRODUCTION_PRODUCTS : TEST_PRODUCTS;
+export const STRIPE_PRICES = isProduction ? PRODUCTION_PRICES : TEST_PRICES;
 
 // Precios de planes en MXN - Nueva estructura B2B
 export const PLAN_PRICES = {
@@ -417,7 +455,7 @@ export async function createCustomerPortalSession(tenant: Tenant) {
 
   return stripe.billingPortal.sessions.create({
     customer: tenant.stripeCustomerId,
-    return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`,
+    return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?from_portal=true`,
     configuration: configuration.id
   });
 }
@@ -537,9 +575,9 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
       return;
     }
 
-    let product;
+    // Validate that the product exists in Stripe
     try {
-      product = await stripe.products.retrieve(plan.product as string);
+      await stripe.products.retrieve(plan.product as string);
     } catch (error) {
       console.error('updateTenantSubscription: Error retrieving product:', error);
       return;
@@ -548,8 +586,8 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
     // Map Stripe product ID to our Plan record
     const stripeProductId = plan.product as string;
     let planKey: string | null = null;
-    
-    // Find the plan key from our mapping
+
+    // First, try to find in current product mapping
     for (const [key, mapping] of Object.entries(STRIPE_PLAN_MAPPING)) {
       if (mapping.productId === stripeProductId) {
         planKey = key;
@@ -559,6 +597,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
 
     if (!planKey) {
       console.error('updateTenantSubscription: No plan mapping found for product:', stripeProductId);
+      console.error('Available mappings:', Object.keys(STRIPE_PLAN_MAPPING));
       return;
     }
 
@@ -575,7 +614,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
     const updateData = {
       stripeSubscriptionId: subscriptionId,
       stripeProductId: stripeProductId,
-      planName: product?.name,
+      planName: dbPlan.name, // Use DB plan name for consistency
       subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
       subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
       isTrialPeriod: status === 'trialing',
