@@ -24,6 +24,8 @@ export async function logEmailSend(
       'appointment-reminder': 'APPOINTMENT_REMINDER',
       'low-stock-alert': 'LOW_STOCK_ALERT',
       'treatment-reminder': 'TREATMENT_REMINDER',
+      'new-user-registration': 'NEW_USER_REGISTRATION',
+      'new-subscription-payment': 'NEW_SUBSCRIPTION_PAYMENT',
     };
 
     await prisma.emailLog.create({

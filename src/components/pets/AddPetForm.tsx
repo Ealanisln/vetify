@@ -98,7 +98,7 @@ export function AddPetForm() {
           ...formData,
           customerId,
           locationId: formData.locationId || null,
-          dateOfBirth: new Date(formData.dateOfBirth),
+          dateOfBirth: formData.dateOfBirth, // Send as ISO date string "YYYY-MM-DD"
           weight: formData.weight ? Number(formData.weight) : undefined,
         }),
       });
@@ -368,6 +368,7 @@ export function AddPetForm() {
               type="date"
               name="dateOfBirth"
               required
+              max={new Date().toISOString().split('T')[0]}
               value={formData.dateOfBirth}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-green-500 focus:ring-green-500"

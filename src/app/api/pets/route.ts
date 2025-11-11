@@ -14,7 +14,18 @@ export async function POST(request: NextRequest) {
     
     // Convert dateOfBirth string to Date object if needed
     if (body.dateOfBirth && typeof body.dateOfBirth === 'string') {
-      body.dateOfBirth = new Date(body.dateOfBirth);
+      // Parse date in YYYY-MM-DD format and ensure valid date
+      const dateStr = body.dateOfBirth.trim();
+      const date = new Date(dateStr + 'T00:00:00.000Z'); // Use UTC midnight
+
+      if (isNaN(date.getTime())) {
+        return NextResponse.json(
+          { message: 'Invalid date format for dateOfBirth. Expected YYYY-MM-DD.' },
+          { status: 400 }
+        );
+      }
+
+      body.dateOfBirth = date;
     }
     
     const validatedData = createPetSchema.parse(body);
