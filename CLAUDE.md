@@ -70,6 +70,25 @@ pnpm build:production         # Production build with migrations
 pnpm deploy:check             # Check deployment readiness
 ```
 
+## Git Workflow
+
+### Pull Request Policy
+
+**CRITICAL: ALWAYS target the `development` branch for pull requests, NOT `main`.**
+
+- **Base Branch**: All PRs must target `development`
+- **Main Branch**: The `main` branch is protected and only receives changes via merges from `development`
+- **Branch Strategy**:
+  - Feature branches → `development` (via PR)
+  - `development` → `main` (via PR after QA)
+
+When creating PRs with `gh pr create`, always specify:
+```bash
+gh pr create --base development --title "..." --body "..."
+```
+
+Never create PRs directly to `main` unless explicitly instructed for hotfixes.
+
 ## Architecture
 
 ### Multi-Tenant Structure
