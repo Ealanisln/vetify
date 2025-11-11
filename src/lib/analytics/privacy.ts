@@ -15,8 +15,6 @@
  * - Any other sensitive personal data
  */
 
-import { createHash } from 'crypto';
-
 /**
  * List of sensitive field names that should never be tracked
  * These fields will be removed from any data sent to Meta Pixel
@@ -96,17 +94,6 @@ function isBlockedField(fieldName: string): boolean {
   return BLOCKED_FIELDS.some((blocked) =>
     lowerFieldName.includes(blocked.toLowerCase())
   );
-}
-
-/**
- * Hash a string value for anonymization
- * Useful for tracking user/tenant identifiers without exposing actual IDs
- *
- * @param value - The value to hash
- * @returns Hashed value (SHA-256)
- */
-export function hashIdentifier(value: string): string {
-  return createHash('sha256').update(value).digest('hex').substring(0, 16);
 }
 
 /**
@@ -210,31 +197,6 @@ export function validateEventData(
       );
     }
   }
-}
-
-/**
- * Get safe user properties for tracking
- * Returns only non-sensitive aggregated data
- *
- * @param userId - User ID (will be hashed)
- * @param tenantId - Tenant ID (will be hashed)
- * @returns Safe user properties object
- */
-export function getSafeUserProperties(
-  userId?: string,
-  tenantId?: string
-): Record<string, string> {
-  const properties: Record<string, string> = {};
-
-  if (userId) {
-    properties.user_hash = hashIdentifier(userId);
-  }
-
-  if (tenantId) {
-    properties.tenant_hash = hashIdentifier(tenantId);
-  }
-
-  return properties;
 }
 
 /**

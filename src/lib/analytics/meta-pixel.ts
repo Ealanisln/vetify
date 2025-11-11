@@ -10,6 +10,7 @@
 
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
 import type { MetaPixelEvent } from './types';
 import { logTrackingEvent, isTrackingEnabled } from './privacy';
 
@@ -74,6 +75,10 @@ export function initMetaPixel(): boolean {
     return true;
   } catch (error) {
     console.error('[Meta Pixel] Initialization error:', error);
+    Sentry.captureException(error, {
+      tags: { category: 'meta_pixel', operation: 'init' },
+      contexts: { meta_pixel: { pixelId } }
+    });
     return false;
   }
 }
@@ -107,6 +112,10 @@ export function trackEvent(
     logTrackingEvent(eventName, params);
   } catch (error) {
     console.error(`[Meta Pixel] Error tracking event "${eventName}":`, error);
+    Sentry.captureException(error, {
+      tags: { category: 'meta_pixel', operation: 'track_event', event_name: eventName },
+      contexts: { meta_pixel: { event: eventName, params } }
+    });
   }
 }
 
@@ -142,6 +151,10 @@ export function trackCustomEvent(
       `[Meta Pixel] Error tracking custom event "${eventName}":`,
       error
     );
+    Sentry.captureException(error, {
+      tags: { category: 'meta_pixel', operation: 'track_custom_event', event_name: eventName },
+      contexts: { meta_pixel: { event: eventName, params } }
+    });
   }
 }
 

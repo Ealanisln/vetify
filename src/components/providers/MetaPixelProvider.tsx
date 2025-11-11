@@ -11,6 +11,7 @@
 
 import { useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { initMetaPixel, trackPageView } from '@/lib/analytics/meta-pixel';
 import { isTrackingEnabled } from '@/lib/analytics/privacy';
 
@@ -46,6 +47,9 @@ export function MetaPixelProvider({ children }: MetaPixelProviderProps) {
       } catch (error) {
         // Log error but don't crash the app if pixel initialization fails
         console.error('[Meta Pixel] Initialization error:', error);
+        Sentry.captureException(error, {
+          tags: { category: 'meta_pixel', operation: 'provider_init' }
+        });
       }
     }, 100);
 
@@ -64,6 +68,10 @@ export function MetaPixelProvider({ children }: MetaPixelProviderProps) {
     } catch (error) {
       // Log error but don't crash the app if page view tracking fails
       console.error('[Meta Pixel] Page view tracking error:', error);
+      Sentry.captureException(error, {
+        tags: { category: 'meta_pixel', operation: 'page_view' },
+        contexts: { route: { pathname, searchParams: searchParams?.toString() } }
+      });
     }
   }, [pathname, searchParams]);
 
