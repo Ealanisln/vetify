@@ -41,7 +41,7 @@ export interface AvailableUpgrade {
   limits: {
     pets: number;
     users: number;
-    whatsappMessages: number;
+    // whatsappMessages: number; // FUTURE FEATURE: WhatsApp automation
   };
   pricing: {
     monthly: number;

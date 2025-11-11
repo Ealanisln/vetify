@@ -15,7 +15,6 @@ interface Customer {
 export function AddPetForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showWhatsAppPreview, setShowWhatsAppPreview] = useState(false);
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
@@ -109,14 +108,9 @@ export function AddPetForm() {
         throw new Error(errorData.message || 'Error creating pet');
       }
 
-      const result = await response.json();
-      
-      // Show success message with WhatsApp automation info
-      if (result.automationTriggered) {
-        alert('¡Mascota registrada! 🎉\n\nSe ha enviado un WhatsApp automático al dueño.');
-      } else {
-        alert('¡Mascota registrada exitosamente!\n\nNota: Para activar WhatsApp automático, asegúrate de que el cliente tenga un número de teléfono registrado.');
-      }
+      await response.json();
+
+      alert('¡Mascota registrada exitosamente!');
 
       router.push('/dashboard/pets');
       router.refresh();
@@ -142,17 +136,6 @@ export function AddPetForm() {
       ...prev,
       [name]: value
     }));
-  };
-
-  const getSpeciesEmoji = (species: string) => {
-    const emojis = {
-      'dog': '🐕',
-      'cat': '🐱',
-      'bird': '🐦',
-      'rabbit': '🐰',
-      'other': '🐾'
-    };
-    return emojis[species as keyof typeof emojis] || '🐾';
   };
 
   const selectedCustomer = customers.find(c => c.id === formData.customerId);
@@ -455,47 +438,6 @@ export function AddPetForm() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* WhatsApp Integration Notice */}
-      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
-        <div className="flex items-start">
-          <span className="text-green-500 dark:text-green-400 text-xl mr-3">💬</span>
-          <div className="flex-1">
-            <h4 className="text-sm font-medium text-green-900 dark:text-green-100">
-              WhatsApp Automático Incluido
-            </h4>
-            <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-              Al registrar la mascota, se enviará automáticamente un mensaje de bienvenida al dueño.
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowWhatsAppPreview(!showWhatsAppPreview)}
-              className="text-xs text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-200 mt-2 underline"
-            >
-              {showWhatsAppPreview ? 'Ocultar' : 'Ver'} vista previa del mensaje
-            </button>
-          </div>
-        </div>
-
-        {showWhatsAppPreview && (
-          <div className="mt-4 p-3 bg-white dark:bg-gray-700 rounded border border-green-300 dark:border-green-600">
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">Vista previa del WhatsApp:</div>
-            <div className="text-sm bg-green-100 dark:bg-green-900/40 p-3 rounded-lg font-mono whitespace-pre-line">
-              🎉 ¡Bienvenido a Tu Clínica!
-
-              {getSpeciesEmoji(formData.species)} <strong>{formData.name || '[Nombre]'}</strong> ya está registrado en nuestro sistema Vetify.
-
-              ✅ Recibirás recordatorios automáticos de vacunas
-              ✅ Historial médico digitalizado
-              ✅ Comunicación directa con el veterinario
-
-              ¿Alguna pregunta? Solo responde a este mensaje.
-
-              <em>Mensaje automático de Vetify CRM</em>
-            </div>
-          </div>
-        )}
       </div>
 
       <div className="flex justify-end space-x-3">
