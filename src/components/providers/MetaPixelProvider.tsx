@@ -36,11 +36,16 @@ export function MetaPixelProvider({ children }: MetaPixelProviderProps) {
 
     // Wait a bit for the pixel script to load
     const timer = setTimeout(() => {
-      const initialized = initMetaPixel();
+      try {
+        const initialized = initMetaPixel();
 
-      if (initialized) {
-        // Track initial page view
-        trackPageView();
+        if (initialized) {
+          // Track initial page view
+          trackPageView();
+        }
+      } catch (error) {
+        // Log error but don't crash the app if pixel initialization fails
+        console.error('[Meta Pixel] Initialization error:', error);
       }
     }, 100);
 
@@ -53,8 +58,13 @@ export function MetaPixelProvider({ children }: MetaPixelProviderProps) {
       return;
     }
 
-    // Track page view when route changes
-    trackPageView();
+    try {
+      // Track page view when route changes
+      trackPageView();
+    } catch (error) {
+      // Log error but don't crash the app if page view tracking fails
+      console.error('[Meta Pixel] Page view tracking error:', error);
+    }
   }, [pathname, searchParams]);
 
   // This provider doesn't render anything visual, just returns children
