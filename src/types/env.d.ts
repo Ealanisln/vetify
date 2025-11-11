@@ -30,6 +30,7 @@ declare namespace NodeJS {
     // Facebook/Meta
     FACEBOOK_APP_ID: string;
     FACEBOOK_APP_SECRET: string;
+    NEXT_PUBLIC_META_PIXEL_ID?: string;
 
     // App URLs
     VETIFY_API_URL: string;

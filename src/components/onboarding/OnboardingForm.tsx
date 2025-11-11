@@ -8,6 +8,7 @@ import { ClinicInfo } from '../../app/onboarding/steps/ClinicInfo';
 import { Confirmation } from '../../app/onboarding/steps/Confirmation';
 import { OnboardingProgress } from './OnboardingProgress';
 import type { OnboardingState } from '../../types/onboarding';
+import { trackCompleteRegistration, trackStartTrial } from '@/lib/analytics/meta-events';
 
 interface OnboardingFormProps {
   user: UserWithTenant;
@@ -76,6 +77,40 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
       }
 
       await response.json();
+
+      // Track conversion events and wait for completion before redirecting
+      // Wrap in Promise.race to ensure we don't hang if tracking fails
+      try {
+        const trackingPromise = Promise.all([
+          // Track CompleteRegistration event
+          Promise.resolve(trackCompleteRegistration({
+            plan_name: state.selectedPlan.name,
+            plan_key: state.selectedPlan.key,
+            billing_interval: state.selectedPlan.billingInterval,
+            is_trial: true, // New registrations always start with trial
+            clinic_name: state.clinicInfo.clinicName,
+            currency: 'MXN',
+            value: state.selectedPlan.priceMonthly, // Use monthly price as value
+            status: 'completed'
+          })),
+          // Track StartTrial event for new trial periods
+          Promise.resolve(trackStartTrial({
+            plan_name: state.selectedPlan.name,
+            plan_key: state.selectedPlan.key,
+            trial_end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
+            currency: 'MXN',
+            value: state.selectedPlan.priceMonthly,
+            trial_duration_days: 14
+          }))
+        ]);
+
+        // Wait for tracking to complete, but timeout after 2 seconds
+        const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 2000));
+        await Promise.race([trackingPromise, timeoutPromise]);
+      } catch (error) {
+        // Log tracking errors but don't block the redirect
+        console.error('[Meta Pixel] Tracking error during onboarding:', error);
+      }
 
       // Redirect to dashboard after successful onboarding
       router.push('/dashboard');
