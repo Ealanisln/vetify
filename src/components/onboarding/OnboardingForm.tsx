@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { UserWithTenant } from '@/types';
 import { PlanSelection } from '../../app/onboarding/steps/PlanSelection';
 import { ClinicInfo } from '../../app/onboarding/steps/ClinicInfo';
 import { Confirmation } from '../../app/onboarding/steps/Confirmation';
 import { OnboardingProgress } from './OnboardingProgress';
 import type { OnboardingState } from '../../types/onboarding';
+import { trackCompleteRegistration, trackStartTrial } from '@/lib/analytics/meta-events';
 
 interface OnboardingFormProps {
   user: UserWithTenant;
@@ -77,9 +79,47 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
 
       await response.json();
 
-      // Redirect to dashboard after successful onboarding
+      // Redirect to dashboard immediately (better UX)
       router.push('/dashboard');
       router.refresh();
+
+      // Track conversion events in background (fire-and-forget)
+      // Don't block the redirect for tracking
+      try {
+        // Track CompleteRegistration event
+        trackCompleteRegistration({
+          plan_name: state.selectedPlan.name,
+          plan_key: state.selectedPlan.key,
+          billing_interval: state.selectedPlan.billingInterval,
+          is_trial: true, // New registrations always start with trial
+          clinic_name: state.clinicInfo.clinicName,
+          currency: 'MXN',
+          value: state.selectedPlan.priceMonthly, // Use monthly price as value
+          status: 'completed'
+        });
+
+        // Track StartTrial event for new trial periods
+        trackStartTrial({
+          plan_name: state.selectedPlan.name,
+          plan_key: state.selectedPlan.key,
+          trial_end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
+          currency: 'MXN',
+          value: state.selectedPlan.priceMonthly,
+          trial_duration_days: 14
+        });
+      } catch (error) {
+        // Log tracking errors but don't block the user experience
+        console.error('[Meta Pixel] Tracking error during onboarding:', error);
+        Sentry.captureException(error, {
+          tags: { category: 'meta_pixel', operation: 'onboarding_tracking' },
+          contexts: {
+            onboarding: {
+              plan: state.selectedPlan?.name,
+              step: 'completion'
+            }
+          }
+        });
+      }
     } catch (err) {
       console.error('Onboarding error:', err);
       // You might want to show an error message here

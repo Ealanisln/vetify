@@ -5,6 +5,12 @@ A comprehensive, multi-tenant SaaS platform for veterinary practices built with 
 ## 🎉 Latest Release Highlights
 
 **Recent Updates (November 2025)**:
+- 🏢 **Multi-Location Support (Phase 3)**: Complete multi-location/multi-clinic feature set for Corporativo plan
+  - Location-based data scoping for inventory, cash drawer, appointments, and staff
+  - LocationProvider and LocationSwitcher components for easy location context management
+  - Inter-location inventory transfer system
+  - Staff-to-location assignment with access control utilities
+  - Plan-based access control (Corporativo plan exclusive)
 - 📧 **Email System**: Professional transactional emails with Resend (appointment confirmations, reminders, inventory alerts)
 - ✨ **Enhanced Medical Module**: Inline veterinarian creation during medical forms, improved consultation/treatment/vaccination forms
 - 🎨 **Appointment Calendar**: Enhanced UI/UX with better navigation and visual improvements

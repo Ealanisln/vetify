@@ -10,6 +10,7 @@ import Link from 'next/link';
 import type { Tenant } from '@prisma/client';
 import type { PricingPlan, APIPlan, SubscriptionData } from './types';
 import type { DowngradeValidation } from '../../lib/downgrade-validation';
+import { trackViewContent } from '@/lib/analytics/meta-events';
 
 interface PricingPageEnhancedProps {
   tenant?: Tenant | null;
@@ -326,6 +327,15 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
     loadPricingData();
   }, []);
+
+  // Track ViewContent event when pricing page is viewed
+  useEffect(() => {
+    trackViewContent({
+      content_type: 'pricing',
+      content_name: 'Pricing Page',
+      currency: 'MXN'
+    });
+  }, []); // Empty dependency array = run once on mount
 
   // Determinar el estado del plan para cada tarjeta
   const getPlanStatus = (productId: string) => {

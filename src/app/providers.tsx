@@ -2,6 +2,7 @@
 import { ThemeProvider } from 'next-themes'
 import { ReactNode } from 'react'
 import { ToastProvider } from '../components/providers/ToastProvider'
+import { MetaPixelProvider } from '../components/providers/MetaPixelProvider'
 
 interface ProvidersProps {
   children: ReactNode;
@@ -17,7 +18,9 @@ export function Providers({ children }: ProvidersProps) {
       storageKey="vetify-theme"
     >
       <ToastProvider />
-      {children}
+      <MetaPixelProvider>
+        {children}
+      </MetaPixelProvider>
     </ThemeProvider>
   )
 }
