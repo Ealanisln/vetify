@@ -22,7 +22,7 @@ export interface ApiErrorResponse {
  */
 export interface PetCreationResponse {
   pet: Pet;
-  automationTriggered: boolean;
+  // automationTriggered: boolean; // FUTURE FEATURE: WhatsApp automation
   message: string;
 }
 
