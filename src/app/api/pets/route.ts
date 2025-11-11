@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireActiveSubscription } from '../../../lib/auth';
 import { createPet, createPetSchema, getPetsByTenant } from '../../../lib/pets';
 import { validatePlanAction, PlanLimitError } from '../../../lib/plan-limits';
+import { validateDateOfBirth } from '../../../lib/utils/date-validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,20 +13,16 @@ export async function POST(request: NextRequest) {
     // Check plan limits before creating pet (also checks trial expiration now)
     await validatePlanAction(tenant.id, 'addPet');
     
-    // Convert dateOfBirth string to Date object if needed
+    // Convert and validate dateOfBirth string to Date object if needed
     if (body.dateOfBirth && typeof body.dateOfBirth === 'string') {
-      // Parse date in YYYY-MM-DD format and ensure valid date
-      const dateStr = body.dateOfBirth.trim();
-      const date = new Date(dateStr + 'T00:00:00.000Z'); // Use UTC midnight
-
-      if (isNaN(date.getTime())) {
+      try {
+        body.dateOfBirth = validateDateOfBirth(body.dateOfBirth);
+      } catch (error) {
         return NextResponse.json(
-          { message: 'Invalid date format for dateOfBirth. Expected YYYY-MM-DD.' },
+          { message: error instanceof Error ? error.message : 'Invalid date of birth.' },
           { status: 400 }
         );
       }
-
-      body.dateOfBirth = date;
     }
     
     const validatedData = createPetSchema.parse(body);
@@ -74,10 +71,9 @@ export async function POST(request: NextRequest) {
     }
     */
 
-    return NextResponse.json({ 
-      pet, 
-      automationTriggered: false,
-      message: 'Mascota registrada exitosamente' 
+    return NextResponse.json({
+      pet,
+      message: 'Mascota registrada exitosamente'
     });
 
   } catch (error) {

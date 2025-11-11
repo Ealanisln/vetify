@@ -19,14 +19,16 @@ export async function logEmailSend(
   try {
     const status: EmailStatus = result.success ? 'SENT' : 'FAILED';
 
-    const templateMap: Record<string, EmailTemplate> = {
-      'appointment-confirmation': 'APPOINTMENT_CONFIRMATION',
-      'appointment-reminder': 'APPOINTMENT_REMINDER',
-      'low-stock-alert': 'LOW_STOCK_ALERT',
-      'treatment-reminder': 'TREATMENT_REMINDER',
-      'new-user-registration': 'NEW_USER_REGISTRATION',
-      'new-subscription-payment': 'NEW_SUBSCRIPTION_PAYMENT',
-    };
+    // Template mapping from string literals to Prisma EmailTemplate enum
+    // Using EmailTemplate enum ensures type safety and catches any mismatches at compile time
+    const templateMap = {
+      'appointment-confirmation': EmailTemplate.APPOINTMENT_CONFIRMATION,
+      'appointment-reminder': EmailTemplate.APPOINTMENT_REMINDER,
+      'low-stock-alert': EmailTemplate.LOW_STOCK_ALERT,
+      'treatment-reminder': EmailTemplate.TREATMENT_REMINDER,
+      'new-user-registration': EmailTemplate.NEW_USER_REGISTRATION,
+      'new-subscription-payment': EmailTemplate.NEW_SUBSCRIPTION_PAYMENT,
+    } as const satisfies Record<string, EmailTemplate>;
 
     await prisma.emailLog.create({
       data: {
