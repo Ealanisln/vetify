@@ -103,7 +103,7 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
 
   if (loading && histories.length === 0) {
     return (
-      <Card>
+      <Card className="border-border/40">
         <CardHeader>
           <CardTitle>Historias Clínicas</CardTitle>
         </CardHeader>
@@ -120,7 +120,7 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
   return (
     <div className="space-y-6">
       {/* Barra de búsqueda y acciones */}
-      <Card>
+      <Card className="border-border/40">
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <CardTitle className="flex items-center gap-2">
@@ -152,7 +152,7 @@ export function MedicalHistoryMain({ tenantId }: MedicalHistoryMainProps) {
       </Card>
 
       {/* Lista de historias clínicas */}
-      <Card>
+      <Card className="border-border/40">
         <CardContent className="p-0">
           {histories.length === 0 ? (
             <div className="text-center py-12">
