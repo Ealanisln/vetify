@@ -281,6 +281,31 @@ export async function searchMedicalHistories(
 
 /**
  * Obtener estadísticas de historias médicas
+ *
+ * Returns comprehensive statistics about medical histories for a tenant,
+ * including total consultations, monthly count, average visits per pet,
+ * and most common diagnoses.
+ *
+ * @param tenantId - The tenant ID to get statistics for
+ * @returns Object containing medical history statistics:
+ *   - totalHistories: Total number of consultations (renamed from 'total' for clarity)
+ *   - thisMonth: Number of consultations this month
+ *   - avgVisitsPerPet: Average visits per unique pet (handles division by zero)
+ *   - commonDiagnoses: Top 5 most common diagnoses as string array (null values filtered)
+ *
+ * @example
+ * ```typescript
+ * const stats = await getMedicalHistoryStats('tenant-123');
+ * console.log(stats.totalHistories); // 80
+ * console.log(stats.avgVisitsPerPet); // 1.7
+ * ```
+ *
+ * @note The 'today' stat was removed as it's not currently used in the UI.
+ *       If needed in the future, it can be added back by including another count
+ *       query with today's date range.
+ *
+ * @note This function is designed to be called directly from Server Components
+ *       rather than through an API route to avoid authentication/session issues.
  */
 export async function getMedicalHistoryStats(tenantId: string) {
   const thisMonth = new Date();
