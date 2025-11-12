@@ -19,6 +19,21 @@ export async function createCustomer(
   tenantId: string,
   data: CreateCustomerInput
 ) {
+  // Check for duplicate customer by email (if provided)
+  if (data.email) {
+    const existingCustomer = await prisma.customer.findFirst({
+      where: {
+        tenantId,
+        email: data.email,
+        isActive: true,
+      },
+    });
+
+    if (existingCustomer) {
+      throw new Error(`Ya existe un cliente con el email ${data.email}`);
+    }
+  }
+
   const customer = await prisma.customer.create({
     data: {
       name: data.name,

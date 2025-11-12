@@ -8,6 +8,7 @@ import { getThemeClasses } from '../../utils/theme-colors';
 import { mapSpeciesToEnglish, mapGenderToEnglish } from '@/lib/utils/pet-enum-mapping';
 import { type PetCreationResponse, type CustomerCreationResponse } from '@/types/api';
 import LocationSelector from '@/components/locations/LocationSelector';
+import { toast } from 'sonner';
 
 interface NewCustomerFormProps {
   tenantId: string;
@@ -114,7 +115,8 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
       });
 
       if (!customerResponse.ok) {
-        throw new Error('Error al crear cliente');
+        const errorData = await customerResponse.json();
+        throw new Error(errorData.message || 'Error al crear cliente');
       }
 
       const customer: CustomerCreationResponse = await customerResponse.json();
@@ -156,7 +158,8 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
       setShowSuccessDialog(true);
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al crear el cliente. Inténtalo de nuevo.');
+      const errorMessage = error instanceof Error ? error.message : 'Error al crear el cliente. Inténtalo de nuevo.';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
