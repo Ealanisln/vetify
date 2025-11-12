@@ -8,7 +8,6 @@ jest.mock('@/lib/prisma', () => ({
   prisma: {
     medicalHistory: {
       count: jest.fn(),
-      findMany: jest.fn(),
       groupBy: jest.fn(),
     },
   },
@@ -28,8 +27,9 @@ describe('getMedicalHistoryStats', () => {
     it('should return all zeros when no medical histories exist', async () => {
       // Mock empty database
       jest.mocked(prisma.medicalHistory.count).mockResolvedValue(0);
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([]);
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([]) // unique pets
+        .mockResolvedValueOnce([]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -46,8 +46,9 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(5) // thisMonth
         .mockResolvedValueOnce(10); // total
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([]); // No pets
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([]) // No unique pets
+        .mockResolvedValueOnce([]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -61,13 +62,14 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(3) // thisMonth
         .mockResolvedValueOnce(10); // total
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([
-        { petId: 'pet1' },
-        { petId: 'pet2' },
-      ]);
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([
-        { diagnosis: 'Gastroenteritis', _count: { diagnosis: 5 } },
-      ]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([
+          { petId: 'pet1' },
+          { petId: 'pet2' },
+        ]) // unique pets
+        .mockResolvedValueOnce([
+          { diagnosis: 'Gastroenteritis', _count: { diagnosis: 5 } },
+        ]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -88,10 +90,11 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(5)
         .mockResolvedValueOnce(20);
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([
-        { petId: 'pet1' },
-      ]);
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([
+          { petId: 'pet1' },
+        ]) // unique pets
+        .mockResolvedValueOnce([]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -105,14 +108,15 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(10)
         .mockResolvedValueOnce(50);
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([
-        { petId: 'pet1' },
-      ]);
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([
-        { diagnosis: 'Gastroenteritis', _count: { diagnosis: 8 } },
-        { diagnosis: 'Otitis Externa', _count: { diagnosis: 5 } },
-        { diagnosis: 'Dermatitis', _count: { diagnosis: 3 } },
-      ]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([
+          { petId: 'pet1' },
+        ]) // unique pets
+        .mockResolvedValueOnce([
+          { diagnosis: 'Gastroenteritis', _count: { diagnosis: 8 } },
+          { diagnosis: 'Otitis Externa', _count: { diagnosis: 5 } },
+          { diagnosis: 'Dermatitis', _count: { diagnosis: 3 } },
+        ]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -135,14 +139,15 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(8) // thisMonth
         .mockResolvedValueOnce(20); // total consultations
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([
-        { petId: 'pet1' },
-        { petId: 'pet2' },
-        { petId: 'pet3' },
-        { petId: 'pet4' },
-        { petId: 'pet5' },
-      ]); // 5 unique pets
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([
+          { petId: 'pet1' },
+          { petId: 'pet2' },
+          { petId: 'pet3' },
+          { petId: 'pet4' },
+          { petId: 'pet5' },
+        ]) // 5 unique pets
+        .mockResolvedValueOnce([]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -154,12 +159,13 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(5)
         .mockResolvedValueOnce(17); // 17 consultations
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([
-        { petId: 'pet1' },
-        { petId: 'pet2' },
-        { petId: 'pet3' },
-      ]); // 3 unique pets
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([
+          { petId: 'pet1' },
+          { petId: 'pet2' },
+          { petId: 'pet3' },
+        ]) // 3 unique pets
+        .mockResolvedValueOnce([]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -171,8 +177,9 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(0)
         .mockResolvedValueOnce(0);
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([]); // No pets
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([]) // No pets
+        .mockResolvedValueOnce([]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -183,10 +190,11 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(2)
         .mockResolvedValueOnce(10);
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([
-        { petId: 'pet1' },
-      ]); // 1 unique pet
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([
+          { petId: 'pet1' },
+        ]) // 1 unique pet
+        .mockResolvedValueOnce([]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -200,14 +208,15 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(5)
         .mockResolvedValueOnce(15);
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([
-        { petId: 'pet1' },
-      ]);
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([
-        { diagnosis: 'Gastroenteritis', _count: { diagnosis: 5 } },
-        { diagnosis: null, _count: { diagnosis: 3 } }, // Should be filtered
-        { diagnosis: 'Otitis Externa', _count: { diagnosis: 2 } },
-      ]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([
+          { petId: 'pet1' },
+        ]) // unique pets
+        .mockResolvedValueOnce([
+          { diagnosis: 'Gastroenteritis', _count: { diagnosis: 5 } },
+          { diagnosis: null, _count: { diagnosis: 3 } }, // Should be filtered
+          { diagnosis: 'Otitis Externa', _count: { diagnosis: 2 } },
+        ]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -223,13 +232,14 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(5)
         .mockResolvedValueOnce(10);
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([
-        { petId: 'pet1' },
-      ]);
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([
-        { diagnosis: null, _count: { diagnosis: 5 } },
-        { diagnosis: null, _count: { diagnosis: 3 } },
-      ]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([
+          { petId: 'pet1' },
+        ]) // unique pets
+        .mockResolvedValueOnce([
+          { diagnosis: null, _count: { diagnosis: 5 } },
+          { diagnosis: null, _count: { diagnosis: 3 } },
+        ]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -242,10 +252,11 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(8) // thisMonth
         .mockResolvedValueOnce(50); // total
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([
-        { petId: 'pet1' },
-      ]);
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([
+          { petId: 'pet1' },
+        ]) // unique pets
+        .mockResolvedValueOnce([]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -267,16 +278,17 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(10)
         .mockResolvedValueOnce(30);
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([
-        { petId: 'pet1' },
-      ]);
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([
-        { diagnosis: 'Most Common', _count: { diagnosis: 15 } },
-        { diagnosis: 'Second Common', _count: { diagnosis: 8 } },
-        { diagnosis: 'Third Common', _count: { diagnosis: 5 } },
-        { diagnosis: 'Fourth Common', _count: { diagnosis: 2 } },
-        { diagnosis: 'Fifth Common', _count: { diagnosis: 1 } },
-      ]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([
+          { petId: 'pet1' },
+        ]) // unique pets
+        .mockResolvedValueOnce([
+          { diagnosis: 'Most Common', _count: { diagnosis: 15 } },
+          { diagnosis: 'Second Common', _count: { diagnosis: 8 } },
+          { diagnosis: 'Third Common', _count: { diagnosis: 5 } },
+          { diagnosis: 'Fourth Common', _count: { diagnosis: 2 } },
+          { diagnosis: 'Fifth Common', _count: { diagnosis: 1 } },
+        ]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -294,9 +306,6 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(10)
         .mockResolvedValueOnce(50);
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([
-        { petId: 'pet1' },
-      ]);
 
       // Return 5 diagnoses (groupBy query has take: 5)
       const fiveDiagnoses = [
@@ -306,7 +315,11 @@ describe('getMedicalHistoryStats', () => {
         { diagnosis: 'Diagnosis 4', _count: { diagnosis: 4 } },
         { diagnosis: 'Diagnosis 5', _count: { diagnosis: 2 } },
       ];
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue(fiveDiagnoses);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([
+          { petId: 'pet1' },
+        ]) // unique pets
+        .mockResolvedValueOnce(fiveDiagnoses); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -338,15 +351,16 @@ describe('getMedicalHistoryStats', () => {
       const uniquePets = Array.from({ length: 47 }, (_, i) => ({
         petId: `pet-${i + 1}`,
       }));
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue(uniquePets);
 
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([
-        { diagnosis: 'Gastroenteritis', _count: { diagnosis: 15 } },
-        { diagnosis: 'Otitis Externa', _count: { diagnosis: 12 } },
-        { diagnosis: 'Dermatitis Alérgica', _count: { diagnosis: 8 } },
-        { diagnosis: 'Infección Urinaria', _count: { diagnosis: 6 } },
-        { diagnosis: 'Parásitos Intestinales', _count: { diagnosis: 5 } },
-      ]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce(uniquePets) // unique pets
+        .mockResolvedValueOnce([
+          { diagnosis: 'Gastroenteritis', _count: { diagnosis: 15 } },
+          { diagnosis: 'Otitis Externa', _count: { diagnosis: 12 } },
+          { diagnosis: 'Dermatitis Alérgica', _count: { diagnosis: 8 } },
+          { diagnosis: 'Infección Urinaria', _count: { diagnosis: 6 } },
+          { diagnosis: 'Parásitos Intestinales', _count: { diagnosis: 5 } },
+        ]); // diagnoses
 
       const stats = await getMedicalHistoryStats(testTenantId);
 
@@ -370,21 +384,16 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(5)
         .mockResolvedValueOnce(10);
-      jest.mocked(prisma.medicalHistory.findMany).mockResolvedValue([
-        { petId: 'pet1' },
-      ]);
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      jest.mocked(prisma.medicalHistory.groupBy)
+        .mockResolvedValueOnce([
+          { petId: 'pet1' },
+        ]) // unique pets
+        .mockResolvedValueOnce([]); // diagnoses
 
       await getMedicalHistoryStats(testTenantId);
 
       // Verify all Prisma calls include tenantId
       expect(jest.mocked(prisma.medicalHistory.count)).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({ tenantId: testTenantId }),
-        })
-      );
-
-      expect(jest.mocked(prisma.medicalHistory.findMany)).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ tenantId: testTenantId }),
         })

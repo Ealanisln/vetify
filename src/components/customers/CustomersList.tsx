@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 import {
   MagnifyingGlassIcon,
@@ -41,6 +42,7 @@ interface CustomersListProps {
 }
 
 export function CustomersList({ customers }: CustomersListProps) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [customerToArchive, setCustomerToArchive] = useState<Customer | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
@@ -67,8 +69,8 @@ export function CustomersList({ customers }: CustomersListProps) {
       toast.success('Cliente archivado correctamente');
       setCustomerToArchive(null);
 
-      // Refresh the page to update the list
-      window.location.reload();
+      // Refresh the server component data without full page reload
+      router.refresh();
     } catch (error) {
       console.error('Error archiving customer:', error);
       toast.error('Error al archivar el cliente');

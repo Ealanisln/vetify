@@ -314,7 +314,7 @@ export async function getMedicalHistoryStats(tenantId: string) {
 
   const nextMonth = new Date(thisMonth.getFullYear(), thisMonth.getMonth() + 1, 1);
 
-  const [monthConsultations, totalConsultations, uniquePets, commonDiagnosesRaw] = await Promise.all([
+  const [monthConsultations, totalConsultations, uniquePetsGroups, commonDiagnosesRaw] = await Promise.all([
     // Consultas del mes
     prisma.medicalHistory.count({
       where: {
@@ -328,11 +328,10 @@ export async function getMedicalHistoryStats(tenantId: string) {
       where: { tenantId }
     }),
 
-    // Mascotas únicas con historial médico
-    prisma.medicalHistory.findMany({
-      where: { tenantId },
-      select: { petId: true },
-      distinct: ['petId']
+    // Mascotas únicas con historial médico (optimized with groupBy)
+    prisma.medicalHistory.groupBy({
+      by: ['petId'],
+      where: { tenantId }
     }),
 
     // Diagnósticos más comunes
@@ -355,7 +354,7 @@ export async function getMedicalHistoryStats(tenantId: string) {
   ]);
 
   // Calcular promedio de visitas por mascota
-  const totalPets = uniquePets.length;
+  const totalPets = uniquePetsGroups.length;
   const avgVisitsPerPet = totalPets > 0 ? totalConsultations / totalPets : 0;
 
   // Transformar diagnósticos a array de strings
