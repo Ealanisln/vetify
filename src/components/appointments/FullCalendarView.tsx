@@ -9,7 +9,7 @@ import listPlugin from '@fullcalendar/list';
 import { DateSelectArg, EventClickArg, EventDropArg, EventContentArg, EventApi } from '@fullcalendar/core';
 import esLocale from '@fullcalendar/core/locales/es';
 import { useCalendar, useCalendarConfig, CalendarView } from '../../hooks/useCalendar';
-import { useAppointments } from '../../hooks/useAppointments';
+import { useAppointments, AppointmentWithDetails } from '../../hooks/useAppointments';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 
 interface FullCalendarViewProps {
   onEventClick?: (appointmentId: string) => void;
+  onEventEdit?: (appointment: AppointmentWithDetails) => void;
   onDateSelect?: (selectInfo: DateSelectArg) => void;
   onEventDrop?: (dropInfo: EventDropArg) => void;
   onEventResize?: (dropInfo: EventDropArg) => void;
@@ -34,6 +35,7 @@ interface FullCalendarViewProps {
 
 export function FullCalendarView({
   onEventClick,
+  onEventEdit,
   onDateSelect,
   onEventDrop,
   onEventResize,
@@ -421,6 +423,7 @@ export function FullCalendarView({
           event={selectedEvent}
           onClose={() => setIsEventModalOpen(false)}
           onUpdate={refresh}
+          onEdit={onEventEdit}
         />
       )}
     </Card>
@@ -459,14 +462,16 @@ function EventContent({ event }: { event: EventContentArg }) {
 }
 
 // Modal de detalles del evento
-function EventDetailsModal({ 
-  event, 
-  onClose, 
-  onUpdate 
-}: { 
-  event: EventApi; 
-  onClose: () => void; 
-  onUpdate: () => void; 
+function EventDetailsModal({
+  event,
+  onClose,
+  onUpdate,
+  onEdit
+}: {
+  event: EventApi;
+  onClose: () => void;
+  onUpdate: () => void;
+  onEdit?: (appointment: AppointmentWithDetails) => void;
 }) {
   const appointment = event.extendedProps.appointment;
   const { quickAction } = useAppointments();
@@ -483,6 +488,13 @@ function EventDetailsModal({
       toast.error('Error al actualizar el estado');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEdit = () => {
+    if (onEdit) {
+      onEdit(appointment);
+      onClose();
     }
   };
 
@@ -547,9 +559,23 @@ function EventDetailsModal({
               {getAppointmentStatusLabel(appointment.status)}
             </Badge>
           </div>
-          
+
           {appointment.canEdit && (
-            <div className="flex gap-2 pt-4">
+            <div className="flex flex-col gap-2 pt-4">
+              {/* Edit Button - Always show if canEdit */}
+              {onEdit && (
+                <Button
+                  variant="default"
+                  className="w-full"
+                  onClick={handleEdit}
+                  disabled={loading}
+                >
+                  Editar Cita
+                </Button>
+              )}
+
+              {/* Quick Actions */}
+              <div className="flex gap-2">
               {appointment.status === 'SCHEDULED' && (
                 <Button
                   size="sm"
@@ -600,6 +626,7 @@ function EventDetailsModal({
                   Cancelar
                 </Button>
               )}
+              </div>
             </div>
           )}
         </CardContent>
