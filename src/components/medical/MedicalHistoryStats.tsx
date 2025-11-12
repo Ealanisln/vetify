@@ -1,48 +1,20 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { 
+import {
   DocumentTextIcon,
   HeartIcon,
   ChartBarIcon,
   CalendarDaysIcon
 } from '@heroicons/react/24/outline';
-import { getThemeClasses } from '../../utils/theme-colors';
+import { getMedicalHistoryStats } from '@/lib/medical-history';
 
 interface MedicalHistoryStatsProps {
   tenantId: string;
 }
 
-interface MedicalStats {
-  totalHistories: number;
-  thisMonth: number;
-  commonDiagnoses: string[];
-  avgVisitsPerPet: number;
-}
-
-async function fetchMedicalStats(tenantId: string): Promise<MedicalStats> {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/medical-history?action=stats`, {
-      headers: {
-        'x-tenant-id': tenantId,
-      },
-    });
-    
-    if (response.ok) {
-      return await response.json();
-    }
-  } catch (error) {
-    console.error('Error fetching medical stats:', error);
-  }
-  
-  return {
-    totalHistories: 0,
-    thisMonth: 0,
-    commonDiagnoses: [],
-    avgVisitsPerPet: 0
-  };
-}
-
 export async function MedicalHistoryStats({ tenantId }: MedicalHistoryStatsProps) {
-  const stats = await fetchMedicalStats(tenantId);
+  // Call the function directly instead of making an API request
+  // This is more efficient and avoids session/auth issues in Server Components
+  const stats = await getMedicalHistoryStats(tenantId);
 
   const statCards = [
     {
@@ -80,9 +52,9 @@ export async function MedicalHistoryStats({ tenantId }: MedicalHistoryStatsProps
       {statCards.map((stat) => {
         const IconComponent = stat.icon;
         return (
-          <Card key={stat.title}>
+          <Card key={stat.title} className="border-border/40">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={`text-sm font-medium ${getThemeClasses('text.secondary')}`}>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.title}
               </CardTitle>
               <div className={`p-2 rounded-full ${stat.bgColor}`}>
@@ -90,17 +62,17 @@ export async function MedicalHistoryStats({ tenantId }: MedicalHistoryStatsProps
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${getThemeClasses('text.primary')}`}>
+              <div className="text-2xl font-bold text-foreground">
                 {stat.value}
               </div>
               {stat.title === 'Diagnósticos Comunes' && stats.commonDiagnoses.length > 0 && (
                 <div className="mt-2">
-                  <p className={`text-xs ${getThemeClasses('text.muted')} mb-1`}>Más frecuentes:</p>
+                  <p className="text-xs text-muted-foreground mb-1">Más frecuentes:</p>
                   <div className="flex flex-wrap gap-1">
                     {stats.commonDiagnoses.slice(0, 2).map((diagnosis, index) => (
-                      <span 
+                      <span
                         key={index}
-                        className={`text-xs px-2 py-1 rounded ${getThemeClasses('background.tertiary', 'text.secondary')}`}
+                        className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground"
                       >
                         {diagnosis}
                       </span>

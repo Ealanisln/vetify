@@ -71,10 +71,11 @@ interface CustomerDetailProps {
   customer: Customer;
   onUpdate: (updatedCustomer: Customer) => void;
   onArchive: () => void;
+  initialEditMode?: boolean;
 }
 
-export function CustomerDetail({ customer, onUpdate, onArchive }: CustomerDetailProps) {
-  const [isEditing, setIsEditing] = useState(false);
+export function CustomerDetail({ customer, onUpdate, onArchive, initialEditMode = false }: CustomerDetailProps) {
+  const [isEditing, setIsEditing] = useState(initialEditMode);
   const [isLoading, setIsLoading] = useState(false);
   const [editData, setEditData] = useState({
     name: customer.name || '',

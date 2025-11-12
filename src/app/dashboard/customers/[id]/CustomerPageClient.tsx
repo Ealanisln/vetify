@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { CustomerDetail } from '../../../../components/customers/CustomerDetail';
 import { Button } from '../../../../components/ui/button';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
@@ -62,9 +62,13 @@ interface CustomerPageClientProps {
 
 export function CustomerPageClient({ id }: CustomerPageClientProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if we should start in edit mode from query parameter
+  const shouldStartInEditMode = searchParams.get('edit') === 'true';
 
   const fetchCustomer = useCallback(async () => {
     try {
@@ -152,6 +156,7 @@ export function CustomerPageClient({ id }: CustomerPageClientProps) {
         customer={customer}
         onUpdate={handleUpdate}
         onArchive={handleArchive}
+        initialEditMode={shouldStartInEditMode}
       />
     </div>
   );
