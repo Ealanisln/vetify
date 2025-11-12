@@ -5,7 +5,6 @@ import {
   ChartBarIcon,
   CalendarDaysIcon
 } from '@heroicons/react/24/outline';
-import { getThemeClasses } from '../../utils/theme-colors';
 import { getMedicalHistoryStats } from '@/lib/medical-history';
 
 interface MedicalHistoryStatsProps {
@@ -55,7 +54,7 @@ export async function MedicalHistoryStats({ tenantId }: MedicalHistoryStatsProps
         return (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className={`text-sm font-medium ${getThemeClasses('text.secondary')}`}>
+              <CardTitle className="text-sm font-medium text-muted-foreground">
                 {stat.title}
               </CardTitle>
               <div className={`p-2 rounded-full ${stat.bgColor}`}>
@@ -63,17 +62,17 @@ export async function MedicalHistoryStats({ tenantId }: MedicalHistoryStatsProps
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${getThemeClasses('text.primary')}`}>
+              <div className="text-2xl font-bold text-foreground">
                 {stat.value}
               </div>
               {stat.title === 'Diagnósticos Comunes' && stats.commonDiagnoses.length > 0 && (
                 <div className="mt-2">
-                  <p className={`text-xs ${getThemeClasses('text.muted')} mb-1`}>Más frecuentes:</p>
+                  <p className="text-xs text-muted-foreground mb-1">Más frecuentes:</p>
                   <div className="flex flex-wrap gap-1">
                     {stats.commonDiagnoses.slice(0, 2).map((diagnosis, index) => (
-                      <span 
+                      <span
                         key={index}
-                        className={`text-xs px-2 py-1 rounded ${getThemeClasses('background.tertiary', 'text.secondary')}`}
+                        className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground"
                       >
                         {diagnosis}
                       </span>
