@@ -1,48 +1,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { 
+import {
   DocumentTextIcon,
   HeartIcon,
   ChartBarIcon,
   CalendarDaysIcon
 } from '@heroicons/react/24/outline';
 import { getThemeClasses } from '../../utils/theme-colors';
+import { getMedicalHistoryStats } from '@/lib/medical-history';
 
 interface MedicalHistoryStatsProps {
   tenantId: string;
 }
 
-interface MedicalStats {
-  totalHistories: number;
-  thisMonth: number;
-  commonDiagnoses: string[];
-  avgVisitsPerPet: number;
-}
-
-async function fetchMedicalStats(tenantId: string): Promise<MedicalStats> {
-  try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/medical-history?action=stats`, {
-      headers: {
-        'x-tenant-id': tenantId,
-      },
-    });
-    
-    if (response.ok) {
-      return await response.json();
-    }
-  } catch (error) {
-    console.error('Error fetching medical stats:', error);
-  }
-  
-  return {
-    totalHistories: 0,
-    thisMonth: 0,
-    commonDiagnoses: [],
-    avgVisitsPerPet: 0
-  };
-}
-
 export async function MedicalHistoryStats({ tenantId }: MedicalHistoryStatsProps) {
-  const stats = await fetchMedicalStats(tenantId);
+  // Call the function directly instead of making an API request
+  // This is more efficient and avoids session/auth issues in Server Components
+  const stats = await getMedicalHistoryStats(tenantId);
 
   const statCards = [
     {
