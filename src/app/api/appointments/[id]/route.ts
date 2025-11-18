@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
+import { sendAppointmentConfirmation } from '@/lib/email/email-service';
+import type { AppointmentConfirmationData } from '@/lib/email/types';
 
 const updateAppointmentSchema = z.object({
   dateTime: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -250,9 +252,53 @@ export async function PUT(
             name: true,
             slug: true,
           }
+        },
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            publicPhone: true,
+            publicAddress: true,
+          }
         }
       }
     });
+
+    // Send update notification email asynchronously (don't block response)
+    if (appointment.customer.email && (validatedData.dateTime || validatedData.duration || validatedData.staffId)) {
+      const appointmentTime = appointment.dateTime.toLocaleTimeString('es-MX', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+
+      const emailData: AppointmentConfirmationData = {
+        template: 'appointment-confirmation',
+        to: {
+          email: appointment.customer.email,
+          name: appointment.customer.name,
+        },
+        subject: `Actualización de Cita - ${appointment.pet.name}`,
+        tenantId: tenant.id,
+        data: {
+          appointmentId: appointment.id,
+          petName: appointment.pet.name,
+          ownerName: appointment.customer.name,
+          appointmentDate: appointment.dateTime,
+          appointmentTime,
+          serviceName: appointment.reason,
+          clinicName: appointment.tenant.name,
+          clinicAddress: appointment.tenant.publicAddress || undefined,
+          clinicPhone: appointment.tenant.publicPhone || undefined,
+          veterinarianName: appointment.staff?.name,
+          notes: appointment.notes || undefined,
+        },
+      };
+
+      // Send email without awaiting (fire and forget)
+      sendAppointmentConfirmation(emailData).catch((error) => {
+        console.error('[APPOINTMENT] Failed to send update notification email:', error);
+      });
+    }
 
     return NextResponse.json({
       success: true,

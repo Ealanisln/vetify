@@ -363,10 +363,13 @@ export const config = {
      * Match all request paths within the /dashboard route and onboarding.
      * Webhooks (/api/webhooks/*) are intentionally excluded to remain public.
      * Add any other routes that should be protected here.
+     * 
+     * IMPORTANT: /api/:path* is included to enable rate limiting on all API routes.
+     * The middleware handles public routes (webhooks, etc.) internally with proper bypass logic.
      */
     '/dashboard/:path*',
     '/onboarding',
     '/admin/:path*',
-    '/api/admin/:path*',
+    '/api/:path*',
   ],
 };

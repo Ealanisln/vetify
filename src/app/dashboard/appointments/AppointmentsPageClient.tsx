@@ -67,6 +67,12 @@ export function AppointmentsPageClient({
     // We could add additional logic here if needed
   };
 
+  const handleEventEdit = (appointment: AppointmentWithDetails) => {
+    setSelectedAppointment(appointment);
+    setSelectedDate(undefined);
+    setIsModalOpen(true);
+  };
+
   const handleModalSuccess = async () => {
     await Promise.all([refresh(), refreshCalendar()]);
   };
@@ -158,6 +164,7 @@ export function AppointmentsPageClient({
       {/* Calendar */}
       <FullCalendarView
         onEventClick={handleEventClick}
+        onEventEdit={handleEventEdit}
         onDateSelect={handleDateSelect}
         defaultView="timeGridWeek"
         editable={true}

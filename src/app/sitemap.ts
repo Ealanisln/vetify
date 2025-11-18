@@ -4,8 +4,9 @@ import { SUPPORTED_LANGUAGES } from '@/lib/seo/language';
 import { prisma } from '@/lib/prisma';
 import * as Sentry from '@sentry/nextjs';
 
-// Revalidate sitemap every hour to reduce database load from crawlers
-export const revalidate = 3600;
+// Force dynamic rendering to prevent build-time database access
+// Sitemap will be generated on-demand at runtime
+export const dynamic = 'force-dynamic';
 
 /**
  * Generate sitemap.xml with static and dynamic routes
