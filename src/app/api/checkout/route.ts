@@ -85,20 +85,25 @@ export async function POST(request: NextRequest) {
     console.log('11. Tenant encontrado:', tenant.id, 'name:', tenant.name);
     console.log('12. Tenant stripe customer ID:', tenant.stripeCustomerId);
 
-    // Verificar variables de entorno de Stripe (environment-aware)
-    const isProduction = process.env.NODE_ENV === 'production';
-    const stripeKeyPresent = isProduction 
-      ? !!process.env.STRIPE_SECRET_KEY_LIVE 
-      : !!process.env.STRIPE_SECRET_KEY;
+    // Verificar variables de entorno de Stripe (flexible for Vercel configuration)
+    // Check for both _LIVE and non-LIVE keys to support different Vercel setups
+    const stripeKeyPresent = !!(
+      process.env.STRIPE_SECRET_KEY_LIVE || 
+      process.env.STRIPE_SECRET_KEY
+    );
 
     if (!stripeKeyPresent) {
-      const missingKey = isProduction ? 'STRIPE_SECRET_KEY_LIVE' : 'STRIPE_SECRET_KEY';
-      console.error(`13. Checkout error: ${missingKey} not configured`);
+      console.error('13. Checkout error: No Stripe secret key configured');
+      console.error('    Checked: STRIPE_SECRET_KEY_LIVE and STRIPE_SECRET_KEY');
       return NextResponse.json({ 
         error: 'Stripe not configured',
-        details: `Missing ${missingKey} environment variable`
+        details: 'Missing STRIPE_SECRET_KEY_LIVE or STRIPE_SECRET_KEY environment variable'
       }, { status: 500 });
     }
+    
+    console.log('13. Stripe key present:', 
+      process.env.STRIPE_SECRET_KEY_LIVE ? 'LIVE' : 'TEST'
+    );
 
     // Crear sesión de checkout
     console.log('14. Creando sesión de checkout con params:', {

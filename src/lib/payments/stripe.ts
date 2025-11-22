@@ -76,29 +76,28 @@ function shouldGiveStripeTrial(tenant: Tenant): boolean {
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Seleccionar la key correcta según el entorno
-// En producción, REQUIERE LIVE key (fail fast)
-// En desarrollo/preview, usa test key
+// Flexible: acepta tanto _LIVE como keys regulares para soportar diferentes configuraciones de Vercel
 let stripeSecretKey: string;
 
 if (isProduction) {
-  // En producción: SOLO aceptar LIVE key
-  if (!process.env.STRIPE_SECRET_KEY_LIVE) {
+  // En producción: Preferir LIVE key, con fallback a key regular
+  stripeSecretKey = process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY || '';
+  if (!stripeSecretKey) {
     throw new Error(
-      'STRIPE_SECRET_KEY_LIVE is required in production environment. ' +
-      'Please set this environment variable in your deployment platform (e.g., Vercel). ' +
-      'Using test keys in production is not allowed.'
+      'STRIPE_SECRET_KEY_LIVE or STRIPE_SECRET_KEY is required in production environment. ' +
+      'Please set this environment variable in your deployment platform (e.g., Vercel).'
     );
   }
-  stripeSecretKey = process.env.STRIPE_SECRET_KEY_LIVE;
 } else {
-  // En desarrollo: usar test key
-  if (!process.env.STRIPE_SECRET_KEY) {
+  // En desarrollo: Preferir key regular (test), con fallback a LIVE key
+  // Esto soporta configuraciones de Vercel donde _LIVE keys están en todos los ambientes
+  stripeSecretKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY_LIVE || '';
+  if (!stripeSecretKey) {
     throw new Error(
-      'STRIPE_SECRET_KEY is required in development environment. ' +
-      'Please add it to your .env.local file.'
+      'STRIPE_SECRET_KEY or STRIPE_SECRET_KEY_LIVE is required in development environment. ' +
+      'Please set this environment variable in your .env.local file or Vercel.'
     );
   }
-  stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 }
 
 // Stripe client configuration
