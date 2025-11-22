@@ -1,4 +1,40 @@
-import { STRIPE_PRICES } from './payments/stripe';
+// Determinar si estamos en producción para usar las claves correctas de Stripe
+const isProduction = process.env.NODE_ENV === 'production';
+
+// IDs de precios TEST (Sandbox)
+const TEST_PRICES = {
+  BASICO: {
+    monthly: 'price_1SJh6nPwxz1bHxlHQ15mCTij',
+    annual: 'price_1SJh6oPwxz1bHxlH1gXSEuSF',
+  },
+  PROFESIONAL: {
+    monthly: 'price_1SJh6oPwxz1bHxlHkJudNKvL',
+    annual: 'price_1SJh6pPwxz1bHxlHcMip7KIU',
+  },
+  CORPORATIVO: {
+    monthly: 'price_1SJh6pPwxz1bHxlHY9cnLnPw',
+    annual: 'price_1SJh6qPwxz1bHxlHd3ud2WZ3',
+  }
+} as const;
+
+// IDs de precios PRODUCTION (Live)
+const PRODUCTION_PRICES = {
+  BASICO: {
+    monthly: process.env.STRIPE_PRICE_BASICO_MONTHLY_LIVE || 'price_1SRbeEL0nsUWmd4XBFJ39Vos',
+    annual: process.env.STRIPE_PRICE_BASICO_ANNUAL_LIVE || 'price_1SRbeEL0nsUWmd4XKYm8XgQf',
+  },
+  PROFESIONAL: {
+    monthly: process.env.STRIPE_PRICE_PROFESIONAL_MONTHLY_LIVE || 'price_1SRbeEL0nsUWmd4XeqTWgtqf',
+    annual: process.env.STRIPE_PRICE_PROFESIONAL_ANNUAL_LIVE || 'price_1SRbeFL0nsUWmd4X3828tN8a',
+  },
+  CORPORATIVO: {
+    monthly: process.env.STRIPE_PRICE_CORPORATIVO_MONTHLY_LIVE || 'price_1SRbeFL0nsUWmd4XAVO4h9rv',
+    annual: process.env.STRIPE_PRICE_CORPORATIVO_ANNUAL_LIVE || 'price_1SRbeGL0nsUWmd4XKgS6jCso',
+  }
+} as const;
+
+// Seleccionar precios según el entorno
+const STRIPE_PRICES = isProduction ? PRODUCTION_PRICES : TEST_PRICES;
 
 export const PRICING_CONFIG = {
   // Nueva estructura B2B - 3 planes profesionales sincronizados con Stripe
