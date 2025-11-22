@@ -20,7 +20,7 @@
     "test": "node scripts/env-config.mjs localhost && jest",
     "test:watch": "node scripts/env-config.mjs localhost && jest --watch",
     "test:unit": "node scripts/env-config.mjs localhost && jest __tests__/unit",
-    "test:integration": "node scripts/env-config.mjs localhost && jest --config config/jest.integration.config.ts --testPathPatterns=__tests__/integration",
+    "test:integration": "node scripts/env-config.mjs localhost && jest --config jest.integration.config.ts",
     "test:security": "jest __tests__/unit/security",
     "test:performance": "jest __tests__/unit/performance",
     "test:components": "jest __tests__/unit/components",
