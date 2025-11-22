@@ -1,3 +1,5 @@
+import { STRIPE_PRICES } from './payments/stripe';
+
 export const PRICING_CONFIG = {
   // Nueva estructura B2B - 3 planes profesionales sincronizados con Stripe
   PLANS: {
@@ -5,8 +7,8 @@ export const PRICING_CONFIG = {
       monthly: 599,
       yearly: 4788,
       stripeProductId: 'prod_TGDXKD2ksDenYm',
-      stripePriceMonthly: 'price_1SJh6nPwxz1bHxlHQ15mCTij',
-      stripePriceYearly: 'price_1SJh6oPwxz1bHxlH1gXSEuSF',
+      stripePriceMonthly: STRIPE_PRICES.BASICO.monthly,
+      stripePriceYearly: STRIPE_PRICES.BASICO.annual,
       features: ['Funcionalidades esenciales', 'Gestión básica', 'Historiales médicos', 'Gestión de citas', 'Soporte profesional'],
       limits: { pets: 500, users: 3, whatsappMessages: -1 }
     },
@@ -14,8 +16,8 @@ export const PRICING_CONFIG = {
       monthly: 1199,
       yearly: 9588,
       stripeProductId: 'prod_TGDXLJxNFGsF9X',
-      stripePriceMonthly: 'price_1SJh6oPwxz1bHxlHkJudNKvL',
-      stripePriceYearly: 'price_1SJh6pPwxz1bHxlHcMip7KIU',
+      stripePriceMonthly: STRIPE_PRICES.PROFESIONAL.monthly,
+      stripePriceYearly: STRIPE_PRICES.PROFESIONAL.annual,
       features: ['Funcionalidades avanzadas', 'Multi-sucursal', 'Reportes avanzados', 'Soporte prioritario', 'Gestión completa'],
       limits: { pets: 2000, users: 8, whatsappMessages: -1, multiLocation: true }
     },
@@ -23,8 +25,8 @@ export const PRICING_CONFIG = {
       monthly: 5000,
       yearly: 60000,
       stripeProductId: 'prod_TGDXxUkqhta3cp',
-      stripePriceMonthly: 'price_1SJh6pPwxz1bHxlHY9cnLnPw',
-      stripePriceYearly: 'price_1SJh6qPwxz1bHxlHd3ud2WZ3',
+      stripePriceMonthly: STRIPE_PRICES.CORPORATIVO.monthly,
+      stripePriceYearly: STRIPE_PRICES.CORPORATIVO.annual,
       features: ['Mascotas ilimitadas', '20 usuarios', 'API personalizada', 'Soporte 24/7', 'Consultoría especializada'],
       limits: { pets: -1, users: 20, whatsappMessages: -1, multiLocation: true, apiAccess: true }
     }

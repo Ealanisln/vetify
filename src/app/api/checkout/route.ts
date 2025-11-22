@@ -85,10 +85,19 @@ export async function POST(request: NextRequest) {
     console.log('11. Tenant encontrado:', tenant.id, 'name:', tenant.name);
     console.log('12. Tenant stripe customer ID:', tenant.stripeCustomerId);
 
-    // Verificar variables de entorno de Stripe
-    if (!process.env.STRIPE_SECRET_KEY) {
-      console.error('13. Checkout error: STRIPE_SECRET_KEY not configured');
-      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
+    // Verificar variables de entorno de Stripe (environment-aware)
+    const isProduction = process.env.NODE_ENV === 'production';
+    const stripeKeyPresent = isProduction 
+      ? !!process.env.STRIPE_SECRET_KEY_LIVE 
+      : !!process.env.STRIPE_SECRET_KEY;
+
+    if (!stripeKeyPresent) {
+      const missingKey = isProduction ? 'STRIPE_SECRET_KEY_LIVE' : 'STRIPE_SECRET_KEY';
+      console.error(`13. Checkout error: ${missingKey} not configured`);
+      return NextResponse.json({ 
+        error: 'Stripe not configured',
+        details: `Missing ${missingKey} environment variable`
+      }, { status: 500 });
     }
 
     // Crear sesión de checkout
