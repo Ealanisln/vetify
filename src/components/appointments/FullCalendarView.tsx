@@ -113,10 +113,10 @@ export function FullCalendarView({
       if (onEventDrop) {
         onEventDrop(dropInfo);
       }
-    } catch (error) {
+    } catch {
       dropInfo.revert();
       toast.error('Error al reprogramar la cita');
-      console.error('Error updating appointment:', error);
+      // Error is already shown to user via toast
     }
   }, [updateAppointment, refresh, onEventDrop]);
 
@@ -150,10 +150,10 @@ export function FullCalendarView({
       if (onEventResize) {
         onEventResize(resizeInfo);
       }
-    } catch (error) {
+    } catch {
       resizeInfo.revert();
       toast.error('Error al actualizar la duración');
-      console.error('Error updating appointment duration:', error);
+      // Error is already shown to user via toast
     }
   }, [updateAppointment, refresh, onEventResize]);
 
