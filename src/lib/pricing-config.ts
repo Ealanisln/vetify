@@ -1,17 +1,31 @@
 // Determinar precios de Stripe con soporte flexible para configuraciones de Vercel
 // Soporta tanto variables _LIVE como estándar, con fallbacks a valores por defecto
 
+/**
+ * Detecta si el Stripe key configurado es LIVE o TEST
+ * Esto es más confiable que NODE_ENV en Vercel, donde NODE_ENV=production para todos los deployments
+ */
+const isLiveStripeKey = (): boolean => {
+  // Check both possible env var names for the secret key
+  const key = process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY || '';
+  return key.startsWith('sk_live_');
+};
+
+// Export for use in other modules (avoids circular dependency with stripe.ts)
+export const isStripeInLiveMode = isLiveStripeKey;
+
 // Helper para obtener price ID con fallback flexible
 const getPriceId = (
-  liveEnvVar: string | undefined, 
+  liveEnvVar: string | undefined,
   standardEnvVar: string | undefined,
   testDefault: string,
   liveDefault: string
 ): string => {
-  // Prioridad: _LIVE env var > standard env var > defaults basados en NODE_ENV
+  // Prioridad: _LIVE env var > standard env var > auto-detection basado en tipo de key
   if (liveEnvVar) return liveEnvVar;
   if (standardEnvVar) return standardEnvVar;
-  return process.env.NODE_ENV === 'production' ? liveDefault : testDefault;
+  // Use price that matches the configured Stripe key type (LIVE or TEST)
+  return isLiveStripeKey() ? liveDefault : testDefault;
 };
 
 // Configuración de precios con soporte para múltiples patrones de variables de entorno
@@ -106,7 +120,8 @@ export const PRICING_CONFIG = {
     discountPercent: 25,
     durationMonths: 6,
     endDate: new Date('2025-12-31'), // Fecha límite para nuevos clientes
-    couponCode: process.env.NODE_ENV === 'production'
+    // Use coupon that matches the configured Stripe key type (LIVE or TEST)
+    couponCode: isLiveStripeKey()
       ? (process.env.STRIPE_COUPON_LIVE || 'u62SRvcw')
       : (process.env.STRIPE_COUPON || ''),
     displayBadge: true,

@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { redirect } from 'next/navigation';
 import { prisma } from '../prisma';
-import { isLaunchPromotionActive, PRICING_CONFIG } from '../pricing-config';
+import { isLaunchPromotionActive, PRICING_CONFIG, isStripeInLiveMode } from '../pricing-config';
 
 import type { Tenant, SubscriptionStatus } from '@prisma/client';
 
@@ -72,32 +72,17 @@ function shouldGiveStripeTrial(tenant: Tenant): boolean {
  * Para más información: https://stripe.com/docs/tax/set-up
  */
 
-// Determinar si estamos en producción
-const isProduction = process.env.NODE_ENV === 'production';
+// Seleccionar la key de Stripe disponible
+// La prioridad es: STRIPE_SECRET_KEY_LIVE > STRIPE_SECRET_KEY
+// El tipo de key (sk_live_ vs sk_test_) determina si usamos precios LIVE o TEST
+// Esto es manejado automáticamente por isStripeInLiveMode() en pricing-config.ts
+const stripeSecretKey = process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY || '';
 
-// Seleccionar la key correcta según el entorno
-// Flexible: acepta tanto _LIVE como keys regulares para soportar diferentes configuraciones de Vercel
-let stripeSecretKey: string;
-
-if (isProduction) {
-  // En producción: Preferir LIVE key, con fallback a key regular
-  stripeSecretKey = process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY || '';
-  if (!stripeSecretKey) {
-    throw new Error(
-      'STRIPE_SECRET_KEY_LIVE or STRIPE_SECRET_KEY is required in production environment. ' +
-      'Please set this environment variable in your deployment platform (e.g., Vercel).'
-    );
-  }
-} else {
-  // En desarrollo: Preferir key regular (test), con fallback a LIVE key
-  // Esto soporta configuraciones de Vercel donde _LIVE keys están en todos los ambientes
-  stripeSecretKey = process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY_LIVE || '';
-  if (!stripeSecretKey) {
-    throw new Error(
-      'STRIPE_SECRET_KEY or STRIPE_SECRET_KEY_LIVE is required in development environment. ' +
-      'Please set this environment variable in your .env.local file or Vercel.'
-    );
-  }
+if (!stripeSecretKey) {
+  throw new Error(
+    'No Stripe secret key configured. ' +
+    'Please set STRIPE_SECRET_KEY_LIVE or STRIPE_SECRET_KEY in your environment variables.'
+  );
 }
 
 // Stripe client configuration
@@ -152,7 +137,7 @@ const PRODUCTION_PRICES = {
 } as const;
 
 // Validate production price IDs start with 'price_' to catch configuration errors early
-if (isProduction) {
+if (isStripeInLiveMode()) {
   const allPrices = [
     ...Object.values(PRODUCTION_PRICES.BASICO),
     ...Object.values(PRODUCTION_PRICES.PROFESIONAL),
@@ -166,9 +151,9 @@ if (isProduction) {
   }
 }
 
-// Exportar productos y precios según el entorno
-export const STRIPE_PRODUCTS = isProduction ? PRODUCTION_PRODUCTS : TEST_PRODUCTS;
-export const STRIPE_PRICES = isProduction ? PRODUCTION_PRICES : TEST_PRICES;
+// Exportar productos y precios según el tipo de key de Stripe (LIVE o TEST)
+export const STRIPE_PRODUCTS = isStripeInLiveMode() ? PRODUCTION_PRODUCTS : TEST_PRODUCTS;
+export const STRIPE_PRICES = isStripeInLiveMode() ? PRODUCTION_PRICES : TEST_PRICES;
 
 // Precios de planes en MXN - Nueva estructura B2B
 export const PLAN_PRICES = {

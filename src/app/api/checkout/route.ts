@@ -3,6 +3,7 @@ import { createCheckoutSessionForAPI, getPriceByLookupKey } from '../../../lib/p
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { prisma } from '../../../lib/prisma';
 import { findOrCreateUser } from '../../../lib/db/queries/users';
+import { isStripeInLiveMode } from '../../../lib/pricing-config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,9 +29,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar configuración de Stripe
-    console.log('2. STRIPE_SECRET_KEY presente:', !!process.env.STRIPE_SECRET_KEY);
+    const stripeMode = isStripeInLiveMode() ? 'LIVE' : 'TEST';
+    const keyPrefix = (process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY || '').substring(0, 12);
+    console.log('2. Stripe mode:', stripeMode, '(key prefix:', keyPrefix + '...)');
     console.log('3. NEXT_PUBLIC_BASE_URL:', process.env.NEXT_PUBLIC_BASE_URL);
-    console.log('4. Checkout iniciado para priceId:', priceId);
+    console.log('4. Checkout iniciado para priceId:', actualPriceId);
 
     // Verificar autenticación
     const { getUser } = getKindeServerSession();
