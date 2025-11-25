@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useSubscription } from '../../hooks/useSubscription';
-import { COMPLETE_PLANS, formatPrice, PRICING_CONFIG } from '../../lib/pricing-config';
+import { COMPLETE_PLANS, formatPrice } from '../../lib/pricing-config';
 import { Check, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import type { Tenant } from '@prisma/client';
@@ -112,13 +112,14 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
               const checkoutData = JSON.parse(pendingCheckout);
               localStorage.removeItem('pendingCheckout');
 
+              // Only send planKey and billingInterval - let the server resolve the correct price ID
+              // This ensures we always use the correct TEST/LIVE price ID based on server environment
               const response = await fetch('/api/checkout', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                  priceId: checkoutData.priceId,
                   planKey: checkoutData.planKey,
                   billingInterval: checkoutData.billingInterval
                 }),
@@ -198,26 +199,26 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
         // Si la API devuelve vacío, usar fallback local silenciosamente
         if (data.plans.length === 0) {
-          // Usar configuración local completa con Stripe IDs reales
-          const fallbackPlans = Object.entries(COMPLETE_PLANS).map(([key, plan]) => {
-            const pricingKey = key as keyof typeof PRICING_CONFIG.PLANS;
-            const stripePrices = PRICING_CONFIG.PLANS[pricingKey];
+          // IMPORTANT: Use placeholder IDs - actual price IDs will be resolved server-side
+          // This avoids client-side access to isStripeInLiveMode() which requires secret env vars
+          const fallbackPlans = Object.entries(COMPLETE_PLANS).map(([, plan]) => {
+            const planKey = plan.key.toLowerCase();
 
             return {
-              id: plan.key.toLowerCase(),
+              id: planKey,
               name: plan.name,
               description: plan.description,
               features: plan.features.map(f => f.name),
               prices: {
                 monthly: {
-                  id: stripePrices.stripePriceMonthly,
+                  id: `RESOLVE_SERVER_SIDE_${planKey}_monthly`,
                   unitAmount: plan.monthlyPrice * 100,
                   currency: 'mxn',
                   interval: 'month' as const,
                   intervalCount: 1
                 },
                 yearly: {
-                  id: stripePrices.stripePriceYearly,
+                  id: `RESOLVE_SERVER_SIDE_${planKey}_yearly`,
                   unitAmount: plan.yearlyPrice * 100,
                   currency: 'mxn',
                   interval: 'year' as const,
@@ -256,8 +257,8 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
         });
 
         // Siempre agregar el plan Corporativo desde la configuración local (cotización personalizada)
+        // IMPORTANT: Use placeholder IDs - actual price IDs will be resolved server-side
         const corporativoConfig = COMPLETE_PLANS.CORPORATIVO;
-        const corporativoStripePrices = PRICING_CONFIG.PLANS.CORPORATIVO;
 
         const corporativoPlan: PricingPlan = {
           id: 'corporativo',
@@ -266,14 +267,14 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
           features: corporativoConfig.features.map(f => f.name),
           prices: {
             monthly: {
-              id: corporativoStripePrices.stripePriceMonthly,
+              id: 'RESOLVE_SERVER_SIDE_corporativo_monthly',
               unitAmount: corporativoConfig.monthlyPrice * 100,
               currency: 'mxn',
               interval: 'month',
               intervalCount: 1
             },
             yearly: {
-              id: corporativoStripePrices.stripePriceYearly,
+              id: 'RESOLVE_SERVER_SIDE_corporativo_yearly',
               unitAmount: corporativoConfig.yearlyPrice * 100,
               currency: 'mxn',
               interval: 'year',
@@ -290,25 +291,26 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
         console.error('Error loading pricing data:', error);
 
         // Fallback a configuración local si la API falla
-        const fallbackPlans = Object.entries(COMPLETE_PLANS).map(([key, plan]) => {
-          const pricingKey = key as keyof typeof PRICING_CONFIG.PLANS;
-          const stripePrices = PRICING_CONFIG.PLANS[pricingKey];
+        // IMPORTANT: Use placeholder IDs - actual price IDs will be resolved server-side
+        // This avoids client-side access to isStripeInLiveMode() which requires secret env vars
+        const fallbackPlans = Object.entries(COMPLETE_PLANS).map(([, plan]) => {
+          const planKey = plan.key.toLowerCase();
 
           return {
-            id: plan.key.toLowerCase(),
+            id: planKey,
             name: plan.name,
             description: plan.description,
             features: plan.features.map(f => f.name),
             prices: {
               monthly: {
-                id: stripePrices.stripePriceMonthly,
+                id: `RESOLVE_SERVER_SIDE_${planKey}_monthly`,
                 unitAmount: plan.monthlyPrice * 100,
                 currency: 'mxn',
                 interval: 'month',
                 intervalCount: 1
               },
               yearly: {
-                id: stripePrices.stripePriceYearly,
+                id: `RESOLVE_SERVER_SIDE_${planKey}_yearly`,
                 unitAmount: plan.yearlyPrice * 100,
                 currency: 'mxn',
                 interval: 'year',
@@ -384,9 +386,10 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   };
 
   // Manejar registro y checkout
-  const handleRegisterAndCheckout = (priceId: string, planKey: string) => {
+  // Don't store priceId in localStorage - let the server resolve it after auth
+  // This avoids potential issues with stale/wrong price IDs
+  const handleRegisterAndCheckout = (_priceId: string, planKey: string) => {
     const checkoutData = {
-      priceId,
       planKey: planKey.toUpperCase(),
       billingInterval: isYearly ? 'annual' : 'monthly'
     };
@@ -451,13 +454,17 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
         }
       }
 
+      // Don't send priceId if it's a placeholder - let the server resolve it
+      // This avoids client-side access to isStripeInLiveMode() which requires secret env vars
+      const shouldSendPriceId = priceId && !priceId.startsWith('RESOLVE_SERVER_SIDE_');
+
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          priceId,
+          ...(shouldSendPriceId && { priceId }),
           planKey: planKey.toUpperCase(),
           billingInterval: isYearly ? 'annual' : 'monthly'
         }),
