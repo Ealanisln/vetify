@@ -3,6 +3,7 @@ import { createCheckoutSessionForAPI, getPriceByLookupKey } from '../../../lib/p
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { prisma } from '../../../lib/prisma';
 import { findOrCreateUser } from '../../../lib/db/queries/users';
+import { isStripeInLiveMode } from '../../../lib/pricing-config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,9 +29,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar configuración de Stripe
-    console.log('2. STRIPE_SECRET_KEY presente:', !!process.env.STRIPE_SECRET_KEY);
+    const stripeMode = isStripeInLiveMode() ? 'LIVE' : 'TEST';
+    const keyPrefix = (process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY || '').substring(0, 12);
+    console.log('2. Stripe mode:', stripeMode, '(key prefix:', keyPrefix + '...)');
     console.log('3. NEXT_PUBLIC_BASE_URL:', process.env.NEXT_PUBLIC_BASE_URL);
-    console.log('4. Checkout iniciado para priceId:', priceId);
+    console.log('4. Checkout iniciado para priceId:', actualPriceId);
 
     // Verificar autenticación
     const { getUser } = getKindeServerSession();
@@ -85,11 +88,25 @@ export async function POST(request: NextRequest) {
     console.log('11. Tenant encontrado:', tenant.id, 'name:', tenant.name);
     console.log('12. Tenant stripe customer ID:', tenant.stripeCustomerId);
 
-    // Verificar variables de entorno de Stripe
-    if (!process.env.STRIPE_SECRET_KEY) {
-      console.error('13. Checkout error: STRIPE_SECRET_KEY not configured');
-      return NextResponse.json({ error: 'Stripe not configured' }, { status: 500 });
+    // Verificar variables de entorno de Stripe (flexible for Vercel configuration)
+    // Check for both _LIVE and non-LIVE keys to support different Vercel setups
+    const stripeKeyPresent = !!(
+      process.env.STRIPE_SECRET_KEY_LIVE || 
+      process.env.STRIPE_SECRET_KEY
+    );
+
+    if (!stripeKeyPresent) {
+      console.error('13. Checkout error: No Stripe secret key configured');
+      console.error('    Checked: STRIPE_SECRET_KEY_LIVE and STRIPE_SECRET_KEY');
+      return NextResponse.json({ 
+        error: 'Stripe not configured',
+        details: 'Missing STRIPE_SECRET_KEY_LIVE or STRIPE_SECRET_KEY environment variable'
+      }, { status: 500 });
     }
+    
+    console.log('13. Stripe key present:', 
+      process.env.STRIPE_SECRET_KEY_LIVE ? 'LIVE' : 'TEST'
+    );
 
     // Crear sesión de checkout
     console.log('14. Creando sesión de checkout con params:', {

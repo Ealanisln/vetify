@@ -1,3 +1,79 @@
+// Determinar precios de Stripe con soporte flexible para configuraciones de Vercel
+// Soporta tanto variables _LIVE como estándar, con fallbacks a valores por defecto
+
+/**
+ * Detecta si el Stripe key configurado es LIVE o TEST
+ * Esto es más confiable que NODE_ENV en Vercel, donde NODE_ENV=production para todos los deployments
+ */
+const isLiveStripeKey = (): boolean => {
+  // Check both possible env var names for the secret key
+  const key = process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY || '';
+  return key.startsWith('sk_live_');
+};
+
+// Export for use in other modules (avoids circular dependency with stripe.ts)
+export const isStripeInLiveMode = isLiveStripeKey;
+
+// Helper para obtener price ID con fallback flexible
+const getPriceId = (
+  liveEnvVar: string | undefined,
+  standardEnvVar: string | undefined,
+  testDefault: string,
+  liveDefault: string
+): string => {
+  // Prioridad: _LIVE env var > standard env var > auto-detection basado en tipo de key
+  if (liveEnvVar) return liveEnvVar;
+  if (standardEnvVar) return standardEnvVar;
+  // Use price that matches the configured Stripe key type (LIVE or TEST)
+  return isLiveStripeKey() ? liveDefault : testDefault;
+};
+
+// Configuración de precios con soporte para múltiples patrones de variables de entorno
+const STRIPE_PRICES = {
+  BASICO: {
+    monthly: getPriceId(
+      process.env.STRIPE_PRICE_BASICO_MONTHLY_LIVE,
+      process.env.STRIPE_PRICE_BASICO_MONTHLY,
+      'price_1SJh6nPwxz1bHxlHQ15mCTij', // TEST
+      'price_1SRbeEL0nsUWmd4XBFJ39Vos'  // LIVE
+    ),
+    annual: getPriceId(
+      process.env.STRIPE_PRICE_BASICO_ANNUAL_LIVE,
+      process.env.STRIPE_PRICE_BASICO_ANNUAL,
+      'price_1SJh6oPwxz1bHxlH1gXSEuSF',  // TEST
+      'price_1SRbeEL0nsUWmd4XKYm8XgQf'   // LIVE
+    ),
+  },
+  PROFESIONAL: {
+    monthly: getPriceId(
+      process.env.STRIPE_PRICE_PROFESIONAL_MONTHLY_LIVE,
+      process.env.STRIPE_PRICE_PROFESIONAL_MONTHLY,
+      'price_1SJh6oPwxz1bHxlHkJudNKvL',  // TEST
+      'price_1SRbeEL0nsUWmd4XeqTWgtqf'   // LIVE
+    ),
+    annual: getPriceId(
+      process.env.STRIPE_PRICE_PROFESIONAL_ANNUAL_LIVE,
+      process.env.STRIPE_PRICE_PROFESIONAL_ANNUAL,
+      'price_1SJh6pPwxz1bHxlHcMip7KIU',  // TEST
+      'price_1SRbeFL0nsUWmd4X3828tN8a'   // LIVE
+    ),
+  },
+  CORPORATIVO: {
+    monthly: getPriceId(
+      process.env.STRIPE_PRICE_CORPORATIVO_MONTHLY_LIVE,
+      process.env.STRIPE_PRICE_CORPORATIVO_MONTHLY,
+      'price_1SJh6pPwxz1bHxlHY9cnLnPw',  // TEST
+      'price_1SRbeFL0nsUWmd4XAVO4h9rv'   // LIVE
+    ),
+    annual: getPriceId(
+      process.env.STRIPE_PRICE_CORPORATIVO_ANNUAL_LIVE,
+      process.env.STRIPE_PRICE_CORPORATIVO_ANNUAL,
+      'price_1SJh6qPwxz1bHxlHd3ud2WZ3',  // TEST
+      'price_1SRbeGL0nsUWmd4XKgS6jCso'   // LIVE
+    ),
+  }
+} as const;
+
 export const PRICING_CONFIG = {
   // Nueva estructura B2B - 3 planes profesionales sincronizados con Stripe
   PLANS: {
@@ -5,8 +81,8 @@ export const PRICING_CONFIG = {
       monthly: 599,
       yearly: 4788,
       stripeProductId: 'prod_TGDXKD2ksDenYm',
-      stripePriceMonthly: 'price_1SJh6nPwxz1bHxlHQ15mCTij',
-      stripePriceYearly: 'price_1SJh6oPwxz1bHxlH1gXSEuSF',
+      stripePriceMonthly: STRIPE_PRICES.BASICO.monthly,
+      stripePriceYearly: STRIPE_PRICES.BASICO.annual,
       features: ['Funcionalidades esenciales', 'Gestión básica', 'Historiales médicos', 'Gestión de citas', 'Soporte profesional'],
       limits: { pets: 500, users: 3, whatsappMessages: -1 }
     },
@@ -14,8 +90,8 @@ export const PRICING_CONFIG = {
       monthly: 1199,
       yearly: 9588,
       stripeProductId: 'prod_TGDXLJxNFGsF9X',
-      stripePriceMonthly: 'price_1SJh6oPwxz1bHxlHkJudNKvL',
-      stripePriceYearly: 'price_1SJh6pPwxz1bHxlHcMip7KIU',
+      stripePriceMonthly: STRIPE_PRICES.PROFESIONAL.monthly,
+      stripePriceYearly: STRIPE_PRICES.PROFESIONAL.annual,
       features: ['Funcionalidades avanzadas', 'Multi-sucursal', 'Reportes avanzados', 'Soporte prioritario', 'Gestión completa'],
       limits: { pets: 2000, users: 8, whatsappMessages: -1, multiLocation: true }
     },
@@ -23,8 +99,8 @@ export const PRICING_CONFIG = {
       monthly: 5000,
       yearly: 60000,
       stripeProductId: 'prod_TGDXxUkqhta3cp',
-      stripePriceMonthly: 'price_1SJh6pPwxz1bHxlHY9cnLnPw',
-      stripePriceYearly: 'price_1SJh6qPwxz1bHxlHd3ud2WZ3',
+      stripePriceMonthly: STRIPE_PRICES.CORPORATIVO.monthly,
+      stripePriceYearly: STRIPE_PRICES.CORPORATIVO.annual,
       features: ['Mascotas ilimitadas', '20 usuarios', 'API personalizada', 'Soporte 24/7', 'Consultoría especializada'],
       limits: { pets: -1, users: 20, whatsappMessages: -1, multiLocation: true, apiAccess: true }
     }
@@ -44,7 +120,8 @@ export const PRICING_CONFIG = {
     discountPercent: 25,
     durationMonths: 6,
     endDate: new Date('2025-12-31'), // Fecha límite para nuevos clientes
-    couponCode: process.env.NODE_ENV === 'production'
+    // Use coupon that matches the configured Stripe key type (LIVE or TEST)
+    couponCode: isLiveStripeKey()
       ? (process.env.STRIPE_COUPON_LIVE || 'u62SRvcw')
       : (process.env.STRIPE_COUPON || ''),
     displayBadge: true,
