@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Layers, Building2, Calendar } from "lucide-react"
+import Link from "next/link"
 
 export function FeaturesHeroSection() {
   return (
@@ -15,12 +16,16 @@ export function FeaturesHeroSection() {
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button size="lg" className="h-12 px-8 text-base font-semibold">
-              Probar 30 días gratis
-            </Button>
-            <Button size="lg" variant="outline" className="h-12 px-8 text-base font-semibold bg-transparent">
-              Ver precios
-            </Button>
+            <Link href="/api/auth/register">
+              <Button size="lg" className="h-12 px-8 text-base font-semibold">
+                Probar 30 días gratis
+              </Button>
+            </Link>
+            <Link href="/precios">
+              <Button size="lg" variant="outline" className="h-12 px-8 text-base font-semibold bg-transparent">
+                Ver precios
+              </Button>
+            </Link>
           </div>
 
           <div className="mt-12 flex flex-wrap items-center justify-center gap-6">

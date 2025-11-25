@@ -16,6 +16,7 @@ import {
   generateMetadata,
   generateOrganizationSchema,
   generateSoftwareApplicationSchema,
+  generateWebSiteSchema,
 } from '@/lib/seo';
 import { StructuredData } from '@/components/seo/StructuredData';
 
@@ -68,26 +69,25 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Generate structured data for organization and software application
+  // Generate structured data for organization, software application, and website
   const organizationSchema = generateOrganizationSchema('es', {
     socialLinks: [
-      // Add your actual social media links
-      // 'https://www.facebook.com/vetify',
-      // 'https://twitter.com/vetify',
-      // 'https://www.linkedin.com/company/vetify',
+      // Add your actual social media links when available
     ],
   });
 
   const softwareSchema = generateSoftwareApplicationSchema('es', {
-    price: '990', // Update with actual pricing
+    price: '449', // Early adopter discounted price
     priceCurrency: 'MXN',
   });
+
+  const websiteSchema = generateWebSiteSchema('es');
 
   return (
     <html lang="es" suppressHydrationWarning>
       <head>
         {/* Structured Data (JSON-LD) */}
-        <StructuredData data={[organizationSchema, softwareSchema]} />
+        <StructuredData data={[organizationSchema, softwareSchema, websiteSchema]} />
       </head>
       <body className={inter.className}>
         <ErrorBoundary>

@@ -1,6 +1,11 @@
 {
-  "name": "MyWebSite",
-  "short_name": "MySite",
+  "name": "Vetify - Software de Gestión Veterinaria",
+  "short_name": "Vetify",
+  "description": "Sistema integral de gestión para clínicas veterinarias. Administra citas, historiales médicos, inventario y más.",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "lang": "es-MX",
   "icons": [
     {
       "src": "/favicon/web-app-manifest-192x192.png",
@@ -15,7 +20,9 @@
       "purpose": "maskable"
     }
   ],
-  "theme_color": "#ffffff",
+  "theme_color": "#75a99c",
   "background_color": "#ffffff",
-  "display": "standalone"
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "medical"]
 }

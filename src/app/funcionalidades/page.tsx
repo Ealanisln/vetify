@@ -21,7 +21,7 @@ import type { Metadata } from 'next';
 export async function generateMetadata(): Promise<Metadata> {
   const lang = 'es' as const;
   const pageMetadata = PAGE_METADATA.features;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://vetify.com';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://vetify.pro';
 
   const seoConfig = createPageSEO(
     pageMetadata.title[lang],
@@ -56,7 +56,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function FunctionalitiesPage() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://vetify.com';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://vetify.pro';
 
   // Generate breadcrumb structured data
   const breadcrumbSchema = createBreadcrumbsFromPath(

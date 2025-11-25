@@ -15,7 +15,7 @@ import type { Metadata } from 'next';
 export async function generateMetadata(): Promise<Metadata> {
   const lang = 'es' as const;
   const pageMetadata = PAGE_METADATA.pricing;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://vetify.com';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://vetify.pro';
 
   const seoConfig = createPageSEO(
     pageMetadata.title[lang],

@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Bell, Users } from "lucide-react"
+import Link from "next/link"
 
 const secondaryFeatures = [
   {
@@ -50,12 +51,16 @@ export function SecondaryFeaturesSection() {
             Comienza con 30 días gratis. Sin tarjeta de crédito.
           </p>
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button size="lg" className="h-12 px-8 text-base font-semibold">
-              Probar 30 días gratis
-            </Button>
-            <Button size="lg" variant="outline" className="h-12 px-8 text-base font-semibold bg-transparent">
-              Ver precios
-            </Button>
+            <Link href="/api/auth/register">
+              <Button size="lg" className="h-12 px-8 text-base font-semibold">
+                Probar 30 días gratis
+              </Button>
+            </Link>
+            <Link href="/precios">
+              <Button size="lg" variant="outline" className="h-12 px-8 text-base font-semibold bg-transparent">
+                Ver precios
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

@@ -1,4 +1,7 @@
 import { generateMetadata as generateSEOMetadata, createPageSEO } from '@/lib/seo';
+import { generateBreadcrumbSchema } from '@/lib/seo/breadcrumbs';
+import { generateFAQPageSchema, COMMON_FAQS_ES } from '@/lib/seo/faq-schema';
+import { StructuredData } from '@/components/seo/StructuredData';
 import type { Metadata } from 'next';
 
 /**
@@ -7,7 +10,7 @@ import type { Metadata } from 'next';
  */
 export async function generateMetadata(): Promise<Metadata> {
   const lang = 'es' as const;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://vetify.com';
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://vetify.pro';
 
   const seoConfig = createPageSEO(
     'Contacto - Vetify',
@@ -25,14 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
         'solicitar información veterinaria',
       ],
       lang,
-      images: [
-        {
-          url: `${baseUrl}/api/og?page=contact`,
-          width: 1200,
-          height: 630,
-          alt: 'Vetify - Contáctanos',
-        },
-      ],
+      ogImage: `${baseUrl}/api/og?page=contact`,
     }
   );
 
@@ -44,5 +40,17 @@ export default function ContactoLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  const breadcrumbSchema = generateBreadcrumbSchema([
+    { name: 'Inicio', path: '/' },
+    { name: 'Contacto', path: '/contacto' }
+  ], 'es');
+
+  const faqSchema = generateFAQPageSchema(COMMON_FAQS_ES.contact);
+
+  return (
+    <>
+      <StructuredData data={[breadcrumbSchema, faqSchema]} />
+      {children}
+    </>
+  );
 }
