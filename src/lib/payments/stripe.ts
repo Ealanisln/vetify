@@ -136,24 +136,20 @@ const PRODUCTION_PRICES = {
   }
 } as const;
 
-// Validate production price IDs start with 'price_' to catch configuration errors early
-if (isStripeInLiveMode()) {
-  const allPrices = [
-    ...Object.values(PRODUCTION_PRICES.BASICO),
-    ...Object.values(PRODUCTION_PRICES.PROFESIONAL),
-    ...Object.values(PRODUCTION_PRICES.CORPORATIVO),
-  ];
+// Functions to get products/prices at RUNTIME (not build time)
+// This ensures the correct IDs are used based on the actual Stripe key configured
+export const getStripeProductIds = () => {
+  return isStripeInLiveMode() ? PRODUCTION_PRODUCTS : TEST_PRODUCTS;
+};
 
-  for (const priceId of allPrices) {
-    if (!priceId.startsWith('price_')) {
-      throw new Error(`Invalid Stripe price ID in production: ${priceId}. Price IDs must start with 'price_'`);
-    }
-  }
-}
+export const getStripePriceIds = () => {
+  return isStripeInLiveMode() ? PRODUCTION_PRICES : TEST_PRICES;
+};
 
-// Exportar productos y precios según el tipo de key de Stripe (LIVE o TEST)
-export const STRIPE_PRODUCTS = isStripeInLiveMode() ? PRODUCTION_PRODUCTS : TEST_PRODUCTS;
-export const STRIPE_PRICES = isStripeInLiveMode() ? PRODUCTION_PRICES : TEST_PRICES;
+// Legacy exports for backward compatibility
+// WARNING: These default to PRODUCTION - use getStripeProductIds()/getStripePriceIds() for runtime detection
+export const STRIPE_PRODUCTS = PRODUCTION_PRODUCTS;
+export const STRIPE_PRICES = PRODUCTION_PRICES;
 
 // Precios de planes en MXN - Nueva estructura B2B
 export const PLAN_PRICES = {

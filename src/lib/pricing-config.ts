@@ -4,85 +4,64 @@
 /**
  * Detecta si el Stripe key configurado es LIVE o TEST
  * Esto es más confiable que NODE_ENV en Vercel, donde NODE_ENV=production para todos los deployments
+ * IMPORTANT: This is called at RUNTIME, not build time
  */
-const isLiveStripeKey = (): boolean => {
+export const isStripeInLiveMode = (): boolean => {
   // Check both possible env var names for the secret key
   const key = process.env.STRIPE_SECRET_KEY_LIVE || process.env.STRIPE_SECRET_KEY || '';
   return key.startsWith('sk_live_');
 };
 
-// Export for use in other modules (avoids circular dependency with stripe.ts)
-export const isStripeInLiveMode = isLiveStripeKey;
-
-// Helper para obtener price ID con fallback flexible
-const getPriceId = (
-  liveEnvVar: string | undefined,
-  standardEnvVar: string | undefined,
-  testDefault: string,
-  liveDefault: string
-): string => {
-  // Prioridad: _LIVE env var > standard env var > auto-detection basado en tipo de key
-  if (liveEnvVar) return liveEnvVar;
-  if (standardEnvVar) return standardEnvVar;
-  // Use price that matches the configured Stripe key type (LIVE or TEST)
-  return isLiveStripeKey() ? liveDefault : testDefault;
-};
-
-// Configuración de precios con soporte para múltiples patrones de variables de entorno
-const STRIPE_PRICES = {
+// Price ID constants - separated by environment
+const TEST_PRICE_IDS = {
   BASICO: {
-    monthly: getPriceId(
-      process.env.STRIPE_PRICE_BASICO_MONTHLY_LIVE,
-      process.env.STRIPE_PRICE_BASICO_MONTHLY,
-      'price_1SJh6nPwxz1bHxlHQ15mCTij', // TEST
-      'price_1SRbeEL0nsUWmd4XBFJ39Vos'  // LIVE
-    ),
-    annual: getPriceId(
-      process.env.STRIPE_PRICE_BASICO_ANNUAL_LIVE,
-      process.env.STRIPE_PRICE_BASICO_ANNUAL,
-      'price_1SJh6oPwxz1bHxlH1gXSEuSF',  // TEST
-      'price_1SRbeEL0nsUWmd4XKYm8XgQf'   // LIVE
-    ),
+    monthly: 'price_1SJh6nPwxz1bHxlHQ15mCTij',
+    annual: 'price_1SJh6oPwxz1bHxlH1gXSEuSF',
   },
   PROFESIONAL: {
-    monthly: getPriceId(
-      process.env.STRIPE_PRICE_PROFESIONAL_MONTHLY_LIVE,
-      process.env.STRIPE_PRICE_PROFESIONAL_MONTHLY,
-      'price_1SJh6oPwxz1bHxlHkJudNKvL',  // TEST
-      'price_1SRbeEL0nsUWmd4XeqTWgtqf'   // LIVE
-    ),
-    annual: getPriceId(
-      process.env.STRIPE_PRICE_PROFESIONAL_ANNUAL_LIVE,
-      process.env.STRIPE_PRICE_PROFESIONAL_ANNUAL,
-      'price_1SJh6pPwxz1bHxlHcMip7KIU',  // TEST
-      'price_1SRbeFL0nsUWmd4X3828tN8a'   // LIVE
-    ),
+    monthly: 'price_1SJh6oPwxz1bHxlHkJudNKvL',
+    annual: 'price_1SJh6pPwxz1bHxlHcMip7KIU',
   },
   CORPORATIVO: {
-    monthly: getPriceId(
-      process.env.STRIPE_PRICE_CORPORATIVO_MONTHLY_LIVE,
-      process.env.STRIPE_PRICE_CORPORATIVO_MONTHLY,
-      'price_1SJh6pPwxz1bHxlHY9cnLnPw',  // TEST
-      'price_1SRbeFL0nsUWmd4XAVO4h9rv'   // LIVE
-    ),
-    annual: getPriceId(
-      process.env.STRIPE_PRICE_CORPORATIVO_ANNUAL_LIVE,
-      process.env.STRIPE_PRICE_CORPORATIVO_ANNUAL,
-      'price_1SJh6qPwxz1bHxlHd3ud2WZ3',  // TEST
-      'price_1SRbeGL0nsUWmd4XKgS6jCso'   // LIVE
-    ),
-  }
+    monthly: 'price_1SJh6pPwxz1bHxlHY9cnLnPw',
+    annual: 'price_1SJh6qPwxz1bHxlHd3ud2WZ3',
+  },
 } as const;
+
+const LIVE_PRICE_IDS = {
+  BASICO: {
+    monthly: 'price_1SRbeEL0nsUWmd4XBFJ39Vos',
+    annual: 'price_1SRbeEL0nsUWmd4XKYm8XgQf',
+  },
+  PROFESIONAL: {
+    monthly: 'price_1SRbeEL0nsUWmd4XeqTWgtqf',
+    annual: 'price_1SRbeFL0nsUWmd4X3828tN8a',
+  },
+  CORPORATIVO: {
+    monthly: 'price_1SRbeFL0nsUWmd4XAVO4h9rv',
+    annual: 'price_1SRbeGL0nsUWmd4XKgS6jCso',
+  },
+} as const;
+
+/**
+ * Get the correct price IDs based on Stripe mode (LIVE or TEST)
+ * This is a FUNCTION that evaluates at RUNTIME, not a constant evaluated at build time
+ */
+export const getStripePrices = () => {
+  const isLive = isStripeInLiveMode();
+  return isLive ? LIVE_PRICE_IDS : TEST_PRICE_IDS;
+};
 
 export const PRICING_CONFIG = {
   // Nueva estructura B2B - 3 planes profesionales sincronizados con Stripe
+  // NOTE: stripePriceMonthly/Yearly are GETTERS that evaluate at runtime
   PLANS: {
     BASICO: {
       monthly: 599,
       yearly: 4788,
       stripeProductId: 'prod_TGDXKD2ksDenYm',
-      stripePriceMonthly: STRIPE_PRICES.BASICO.monthly,
-      stripePriceYearly: STRIPE_PRICES.BASICO.annual,
+      get stripePriceMonthly() { return getStripePrices().BASICO.monthly; },
+      get stripePriceYearly() { return getStripePrices().BASICO.annual; },
       features: ['Funcionalidades esenciales', 'Gestión básica', 'Historiales médicos', 'Gestión de citas', 'Soporte profesional'],
       limits: { pets: 500, users: 3, whatsappMessages: -1 }
     },
@@ -90,8 +69,8 @@ export const PRICING_CONFIG = {
       monthly: 1199,
       yearly: 9588,
       stripeProductId: 'prod_TGDXLJxNFGsF9X',
-      stripePriceMonthly: STRIPE_PRICES.PROFESIONAL.monthly,
-      stripePriceYearly: STRIPE_PRICES.PROFESIONAL.annual,
+      get stripePriceMonthly() { return getStripePrices().PROFESIONAL.monthly; },
+      get stripePriceYearly() { return getStripePrices().PROFESIONAL.annual; },
       features: ['Funcionalidades avanzadas', 'Multi-sucursal', 'Reportes avanzados', 'Soporte prioritario', 'Gestión completa'],
       limits: { pets: 2000, users: 8, whatsappMessages: -1, multiLocation: true }
     },
@@ -99,8 +78,8 @@ export const PRICING_CONFIG = {
       monthly: 5000,
       yearly: 60000,
       stripeProductId: 'prod_TGDXxUkqhta3cp',
-      stripePriceMonthly: STRIPE_PRICES.CORPORATIVO.monthly,
-      stripePriceYearly: STRIPE_PRICES.CORPORATIVO.annual,
+      get stripePriceMonthly() { return getStripePrices().CORPORATIVO.monthly; },
+      get stripePriceYearly() { return getStripePrices().CORPORATIVO.annual; },
       features: ['Mascotas ilimitadas', '20 usuarios', 'API personalizada', 'Soporte 24/7', 'Consultoría especializada'],
       limits: { pets: -1, users: 20, whatsappMessages: -1, multiLocation: true, apiAccess: true }
     }
@@ -121,9 +100,12 @@ export const PRICING_CONFIG = {
     durationMonths: 6,
     endDate: new Date('2025-12-31'), // Fecha límite para nuevos clientes
     // Use coupon that matches the configured Stripe key type (LIVE or TEST)
-    couponCode: isLiveStripeKey()
-      ? (process.env.STRIPE_COUPON_LIVE || 'u62SRvcw')
-      : (process.env.STRIPE_COUPON || ''),
+    // NOTE: This is a getter to evaluate at runtime
+    get couponCode() {
+      return isStripeInLiveMode()
+        ? (process.env.STRIPE_COUPON_LIVE || 'u62SRvcw')
+        : (process.env.STRIPE_COUPON || '');
+    },
     displayBadge: true,
     badgeText: '🎉 Oferta de Lanzamiento',
     description: '25% de descuento los primeros 6 meses'
