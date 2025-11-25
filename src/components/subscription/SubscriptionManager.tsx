@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getStripePriceIdForPlan, getPlanKeyFromName } from '../../lib/pricing-config';
+import { getPlanKeyFromName } from '../../lib/pricing-config';
 import { toast } from 'sonner';
 
 interface SubscriptionManagerProps {
@@ -102,7 +102,7 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
       setIsCheckoutLoading(true);
       try {
         // Use the plan that the user selected during onboarding
-        const userPriceId = getStripePriceIdForPlan(tenant.planName, 'monthly');
+        // Server will resolve the correct price ID based on environment (LIVE/TEST)
         const userPlanKey = getPlanKeyFromName(tenant.planName);
 
         const response = await fetch('/api/checkout', {
@@ -111,7 +111,6 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            priceId: userPriceId,
             planKey: userPlanKey,
             billingInterval: 'monthly'
           }),
