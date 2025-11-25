@@ -22,7 +22,7 @@ import type { Tenant } from '@prisma/client';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { calculateTrialDaysRemaining } from '../../lib/trial/utils';
-import { getStripePriceIdForPlan, getPlanKeyFromName } from '../../lib/pricing-config';
+import { getPlanKeyFromName } from '../../lib/pricing-config';
 
 interface SubscriptionNotificationsProps {
   tenant: Tenant;
@@ -170,7 +170,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
       setIsLoading(true);
       try {
         // Use the plan that the user selected during onboarding
-        const userPriceId = getStripePriceIdForPlan(tenant.planName, 'monthly');
+        // Server will resolve the correct price ID based on environment (LIVE/TEST)
         const userPlanKey = getPlanKeyFromName(tenant.planName);
 
         const response = await fetch('/api/checkout', {
@@ -179,7 +179,6 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            priceId: userPriceId,
             planKey: userPlanKey,
             billingInterval: 'monthly'
           }),
