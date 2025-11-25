@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Sparkles } from "lucide-react"
+import { Check, Sparkles, ArrowRight } from "lucide-react"
 import { EarlyAdopterBanner } from "@/components/marketing/EarlyAdopterBanner"
 import Link from "next/link"
 
@@ -141,7 +141,14 @@ export function PricingSection() {
           ))}
         </div>
 
-        <div className="mt-8 sm:mt-12 text-center px-4">
+        <div className="mt-8 sm:mt-12 text-center px-4 space-y-3">
+          <Link
+            href="/precios"
+            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium transition-colors"
+          >
+            Ver comparación detallada de planes
+            <ArrowRight className="h-4 w-4" />
+          </Link>
           <p className="text-xs sm:text-sm text-muted-foreground">
             ✨ Todos los planes incluyen 30 días de prueba gratis • Cancela en cualquier momento
           </p>

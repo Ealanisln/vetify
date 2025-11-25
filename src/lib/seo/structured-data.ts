@@ -78,6 +78,21 @@ export interface WebPage {
   };
 }
 
+export interface WebSite {
+  '@context': 'https://schema.org';
+  '@type': 'WebSite';
+  name: string;
+  alternateName?: string;
+  url: string;
+  inLanguage: string;
+  description?: string;
+  publisher?: {
+    '@type': 'Organization';
+    name: string;
+    url?: string;
+  };
+}
+
 export interface Article {
   '@context': 'https://schema.org';
   '@type': 'Article' | 'BlogPosting' | 'NewsArticle';
@@ -126,7 +141,7 @@ export function generateOrganizationSchema(
       {
         '@type': 'ContactPoint',
         contactType: lang === 'es' ? 'Atención al Cliente' : 'Customer Service',
-        email: 'contacto@vetify.com', // Update with actual email
+        email: 'contacto@vetify.pro',
         availableLanguage: ['Spanish', 'English'],
       },
     ],
@@ -193,6 +208,34 @@ export function generateSoftwareApplicationSchema(
   }
 
   return schema;
+}
+
+/**
+ * Generate WebSite structured data for the main site
+ * Use this in the root layout to define site-level information
+ */
+export function generateWebSiteSchema(
+  lang: SupportedLanguage = 'es'
+): WebSite {
+  const baseUrl = getBaseUrl();
+  const siteName = getLocalizedContent(SITE_METADATA.siteName, lang);
+  const description = getLocalizedContent(SITE_METADATA.siteDescription, lang);
+  const locale = getLocaleForLanguage(lang);
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: siteName,
+    alternateName: 'Vetify',
+    url: baseUrl,
+    inLanguage: locale,
+    description,
+    publisher: {
+      '@type': 'Organization',
+      name: 'Vetify',
+      url: baseUrl,
+    },
+  };
 }
 
 /**
@@ -290,7 +333,7 @@ export function generateMedicalOrganizationSchema(
         '@type': 'ContactPoint',
         contactType:
           lang === 'es' ? 'Soporte Técnico' : 'Technical Support',
-        email: 'soporte@vetify.com', // Update with actual email
+        email: 'soporte@vetify.pro',
         availableLanguage: ['Spanish', 'English'],
       },
     ],

@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 
 export function CTASection() {
   return (
@@ -13,12 +14,16 @@ export function CTASection() {
             eficiente.
           </p>
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Button size="lg" className="h-12 px-8 text-base font-semibold">
-              Probar 30 días gratis
-            </Button>
-            <Button size="lg" variant="outline" className="h-12 px-8 text-base font-semibold bg-transparent">
-              Agendar demo
-            </Button>
+            <Link href="/api/auth/register">
+              <Button size="lg" className="h-12 px-8 text-base font-semibold">
+                Probar 30 días gratis
+              </Button>
+            </Link>
+            <Link href="/contacto">
+              <Button size="lg" variant="outline" className="h-12 px-8 text-base font-semibold bg-transparent">
+                Agendar demo
+              </Button>
+            </Link>
           </div>
         </div>
       </div>

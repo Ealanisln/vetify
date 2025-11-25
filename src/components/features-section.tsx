@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, FileText, Package, CheckCircle2 } from "lucide-react"
+import { Calendar, FileText, Package, CheckCircle2, ArrowRight } from "lucide-react"
+import Link from "next/link"
 
 const features = [
   {
@@ -82,6 +83,16 @@ export function FeaturesSection() {
               </Card>
             )
           })}
+        </div>
+
+        <div className="mt-8 sm:mt-12 text-center">
+          <Link
+            href="/funcionalidades"
+            className="inline-flex items-center gap-2 text-primary hover:text-primary/80 font-medium transition-colors"
+          >
+            Ver todas las funcionalidades
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
     </section>

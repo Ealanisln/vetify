@@ -16,16 +16,22 @@ export function Navigation() {
 
         <div className="hidden items-center gap-8 md:flex">
           <Link
-            href="#funcionalidades"
+            href="/funcionalidades"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Funcionalidades
           </Link>
           <Link
-            href="#precios"
+            href="/precios"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Precios
+          </Link>
+          <Link
+            href="/contacto"
+            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            Contacto
           </Link>
         </div>
 
