@@ -1,4 +1,4 @@
-import { requireAuth } from '@/lib/auth';
+import { requireActiveSubscription } from '@/lib/auth';
 import {
   getLocationsByTenant,
   getLocationStats,
@@ -13,7 +13,7 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 export const dynamic = 'force-dynamic';
 
 export default async function LocationsPage() {
-  const { tenant } = await requireAuth();
+  const { tenant } = await requireActiveSubscription();
 
   // Fetch locations and stats
   const [locations, stats] = await Promise.all([

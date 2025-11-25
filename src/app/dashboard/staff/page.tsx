@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { requireAuth } from '../../../lib/auth';
+import { requireActiveSubscription } from '../../../lib/auth';
 import { getStaffByTenant } from '../../../lib/staff';
 import StaffList from '../../../components/staff/StaffList';
 
@@ -15,7 +15,7 @@ interface StaffPageProps {
 }
 
 export default async function StaffPage({ searchParams }: StaffPageProps) {
-  const { user, tenant } = await requireAuth();
+  const { user, tenant } = await requireActiveSubscription();
   
   if (!user || !tenant) {
     notFound();

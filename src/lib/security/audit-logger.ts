@@ -122,8 +122,9 @@ export async function logAuditEvent(event: Omit<AuditEvent, 'id' | 'timestamp'>)
     ...event,
   };
 
-  // In development, log to console
-  if (process.env.NODE_ENV === 'development') {
+  // In development, only log high/critical events to reduce noise
+  // Set AUDIT_LOG_VERBOSE=true to see all audit events
+  if (process.env.NODE_ENV === 'development' && process.env.AUDIT_LOG_VERBOSE === 'true') {
     console.log('🔍 AUDIT LOG:', JSON.stringify(auditEvent, null, 2));
   }
 

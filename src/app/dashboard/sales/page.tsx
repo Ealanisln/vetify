@@ -1,33 +1,9 @@
 import { Suspense } from 'react';
-import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { redirect } from 'next/navigation';
-import { prisma } from '../../../lib/prisma';
+import { requireActiveSubscription } from '../../../lib/auth';
 import SalesPageClient from './SalesPageClient';
 
 export default async function SalesPage() {
-  const { getUser } = getKindeServerSession();
-  const user = await getUser();
-
-  if (!user?.id) {
-    redirect('/sign-in');
-  }
-
-  const userWithTenant = await prisma.user.findUnique({
-    where: { id: user.id },
-    include: {
-      tenant: {
-        include: {
-          tenantSubscription: {
-            include: { plan: true }
-          }
-        }
-      }
-    }
-  });
-
-  if (!userWithTenant?.tenant) {
-    redirect('/onboarding');
-  }
+  const { user, tenant } = await requireActiveSubscription();
 
   return (
     <div className="space-y-6">
@@ -47,8 +23,8 @@ export default async function SalesPage() {
           </div>
         }
       >
-        <SalesPageClient 
-          tenantId={userWithTenant.tenant.id}
+        <SalesPageClient
+          tenantId={tenant.id}
           userId={user.id}
         />
       </Suspense>
