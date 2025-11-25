@@ -14,13 +14,13 @@
  *   - Supplier integration
  */
 import { Suspense } from 'react';
-import { requireAuth } from '../../../lib/auth';
+import { requireActiveSubscription } from '../../../lib/auth';
 import { InventoryMain } from '../../../components/inventory/InventoryMain';
 import { InventoryStats } from '../../../components/inventory/InventoryStats';
 import { LowStockAlert } from '../../../components/inventory/LowStockAlert';
 
 export default async function InventoryPage() {
-  const { tenant } = await requireAuth();
+  const { tenant } = await requireActiveSubscription();
 
   return (
     <div className="space-y-6">

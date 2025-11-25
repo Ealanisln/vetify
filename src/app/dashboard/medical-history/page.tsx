@@ -1,10 +1,10 @@
 import { Suspense } from 'react';
-import { requireAuth } from '../../../lib/auth';
+import { requireActiveSubscription } from '../../../lib/auth';
 import { MedicalHistoryMain } from '../../../components/medical/MedicalHistoryMain';
 import { MedicalHistoryStats } from '../../../components/medical/MedicalHistoryStats';
 
 export default async function MedicalHistoryPage() {
-  const { tenant } = await requireAuth();
+  const { tenant } = await requireActiveSubscription();
 
   return (
     <div className="space-y-6">
