@@ -6,10 +6,28 @@ import { getBaseUrl } from '@/lib/seo/config';
  * This tells search engines which pages they can and cannot crawl
  *
  * Next.js will automatically serve this at /robots.txt
+ *
+ * IMPORTANT: Non-production domains (development, preview) are blocked
+ * to prevent Google from indexing preview deployments that have
+ * Vercel deployment protection enabled (which returns 401).
  */
 export default function robots(): MetadataRoute.Robots {
   const baseUrl = getBaseUrl();
 
+  // Block all crawling on non-production domains
+  // This prevents 401 errors in Search Console from preview deployments
+  const isProduction = baseUrl === 'https://vetify.pro';
+
+  if (!isProduction) {
+    return {
+      rules: {
+        userAgent: '*',
+        disallow: '/',
+      },
+    };
+  }
+
+  // Production robots.txt - allow public pages, block private areas
   return {
     rules: [
       {
