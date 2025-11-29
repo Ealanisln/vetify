@@ -9,6 +9,10 @@ import {
   validateLocationAccess,
 } from '@/lib/reports-location';
 import { getStaffLocationIds } from '@/lib/locations';
+import {
+  getCachedLocationReport,
+  setCachedLocationReport,
+} from '@/lib/reports-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,19 +92,66 @@ export async function GET(request: NextRequest) {
         filteredLocationIds = allowedLocationIds;
       }
 
-      const comparison = await getLocationComparison(tenantId, filteredLocationIds);
+      // Build a cache key for comparison using sorted location IDs
+      const comparisonCacheKey = filteredLocationIds?.sort().join('-') || 'all';
 
-      return NextResponse.json(
-        { comparison },
-        {
-          headers: {
-            'Cache-Control': 'private, max-age=300', // 5 minute cache
-          },
-        }
+      // Try cache first for comparison
+      const cachedComparison = await getCachedLocationReport<{ comparison: unknown }>(
+        tenantId,
+        comparisonCacheKey,
+        'comparison',
+        dateRange
       );
+
+      if (cachedComparison) {
+        return NextResponse.json(cachedComparison, {
+          headers: {
+            'Cache-Control': 'private, max-age=300',
+            'X-Cache': 'HIT',
+          },
+        });
+      }
+
+      // Fetch fresh data
+      const comparison = await getLocationComparison(tenantId, filteredLocationIds);
+      const comparisonResponse = { comparison };
+
+      // Store in cache
+      await setCachedLocationReport(
+        tenantId,
+        comparisonCacheKey,
+        'comparison',
+        comparisonResponse,
+        dateRange
+      );
+
+      return NextResponse.json(comparisonResponse, {
+        headers: {
+          'Cache-Control': 'private, max-age=300',
+          'X-Cache': 'MISS',
+        },
+      });
     }
 
     // Single location or tenant-wide reports
+    // Try cache first
+    const cached = await getCachedLocationReport<Record<string, unknown>>(
+      tenantId,
+      effectiveLocationId,
+      reportType,
+      dateRange
+    );
+
+    if (cached) {
+      return NextResponse.json(cached, {
+        headers: {
+          'Cache-Control': 'private, max-age=300',
+          'X-Cache': 'HIT',
+        },
+      });
+    }
+
+    // Fetch fresh data
     let responseData: Record<string, unknown>;
 
     switch (reportType) {
@@ -143,9 +194,19 @@ export async function GET(request: NextRequest) {
         break;
     }
 
+    // Store in cache
+    await setCachedLocationReport(
+      tenantId,
+      effectiveLocationId,
+      reportType,
+      responseData,
+      dateRange
+    );
+
     return NextResponse.json(responseData, {
       headers: {
-        'Cache-Control': 'private, max-age=300', // 5 minute cache
+        'Cache-Control': 'private, max-age=300',
+        'X-Cache': 'MISS',
       },
     });
   } catch (error) {
