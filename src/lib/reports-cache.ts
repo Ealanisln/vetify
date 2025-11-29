@@ -64,11 +64,9 @@ export async function getCachedLocationReport<T>(
     const cached = await redis.get<T>(cacheKey);
 
     if (cached) {
-      console.log(`[Cache HIT] ${cacheKey}`);
       return cached;
     }
 
-    console.log(`[Cache MISS] ${cacheKey}`);
     return null;
   } catch (error) {
     // Log error but don't fail - cache is optional optimization
@@ -90,7 +88,6 @@ export async function setCachedLocationReport(
   try {
     const cacheKey = buildCacheKey(tenantId, locationId, reportType, dateRange);
     await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(data));
-    console.log(`[Cache SET] ${cacheKey} (TTL: ${CACHE_TTL}s)`);
   } catch (error) {
     // Log error but don't fail - cache is optional optimization
     console.error('[Cache Error] Failed to set cached report:', error);
@@ -108,7 +105,6 @@ export async function invalidateTenantReportCache(tenantId: string): Promise<voi
 
     if (keys.length > 0) {
       await redis.del(...keys);
-      console.log(`[Cache INVALIDATE] Cleared ${keys.length} keys for tenant ${tenantId}`);
     }
   } catch (error) {
     console.error('[Cache Error] Failed to invalidate cache:', error);
@@ -128,7 +124,6 @@ export async function invalidateLocationReportCache(
 
     if (keys.length > 0) {
       await redis.del(...keys);
-      console.log(`[Cache INVALIDATE] Cleared ${keys.length} keys for location ${locationId}`);
     }
   } catch (error) {
     console.error('[Cache Error] Failed to invalidate location cache:', error);

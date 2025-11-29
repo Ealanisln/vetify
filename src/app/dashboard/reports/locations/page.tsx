@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import { requireAuth } from '@/lib/auth';
 import LocationReportsClient from '@/components/reports/LocationReportsClient';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChartBarIcon } from '@heroicons/react/24/outline';
 
 export const dynamic = 'force-dynamic';
 

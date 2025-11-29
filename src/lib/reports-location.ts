@@ -82,46 +82,13 @@ export interface LocationComparison {
 }
 
 // ============================================================================
-// Helper: Get Sale Where Clause for Location
-// ============================================================================
-// Sale model doesn't have locationId directly, so we filter through staff
-
-function getSaleWhereClause(
-  tenantId: string,
-  locationId: string | null,
-  dateRange?: DateRange
-) {
-  const where: {
-    tenantId: string;
-    status: { in: string[] };
-    staff?: { locationId: string };
-    createdAt?: { gte?: Date; lte?: Date };
-  } = {
-    tenantId,
-    status: { in: ['COMPLETED', 'PAID'] },
-  };
-
-  if (locationId) {
-    where.staff = { locationId };
-  }
-
-  if (dateRange?.startDate || dateRange?.endDate) {
-    where.createdAt = {};
-    if (dateRange.startDate) where.createdAt.gte = dateRange.startDate;
-    if (dateRange.endDate) where.createdAt.lte = dateRange.endDate;
-  }
-
-  return where;
-}
-
-// ============================================================================
 // Revenue Analytics by Location
 // ============================================================================
 
 export async function getLocationRevenueAnalytics(
   tenantId: string,
   locationId: string | null,
-  dateRange?: DateRange
+  dateRange?: DateRange // Reserved for future date range filtering
 ): Promise<LocationRevenueAnalytics> {
   const today = new Date();
   const startOfThisMonth = startOfMonth(today);
