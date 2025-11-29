@@ -2,13 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import {
   ChartBarIcon,
   CubeIcon,
   ClipboardDocumentCheckIcon,
-  ArrowDownTrayIcon,
   ExclamationTriangleIcon,
   UserGroupIcon,
   UsersIcon,
@@ -17,7 +15,14 @@ import {
 import LocationSelector from '../locations/LocationSelector';
 import LocationMultiSelector from '../locations/LocationMultiSelector';
 import DateRangePicker from './DateRangePicker';
+import ExportMenu from './ExportMenu';
 import { exportToCSV } from '../../lib/reports';
+import {
+  createLocationReportExcel,
+  createLocationReportPDF,
+  createComparisonReportExcel,
+  createComparisonReportPDF,
+} from '../../lib/exports';
 import type {
   LocationRevenueAnalytics,
   LocationInventoryAnalytics,
@@ -257,6 +262,42 @@ export default function LocationReportsClient() {
     exportToCSV(data, 'comparacion-ubicaciones');
   };
 
+  // Excel export handler
+  const handleExportExcel = () => {
+    if (!reportsData) return;
+    createLocationReportExcel(
+      reportsData.revenue,
+      reportsData.inventory,
+      reportsData.performance,
+      selectedLocationName,
+      dateRange
+    );
+  };
+
+  // PDF export handler
+  const handleExportPDF = () => {
+    if (!reportsData) return;
+    createLocationReportPDF(
+      reportsData.revenue,
+      reportsData.inventory,
+      reportsData.performance,
+      selectedLocationName,
+      dateRange
+    );
+  };
+
+  // Comparison Excel export handler
+  const handleExportComparisonExcel = () => {
+    if (!comparisonData) return;
+    createComparisonReportExcel(comparisonData, dateRange);
+  };
+
+  // Comparison PDF export handler
+  const handleExportComparisonPDF = () => {
+    if (!comparisonData) return;
+    createComparisonReportPDF(comparisonData, dateRange);
+  };
+
   // Calculate comparison totals
   const comparisonTotals = comparisonData
     ? {
@@ -396,15 +437,12 @@ export default function LocationReportsClient() {
           {activeTab === 'ventas' && (
             <div className="space-y-4">
             <div className="flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportRevenue}
-                className="flex items-center gap-2"
-              >
-                <ArrowDownTrayIcon className="h-4 w-4" />
-                Exportar CSV
-              </Button>
+              <ExportMenu
+                onExportCSV={handleExportRevenue}
+                onExportExcel={handleExportExcel}
+                onExportPDF={handleExportPDF}
+                disabled={!reportsData}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -504,15 +542,12 @@ export default function LocationReportsClient() {
           {activeTab === 'inventario' && (
             <div className="space-y-4">
             <div className="flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportInventory}
-                className="flex items-center gap-2"
-              >
-                <ArrowDownTrayIcon className="h-4 w-4" />
-                Exportar CSV
-              </Button>
+              <ExportMenu
+                onExportCSV={handleExportInventory}
+                onExportExcel={handleExportExcel}
+                onExportPDF={handleExportPDF}
+                disabled={!reportsData}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -635,15 +670,12 @@ export default function LocationReportsClient() {
           {activeTab === 'rendimiento' && (
             <div className="space-y-4">
             <div className="flex justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportPerformance}
-                className="flex items-center gap-2"
-              >
-                <ArrowDownTrayIcon className="h-4 w-4" />
-                Exportar CSV
-              </Button>
+              <ExportMenu
+                onExportCSV={handleExportPerformance}
+                onExportExcel={handleExportExcel}
+                onExportPDF={handleExportPDF}
+                disabled={!reportsData}
+              />
             </div>
 
             {/* Appointments Section */}
@@ -780,16 +812,12 @@ export default function LocationReportsClient() {
           {activeTab === 'comparacion' && (
             <div className="space-y-4">
               <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleExportComparison}
+                <ExportMenu
+                  onExportCSV={handleExportComparison}
+                  onExportExcel={handleExportComparisonExcel}
+                  onExportPDF={handleExportComparisonPDF}
                   disabled={!comparisonData}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowDownTrayIcon className="h-4 w-4" />
-                  Exportar CSV
-                </Button>
+                />
               </div>
 
               {/* Comparison Loading */}
