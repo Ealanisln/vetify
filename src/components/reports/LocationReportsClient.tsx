@@ -16,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline';
 import LocationSelector from '../locations/LocationSelector';
 import LocationMultiSelector from '../locations/LocationMultiSelector';
+import DateRangePicker from './DateRangePicker';
 import { exportToCSV } from '../../lib/reports';
 import type {
   LocationRevenueAnalytics,
@@ -33,6 +34,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
+import { startOfMonth, endOfDay } from 'date-fns';
 
 type TabValue = 'ventas' | 'inventario' | 'rendimiento' | 'comparacion';
 
@@ -66,6 +68,15 @@ export default function LocationReportsClient() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabValue>('ventas');
 
+  // Date range state - default to current month
+  const [dateRange, setDateRange] = useState<{
+    startDate: Date | null;
+    endDate: Date | null;
+  }>({
+    startDate: startOfMonth(new Date()),
+    endDate: endOfDay(new Date()),
+  });
+
   // Comparison state
   const [comparisonLocationIds, setComparisonLocationIds] = useState<string[]>([]);
   const [comparisonData, setComparisonData] = useState<LocationComparison[] | null>(null);
@@ -91,9 +102,18 @@ export default function LocationReportsClient() {
     setError(null);
 
     try {
-      const response = await fetch(
-        `/api/reports/location?locationId=${locationId}&type=all`
-      );
+      const params = new URLSearchParams();
+      params.append('locationId', locationId);
+      params.append('type', 'all');
+
+      if (dateRange.startDate) {
+        params.append('startDate', dateRange.startDate.toISOString());
+      }
+      if (dateRange.endDate) {
+        params.append('endDate', dateRange.endDate.toISOString());
+      }
+
+      const response = await fetch(`/api/reports/location?${params}`);
 
       if (!response.ok) {
         const data = await response.json();
@@ -111,7 +131,7 @@ export default function LocationReportsClient() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [dateRange]);
 
   useEffect(() => {
     if (selectedLocationId) {
@@ -130,9 +150,18 @@ export default function LocationReportsClient() {
     setComparisonError(null);
 
     try {
-      const response = await fetch(
-        `/api/reports/location?compare=true&locationIds=${locationIds.join(',')}`
-      );
+      const params = new URLSearchParams();
+      params.append('compare', 'true');
+      params.append('locationIds', locationIds.join(','));
+
+      if (dateRange.startDate) {
+        params.append('startDate', dateRange.startDate.toISOString());
+      }
+      if (dateRange.endDate) {
+        params.append('endDate', dateRange.endDate.toISOString());
+      }
+
+      const response = await fetch(`/api/reports/location?${params}`);
 
       if (!response.ok) {
         const data = await response.json();
@@ -150,7 +179,7 @@ export default function LocationReportsClient() {
     } finally {
       setIsComparisonLoading(false);
     }
-  }, []);
+  }, [dateRange]);
 
   // Fetch comparison when locations change and tab is active
   useEffect(() => {
@@ -243,30 +272,40 @@ export default function LocationReportsClient() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Reportes por Ubicación</h1>
-          <p className="text-muted-foreground">
-            {activeTab === 'comparacion'
-              ? 'Compara el rendimiento entre sucursales'
-              : 'Métricas y análisis por sucursal'}
-          </p>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-bold">Reportes por Ubicación</h1>
+            <p className="text-muted-foreground">
+              {activeTab === 'comparacion'
+                ? 'Compara el rendimiento entre sucursales'
+                : 'Métricas y análisis por sucursal'}
+            </p>
+          </div>
         </div>
 
-        <div className="w-full sm:w-80">
-          {activeTab === 'comparacion' ? (
-            <LocationMultiSelector
-              value={comparisonLocationIds}
-              onChange={setComparisonLocationIds}
-              minSelected={2}
-            />
-          ) : (
-            <LocationSelector
-              value={selectedLocationId}
-              onChange={handleLocationChange}
-              defaultToPrimary={true}
-            />
-          )}
+        {/* Filters Row */}
+        <div className="flex flex-col lg:flex-row gap-4">
+          <DateRangePicker
+            value={dateRange}
+            onChange={setDateRange}
+            className="w-full lg:w-auto lg:min-w-[320px]"
+          />
+          <div className="w-full lg:w-80">
+            {activeTab === 'comparacion' ? (
+              <LocationMultiSelector
+                value={comparisonLocationIds}
+                onChange={setComparisonLocationIds}
+                minSelected={2}
+              />
+            ) : (
+              <LocationSelector
+                value={selectedLocationId}
+                onChange={handleLocationChange}
+                defaultToPrimary={true}
+              />
+            )}
+          </div>
         </div>
       </div>
 
