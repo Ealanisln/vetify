@@ -146,6 +146,30 @@ export const getStripePriceIds = () => {
   return isStripeInLiveMode() ? PRODUCTION_PRICES : TEST_PRICES;
 };
 
+// Dynamic plan mapping that uses the correct product/price IDs based on Stripe mode
+export const getStripePlanMapping = () => {
+  const products = getStripeProductIds();
+  const prices = getStripePriceIds();
+
+  return {
+    'BASICO': {
+      productId: products.BASICO,
+      prices: prices.BASICO,
+      limits: { pets: 500, users: 3, whatsappMessages: -1 }
+    },
+    'PROFESIONAL': {
+      productId: products.PROFESIONAL,
+      prices: prices.PROFESIONAL,
+      limits: { pets: 2000, users: 8, whatsappMessages: -1 }
+    },
+    'CORPORATIVO': {
+      productId: products.CORPORATIVO,
+      prices: prices.CORPORATIVO,
+      limits: { pets: -1, users: 20, whatsappMessages: -1 }
+    }
+  };
+};
+
 // Legacy exports for backward compatibility
 // WARNING: These default to PRODUCTION - use getStripeProductIds()/getStripePriceIds() for runtime detection
 export const STRIPE_PRODUCTS = PRODUCTION_PRODUCTS;
@@ -600,8 +624,9 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
     const stripeProductId = plan.product as string;
     let planKey: string | null = null;
 
-    // First, try to find in current product mapping
-    for (const [key, mapping] of Object.entries(STRIPE_PLAN_MAPPING)) {
+    // First, try to find in current product mapping (uses dynamic mapping based on Stripe mode)
+    const planMapping = getStripePlanMapping();
+    for (const [key, mapping] of Object.entries(planMapping)) {
       if (mapping.productId === stripeProductId) {
         planKey = key;
         break;
@@ -610,7 +635,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
 
     if (!planKey) {
       console.error('updateTenantSubscription: No plan mapping found for product:', stripeProductId);
-      console.error('Available mappings:', Object.keys(STRIPE_PLAN_MAPPING));
+      console.error('Available mappings:', Object.keys(planMapping));
       return;
     }
 
@@ -874,5 +899,6 @@ export function getPriceIdByPlan(planKey: string, interval: 'monthly' | 'annual'
 // Obtener mapeo de plan B2B
 export function getPlanMapping(planKey: string) {
   const planType = planKey.toUpperCase();
-  return STRIPE_PLAN_MAPPING[planType as keyof typeof STRIPE_PLAN_MAPPING] || null;
+  const mapping = getStripePlanMapping();
+  return mapping[planType as keyof typeof mapping] || null;
 } 

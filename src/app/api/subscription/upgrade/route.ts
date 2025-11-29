@@ -6,7 +6,7 @@ import {
   updateSubscription,
   getPriceIdByPlan,
   createCheckoutSessionForAPI,
-  STRIPE_PLAN_MAPPING,
+  getStripePlanMapping,
   PLAN_PRICES
 } from '@/lib/payments/stripe';
 import { z } from 'zod';
@@ -318,10 +318,11 @@ export async function GET() {
     const currentTier = currentPlanKey ? PLAN_HIERARCHY[currentPlanKey as keyof typeof PLAN_HIERARCHY] : 0;
 
     // Get available upgrade options (higher tiers only)
+    const stripePlanMapping = getStripePlanMapping();
     const availableUpgrades = Object.entries(PLAN_HIERARCHY)
       .filter(([, tier]) => tier > currentTier)
       .map(([planKey]) => {
-        const mapping = STRIPE_PLAN_MAPPING[planKey as keyof typeof STRIPE_PLAN_MAPPING];
+        const mapping = stripePlanMapping[planKey as keyof typeof stripePlanMapping];
         const prices = PLAN_PRICES[planKey as keyof typeof PLAN_PRICES];
 
         return {

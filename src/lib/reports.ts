@@ -515,22 +515,52 @@ export function exportToCSV(data: Record<string, unknown>[], filename: string): 
   }
 }
 
+/**
+ * Safely escape a value for CSV export
+ * Handles strings, numbers, dates, null, undefined, and objects
+ */
+function escapeCSVValue(value: unknown): string {
+  // Handle null and undefined
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  // Handle dates
+  if (value instanceof Date) {
+    return format(value, 'yyyy-MM-dd HH:mm:ss');
+  }
+
+  // Handle objects and arrays (convert to JSON string)
+  if (typeof value === 'object') {
+    const jsonStr = JSON.stringify(value);
+    return `"${jsonStr.replace(/"/g, '""')}"`;
+  }
+
+  // Convert to string
+  const stringValue = String(value);
+
+  // Escape if contains special characters
+  if (
+    stringValue.includes(',') ||
+    stringValue.includes('"') ||
+    stringValue.includes('\n') ||
+    stringValue.includes('\r')
+  ) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+
+  return stringValue;
+}
+
 function convertToCSV(data: Record<string, unknown>[]): string {
   if (data.length === 0) return '';
-  
+
   const headers = Object.keys(data[0]);
   const csvHeaders = headers.join(',');
-  
-  const csvRows = data.map(row => 
-    headers.map(header => {
-      const value = row[header];
-      // Escape commas and quotes
-      if (typeof value === 'string' && (value.includes(',') || value.includes('"'))) {
-        return `"${value.replace(/"/g, '""')}"`;
-      }
-      return value;
-    }).join(',')
+
+  const csvRows = data.map(row =>
+    headers.map(header => escapeCSVValue(row[header])).join(',')
   );
-  
+
   return [csvHeaders, ...csvRows].join('\n');
 } 

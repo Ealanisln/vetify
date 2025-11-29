@@ -256,8 +256,8 @@ export const useTodayAppointments = () => {
   const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
 
   return useAppointments({
-    startDate: startOfDay.toISOString(),
-    endDate: endOfDay.toISOString(),
+    start_date: startOfDay.toISOString(),
+    end_date: endOfDay.toISOString(),
   });
 };
 
