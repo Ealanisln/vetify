@@ -4,7 +4,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border bg-secondary/30 py-12">
       <div className="container mx-auto px-4">
-        <div className="grid gap-8 md:grid-cols-3">
+        <div className="grid gap-8 md:grid-cols-4">
           <div>
             <div className="mb-4 flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
@@ -45,6 +45,17 @@ export function Footer() {
                 <a href="mailto:contacto@vetify.pro" className="text-muted-foreground transition-colors hover:text-foreground">
                   contacto@vetify.pro
                 </a>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="mb-4 font-semibold text-foreground">Legal</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link href="/privacidad" className="text-muted-foreground transition-colors hover:text-foreground">
+                  Política de Privacidad
+                </Link>
               </li>
             </ul>
           </div>
