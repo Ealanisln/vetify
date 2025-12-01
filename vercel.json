@@ -1,7 +1,24 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/inventory-alerts",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/appointment-reminders",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/treatment-reminders",
+      "schedule": "0 9 * * *"
+    }
+  ],
   "functions": {
     "src/app/api/**/*": {
       "maxDuration": 30
+    },
+    "src/app/api/cron/**/*": {
+      "maxDuration": 120
     }
   },
   "headers": [
