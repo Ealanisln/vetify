@@ -7,6 +7,8 @@ import type {
   AppointmentReminderData,
   LowStockAlertData,
   TreatmentReminderData,
+  NewUserRegistrationData,
+  NewSubscriptionPaymentData,
   EmailTemplate,
   EmailStatus,
 } from '../types';
@@ -18,9 +20,11 @@ describe('Email Types', () => {
       'appointment-reminder',
       'low-stock-alert',
       'treatment-reminder',
+      'new-user-registration',
+      'new-subscription-payment',
     ];
 
-    expect(templates).toHaveLength(4);
+    expect(templates).toHaveLength(6);
   });
 
   it('should have correct email status types', () => {
@@ -163,6 +167,108 @@ describe('Email Types', () => {
       };
 
       expect(data.data.treatmentType).toBe(type);
+    });
+  });
+
+  it('should accept valid new user registration data structure', () => {
+    const data: NewUserRegistrationData = {
+      template: 'new-user-registration',
+      to: {
+        email: 'admin@vetify.pro',
+        name: 'Admin',
+      },
+      subject: 'New User Registered',
+      tenantId: 'tenant-123',
+      data: {
+        userName: 'Juan Pérez',
+        userEmail: 'juan@example.com',
+        tenantName: 'Veterinaria Ejemplo',
+        tenantSlug: 'veterinaria-ejemplo',
+        registrationDate: new Date(),
+        planType: 'TRIAL',
+        trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      },
+    };
+
+    expect(data.template).toBe('new-user-registration');
+    expect(data.data.planType).toBe('TRIAL');
+  });
+
+  it('should accept valid new subscription payment data structure', () => {
+    const data: NewSubscriptionPaymentData = {
+      template: 'new-subscription-payment',
+      to: {
+        email: 'admin@vetify.pro',
+        name: 'Admin',
+      },
+      subject: 'New Subscription Payment',
+      tenantId: 'tenant-123',
+      data: {
+        userName: 'Juan Pérez',
+        userEmail: 'juan@example.com',
+        tenantName: 'Veterinaria Ejemplo',
+        tenantSlug: 'veterinaria-ejemplo',
+        planName: 'Professional',
+        planAmount: 49900, // Amount in cents
+        currency: 'mxn',
+        billingInterval: 'month',
+        paymentDate: new Date(),
+        stripeCustomerId: 'cus_test123',
+        stripeSubscriptionId: 'sub_test123',
+      },
+    };
+
+    expect(data.template).toBe('new-subscription-payment');
+    expect(data.data.planAmount).toBe(49900);
+    expect(data.data.billingInterval).toBe('month');
+  });
+
+  it('should support both billing intervals', () => {
+    const intervals: Array<'month' | 'year'> = ['month', 'year'];
+
+    intervals.forEach((interval) => {
+      const data: NewSubscriptionPaymentData = {
+        template: 'new-subscription-payment',
+        to: { email: 'admin@vetify.pro' },
+        subject: 'Test',
+        tenantId: 'tenant-123',
+        data: {
+          userName: 'Test User',
+          userEmail: 'test@example.com',
+          tenantName: 'Test Clinic',
+          tenantSlug: 'test-clinic',
+          planName: 'Pro',
+          planAmount: 49900,
+          currency: 'mxn',
+          billingInterval: interval,
+          paymentDate: new Date(),
+        },
+      };
+
+      expect(data.data.billingInterval).toBe(interval);
+    });
+  });
+
+  it('should support both plan types for registration', () => {
+    const planTypes: Array<'TRIAL' | 'PAID'> = ['TRIAL', 'PAID'];
+
+    planTypes.forEach((planType) => {
+      const data: NewUserRegistrationData = {
+        template: 'new-user-registration',
+        to: { email: 'admin@vetify.pro' },
+        subject: 'Test',
+        tenantId: 'tenant-123',
+        data: {
+          userName: 'Test User',
+          userEmail: 'test@example.com',
+          tenantName: 'Test Clinic',
+          tenantSlug: 'test-clinic',
+          registrationDate: new Date(),
+          planType,
+        },
+      };
+
+      expect(data.data.planType).toBe(planType);
     });
   });
 });
