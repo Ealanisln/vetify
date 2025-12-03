@@ -1,5 +1,156 @@
 require('@testing-library/jest-dom');
 
+// Polyfill for Next.js server components
+const { TextEncoder, TextDecoder } = require('util');
+global.TextEncoder = TextEncoder;
+global.TextDecoder = TextDecoder;
+
+// Mock Request/Response/Headers for Node.js test environment
+class MockHeaders {
+  constructor(init = {}) {
+    this._headers = new Map(Object.entries(init));
+  }
+  get(name) {
+    return this._headers.get(name.toLowerCase()) || null;
+  }
+  set(name, value) {
+    this._headers.set(name.toLowerCase(), value);
+  }
+  has(name) {
+    return this._headers.has(name.toLowerCase());
+  }
+  delete(name) {
+    this._headers.delete(name.toLowerCase());
+  }
+  entries() {
+    return this._headers.entries();
+  }
+  forEach(callback) {
+    this._headers.forEach(callback);
+  }
+}
+
+class MockRequest {
+  constructor(url, options = {}) {
+    this.url = url;
+    this.method = options.method || 'GET';
+    this._body = options.body;
+    this._headers = new MockHeaders(options.headers || {});
+    this.nextUrl = new URL(url);
+  }
+  get headers() {
+    return this._headers;
+  }
+  async json() {
+    return typeof this._body === 'string' ? JSON.parse(this._body) : this._body;
+  }
+  async text() {
+    return typeof this._body === 'string' ? this._body : JSON.stringify(this._body);
+  }
+}
+
+class MockResponse {
+  constructor(body, options = {}) {
+    this._body = body;
+    this.status = options.status || 200;
+    this._headers = new MockHeaders(options.headers || {});
+  }
+  get headers() {
+    return this._headers;
+  }
+  async json() {
+    return typeof this._body === 'string' ? JSON.parse(this._body) : this._body;
+  }
+  async text() {
+    return typeof this._body === 'string' ? this._body : JSON.stringify(this._body);
+  }
+}
+
+global.Request = MockRequest;
+global.Response = MockResponse;
+global.Headers = MockHeaders;
+
+// Mock NextResponse with static json method
+jest.mock('next/server', () => {
+  // Re-create MockHeaders inside the factory since jest.mock is hoisted
+  class InnerMockHeaders {
+    constructor(init = {}) {
+      this._headers = new Map(Object.entries(init));
+    }
+    get(name) {
+      return this._headers.get(name.toLowerCase()) || null;
+    }
+    set(name, value) {
+      this._headers.set(name.toLowerCase(), value);
+    }
+    has(name) {
+      return this._headers.has(name.toLowerCase());
+    }
+    delete(name) {
+      this._headers.delete(name.toLowerCase());
+    }
+    entries() {
+      return this._headers.entries();
+    }
+    forEach(callback) {
+      this._headers.forEach(callback);
+    }
+  }
+
+  class MockNextRequest {
+    constructor(url, options = {}) {
+      this.url = url;
+      this.method = options.method || 'GET';
+      this._body = options.body;
+      this._headers = new InnerMockHeaders(options.headers || {});
+      this.nextUrl = new URL(url);
+    }
+    get headers() {
+      return this._headers;
+    }
+    async json() {
+      return typeof this._body === 'string' ? JSON.parse(this._body) : this._body;
+    }
+    async text() {
+      return typeof this._body === 'string' ? this._body : JSON.stringify(this._body);
+    }
+  }
+
+  class MockNextResponse {
+    constructor(body, options = {}) {
+      this._body = body;
+      this.status = options.status || 200;
+      this._headers = new InnerMockHeaders(options.headers || {});
+    }
+
+    static json(body, options = {}) {
+      const response = new MockNextResponse(JSON.stringify(body), options);
+      response._jsonBody = body;
+      return response;
+    }
+
+    get headers() {
+      return this._headers;
+    }
+
+    async json() {
+      if (this._jsonBody !== undefined) {
+        return this._jsonBody;
+      }
+      return typeof this._body === 'string' ? JSON.parse(this._body) : this._body;
+    }
+
+    async text() {
+      return typeof this._body === 'string' ? this._body : JSON.stringify(this._body);
+    }
+  }
+
+  return {
+    NextResponse: MockNextResponse,
+    NextRequest: MockNextRequest,
+  };
+});
+
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
