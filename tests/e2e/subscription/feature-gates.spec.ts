@@ -10,9 +10,15 @@ import { test, expect } from '@playwright/test';
  * - Loading states work properly
  * - Handles errors gracefully
  * - Works consistently across different features
+ *
+ * NOTE: These tests require authentication and proper test user setup.
+ * They will be skipped if TEST_AUTH_ENABLED is not set.
  */
+const isAuthTestEnabled = process.env.TEST_AUTH_ENABLED === 'true';
 
 test.describe('FeatureGate Component', () => {
+  test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session. Set TEST_AUTH_ENABLED=true');
+
   test.describe('Visual Elements (Plan Básico)', () => {
     test.beforeEach(async ({ page }) => {
       // TODO: Setup test user with Plan Básico

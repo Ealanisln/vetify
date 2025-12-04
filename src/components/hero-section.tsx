@@ -24,7 +24,7 @@ export function HeroSection() {
           </p>
 
           <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:gap-4 sm:flex-row">
-            <Link href="/api/auth/register">
+            <Link href="/api/auth/register" data-testid="signup-button">
               <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold">
                 Probar 30 días gratis
               </Button>

@@ -88,7 +88,8 @@ export interface LocationComparison {
 export async function getLocationRevenueAnalytics(
   tenantId: string,
   locationId: string | null,
-  dateRange?: DateRange // Reserved for future date range filtering
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _dateRange?: DateRange // Reserved for future date range filtering
 ): Promise<LocationRevenueAnalytics> {
   const today = new Date();
   const startOfThisMonth = startOfMonth(today);
