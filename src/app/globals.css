@@ -510,6 +510,23 @@
   border-style: solid;
 }
 
+/* Ensure event text colors are respected in both modes */
+.fc-event,
+.fc-event-main,
+.fc-event-title,
+.fc-event-time {
+  color: inherit !important;
+}
+
+/* Event content inherits text color from inline styles */
+.fc-event .fc-event-main {
+  overflow: hidden;
+}
+
+.dark .fc-event .fc-event-main {
+  color: inherit;
+}
+
 /* List view styling */
 .dark .fc-list-event:hover td {
   background-color: hsl(var(--accent) / 0.5);

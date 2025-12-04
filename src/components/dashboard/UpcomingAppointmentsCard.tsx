@@ -99,7 +99,7 @@ export function UpcomingAppointmentsCard({ appointments }: UpcomingAppointmentsC
                         {formatDate(appointment.dateTime)} • {appointment.pet.customer.firstName || appointment.pet.customer.name}
                       </p>
                     </div>
-                    <div className="flex-shrink-0 flex flex-col items-end space-y-1">
+                    <div className="flex-shrink-0 flex flex-col items-end gap-2">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
                         {getStatusText(appointment.status)}
                       </span>
