@@ -108,7 +108,9 @@ export default function AppointmentDetailClient({
       setIsEditing(false);
       router.refresh();
     } catch (error) {
-      toast.error('Error al actualizar la cita');
+      // Show the specific error message from the server
+      const errorMessage = error instanceof Error ? error.message : 'Error al actualizar la cita';
+      toast.error(errorMessage);
       console.error('Error updating appointment:', error);
       throw error;
     } finally {
@@ -170,6 +172,7 @@ export default function AppointmentDetailClient({
               customers={customers}
               pets={pets}
               staff={staff}
+              appointmentId={appointment.id}
               initialData={{
                 customerId: appointment.customer.id,
                 petId: appointment.pet.id,

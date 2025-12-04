@@ -159,37 +159,44 @@ export async function POST(request: Request) {
       }
     }
     
-    // Verificar disponibilidad (no permitir citas superpuestas en el mismo horario)
+    // Verificar disponibilidad (no permitir citas superpuestas para el mismo veterinario)
     const appointmentDateTime = new Date(validatedData.dateTime);
     const endDateTime = new Date(appointmentDateTime.getTime() + validatedData.duration * 60000);
 
-    const conflictingAppointment = await prisma.appointment.findFirst({
-      where: {
-        tenantId: tenant.id,
-        ...(validatedData.locationId && { locationId: validatedData.locationId }),
-        status: {
-          notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']
-        },
-        AND: [
-          {
-            dateTime: {
-              lt: endDateTime
-            }
+    // Solo verificar conflictos si hay un staff asignado
+    if (validatedData.staffId) {
+      const conflictingAppointment = await prisma.appointment.findFirst({
+        where: {
+          tenantId: tenant.id,
+          staffId: validatedData.staffId, // Solo conflictos con el mismo veterinario
+          status: {
+            notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']
           },
-                     {
-             dateTime: {
-               gte: new Date(appointmentDateTime.getTime() - (120 * 60000)) // 2 horas antes
-             }
-           }
-        ]
+          AND: [
+            {
+              dateTime: {
+                lt: endDateTime
+              }
+            },
+            {
+              dateTime: {
+                gte: new Date(appointmentDateTime.getTime() - (validatedData.duration * 60000))
+              }
+            }
+          ]
+        },
+        include: {
+          staff: { select: { name: true } }
+        }
+      });
+
+      if (conflictingAppointment) {
+        const staffName = conflictingAppointment.staff?.name || 'este veterinario';
+        return NextResponse.json(
+          { success: false, error: `${staffName} ya tiene una cita en este horario` },
+          { status: 409 }
+        );
       }
-    });
-    
-    if (conflictingAppointment) {
-      return NextResponse.json(
-        { success: false, error: 'Ya existe una cita en este horario' },
-        { status: 409 }
-      );
     }
     
     // Crear la cita

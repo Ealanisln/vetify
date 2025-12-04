@@ -11,7 +11,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Loader2, Clock, AlertCircle, CheckCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { toast } from 'sonner';
 import { cn } from '../../lib/utils';
 import LocationSelector from '@/components/locations/LocationSelector';
 
@@ -41,6 +40,7 @@ interface AppointmentFormProps {
   pets: Pet[];
   staff: Staff[];
   initialData?: Partial<AppointmentFormData>;
+  appointmentId?: string; // For edit mode - excludes this appointment from availability check
   onSubmit: (data: AppointmentFormData) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
@@ -52,6 +52,7 @@ export function AppointmentForm({
   pets,
   staff,
   initialData,
+  appointmentId,
   onSubmit,
   onCancel,
   loading = false,
@@ -114,12 +115,13 @@ export function AppointmentForm({
   useEffect(() => {
     if (selectedDate) {
       const dateString = format(selectedDate, 'yyyy-MM-dd');
-      checkAvailability(dateString, watchedDuration, watchedStaffId)
+      // Pass appointmentId to exclude current appointment when editing
+      checkAvailability(dateString, watchedDuration, watchedStaffId, appointmentId)
         .catch(() => {
           // Handle availability check errors silently
         });
     }
-  }, [selectedDate, watchedDuration, watchedStaffId, checkAvailability]);
+  }, [selectedDate, watchedDuration, watchedStaffId, appointmentId, checkAvailability]);
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
@@ -132,16 +134,11 @@ export function AppointmentForm({
   };
 
   const handleFormSubmit = async (data: Parameters<typeof onSubmit>[0]) => {
-    try {
-      // Include locationId in the submission data
-      await onSubmit({ ...data, locationId: locationId || null } as Parameters<typeof onSubmit>[0] & { locationId: string | null });
-      toast.success('Cita guardada exitosamente');
-      reset();
-      setLocationId('');
-    } catch (error) {
-      toast.error('Error al guardar la cita');
-      console.error('Error submitting appointment form:', error);
-    }
+    // Include locationId in the submission data
+    // Let the parent component (AppointmentModal) handle toasts to avoid duplicates
+    await onSubmit({ ...data, locationId: locationId || null } as Parameters<typeof onSubmit>[0] & { locationId: string | null });
+    reset();
+    setLocationId('');
   };
 
   const handleCustomerChange = (customerId: string) => {
@@ -380,7 +377,7 @@ export function AppointmentForm({
             type="number"
             min={15}
             max={300}
-            step={15}
+            step={5}
             className="form-input"
             {...register('duration', { valueAsNumber: true })}
           />
