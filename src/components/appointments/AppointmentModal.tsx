@@ -56,7 +56,7 @@ export function AppointmentModal({
 
   const handleSubmit = async (data: AppointmentFormData) => {
     setLoading(true);
-    
+
     try {
       if (isEditing) {
         await updateAppointment(appointment.id, data);
@@ -65,11 +65,13 @@ export function AppointmentModal({
         await createAppointment(data);
         toast.success('Cita creada exitosamente');
       }
-      
+
       onSuccess?.();
       onOpenChange(false);
     } catch (error) {
-      toast.error(isEditing ? 'Error al actualizar la cita' : 'Error al crear la cita');
+      // Show the specific error message from the server
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      toast.error(errorMessage);
       console.error('Error handling appointment:', error);
       throw error; // Re-throw para que AppointmentForm maneje el estado de error
     } finally {
