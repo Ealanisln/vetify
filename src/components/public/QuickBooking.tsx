@@ -5,6 +5,7 @@ import { Button } from '../ui/button';
 import { CheckCircle, AlertCircle, User, ArrowRight, Users, Clock, Heart } from 'lucide-react';
 import Link from 'next/link';
 import type { PublicTenant } from '../../lib/tenant';
+import { getTheme, getThemeClasses } from '../../lib/themes';
 
 interface Pet {
   id: string;
@@ -54,7 +55,9 @@ interface SubmissionResult {
 }
 
 export function QuickBooking({ tenant }: QuickBookingProps) {
-  const themeColor = tenant.publicThemeColor || '#75a99c';
+  const theme = getTheme(tenant.publicTheme);
+  const themeColor = tenant.publicThemeColor || theme.colors.primary;
+  const themeClasses = getThemeClasses(theme);
   
   const [formData, setFormData] = useState({
     customerName: '',
@@ -267,13 +270,23 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
 
   // 📝 FORMULARIO ORIGINAL
   return (
-    <section className="py-16 bg-white">
+    <section
+      className="py-16"
+      style={{ backgroundColor: theme.colors.background }}
+    >
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2
+            className="text-3xl font-bold mb-4"
+            style={{
+              color: theme.colors.text,
+              fontFamily: theme.typography.fontFamily,
+              fontWeight: theme.typography.headingWeight
+            }}
+          >
             Agenda tu Cita
           </h2>
-          <p className="text-lg text-gray-600">
+          <p className="text-lg" style={{ color: theme.colors.textMuted }}>
             Completa el formulario y nos contactaremos contigo para confirmar tu cita
           </p>
         </div>
@@ -282,7 +295,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Información del cliente */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <h3 className="text-lg font-semibold flex items-center" style={{ color: theme.colors.text }}>
                 <User className="h-5 w-5 mr-2" style={{ color: themeColor }} />
                 Información de Contacto
               </h3>
@@ -337,7 +350,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
 
             {/* Información de la cita */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+              <h3 className="text-lg font-semibold flex items-center" style={{ color: theme.colors.text }}>
                 <Heart className="h-5 w-5 mr-2" style={{ color: themeColor }} />
                 Detalles de la Cita
               </h3>
@@ -424,11 +437,14 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
             />
           </div>
 
-          <Button 
-            type="submit" 
-            size="lg" 
-            className="w-full"
-            style={{ backgroundColor: themeColor }}
+          <Button
+            type="submit"
+            size="lg"
+            className={`w-full text-white ${themeClasses.button}`}
+            style={{
+              backgroundColor: themeColor,
+              borderRadius: theme.layout.borderRadius
+            }}
             disabled={isLoading}
           >
             {isLoading ? 'Enviando solicitud...' : 'Solicitar Cita'}

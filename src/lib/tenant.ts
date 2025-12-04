@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import type { SubscriptionStatus } from '@prisma/client';
+import type { ThemeId } from './themes';
 
 /**
  * Initialize trial period for a tenant
@@ -58,6 +59,7 @@ export interface PublicTenant {
   publicImages: PublicImages | null;
   publicSocialMedia: PublicSocialMedia | null;
   publicThemeColor: string | null;
+  publicTheme: ThemeId | null;
   publicBookingEnabled: boolean;
   createdAt: Date;
   tenantSubscription: {
@@ -87,6 +89,7 @@ function transformTenantForPublic(tenant: {
   publicImages: unknown;
   publicSocialMedia: unknown;
   publicThemeColor: string | null;
+  publicTheme: string | null;
   publicBookingEnabled: boolean;
   createdAt: Date;
   tenantSubscription: {
@@ -103,6 +106,7 @@ function transformTenantForPublic(tenant: {
     publicServices: tenant.publicServices as PublicService[] | null,
     publicImages: tenant.publicImages as PublicImages | null,
     publicSocialMedia: tenant.publicSocialMedia as PublicSocialMedia | null,
+    publicTheme: tenant.publicTheme as ThemeId | null,
     tenantSubscription: tenant.tenantSubscription
   };
 }
@@ -385,6 +389,7 @@ export async function getTenantBySlug(slug: string): Promise<PublicTenant | null
       publicImages: true,
       publicSocialMedia: true,
       publicThemeColor: true,
+      publicTheme: true,
       publicBookingEnabled: true,
       createdAt: true,
       tenantSubscription: {
