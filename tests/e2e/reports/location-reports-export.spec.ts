@@ -1,6 +1,16 @@
 import { test, expect, Page, Download } from '@playwright/test';
 
+/**
+ * E2E Tests for Location Reports Export Functionality
+ *
+ * NOTE: These tests require authentication and proper test user setup.
+ * They will be skipped if TEST_AUTH_ENABLED is not set.
+ */
+const isAuthTestEnabled = process.env.TEST_AUTH_ENABLED === 'true';
+
 test.describe('Location Reports Export Functionality', () => {
+  test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session. Set TEST_AUTH_ENABLED=true');
+
   // Helper to authenticate (mock for E2E testing)
   async function authenticateUser(page: Page) {
     // In a real E2E test, you would authenticate through Kinde

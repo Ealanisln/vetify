@@ -9,9 +9,15 @@ import { test, expect } from '@playwright/test';
  * - Post-upgrade feature access works immediately
  * - Subscription limits update correctly after upgrade
  * - Upgrade flow user experience is smooth and clear
+ *
+ * NOTE: These tests require authentication and proper test user setup.
+ * They will be skipped if TEST_AUTH_ENABLED is not set.
  */
+const isAuthTestEnabled = process.env.TEST_AUTH_ENABLED === 'true';
 
 test.describe('Subscription Upgrade Flows', () => {
+  test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session. Set TEST_AUTH_ENABLED=true');
+
   test.describe('Upgrade Prompt Visibility (Plan Básico)', () => {
     test.beforeEach(async ({ page }) => {
       // TODO: Setup test user with Plan Básico

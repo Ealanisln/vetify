@@ -1,6 +1,21 @@
 import { test, expect, Page, BrowserContext } from '@playwright/test';
 
+/**
+ * Authentication Race Condition Tests
+ *
+ * NOTE: These tests require a real Kinde authentication flow to work.
+ * They will be skipped if the TEST_AUTH_ENABLED environment variable is not set.
+ * To run these tests:
+ * 1. Set up Kinde test credentials
+ * 2. Set TEST_AUTH_ENABLED=true
+ * 3. Optionally set TEST_USER_EMAIL and TEST_USER_PASSWORD
+ */
+const isAuthTestEnabled = process.env.TEST_AUTH_ENABLED === 'true';
+
 test.describe('Authentication Race Condition Fix', () => {
+  // Skip all tests in this suite if auth testing is not enabled
+  test.skip(!isAuthTestEnabled, 'Skipping auth tests - set TEST_AUTH_ENABLED=true to enable');
+
   test.beforeEach(async ({ page }) => {
     // Navigate to the home page
     await page.goto('/');

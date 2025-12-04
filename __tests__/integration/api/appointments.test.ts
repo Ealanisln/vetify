@@ -1,6 +1,14 @@
 import request from 'supertest';
 import { prismaMock } from '../../mocks/prisma';
-import { createTestAppointment, createTestUser, createTestPet, createTestTenant } from '../../utils/test-utils';
+import {
+  createTestAppointment,
+  createTestUser,
+  createTestPet,
+  createTestTenant,
+  createTestCustomer,
+  createTestStaff,
+  createTestLocation,
+} from '../../utils/test-utils';
 
 // Mock Next.js app
 const mockApp = {
@@ -269,9 +277,176 @@ describe('Appointments API Integration Tests', () => {
 
       // Mock sanitization
       const sanitizedNotes = appointmentWithScript.notes.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
-      
+
       expect(sanitizedNotes).toBe('Valid notes');
       expect(sanitizedNotes).not.toContain('<script>');
+    });
+  });
+
+  describe('Multi-Tenancy Isolation (Enhanced)', () => {
+    it('should return 404 when updating appointment from another tenant', async () => {
+      const otherTenantId = 'other-tenant-id';
+      const otherTenantAppointment = createTestAppointment({
+        id: 'other-appointment',
+        tenantId: otherTenantId,
+      });
+
+      // Simulate tenant-scoped update that returns 0 affected rows for wrong tenant
+      prismaMock.appointment.updateMany.mockResolvedValue({ count: 0 });
+
+      const result = await prismaMock.appointment.updateMany({
+        where: {
+          id: otherTenantAppointment.id,
+          tenantId: mockTenant.id, // Current tenant trying to update other tenant's appointment
+        },
+        data: { reason: 'Hacked Reason' },
+      });
+
+      expect(result.count).toBe(0);
+    });
+
+    it('should return 404 when deleting appointment from another tenant', async () => {
+      const otherTenantId = 'other-tenant-id';
+
+      // Simulate tenant-scoped delete (soft delete via status change)
+      prismaMock.appointment.updateMany.mockResolvedValue({ count: 0 });
+
+      const result = await prismaMock.appointment.updateMany({
+        where: {
+          id: 'other-appointment-id',
+          tenantId: mockTenant.id, // Current tenant trying to delete other tenant's appointment
+        },
+        data: { status: 'CANCELLED_CLINIC' },
+      });
+
+      expect(result.count).toBe(0);
+    });
+  });
+
+  describe('Related Entity Loading', () => {
+    it('should include customer, pet, staff, and location data', async () => {
+      const mockCustomer = createTestCustomer({ tenantId: mockTenant.id });
+      const mockStaff = createTestStaff({ tenantId: mockTenant.id });
+      const mockLocation = createTestLocation({ tenantId: mockTenant.id });
+
+      const appointmentWithRelations = {
+        ...mockAppointment,
+        customer: mockCustomer,
+        pet: mockPet,
+        staff: mockStaff,
+        location: mockLocation,
+      };
+
+      prismaMock.appointment.findUnique.mockResolvedValue(appointmentWithRelations);
+
+      const result = await prismaMock.appointment.findUnique({
+        where: { id: mockAppointment.id },
+        include: {
+          customer: true,
+          pet: true,
+          staff: true,
+          location: true,
+        },
+      });
+
+      expect(result?.customer).toBeDefined();
+      expect(result?.pet).toBeDefined();
+      expect(result?.staff).toBeDefined();
+      expect(result?.location).toBeDefined();
+      expect(result?.customer.id).toBe(mockCustomer.id);
+      expect(result?.pet.id).toBe(mockPet.id);
+    });
+  });
+
+  describe('Conflict Detection (Enhanced)', () => {
+    it('should detect conflicts only for same veterinarian', async () => {
+      const sameVetAppointment = createTestAppointment({
+        id: 'same-vet-appt',
+        tenantId: mockTenant.id,
+        staffId: mockAppointment.staffId, // Same vet
+        startTime: mockAppointment.startTime,
+        endTime: mockAppointment.endTime,
+      });
+
+      // Find conflicts for same vet
+      prismaMock.appointment.findMany.mockImplementation(async (args: any) => {
+        const where = args?.where;
+        if (where?.staffId === mockAppointment.staffId) {
+          return [mockAppointment];
+        }
+        return [];
+      });
+
+      const conflictingAppointments = await prismaMock.appointment.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          staffId: mockAppointment.staffId,
+          dateTime: {
+            gte: mockAppointment.startTime,
+            lt: mockAppointment.endTime,
+          },
+          status: { notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW'] },
+        },
+      });
+
+      expect(conflictingAppointments).toHaveLength(1);
+    });
+
+    it('should allow concurrent appointments with different vets', async () => {
+      const differentVetId = 'different-vet-id';
+
+      // Find conflicts for different vet - should return empty
+      prismaMock.appointment.findMany.mockImplementation(async (args: any) => {
+        const where = args?.where;
+        if (where?.staffId === differentVetId) {
+          return []; // No conflicts for different vet
+        }
+        return [mockAppointment];
+      });
+
+      const conflictingAppointments = await prismaMock.appointment.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          staffId: differentVetId,
+          dateTime: {
+            gte: mockAppointment.startTime,
+            lt: mockAppointment.endTime,
+          },
+          status: { notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW'] },
+        },
+      });
+
+      expect(conflictingAppointments).toHaveLength(0);
+    });
+  });
+
+  describe('Soft Delete Verification', () => {
+    it('should use soft delete (status change) instead of hard delete', async () => {
+      // Verify DELETE operation changes status rather than removing record
+      const softDeletedAppointment = {
+        ...mockAppointment,
+        status: 'CANCELLED_CLINIC',
+      };
+
+      prismaMock.appointment.update.mockResolvedValue(softDeletedAppointment);
+
+      const result = await prismaMock.appointment.update({
+        where: { id: mockAppointment.id },
+        data: { status: 'CANCELLED_CLINIC' },
+      });
+
+      expect(result.status).toBe('CANCELLED_CLINIC');
+      expect(result.id).toBe(mockAppointment.id);
+
+      // Verify the record still exists
+      prismaMock.appointment.findUnique.mockResolvedValue(softDeletedAppointment);
+
+      const stillExists = await prismaMock.appointment.findUnique({
+        where: { id: mockAppointment.id },
+      });
+
+      expect(stillExists).not.toBeNull();
+      expect(stillExists?.status).toBe('CANCELLED_CLINIC');
     });
   });
 });

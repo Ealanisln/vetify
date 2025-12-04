@@ -15,7 +15,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div data-testid="dashboard-header">
         <h1 className="text-2xl font-semibold text-foreground">
           ¡Hola, {user.firstName || user.name}! 👋
         </h1>

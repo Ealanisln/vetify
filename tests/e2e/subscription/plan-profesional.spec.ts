@@ -10,9 +10,15 @@ import { test, expect } from '@playwright/test';
  * - Advanced reports and analytics
  * - Staff management with shifts
  * - No upgrade prompts for any current features
+ *
+ * NOTE: These tests require authentication and proper test user setup.
+ * They will be skipped if TEST_AUTH_ENABLED is not set.
  */
+const isAuthTestEnabled = process.env.TEST_AUTH_ENABLED === 'true';
 
 test.describe('Plan Profesional Access Control', () => {
+  test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session. Set TEST_AUTH_ENABLED=true');
+
   test.beforeEach(async ({ page }) => {
     // TODO: Setup test user with Plan Profesional subscription
     // This would typically involve:
