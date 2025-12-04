@@ -259,6 +259,47 @@ function levenshteinDistance(str1: string, str2: string): number {
   return matrix[str2.length][str1.length];
 }
 
+/**
+ * Encuentra una mascota por fuzzy matching del nombre
+ */
+function findBestPetMatch(pets: Pet[], petName: string): Pet | null {
+  if (!pets || pets.length === 0) return null;
+
+  const normalizedInput = petName.toLowerCase().trim();
+
+  // 1. Búsqueda exacta (case insensitive)
+  const exactMatch = pets.find(p => p.name.toLowerCase().trim() === normalizedInput);
+  if (exactMatch) return exactMatch;
+
+  // 2. Búsqueda por contenido (el input contiene el nombre o viceversa)
+  const containsMatch = pets.find(p => {
+    const normalizedPetName = p.name.toLowerCase().trim();
+    return normalizedPetName.includes(normalizedInput) || normalizedInput.includes(normalizedPetName);
+  });
+  if (containsMatch) return containsMatch;
+
+  // 3. Fuzzy match usando Levenshtein
+  let bestMatch: Pet | null = null;
+  let bestScore = 0;
+
+  for (const pet of pets) {
+    const score = levenshteinSimilarity(normalizedInput, pet.name.toLowerCase().trim());
+    if (score > bestScore && score >= 0.6) { // Umbral de 60% de similitud
+      bestScore = score;
+      bestMatch = pet;
+    }
+  }
+
+  return bestMatch;
+}
+
+export interface PetMatchResult {
+  petId: string | null;
+  matchType: 'exact_id' | 'fuzzy_name' | 'new_pet' | 'none';
+  matchedPet?: Pet;
+  confidence: 'high' | 'medium' | 'low';
+}
+
 export async function createPublicAppointmentRequest({
   tenantId,
   customerId,
@@ -268,6 +309,7 @@ export async function createPublicAppointmentRequest({
   tenantId: string;
   customerId: string;
   appointmentData: {
+    petId?: string;
     petName: string;
     service?: string;
     preferredDate?: string;
@@ -276,10 +318,71 @@ export async function createPublicAppointmentRequest({
   };
   identificationResult: CustomerIdentificationResult;
 }) {
+  // 🐾 MATCH DE MASCOTA
+  let petMatchResult: PetMatchResult = {
+    petId: null,
+    matchType: 'none',
+    confidence: 'low'
+  };
+
+  // 1. Si se proporciona petId, verificar que pertenece al cliente
+  if (appointmentData.petId) {
+    const existingPet = identificationResult.existingPets?.find(p => p.id === appointmentData.petId);
+    if (existingPet) {
+      petMatchResult = {
+        petId: existingPet.id,
+        matchType: 'exact_id',
+        matchedPet: existingPet,
+        confidence: 'high'
+      };
+    }
+  }
+
+  // 2. Si no hay petId pero el cliente tiene mascotas, intentar fuzzy match
+  if (!petMatchResult.petId && identificationResult.existingPets && identificationResult.existingPets.length > 0) {
+    const matchedPet = findBestPetMatch(identificationResult.existingPets, appointmentData.petName);
+    if (matchedPet) {
+      petMatchResult = {
+        petId: matchedPet.id,
+        matchType: 'fuzzy_name',
+        matchedPet,
+        confidence: 'medium'
+      };
+    } else {
+      // Nueva mascota para cliente existente
+      petMatchResult = {
+        petId: null,
+        matchType: 'new_pet',
+        confidence: 'medium'
+      };
+    }
+  }
+
+  // 3. Para clientes nuevos, no hay match posible
+  if (identificationResult.status === 'new') {
+    petMatchResult = {
+      petId: null,
+      matchType: 'new_pet',
+      confidence: 'high'
+    };
+  }
+
+  // Generar notas de revisión
+  let reviewNotes = identificationResult.status === 'needs_review'
+    ? `Similitud encontrada con ${identificationResult.similarCustomers?.length} clientes existentes. `
+    : '';
+
+  if (petMatchResult.matchType === 'fuzzy_name' && petMatchResult.matchedPet) {
+    reviewNotes += `Mascota "${appointmentData.petName}" vinculada automáticamente con "${petMatchResult.matchedPet.name}" (match fuzzy).`;
+  } else if (petMatchResult.matchType === 'new_pet' && identificationResult.status === 'existing') {
+    reviewNotes += `Nueva mascota "${appointmentData.petName}" para cliente existente.`;
+  }
+
   return await prisma.appointmentRequest.create({
     data: {
       tenantId,
       customerId,
+      petId: petMatchResult.petId,
       petName: appointmentData.petName,
       service: appointmentData.service,
       preferredDate: appointmentData.preferredDate ? new Date(appointmentData.preferredDate) : null,
@@ -289,9 +392,7 @@ export async function createPublicAppointmentRequest({
       source: 'PUBLIC_BOOKING',
       identificationStatus: identificationResult.status,
       similarCustomerIds: identificationResult.similarCustomers?.map(c => c.id) || [],
-      reviewNotes: identificationResult.status === 'needs_review' 
-        ? `Similitud encontrada con ${identificationResult.similarCustomers?.length} clientes existentes`
-        : null
+      reviewNotes: reviewNotes.trim() || null
     },
     include: {
       customer: {
@@ -299,7 +400,8 @@ export async function createPublicAppointmentRequest({
           pets: true,
           user: true
         }
-      }
+      },
+      pet: true
     }
   });
 } 

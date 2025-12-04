@@ -1,6 +1,7 @@
 import { prisma } from './prisma';
 import { n8nService } from './n8n';
 import { z } from 'zod';
+import { formatDate } from './utils/date-format';
 
 // Validation schemas
 export const createTreatmentScheduleSchema = z.object({
@@ -44,7 +45,7 @@ export async function createTreatmentSchedule(tenantId: string, data: CreateTrea
       customerId: schedule.pet.customerId,
       type: 'TREATMENT',
       title: `Recordatorio de ${data.treatmentType.toLowerCase()}`,
-      message: `Tu mascota ${schedule.pet.name} tiene programado un ${data.treatmentType.toLowerCase()} el ${data.scheduledDate.toLocaleDateString()}`,
+      message: `Tu mascota ${schedule.pet.name} tiene programado un ${data.treatmentType.toLowerCase()} el ${formatDate(data.scheduledDate)}`,
       dueDate: reminderDate,
       status: 'PENDING'
     }
@@ -209,7 +210,7 @@ export async function processPendingReminders(tenantId: string) {
           ownerName: reminder.customer.name,
           ownerPhone: reminder.customer.phone,
           vaccinationType: reminder.title,
-          dueDate: reminder.dueDate.toLocaleDateString(),
+          dueDate: formatDate(reminder.dueDate),
           clinicName: 'Tu Clínica Veterinaria', // This should come from tenant settings
           clinicPhone: '+1234567890' // This should come from tenant settings
         });

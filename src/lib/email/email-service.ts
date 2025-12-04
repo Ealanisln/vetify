@@ -26,6 +26,7 @@ import {
   NewUserRegistrationEmail,
   NewSubscriptionPaymentEmail,
 } from './templates';
+import { formatDateLong, formatDateTimeLong, formatDate, formatCurrency } from '../utils/date-format';
 
 // Lazy-load Resend client to avoid initialization during build
 let resendClient: Resend | null = null;
@@ -171,12 +172,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
   switch (emailData.template) {
     case 'appointment-confirmation': {
       const d = emailData.data;
-      const appointmentDateStr = d.appointmentDate.toLocaleDateString('es-MX', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
+      const appointmentDateStr = formatDateLong(d.appointmentDate);
       return await render(
         AppointmentConfirmationEmail({
           ownerName: d.ownerName,
@@ -195,12 +191,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'appointment-reminder': {
       const d = emailData.data;
-      const appointmentDateStr = d.appointmentDate.toLocaleDateString('es-MX', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
+      const appointmentDateStr = formatDateLong(d.appointmentDate);
       return await render(
         AppointmentReminderEmail({
           ownerName: d.ownerName,
@@ -219,13 +210,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'low-stock-alert': {
       const d = emailData.data;
-      const alertDateStr = d.alertDate.toLocaleDateString('es-MX', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const alertDateStr = formatDateTimeLong(d.alertDate);
       return await render(
         LowStockAlertEmail({
           clinicName: d.clinicName,
@@ -238,12 +223,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'treatment-reminder': {
       const d = emailData.data;
-      const dueDateStr = d.dueDate.toLocaleDateString('es-MX', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
+      const dueDateStr = formatDateLong(d.dueDate);
       return await render(
         TreatmentReminderEmail({
           ownerName: d.ownerName,
@@ -262,20 +242,9 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'new-user-registration': {
       const d = emailData.data;
-      const registrationDateStr = d.registrationDate.toLocaleDateString('es-MX', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const registrationDateStr = formatDateTimeLong(d.registrationDate);
       const trialEndsStr = d.trialEndsAt
-        ? d.trialEndsAt.toLocaleDateString('es-MX', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          })
+        ? formatDate(d.trialEndsAt)
         : undefined;
       return await render(
         NewUserRegistrationEmail({
@@ -292,18 +261,8 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'new-subscription-payment': {
       const d = emailData.data;
-      const paymentDateStr = d.paymentDate.toLocaleDateString('es-MX', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-      const formattedAmount = new Intl.NumberFormat('es-MX', {
-        style: 'currency',
-        currency: d.currency.toUpperCase(),
-      }).format(d.planAmount / 100);
+      const paymentDateStr = formatDateTimeLong(d.paymentDate);
+      const formattedAmount = formatCurrency(d.planAmount / 100, d.currency.toUpperCase());
       return await render(
         NewSubscriptionPaymentEmail({
           userName: d.userName,

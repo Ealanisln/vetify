@@ -1,21 +1,12 @@
 import Link from 'next/link';
 import { AppointmentWithDetails } from '@/types';
+import { formatCalendarDateTime } from '@/lib/utils/date-format';
 
 interface UpcomingAppointmentsCardProps {
   appointments: AppointmentWithDetails[];
 }
 
 export function UpcomingAppointmentsCard({ appointments }: UpcomingAppointmentsCardProps) {
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('es-MX', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(new Date(date));
-  };
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'SCHEDULED':
@@ -96,7 +87,7 @@ export function UpcomingAppointmentsCard({ appointments }: UpcomingAppointmentsC
                         {appointment.reason}
                       </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500">
-                        {formatDate(appointment.dateTime)} • {appointment.pet.customer.firstName || appointment.pet.customer.name}
+                        {formatCalendarDateTime(appointment.dateTime)} • {appointment.pet.customer.firstName || appointment.pet.customer.name}
                       </p>
                     </div>
                     <div className="flex-shrink-0 flex flex-col items-end gap-2">

@@ -1,16 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
-import { CheckCircle, AlertCircle, User, ArrowRight, Users, Clock, Heart } from 'lucide-react';
+import { CheckCircle, AlertCircle, User, ArrowRight, Users, Clock, Heart, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import type { PublicTenant } from '../../lib/tenant';
+import type { PublicTenant, PublicService } from '../../lib/tenant';
 import { getTheme, getThemeClasses } from '../../lib/themes';
+import { formatDate } from '../../lib/utils/date-format';
 
 interface Pet {
   id: string;
   name: string;
   species: string;
+  breed?: string;
+  photoUrl?: string;
+}
+
+interface CustomerLookupResult {
+  found: boolean;
+  customer?: {
+    id: string;
+    name: string;
+    hasPhone: boolean;
+    hasEmail: boolean;
+  };
+  pets?: Pet[];
 }
 
 interface Customer {
@@ -37,6 +51,26 @@ interface QuickBookingProps {
   tenant: PublicTenant;
 }
 
+interface TimeSlot {
+  dateTime: string;
+  time: string;
+  displayTime: string;
+  period: 'morning' | 'afternoon';
+}
+
+interface AvailabilityData {
+  date: string;
+  availableSlots: TimeSlot[];
+  workingDay: boolean;
+  message?: string;
+  businessHours?: {
+    open: string;
+    close: string;
+    lunchStart: string | null;
+    lunchEnd: string | null;
+  };
+}
+
 interface SubmissionResult {
   success: boolean;
   data?: {
@@ -54,17 +88,31 @@ interface SubmissionResult {
   error?: string;
 }
 
+// Default services fallback if tenant has no services configured
+const DEFAULT_SERVICES: PublicService[] = [
+  { title: 'Consulta General', description: 'Revisión general de salud' },
+  { title: 'Vacunación', description: 'Aplicación de vacunas' },
+  { title: 'Emergencia', description: 'Atención de emergencia' },
+];
+
 export function QuickBooking({ tenant }: QuickBookingProps) {
   const theme = getTheme(tenant.publicTheme);
   const themeColor = tenant.publicThemeColor || theme.colors.primary;
   const themeClasses = getThemeClasses(theme);
-  
+
+  // Get services from tenant config or use defaults
+  const services: PublicService[] = tenant.publicServices && tenant.publicServices.length > 0
+    ? tenant.publicServices
+    : DEFAULT_SERVICES;
+
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
     customerEmail: '',
     petName: '',
+    petId: '', // ID of selected existing pet
     service: '',
+    customService: '', // For when "other" is selected
     preferredDate: '',
     preferredTime: '',
     notes: ''
@@ -72,10 +120,138 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
 
   const [submissionResult, setSubmissionResult] = useState<SubmissionResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [availability, setAvailability] = useState<AvailabilityData | null>(null);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+
+  // Customer lookup state
+  const [customerLookup, setCustomerLookup] = useState<CustomerLookupResult | null>(null);
+  const [isLookingUpCustomer, setIsLookingUpCustomer] = useState(false);
+  const [lookupDebounceTimer, setLookupDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // Lookup customer when phone or email changes (debounced)
+  const lookupCustomer = useCallback(async (phone: string, email: string) => {
+    // Need at least phone (10 digits) or valid email
+    const normalizedPhone = phone.replace(/\D/g, '');
+    const hasValidPhone = normalizedPhone.length >= 10;
+    const hasValidEmail = email && email.includes('@') && email.includes('.');
+
+    if (!hasValidPhone && !hasValidEmail) {
+      setCustomerLookup(null);
+      return;
+    }
+
+    setIsLookingUpCustomer(true);
+    try {
+      const response = await fetch('/api/public/customer-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantSlug: tenant.slug,
+          phone: hasValidPhone ? phone : undefined,
+          email: hasValidEmail ? email : undefined
+        })
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setCustomerLookup(result);
+        // If we found a customer and they have a different name, suggest it
+        if (result.found && result.customer && !formData.customerName) {
+          setFormData(prev => ({ ...prev, customerName: result.customer.name }));
+        }
+      }
+    } catch (error) {
+      console.error('Error looking up customer:', error);
+    } finally {
+      setIsLookingUpCustomer(false);
+    }
+  }, [tenant.slug, formData.customerName]);
+
+  // Debounced lookup effect
+  useEffect(() => {
+    if (lookupDebounceTimer) {
+      clearTimeout(lookupDebounceTimer);
+    }
+
+    const timer = setTimeout(() => {
+      lookupCustomer(formData.customerPhone, formData.customerEmail);
+    }, 500); // Wait 500ms after user stops typing
+
+    setLookupDebounceTimer(timer);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.customerPhone, formData.customerEmail]);
+
+  // Handle pet selection
+  const handlePetSelect = (pet: Pet | null) => {
+    if (pet) {
+      setFormData(prev => ({
+        ...prev,
+        petId: pet.id,
+        petName: pet.name
+      }));
+    } else {
+      // "Nueva mascota" selected
+      setFormData(prev => ({
+        ...prev,
+        petId: '',
+        petName: ''
+      }));
+    }
+  };
+
+  // Fetch available slots when date changes
+  const fetchAvailability = useCallback(async (date: string) => {
+    if (!date) {
+      setAvailability(null);
+      return;
+    }
+
+    setIsLoadingSlots(true);
+    try {
+      const response = await fetch(
+        `/api/public/availability?tenantSlug=${tenant.slug}&date=${date}`
+      );
+      const result = await response.json();
+
+      if (result.success) {
+        setAvailability(result.data);
+        // Clear selected time if it's no longer available
+        if (formData.preferredTime && result.data.availableSlots) {
+          const isStillAvailable = result.data.availableSlots.some(
+            (slot: TimeSlot) => slot.time === formData.preferredTime
+          );
+          if (!isStillAvailable) {
+            setFormData(prev => ({ ...prev, preferredTime: '' }));
+          }
+        }
+      } else {
+        setAvailability(null);
+      }
+    } catch (error) {
+      console.error('Error fetching availability:', error);
+      setAvailability(null);
+    } finally {
+      setIsLoadingSlots(false);
+    }
+  }, [tenant.slug, formData.preferredTime]);
+
+  // Fetch availability when date changes
+  useEffect(() => {
+    if (formData.preferredDate) {
+      fetchAvailability(formData.preferredDate);
+    }
+  }, [formData.preferredDate, fetchAvailability]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    // Use customService if "otro" is selected, otherwise use the selected service
+    const finalService = formData.service === 'otro' ? formData.customService : formData.service;
 
     try {
       const response = await fetch('/api/public/appointments', {
@@ -83,7 +259,9 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenantSlug: tenant.slug,
-          ...formData
+          ...formData,
+          service: finalService,
+          petId: formData.petId || undefined // Include pet ID if selected
         })
       });
 
@@ -209,7 +387,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                   <p><strong>Mascota:</strong> {formData.petName}</p>
                   {formData.service && <p><strong>Servicio:</strong> {formData.service}</p>}
                   {formData.preferredDate && (
-                    <p><strong>Fecha preferida:</strong> {new Date(formData.preferredDate).toLocaleDateString()}</p>
+                    <p><strong>Fecha preferida:</strong> {formatDate(formData.preferredDate)}</p>
                   )}
                   {formData.preferredTime && (
                     <p><strong>Hora preferida:</strong> {formData.preferredTime}</p>
@@ -355,70 +533,235 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                 Detalles de la Cita
               </h3>
               
+              {/* Pet selection - shows existing pets if customer is recognized */}
               <div>
-                <label htmlFor="petName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Nombre de la mascota *
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mascota *
+                  {isLookingUpCustomer && (
+                    <Loader2 className="inline-block ml-2 h-3 w-3 animate-spin text-gray-400" />
+                  )}
                 </label>
-                <input
-                  id="petName"
-                  type="text"
-                  value={formData.petName}
-                  onChange={(e) => setFormData({...formData, petName: e.target.value})}
-                  required
-                  placeholder="Nombre de tu mascota"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+
+                {/* Show existing pets if customer is recognized */}
+                {customerLookup?.found && customerLookup.pets && customerLookup.pets.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700 mb-2">
+                      <User className="inline-block h-4 w-4 mr-1" />
+                      ¡Te reconocemos! Selecciona una de tus mascotas o agrega una nueva.
+                    </div>
+
+                    {/* Pet selection buttons */}
+                    <div className="flex flex-wrap gap-2">
+                      {customerLookup.pets.map((pet) => (
+                        <button
+                          key={pet.id}
+                          type="button"
+                          onClick={() => handlePetSelect(pet)}
+                          className={`px-3 py-2 rounded-md border text-sm transition-colors flex items-center gap-2 ${
+                            formData.petId === pet.id
+                              ? 'text-white border-transparent'
+                              : 'border-gray-300 hover:border-gray-400 bg-white'
+                          }`}
+                          style={formData.petId === pet.id ? { backgroundColor: themeColor } : {}}
+                        >
+                          <Heart className="h-4 w-4" />
+                          <span>{pet.name}</span>
+                          {pet.species && (
+                            <span className={`text-xs ${formData.petId === pet.id ? 'text-white/80' : 'text-gray-500'}`}>
+                              ({pet.species})
+                            </span>
+                          )}
+                        </button>
+                      ))}
+
+                      {/* Option for new pet */}
+                      <button
+                        type="button"
+                        onClick={() => handlePetSelect(null)}
+                        className={`px-3 py-2 rounded-md border text-sm transition-colors ${
+                          formData.petId === '' && formData.petName === ''
+                            ? 'border-gray-400 bg-gray-100'
+                            : 'border-gray-300 hover:border-gray-400 bg-white'
+                        }`}
+                      >
+                        + Nueva mascota
+                      </button>
+                    </div>
+
+                    {/* Input for new pet name (only if "nueva mascota" is selected) */}
+                    {formData.petId === '' && (
+                      <input
+                        id="petName"
+                        type="text"
+                        value={formData.petName}
+                        onChange={(e) => setFormData({...formData, petName: e.target.value})}
+                        required
+                        placeholder="Nombre de la nueva mascota"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                      />
+                    )}
+                  </div>
+                ) : (
+                  /* Regular input if customer not recognized */
+                  <input
+                    id="petName"
+                    type="text"
+                    value={formData.petName}
+                    onChange={(e) => setFormData({...formData, petName: e.target.value, petId: ''})}
+                    required
+                    placeholder="Nombre de tu mascota"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                )}
               </div>
               
               <div>
                 <label htmlFor="service" className="block text-sm font-medium text-gray-700 mb-2">
                   Tipo de servicio
                 </label>
-                <select 
+                <select
                   id="service"
                   value={formData.service}
-                  onChange={(e) => setFormData({...formData, service: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(e) => setFormData({...formData, service: e.target.value, customService: ''})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                  style={{
+                    '--tw-ring-color': themeColor
+                  } as React.CSSProperties}
                 >
                   <option value="">Selecciona un servicio</option>
-                  <option value="consulta">Consulta General</option>
-                  <option value="vacunacion">Vacunación</option>
-                  <option value="cirugia">Cirugía</option>
-                  <option value="emergencia">Emergencia</option>
-                  <option value="revision">Revisión</option>
-                  <option value="grooming">Peluquería</option>
-                  <option value="dental">Limpieza Dental</option>
+                  {services.map((service, index) => (
+                    <option key={index} value={service.title}>
+                      {service.title}{service.price ? ` - ${service.price}` : ''}
+                    </option>
+                  ))}
+                  <option value="otro">Otro (especificar)</option>
                 </select>
               </div>
-              
-              <div className="grid grid-cols-2 gap-4">
+
+              {/* Custom service input when "otro" is selected */}
+              {formData.service === 'otro' && (
                 <div>
-                  <label htmlFor="preferredDate" className="block text-sm font-medium text-gray-700 mb-2">
-                    Fecha preferida
+                  <label htmlFor="customService" className="block text-sm font-medium text-gray-700 mb-2">
+                    Describe el servicio que necesitas
                   </label>
                   <input
-                    id="preferredDate"
-                    type="date"
-                    value={formData.preferredDate}
-                    onChange={(e) => setFormData({...formData, preferredDate: e.target.value})}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    id="customService"
+                    type="text"
+                    value={formData.customService}
+                    onChange={(e) => setFormData({...formData, customService: e.target.value})}
+                    placeholder="Ej: Revisión dental, desparasitación..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent"
                   />
                 </div>
-                
-                <div>
-                  <label htmlFor="preferredTime" className="block text-sm font-medium text-gray-700 mb-2">
-                    Hora preferida
-                  </label>
-                  <input
-                    id="preferredTime"
-                    type="time"
-                    value={formData.preferredTime}
-                    onChange={(e) => setFormData({...formData, preferredTime: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
+              )}
+
+              {/* Date selector */}
+              <div>
+                <label htmlFor="preferredDate" className="block text-sm font-medium text-gray-700 mb-2">
+                  Fecha preferida
+                </label>
+                <input
+                  id="preferredDate"
+                  type="date"
+                  value={formData.preferredDate}
+                  onChange={(e) => setFormData({...formData, preferredDate: e.target.value, preferredTime: ''})}
+                  min={new Date().toISOString().split('T')[0]}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                />
               </div>
+
+              {/* Time slots - Smart selector based on availability */}
+              {formData.preferredDate && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Hora preferida
+                    {isLoadingSlots && (
+                      <Loader2 className="inline-block ml-2 h-4 w-4 animate-spin" />
+                    )}
+                  </label>
+
+                  {!isLoadingSlots && availability && (
+                    <>
+                      {!availability.workingDay ? (
+                        <div className="text-sm text-orange-600 bg-orange-50 p-3 rounded-md">
+                          {availability.message || 'Este día no hay servicio disponible'}
+                        </div>
+                      ) : availability.availableSlots.length === 0 ? (
+                        <div className="text-sm text-orange-600 bg-orange-50 p-3 rounded-md">
+                          No hay horarios disponibles para este día. Por favor selecciona otra fecha.
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {/* Morning slots */}
+                          {availability.availableSlots.filter(s => s.period === 'morning').length > 0 && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2">Mañana</p>
+                              <div className="flex flex-wrap gap-2">
+                                {availability.availableSlots
+                                  .filter(slot => slot.period === 'morning')
+                                  .map((slot) => (
+                                    <button
+                                      key={slot.time}
+                                      type="button"
+                                      onClick={() => setFormData({...formData, preferredTime: slot.time})}
+                                      className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                                        formData.preferredTime === slot.time
+                                          ? 'text-white border-transparent'
+                                          : 'border-gray-300 hover:border-gray-400 bg-white'
+                                      }`}
+                                      style={formData.preferredTime === slot.time ? { backgroundColor: themeColor } : {}}
+                                    >
+                                      {slot.displayTime}
+                                    </button>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Afternoon slots */}
+                          {availability.availableSlots.filter(s => s.period === 'afternoon').length > 0 && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-2">Tarde</p>
+                              <div className="flex flex-wrap gap-2">
+                                {availability.availableSlots
+                                  .filter(slot => slot.period === 'afternoon')
+                                  .map((slot) => (
+                                    <button
+                                      key={slot.time}
+                                      type="button"
+                                      onClick={() => setFormData({...formData, preferredTime: slot.time})}
+                                      className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                                        formData.preferredTime === slot.time
+                                          ? 'text-white border-transparent'
+                                          : 'border-gray-300 hover:border-gray-400 bg-white'
+                                      }`}
+                                      style={formData.preferredTime === slot.time ? { backgroundColor: themeColor } : {}}
+                                    >
+                                      {slot.displayTime}
+                                    </button>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {formData.preferredTime && (
+                            <p className="text-sm text-green-600">
+                              <CheckCircle className="inline-block h-4 w-4 mr-1" />
+                              Horario seleccionado: {availability.availableSlots.find(s => s.time === formData.preferredTime)?.displayTime}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {!isLoadingSlots && !availability && formData.preferredDate && (
+                    <div className="text-sm text-gray-500">
+                      Selecciona una fecha para ver horarios disponibles
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
