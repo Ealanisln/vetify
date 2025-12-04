@@ -393,12 +393,18 @@ export async function getTenantBySlug(slug: string): Promise<PublicTenant | null
       publicBookingEnabled: true,
       createdAt: true,
       tenantSubscription: {
-        include: {
-          plan: true
+        select: {
+          id: true,
+          plan: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
         }
       }
     }
   });
-  
+
   return tenant ? transformTenantForPublic(tenant) : null;
 } 

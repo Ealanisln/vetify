@@ -13,6 +13,7 @@ import type {
   TreatmentReminderData,
   AppointmentReminderData,
 } from './types';
+import { formatTime } from '../utils/date-format';
 
 /**
  * Process pending treatment reminders and send emails
@@ -256,10 +257,7 @@ export async function processAppointmentReminders(): Promise<{
           (appointment.dateTime.getTime() - now.getTime()) / (1000 * 60 * 60)
         );
 
-        const appointmentTime = appointment.dateTime.toLocaleTimeString('es-MX', {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        const appointmentTime = formatTime(appointment.dateTime);
 
         const emailData: AppointmentReminderData = {
           template: 'appointment-reminder',

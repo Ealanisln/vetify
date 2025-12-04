@@ -9,6 +9,7 @@ import { PlusIcon, Calendar, Clock, Users } from 'lucide-react';
 import { useAppointments, AppointmentWithDetails } from '../../../hooks/useAppointments';
 import { useCalendar } from '../../../hooks/useCalendar';
 import { DateSelectArg } from '@fullcalendar/core';
+import { formatDate, formatTime } from '../../../lib/utils/date-format';
 // Toast notifications will be handled by individual components
 
 interface Customer {
@@ -89,7 +90,7 @@ export function AppointmentsPageClient({
   const handleWhatsApp = (phone: string, appointment: AppointmentWithDetails) => {
     const cleanPhone = phone.replace(/\D/g, '');
     const message = encodeURIComponent(
-      `Hola ${appointment.customer.name}, recordamos tu cita para ${appointment.pet.name} el ${appointment.dateTime.toLocaleDateString()} a las ${appointment.dateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. Motivo: ${appointment.reason}`
+      `Hola ${appointment.customer.name}, recordamos tu cita para ${appointment.pet.name} el ${formatDate(appointment.dateTime)} a las ${formatTime(appointment.dateTime)}. Motivo: ${appointment.reason}`
     );
     
     const whatsappUrl = `https://wa.me/${cleanPhone}?text=${message}`;

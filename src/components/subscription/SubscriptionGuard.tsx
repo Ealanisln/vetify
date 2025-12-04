@@ -5,14 +5,15 @@ import { useSubscription } from '../../hooks/useSubscription';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { 
-  AlertTriangle, 
-  CreditCard, 
-  Lock, 
+import {
+  AlertTriangle,
+  CreditCard,
+  Lock,
   Clock,
   XCircle,
   CheckCircle
 } from 'lucide-react';
+import { formatDate } from '../../lib/utils/date-format';
 import type { Tenant } from '@prisma/client';
 
 interface SubscriptionGuardProps {
@@ -114,7 +115,7 @@ function SubscriptionAlert({ tenant, type, feature }: SubscriptionAlertProps) {
             {tenant.subscriptionEndsAt && (
               <Badge variant="outline" className="text-xs">
                 {type === 'canceled' ? 'Termina' : 'Renueva'}: {' '}
-                {new Date(tenant.subscriptionEndsAt).toLocaleDateString('es-MX')}
+                {formatDate(tenant.subscriptionEndsAt)}
               </Badge>
             )}
           </div>
