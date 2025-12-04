@@ -46,6 +46,7 @@ model Tenant {
   publicImages         Json? // URLs de imágenes
   publicSocialMedia    Json? // Redes sociales
   publicThemeColor     String? @default("#75a99c")
+  publicTheme          String? @default("modern") // Tema predefinido: modern, classic, minimal, vibrant
   publicBookingEnabled Boolean @default(true)
 
   createdAt           DateTime             @default(now())
