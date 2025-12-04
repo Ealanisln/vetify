@@ -57,7 +57,6 @@ export async function POST(request: NextRequest) {
       // - La cita existente empieza antes de que termine la nueva Y
       // - La cita existente termina después de que empiece la nueva
       // Esto detecta cualquier solapamiento
-      console.log('[Conflict Check] Requested time:', requestedDateTime.toISOString(), 'to', requestedEndTime.toISOString());
 
       // Find appointments that could potentially conflict (on the same day)
       const potentialConflicts = await prisma.appointment.findMany({
@@ -78,11 +77,6 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      console.log('[Conflict Check] Potential conflicts found:', potentialConflicts.length);
-      potentialConflicts.forEach(a => {
-        console.log(`  - Existing: ${a.dateTime.toISOString()}, duration: ${a.duration}min`);
-      });
-
       // Check each appointment for time overlap
       const conflictingAppointment = potentialConflicts.find(existing => {
         const existingStart = existing.dateTime.getTime();
@@ -92,10 +86,6 @@ export async function POST(request: NextRequest) {
 
         // Overlap occurs when: existingStart < requestedEnd AND existingEnd > requestedStart
         const hasOverlap = existingStart < requestedEnd && existingEnd > requestedStart;
-
-        if (hasOverlap) {
-          console.log(`[Conflict Check] CONFLICT with appointment ${existing.id}`);
-        }
 
         return hasOverlap;
       });
