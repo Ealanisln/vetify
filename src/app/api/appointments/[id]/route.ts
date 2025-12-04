@@ -170,40 +170,49 @@ export async function PUT(
     }
 
     // Verificar disponibilidad si se cambia la fecha/hora
-    if (validatedData.dateTime || validatedData.duration) {
-      const appointmentDateTime = validatedData.dateTime 
-        ? new Date(validatedData.dateTime) 
+    if (validatedData.dateTime || validatedData.duration || validatedData.staffId !== undefined) {
+      const appointmentDateTime = validatedData.dateTime
+        ? new Date(validatedData.dateTime)
         : existingAppointment.dateTime;
       const duration = validatedData.duration || existingAppointment.duration;
+      const staffId = validatedData.staffId !== undefined ? validatedData.staffId : existingAppointment.staffId;
       const endDateTime = new Date(appointmentDateTime.getTime() + duration * 60000);
 
-      const conflictingAppointment = await prisma.appointment.findFirst({
-        where: {
-          tenantId: tenant.id,
-          id: { not: appointmentId }, // Excluir la cita actual
-          status: {
-            notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']
-          },
-          AND: [
-            {
-              dateTime: {
-                lt: endDateTime
-              }
+      // Solo verificar conflictos si hay un staff asignado
+      if (staffId) {
+        const conflictingAppointment = await prisma.appointment.findFirst({
+          where: {
+            tenantId: tenant.id,
+            id: { not: appointmentId }, // Excluir la cita actual
+            staffId: staffId, // Solo conflictos con el mismo veterinario
+            status: {
+              notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']
             },
-            {
-              dateTime: {
-                gte: new Date(appointmentDateTime.getTime() - (duration * 60000))
+            AND: [
+              {
+                dateTime: {
+                  lt: endDateTime
+                }
+              },
+              {
+                dateTime: {
+                  gte: new Date(appointmentDateTime.getTime() - (duration * 60000))
+                }
               }
-            }
-          ]
-        }
-      });
+            ]
+          },
+          include: {
+            staff: { select: { name: true } }
+          }
+        });
 
-      if (conflictingAppointment) {
-        return NextResponse.json(
-          { success: false, error: 'Ya existe una cita en este horario' },
-          { status: 409 }
-        );
+        if (conflictingAppointment) {
+          const staffName = conflictingAppointment.staff?.name || 'este veterinario';
+          return NextResponse.json(
+            { success: false, error: `${staffName} ya tiene una cita en este horario` },
+            { status: 409 }
+          );
+        }
       }
     }
 

@@ -97,15 +97,16 @@ export const useCalendar = (initialView: CalendarView = 'timeGridWeek'): UseCale
   }, []);
 
   const getStatusColor = useCallback((status: string) => {
+    // Colors optimized for both light and dark mode with high contrast text
     const colors = {
-      SCHEDULED: { bg: '#e3f2fd', border: '#2196f3', text: '#1976d2' },
-      CONFIRMED: { bg: '#e8f5e8', border: '#4caf50', text: '#388e3c' },
-      CHECKED_IN: { bg: '#fff3e0', border: '#ff9800', text: '#f57c00' },
-      IN_PROGRESS: { bg: '#f3e5f5', border: '#9c27b0', text: '#7b1fa2' },
-      COMPLETED: { bg: '#e0f2f1', border: '#009688', text: '#00695c' },
-      CANCELLED_CLIENT: { bg: '#ffebee', border: '#f44336', text: '#d32f2f' },
-      CANCELLED_CLINIC: { bg: '#ffebee', border: '#f44336', text: '#d32f2f' },
-      NO_SHOW: { bg: '#fafafa', border: '#9e9e9e', text: '#616161' },
+      SCHEDULED: { bg: '#dbeafe', border: '#3b82f6', text: '#1e3a5f' },
+      CONFIRMED: { bg: '#dcfce7', border: '#22c55e', text: '#14532d' },
+      CHECKED_IN: { bg: '#fef3c7', border: '#f59e0b', text: '#78350f' },
+      IN_PROGRESS: { bg: '#f3e8ff', border: '#a855f7', text: '#581c87' },
+      COMPLETED: { bg: '#ccfbf1', border: '#14b8a6', text: '#134e4a' },
+      CANCELLED_CLIENT: { bg: '#fee2e2', border: '#ef4444', text: '#7f1d1d' },
+      CANCELLED_CLINIC: { bg: '#fee2e2', border: '#ef4444', text: '#7f1d1d' },
+      NO_SHOW: { bg: '#e5e7eb', border: '#6b7280', text: '#374151' },
     };
 
     return colors[status as keyof typeof colors] || colors.SCHEDULED;

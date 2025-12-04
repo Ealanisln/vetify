@@ -434,27 +434,75 @@ export function FullCalendarView({
 function EventContent({ event }: { event: EventContentArg }) {
   const appointment = event.event.extendedProps.appointment;
   const priority = event.event.extendedProps.priority;
+  // Use the text color from the event for consistent styling
+  const textColor = event.event.textColor || '#1f2937';
 
+  // Check if this is a short appointment (30 min or less)
+  const duration = appointment.duration || 30;
+  const isShort = duration <= 30;
+
+  // For short appointments, show condensed single-line view
+  if (isShort) {
+    return (
+      <div className="px-1 py-0.5 h-full flex items-center gap-1 overflow-hidden">
+        {priority === 'emergency' && (
+          <AlertCircle className="h-3 w-3 flex-shrink-0" style={{ color: textColor }} />
+        )}
+        <span
+          className="text-[10px] font-bold flex-shrink-0"
+          style={{ color: textColor }}
+        >
+          {event.event.start ? format(new Date(event.event.start), 'HH:mm') : ''}
+        </span>
+        <span
+          className="text-[10px] font-semibold truncate"
+          style={{ color: textColor }}
+        >
+          {appointment.pet.name}
+        </span>
+        <span
+          className="text-[10px] truncate opacity-75 hidden sm:inline"
+          style={{ color: textColor }}
+        >
+          - {appointment.customer.name?.split(' ')[0]}
+        </span>
+      </div>
+    );
+  }
+
+  // Standard view for longer appointments
   return (
     <div className="p-1 h-full flex flex-col justify-center">
-      <div className="flex items-center gap-1 mb-1">
+      <div className="flex items-center gap-1 mb-0.5">
         {priority === 'emergency' && (
-          <AlertCircle className="h-3 w-3 text-gray-900 dark:text-white" />
+          <AlertCircle className="h-3 w-3" style={{ color: textColor }} />
         )}
-        <span className="text-xs font-bold truncate text-gray-900 dark:text-white drop-shadow-sm">
+        <span
+          className="text-xs font-bold truncate"
+          style={{ color: textColor }}
+        >
           {event.event.start ? format(new Date(event.event.start), 'HH:mm') : ''}
         </span>
       </div>
 
-      <div className="text-xs truncate font-semibold text-gray-900 dark:text-white drop-shadow-sm">
+      <div
+        className="text-xs truncate font-semibold"
+        style={{ color: textColor }}
+      >
         {appointment.pet.name}
       </div>
 
-      <div className="text-xs truncate text-gray-900 dark:text-white drop-shadow-sm">
+      <div
+        className="text-xs truncate"
+        style={{ color: textColor }}
+      >
         {appointment.customer.name}
       </div>
 
-      <div className="text-xs truncate text-gray-800 dark:text-white/95 drop-shadow-sm">
+      <div
+        className="text-xs truncate opacity-90"
+        style={{ color: textColor }}
+      >
         {appointment.reason}
       </div>
     </div>
@@ -474,6 +522,8 @@ function EventDetailsModal({
   onEdit?: (appointment: AppointmentWithDetails) => void;
 }) {
   const appointment = event.extendedProps.appointment;
+  const canEdit = event.extendedProps.canEdit;
+  const canCancel = event.extendedProps.canCancel;
   const { quickAction } = useAppointments();
   const [loading, setLoading] = useState(false);
 
@@ -560,75 +610,73 @@ function EventDetailsModal({
             </Badge>
           </div>
 
-          {appointment.canEdit && (
-            <div className="flex flex-col gap-2 pt-4">
-              {/* Edit Button - Always show if canEdit */}
-              {onEdit && (
-                <Button
-                  variant="default"
-                  className="w-full"
-                  onClick={handleEdit}
-                  disabled={loading}
-                >
-                  Editar Cita
-                </Button>
-              )}
-
-              {/* Quick Actions */}
-              <div className="flex gap-2">
-              {appointment.status === 'SCHEDULED' && (
-                <Button
-                  size="sm"
-                  onClick={() => handleQuickAction('confirm')}
-                  disabled={loading}
-                >
-                  Confirmar
-                </Button>
-              )}
-              
-              {appointment.status === 'CONFIRMED' && (
-                <Button
-                  size="sm"
-                  onClick={() => handleQuickAction('checkin')}
-                  disabled={loading}
-                >
-                  Registrar
-                </Button>
-              )}
-              
-              {appointment.status === 'CHECKED_IN' && (
-                <Button
-                  size="sm"
-                  onClick={() => handleQuickAction('start')}
-                  disabled={loading}
-                >
-                  Iniciar
-                </Button>
-              )}
-              
-              {appointment.status === 'IN_PROGRESS' && (
-                <Button
-                  size="sm"
-                  onClick={() => handleQuickAction('complete')}
-                  disabled={loading}
-                >
-                  Completar
-                </Button>
-              )}
-              
-              {appointment.canCancel && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleQuickAction('cancel')}
-                  disabled={loading}
-                >
-                  Cancelar
-                </Button>
-              )}
-              </div>
+          {/* Edit Button - Show for editable appointments */}
+          {canEdit && onEdit && (
+            <div className="pt-4">
+              <Button
+                variant="default"
+                className="w-full"
+                onClick={handleEdit}
+                disabled={loading}
+              >
+                Editar Cita
+              </Button>
             </div>
           )}
+
+          {/* Quick Actions */}
+          <div className="flex gap-2 pt-2">
+            {appointment.status === 'SCHEDULED' && (
+              <Button
+                size="sm"
+                onClick={() => handleQuickAction('confirm')}
+                disabled={loading}
+              >
+                Confirmar
+              </Button>
+            )}
+
+            {appointment.status === 'CONFIRMED' && (
+              <Button
+                size="sm"
+                onClick={() => handleQuickAction('checkin')}
+                disabled={loading}
+              >
+                Registrar
+              </Button>
+            )}
+
+            {appointment.status === 'CHECKED_IN' && (
+              <Button
+                size="sm"
+                onClick={() => handleQuickAction('start')}
+                disabled={loading}
+              >
+                Iniciar
+              </Button>
+            )}
+
+            {appointment.status === 'IN_PROGRESS' && (
+              <Button
+                size="sm"
+                onClick={() => handleQuickAction('complete')}
+                disabled={loading}
+              >
+                Completar
+              </Button>
+            )}
+
+            {canCancel && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleQuickAction('cancel')}
+                disabled={loading}
+              >
+                Cancelar
+              </Button>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

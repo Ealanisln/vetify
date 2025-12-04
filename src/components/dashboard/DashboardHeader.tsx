@@ -149,7 +149,7 @@ export function DashboardHeader({ user, tenant, onMenuClick }: DashboardHeaderPr
                 : 'bg-[#75a99c] hover:bg-[#5b9788] text-white dark:bg-[#2a3630] dark:hover:bg-[#1a2620] hover:scale-105 active:scale-95'
             }`}
             aria-label={loading ? "Cargando..." : `Cambiar tema. Tema actual: ${theme === 'system' ? 'sistema' : theme}`}
-            aria-pressed={theme === 'dark'}
+            aria-pressed={mounted ? theme === 'dark' : undefined}
             title="Cambiar tema (luz/oscuro/sistema)"
           >
             {loading ? (
