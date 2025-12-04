@@ -7,18 +7,27 @@ import { ServiceManagement } from '../../../components/settings/ServiceManagemen
 import { BusinessHoursSettings } from '../../../components/settings/BusinessHoursSettings';
 import { SubscriptionManager } from '../../../components/subscription';
 import type { TenantWithPlan } from '@/types';
-import { 
-  Settings, 
-  Wrench, 
+import {
+  Settings,
+  Wrench,
   Clock,
   Bell,
   Users,
   Shield,
   Building2,
-  CreditCard
+  CreditCard,
+  Globe
 } from 'lucide-react';
+import { PublicPageSettings } from '../../../components/settings/PublicPageSettings';
 
 const settingsSections = [
+  {
+    id: 'public-page',
+    title: 'Página Pública',
+    description: 'Configura la landing page de tu clínica',
+    icon: Globe,
+    component: 'public-page'
+  },
   {
     id: 'business-hours',
     title: 'Horarios de Atención',
@@ -79,10 +88,12 @@ interface SettingsPageClientProps {
 }
 
 export function SettingsPageClient({ tenant }: SettingsPageClientProps) {
-  const [activeSection, setActiveSection] = useState('subscription'); // Empezamos en subscription por defecto
+  const [activeSection, setActiveSection] = useState('public-page'); // Empezamos en página pública por defecto
 
   const renderActiveComponent = () => {
     switch (activeSection) {
+      case 'public-page':
+        return <PublicPageSettings tenantId={tenant.id} />;
       case 'business-hours':
         return <BusinessHoursSettings tenantId={tenant.id} />;
       case 'services':
