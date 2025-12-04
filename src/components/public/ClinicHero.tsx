@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '../ui/button';
 import { Phone, MapPin, Clock, Star } from 'lucide-react';
 import type { PublicTenant } from '../../lib/tenant';
+import { getTheme, getThemeClasses } from '../../lib/themes';
 
 interface ClinicHeroProps {
   tenant: PublicTenant;
@@ -13,10 +14,17 @@ interface ClinicHeroProps {
 export function ClinicHero({ tenant }: ClinicHeroProps) {
   const publicImages = tenant.publicImages;
   const publicHours = tenant.publicHours;
-  const themeColor = tenant.publicThemeColor || '#75a99c';
+  const theme = getTheme(tenant.publicTheme);
+  const themeColor = tenant.publicThemeColor || theme.colors.primary;
+  const themeClasses = getThemeClasses(theme);
 
   return (
-    <section className="relative bg-gradient-to-r from-blue-50 to-green-50 py-20">
+    <section
+      className="relative py-20"
+      style={{
+        background: `linear-gradient(135deg, ${theme.colors.heroGradientFrom} 0%, ${theme.colors.heroGradientTo} 100%)`
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Información de la clínica */}
@@ -32,12 +40,22 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
               </span>
             </div>
 
-            <h1 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6">
+            <h1
+              className="text-4xl lg:text-6xl font-bold mb-6"
+              style={{
+                color: theme.colors.text,
+                fontFamily: theme.typography.fontFamily,
+                fontWeight: theme.typography.headingWeight
+              }}
+            >
               {tenant.name}
             </h1>
-            
+
             {tenant.publicDescription && (
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+              <p
+                className="text-xl mb-8 leading-relaxed"
+                style={{ color: theme.colors.textMuted }}
+              >
                 {tenant.publicDescription}
               </p>
             )}
@@ -45,48 +63,69 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
             {/* Información de contacto destacada */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
               {tenant.publicPhone && (
-                <div className="flex items-center p-4 bg-white rounded-lg shadow-sm border">
-                  <div 
+                <div
+                  className={`flex items-center p-4 ${themeClasses.card}`}
+                  style={{
+                    backgroundColor: theme.colors.cardBg,
+                    borderRadius: theme.layout.borderRadius,
+                    borderColor: theme.colors.border
+                  }}
+                >
+                  <div
                     className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
-                    style={{ backgroundColor: `${themeColor}20` }}
+                    style={{ backgroundColor: theme.colors.primaryLight }}
                   >
                     <Phone className="h-5 w-5" style={{ color: themeColor }} />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Teléfono</p>
-                    <p className="font-semibold text-gray-900">{tenant.publicPhone}</p>
+                    <p className="text-sm" style={{ color: theme.colors.textMuted }}>Teléfono</p>
+                    <p className="font-semibold" style={{ color: theme.colors.text }}>{tenant.publicPhone}</p>
                   </div>
                 </div>
               )}
-              
+
               {tenant.publicAddress && (
-                <div className="flex items-center p-4 bg-white rounded-lg shadow-sm border">
-                  <div 
+                <div
+                  className={`flex items-center p-4 ${themeClasses.card}`}
+                  style={{
+                    backgroundColor: theme.colors.cardBg,
+                    borderRadius: theme.layout.borderRadius,
+                    borderColor: theme.colors.border
+                  }}
+                >
+                  <div
                     className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
-                    style={{ backgroundColor: `${themeColor}20` }}
+                    style={{ backgroundColor: theme.colors.primaryLight }}
                   >
                     <MapPin className="h-5 w-5" style={{ color: themeColor }} />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Ubicación</p>
-                    <p className="font-semibold text-gray-900 text-sm">
+                    <p className="text-sm" style={{ color: theme.colors.textMuted }}>Ubicación</p>
+                    <p className="font-semibold text-sm" style={{ color: theme.colors.text }}>
                       {tenant.publicAddress}
                     </p>
                   </div>
                 </div>
               )}
-              
+
               {publicHours && (
-                <div className="flex items-center p-4 bg-white rounded-lg shadow-sm border sm:col-span-2">
-                  <div 
+                <div
+                  className={`flex items-center p-4 sm:col-span-2 ${themeClasses.card}`}
+                  style={{
+                    backgroundColor: theme.colors.cardBg,
+                    borderRadius: theme.layout.borderRadius,
+                    borderColor: theme.colors.border
+                  }}
+                >
+                  <div
                     className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
-                    style={{ backgroundColor: `${themeColor}20` }}
+                    style={{ backgroundColor: theme.colors.primaryLight }}
                   >
                     <Clock className="h-5 w-5" style={{ color: themeColor }} />
                   </div>
                   <div>
-                    <p className="text-sm text-gray-500">Horarios</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm" style={{ color: theme.colors.textMuted }}>Horarios</p>
+                    <p className="font-semibold" style={{ color: theme.colors.text }}>
                       {publicHours.weekdays || 'Lun-Vie: 9:00 - 18:00'}
                     </p>
                   </div>
@@ -97,25 +136,30 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
             {/* Botones de acción */}
             <div className="flex flex-col sm:flex-row gap-4">
               <Link href={`/${tenant.slug}/agendar`}>
-                <Button 
-                  size="lg" 
-                  className="w-full sm:w-auto text-white shadow-lg hover:shadow-xl transition-all duration-200"
-                  style={{ backgroundColor: themeColor }}
+                <Button
+                  size="lg"
+                  className={`w-full sm:w-auto text-white shadow-lg hover:shadow-xl transition-all duration-200 ${themeClasses.button}`}
+                  style={{
+                    backgroundColor: themeColor,
+                    borderRadius: theme.layout.borderRadius
+                  }}
                 >
                   <Phone className="h-5 w-5 mr-2" />
                   Agendar Cita
                 </Button>
               </Link>
-              
+
               {tenant.publicPhone && (
                 <a href={`tel:${tenant.publicPhone}`}>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="lg"
-                    className="w-full sm:w-auto border-2 hover:bg-gray-50 transition-all duration-200"
-                    style={{ 
+                    className={`w-full sm:w-auto border-2 transition-all duration-200 ${themeClasses.button}`}
+                    style={{
                       borderColor: themeColor,
-                      color: themeColor
+                      color: themeColor,
+                      borderRadius: theme.layout.borderRadius,
+                      backgroundColor: 'transparent'
                     }}
                   >
                     <Phone className="h-5 w-5 mr-2" />
@@ -135,16 +179,21 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
                   alt={`${tenant.name} - Clínica Veterinaria`}
                   width={600}
                   height={400}
-                  className="rounded-2xl shadow-2xl object-cover"
+                  className="shadow-2xl object-cover"
+                  style={{ borderRadius: theme.layout.borderRadius }}
                 />
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-t from-black/20 to-transparent"></div>
+                <div
+                  className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"
+                  style={{ borderRadius: theme.layout.borderRadius }}
+                />
               </div>
             ) : (
               <div className="relative">
-                <div 
-                  className="rounded-2xl h-96 flex items-center justify-center shadow-2xl"
-                  style={{ 
-                    background: `linear-gradient(135deg, ${themeColor} 0%, #5b9788 100%)`
+                <div
+                  className="h-96 flex items-center justify-center shadow-2xl"
+                  style={{
+                    background: `linear-gradient(135deg, ${themeColor} 0%, ${theme.colors.primaryHover} 100%)`,
+                    borderRadius: theme.layout.borderRadius
                   }}
                 >
                   <div className="text-center text-white">
@@ -153,10 +202,16 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
                     <p className="text-xl opacity-90">Con amor y profesionalismo</p>
                   </div>
                 </div>
-                
+
                 {/* Elementos decorativos */}
-                <div className="absolute -top-4 -left-4 w-24 h-24 bg-yellow-400 rounded-full opacity-20 animate-pulse"></div>
-                <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-blue-400 rounded-full opacity-20 animate-pulse delay-1000"></div>
+                <div
+                  className="absolute -top-4 -left-4 w-24 h-24 rounded-full opacity-20 animate-pulse"
+                  style={{ backgroundColor: theme.colors.accent }}
+                />
+                <div
+                  className="absolute -bottom-6 -right-6 w-32 h-32 rounded-full opacity-20 animate-pulse delay-1000"
+                  style={{ backgroundColor: theme.colors.secondary }}
+                />
               </div>
             )}
           </div>
@@ -165,9 +220,18 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
       
       {/* Elementos decorativos de fondo */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-blue-400 rounded-full animate-ping opacity-30"></div>
-        <div className="absolute top-3/4 right-1/4 w-3 h-3 bg-green-400 rounded-full animate-ping opacity-30 delay-700"></div>
-        <div className="absolute bottom-1/4 left-1/3 w-1 h-1 bg-yellow-400 rounded-full animate-ping opacity-30 delay-500"></div>
+        <div
+          className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full animate-ping opacity-30"
+          style={{ backgroundColor: theme.colors.accent }}
+        />
+        <div
+          className="absolute top-3/4 right-1/4 w-3 h-3 rounded-full animate-ping opacity-30 delay-700"
+          style={{ backgroundColor: theme.colors.primary }}
+        />
+        <div
+          className="absolute bottom-1/4 left-1/3 w-1 h-1 rounded-full animate-ping opacity-30 delay-500"
+          style={{ backgroundColor: theme.colors.secondary }}
+        />
       </div>
     </section>
   );

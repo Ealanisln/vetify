@@ -49,6 +49,26 @@ export interface AvailabilityData {
 
 export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
 
+/**
+ * Parsea una fecha tratándola como hora local (no UTC).
+ * La BD almacena timestamps sin timezone, así que necesitamos
+ * interpretarlos como hora local del servidor/cliente.
+ */
+function parseLocalDateTime(dateString: string): Date {
+  // Si la fecha viene con 'Z' (UTC indicator), la removemos
+  // para que JavaScript la interprete como hora local
+  const localDateString = dateString.replace('Z', '').replace('.000', '');
+
+  // Parsear manualmente para evitar problemas de timezone
+  // Formato esperado: "2025-12-05T10:00:00" o "2025-12-05 10:00:00"
+  const normalized = localDateString.replace(' ', 'T');
+  const [datePart, timePart] = normalized.split('T');
+  const [year, month, day] = datePart.split('-').map(Number);
+  const [hours, minutes, seconds] = (timePart || '00:00:00').split(':').map(Number);
+
+  return new Date(year, month - 1, day, hours, minutes, seconds || 0);
+}
+
 interface UseCalendarReturn {
   events: CalendarEvent[];
   loading: boolean;
@@ -162,7 +182,9 @@ export const useCalendar = (initialView: CalendarView = 'timeGridWeek'): UseCale
 
       const appointments: AppointmentWithDetails[] = result.data.map((appointment: AppointmentWithDetails & { dateTime: string; createdAt: string; updatedAt: string }) => ({
         ...appointment,
-        dateTime: new Date(appointment.dateTime),
+        // Parsear fechas tratándolas como hora local (no UTC)
+        // La BD almacena timestamps sin timezone, así que removemos la 'Z' si existe
+        dateTime: parseLocalDateTime(appointment.dateTime),
         createdAt: new Date(appointment.createdAt),
         updatedAt: new Date(appointment.updatedAt),
       }));

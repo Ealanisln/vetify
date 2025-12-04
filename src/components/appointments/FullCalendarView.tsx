@@ -361,6 +361,7 @@ export function FullCalendarView({
             slotMaxTime={calendarConfig.slotMaxTime}
             eventTimeFormat={calendarConfig.eventTimeFormat}
             slotLabelFormat={calendarConfig.slotLabelFormat}
+            timeZone="local"
             nowIndicator={true}
             scrollTime="08:00:00"
             slotLabelInterval="01:00:00"
