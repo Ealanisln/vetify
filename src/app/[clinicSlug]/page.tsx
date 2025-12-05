@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getTenantBySlug } from '../../lib/tenant';
+import { getTenantBySlug, getFeaturedServices } from '../../lib/tenant';
 import { ClinicHero } from '../../components/public/ClinicHero';
 import { ClinicServices } from '../../components/public/ClinicServices';
 import { ClinicInfo } from '../../components/public/ClinicInfo';
@@ -86,6 +86,9 @@ export default async function ClinicPage({
     notFound();
   }
 
+  // Fetch featured services from the Service table
+  const featuredServices = await getFeaturedServices(tenant.id);
+
   const baseUrl = getBaseUrl();
   const clinicUrl = `${baseUrl}/${tenant.slug}`;
 
@@ -126,7 +129,7 @@ export default async function ClinicPage({
 
       <ClinicHero tenant={tenant} />
       <QuickBooking tenant={tenant} />
-      <ClinicServices tenant={tenant} />
+      <ClinicServices tenant={tenant} featuredServices={featuredServices} />
       <ClinicInfo tenant={tenant} />
     </>
   );

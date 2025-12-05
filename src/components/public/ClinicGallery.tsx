@@ -1,0 +1,236 @@
+'use client';
+
+import { useState, useMemo } from 'react';
+import Image from 'next/image';
+import { Building2, Users, Heart, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import type { PublicTenant, GalleryImage, GalleryCategory } from '../../lib/tenant';
+import { getTheme, getThemeClasses } from '../../lib/themes';
+import Lightbox from 'yet-another-react-lightbox';
+import Captions from 'yet-another-react-lightbox/plugins/captions';
+import 'yet-another-react-lightbox/styles.css';
+import 'yet-another-react-lightbox/plugins/captions.css';
+
+interface ClinicGalleryProps {
+  tenant: PublicTenant;
+  images: GalleryImage[];
+}
+
+const CATEGORY_LABELS: Record<GalleryCategory, { label: string; icon: React.ReactNode }> = {
+  instalaciones: { label: 'Instalaciones', icon: <Building2 className="h-4 w-4" /> },
+  equipo: { label: 'Equipo', icon: <Users className="h-4 w-4" /> },
+  pacientes: { label: 'Pacientes', icon: <Heart className="h-4 w-4" /> },
+};
+
+export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
+  const [activeFilter, setActiveFilter] = useState<GalleryCategory | 'all'>('all');
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  const theme = getTheme(tenant.publicTheme);
+  const themeColor = tenant.publicThemeColor || theme.colors.primary;
+  const themeClasses = getThemeClasses(theme);
+
+  const sortedImages = useMemo(
+    () => [...images].sort((a, b) => a.order - b.order),
+    [images]
+  );
+
+  const filteredImages = useMemo(
+    () =>
+      activeFilter === 'all'
+        ? sortedImages
+        : sortedImages.filter((img) => img.category === activeFilter),
+    [sortedImages, activeFilter]
+  );
+
+  const lightboxSlides = useMemo(
+    () =>
+      filteredImages.map((img) => ({
+        src: img.url,
+        title: img.caption || undefined,
+        description: CATEGORY_LABELS[img.category].label,
+      })),
+    [filteredImages]
+  );
+
+  const categories = useMemo(() => {
+    const counts: Record<GalleryCategory | 'all', number> = {
+      all: sortedImages.length,
+      instalaciones: 0,
+      equipo: 0,
+      pacientes: 0,
+    };
+    sortedImages.forEach((img) => counts[img.category]++);
+    return counts;
+  }, [sortedImages]);
+
+  const handleImageClick = (index: number) => {
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
+  if (images.length === 0) {
+    return null;
+  }
+
+  return (
+    <section
+      className="py-16"
+      style={{ backgroundColor: theme.colors.background }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h2
+            className="text-3xl lg:text-4xl font-bold mb-4"
+            style={{
+              color: theme.colors.text,
+              fontFamily: theme.typography.fontFamily,
+              fontWeight: theme.typography.headingWeight,
+            }}
+          >
+            Nuestra Galería
+          </h2>
+          <p
+            className="text-lg max-w-2xl mx-auto"
+            style={{ color: theme.colors.textMuted }}
+          >
+            Conoce nuestras instalaciones, equipo y algunos de nuestros pacientes
+          </p>
+        </div>
+
+        {/* Category Filters */}
+        <div className="flex flex-wrap justify-center gap-2 mb-10">
+          <button
+            onClick={() => setActiveFilter('all')}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${themeClasses.button}`}
+            style={{
+              backgroundColor: activeFilter === 'all' ? themeColor : theme.colors.backgroundAlt,
+              color: activeFilter === 'all' ? '#fff' : theme.colors.text,
+              borderRadius: theme.layout.buttonStyle === 'pill' ? '9999px' : theme.layout.borderRadius,
+            }}
+          >
+            Todas ({categories.all})
+          </button>
+          {(Object.entries(CATEGORY_LABELS) as [GalleryCategory, { label: string; icon: React.ReactNode }][]).map(
+            ([key, { label, icon }]) =>
+              categories[key] > 0 && (
+                <button
+                  key={key}
+                  onClick={() => setActiveFilter(key)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${themeClasses.button}`}
+                  style={{
+                    backgroundColor: activeFilter === key ? themeColor : theme.colors.backgroundAlt,
+                    color: activeFilter === key ? '#fff' : theme.colors.text,
+                    borderRadius: theme.layout.buttonStyle === 'pill' ? '9999px' : theme.layout.borderRadius,
+                  }}
+                >
+                  {icon}
+                  {label} ({categories[key]})
+                </button>
+              )
+          )}
+        </div>
+
+        {/* Gallery Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {filteredImages.map((image, index) => (
+            <div
+              key={image.id}
+              className={`relative group cursor-pointer overflow-hidden ${themeClasses.card}`}
+              style={{
+                borderRadius: theme.layout.borderRadius,
+                backgroundColor: theme.colors.cardBg,
+              }}
+              onClick={() => handleImageClick(index)}
+            >
+              <div className="aspect-[4/3] relative">
+                <Image
+                  src={image.url}
+                  alt={image.caption || `Galería ${index + 1}`}
+                  fill
+                  className="object-cover transition-transform duration-300 group-hover:scale-105"
+                  sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                />
+
+                {/* Overlay on hover */}
+                <div
+                  className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center"
+                >
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center mb-2"
+                    style={{ backgroundColor: themeColor }}
+                  >
+                    <svg
+                      className="w-6 h-6 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                      />
+                    </svg>
+                  </div>
+                  {image.caption && (
+                    <p className="text-white text-sm text-center px-4 line-clamp-2">
+                      {image.caption}
+                    </p>
+                  )}
+                </div>
+
+                {/* Category badge */}
+                <div
+                  className="absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-white/90 backdrop-blur-sm"
+                  style={{ color: themeColor }}
+                >
+                  {CATEGORY_LABELS[image.category].icon}
+                  <span className="hidden sm:inline">
+                    {CATEGORY_LABELS[image.category].label}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Empty state for filtered results */}
+        {filteredImages.length === 0 && activeFilter !== 'all' && (
+          <div className="text-center py-12">
+            <p style={{ color: theme.colors.textMuted }}>
+              No hay imágenes en esta categoría
+            </p>
+            <button
+              onClick={() => setActiveFilter('all')}
+              className="mt-4 underline"
+              style={{ color: themeColor }}
+            >
+              Ver todas las imágenes
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Lightbox */}
+      <Lightbox
+        open={lightboxOpen}
+        close={() => setLightboxOpen(false)}
+        slides={lightboxSlides}
+        index={lightboxIndex}
+        plugins={[Captions]}
+        captions={{ showToggle: true, descriptionTextAlign: 'center' }}
+        styles={{
+          container: { backgroundColor: 'rgba(0, 0, 0, 0.9)' },
+        }}
+        render={{
+          iconClose: () => <X className="w-6 h-6" />,
+          iconPrev: () => <ChevronLeft className="w-8 h-8" />,
+          iconNext: () => <ChevronRight className="w-8 h-8" />,
+        }}
+      />
+    </section>
+  );
+}

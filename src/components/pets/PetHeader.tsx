@@ -1,5 +1,6 @@
 import { Pet, Customer } from '@prisma/client';
 import { differenceInYears, differenceInMonths } from 'date-fns';
+import Image from 'next/image';
 import { getThemeClasses } from '../../utils/theme-colors';
 import { parseWeight } from '../../utils/format';
 import { PET_SPECIES_MAP, PET_GENDER_MAP, type PetSpecies, type PetGender } from '../../types';
@@ -45,8 +46,18 @@ export function PetHeader({ pet }: PetHeaderProps) {
     <div className={`card p-4 md:p-6 ${getThemeClasses('background.card', 'border.card')}`}>
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
-          <div className={`h-16 w-16 rounded-full ${getThemeClasses('background.muted')} flex items-center justify-center`}>
-            <span className="text-3xl">{speciesInfo.icon}</span>
+          <div className={`h-16 w-16 rounded-full ${getThemeClasses('background.muted')} flex items-center justify-center overflow-hidden`}>
+            {pet.profileImage ? (
+              <Image
+                src={pet.profileImage}
+                alt={`Foto de ${pet.name}`}
+                width={64}
+                height={64}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-3xl">{speciesInfo.icon}</span>
+            )}
           </div>
           <div className="flex-1">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">

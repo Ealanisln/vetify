@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '../ui/button';
-import { Phone, MapPin, Menu, X } from 'lucide-react';
+import { Phone, MapPin, Menu, X, ImageIcon } from 'lucide-react';
 import { useState } from 'react';
 
 interface PublicNavbarProps {
@@ -15,6 +15,7 @@ interface PublicNavbarProps {
     publicPhone?: string | null;
     publicAddress?: string | null;
     publicThemeColor?: string | null;
+    hasGallery?: boolean;
   };
 }
 
@@ -74,8 +75,16 @@ export function PublicNavbar({ tenant }: PublicNavbarProps) {
                 Servicios
               </Button>
             </Link>
+            {tenant.hasGallery && (
+              <Link href={`/${tenant.slug}/galeria`}>
+                <Button variant="ghost" className="gap-1">
+                  <ImageIcon className="h-4 w-4" />
+                  Galería
+                </Button>
+              </Link>
+            )}
             <Link href={`/${tenant.slug}/agendar`}>
-              <Button 
+              <Button
                 className="text-white"
                 style={{ backgroundColor: themeColor }}
               >
@@ -122,16 +131,28 @@ export function PublicNavbar({ tenant }: PublicNavbarProps) {
               {/* Enlaces móviles */}
               <div className="flex flex-col space-y-2 pt-2">
                 <Link href={`/${tenant.slug}/servicios`}>
-                  <Button 
-                    variant="ghost" 
+                  <Button
+                    variant="ghost"
                     className="w-full justify-start"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Servicios
                   </Button>
                 </Link>
+                {tenant.hasGallery && (
+                  <Link href={`/${tenant.slug}/galeria`}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-2"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                      Galería
+                    </Button>
+                  </Link>
+                )}
                 <Link href={`/${tenant.slug}/agendar`}>
-                  <Button 
+                  <Button
                     className="w-full text-white"
                     style={{ backgroundColor: themeColor }}
                     onClick={() => setIsMenuOpen(false)}

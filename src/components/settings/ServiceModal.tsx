@@ -8,6 +8,18 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { ServiceCategory } from '@prisma/client';
 import { ServiceWithCategory } from '@/types';
 
+// Iconos disponibles para la página pública
+const serviceIcons = [
+  { value: 'stethoscope', label: 'Estetoscopio' },
+  { value: 'syringe', label: 'Vacunas' },
+  { value: 'scissors', label: 'Peluquería' },
+  { value: 'heart', label: 'Corazón' },
+  { value: 'bone', label: 'Hueso' },
+  { value: 'paw', label: 'Pata' },
+  { value: 'pill', label: 'Medicamentos' },
+  { value: 'microscope', label: 'Laboratorio' },
+];
+
 // Esquema de validación
 const serviceSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100, 'El nombre no puede exceder 100 caracteres'),
@@ -15,7 +27,11 @@ const serviceSchema = z.object({
   category: z.nativeEnum(ServiceCategory, { required_error: 'Selecciona una categoría' }),
   price: z.number().min(0, 'El precio no puede ser negativo').max(99999, 'El precio es demasiado alto'),
   duration: z.number().min(1, 'La duración mínima es 1 minuto').max(480, 'La duración máxima es 8 horas').optional(),
-  isActive: z.boolean()
+  isActive: z.boolean(),
+  // Public page display fields
+  isFeatured: z.boolean().optional(),
+  publicIcon: z.string().max(50).nullable().optional(),
+  publicPriceLabel: z.string().max(100).nullable().optional()
 });
 
 type ServiceFormData = z.infer<typeof serviceSchema>;
@@ -40,7 +56,10 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
       category: 'CONSULTATION',
       price: 0,
       duration: 30,
-      isActive: true
+      isActive: true,
+      isFeatured: false,
+      publicIcon: null,
+      publicPriceLabel: null
     }
   });
 
@@ -53,7 +72,10 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
         category: service.category,
         price: typeof service.price === 'number' ? service.price : Number(service.price),
         duration: service.duration || undefined,
-        isActive: service.isActive
+        isActive: service.isActive,
+        isFeatured: service.isFeatured ?? false,
+        publicIcon: service.publicIcon ?? null,
+        publicPriceLabel: service.publicPriceLabel ?? null
       });
     } else {
       form.reset({
@@ -62,7 +84,10 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
         category: 'CONSULTATION',
         price: 0,
         duration: 30,
-        isActive: true
+        isActive: true,
+        isFeatured: false,
+        publicIcon: null,
+        publicPriceLabel: null
       });
     }
   }, [service, form]);
@@ -270,6 +295,62 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                   <label className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                     Servicio activo
                   </label>
+                </div>
+
+                {/* Separador - Página Pública */}
+                <div className="border-t border-gray-200 dark:border-gray-600 pt-4 mt-4">
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                    Página Pública
+                  </h4>
+
+                  {/* Mostrar en página pública */}
+                  <div className="flex items-center mb-4">
+                    <input
+                      type="checkbox"
+                      {...form.register('isFeatured')}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                      Mostrar en página pública
+                    </label>
+                  </div>
+
+                  {/* Icono para página pública */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Icono
+                    </label>
+                    <select
+                      {...form.register('publicIcon')}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                    >
+                      <option value="">Sin icono</option>
+                      {serviceIcons.map(icon => (
+                        <option key={icon.value} value={icon.value}>
+                          {icon.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Icono que se mostrará en tu página pública
+                    </p>
+                  </div>
+
+                  {/* Etiqueta de precio personalizada */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Etiqueta de precio (opcional)
+                    </label>
+                    <input
+                      type="text"
+                      {...form.register('publicPriceLabel')}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                      placeholder="Ej: Desde $500, Consultar, etc."
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Si se deja vacío, se mostrará el precio numérico
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
