@@ -8,13 +8,18 @@ import {
 } from '@/lib/cloudinary';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
+import type { GalleryImage, GalleryCategory, PublicImages } from '@/lib/tenant';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_GALLERY_IMAGES = 10;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const uploadSchema = z.object({
-  imageType: z.enum(['logo', 'hero', 'pet-profile']),
+  imageType: z.enum(['logo', 'hero', 'pet-profile', 'gallery']),
   entityId: z.string().uuid().optional(),
+  category: z.enum(['instalaciones', 'equipo', 'pacientes']).optional(),
+  caption: z.string().max(200).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -25,11 +30,15 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File | null;
     const imageType = formData.get('imageType') as string;
     const entityId = formData.get('entityId') as string | null;
+    const category = formData.get('category') as GalleryCategory | null;
+    const caption = formData.get('caption') as string | null;
 
     // Validate inputs
     const validation = uploadSchema.safeParse({
       imageType,
       entityId: entityId || undefined,
+      category: category || undefined,
+      caption: caption || undefined,
     });
     if (!validation.success) {
       return NextResponse.json(
@@ -71,12 +80,33 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Get current image URL to delete old one after successful upload
-    const currentUrl = await getCurrentImageUrl(
-      tenant.id,
-      imageType as ImageType,
-      entityId
-    );
+    // Gallery-specific validation
+    if (imageType === 'gallery') {
+      if (!category) {
+        return NextResponse.json(
+          { error: 'La categoría es requerida para imágenes de galería' },
+          { status: 400 }
+        );
+      }
+
+      // Check gallery limit
+      const tenantData = await prisma.tenant.findUnique({
+        where: { id: tenant.id },
+        select: { publicImages: true },
+      });
+      const currentImages = (tenantData?.publicImages as PublicImages)?.gallery || [];
+      if (currentImages.length >= MAX_GALLERY_IMAGES) {
+        return NextResponse.json(
+          { error: `Has alcanzado el límite de ${MAX_GALLERY_IMAGES} imágenes en la galería` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Get current image URL to delete old one after successful upload (not for gallery)
+    const currentUrl = imageType !== 'gallery'
+      ? await getCurrentImageUrl(tenant.id, imageType as ImageType, entityId)
+      : null;
 
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
@@ -90,6 +120,20 @@ export async function POST(request: NextRequest) {
     });
 
     // Update database based on image type
+    if (imageType === 'gallery') {
+      const newGalleryImage = await addGalleryImage(
+        tenant.id,
+        result.url,
+        result.publicId,
+        category as GalleryCategory,
+        caption || undefined
+      );
+      return NextResponse.json({
+        image: newGalleryImage,
+        message: 'Imagen agregada a la galería exitosamente',
+      });
+    }
+
     await updateDatabaseWithImage(
       tenant.id,
       imageType as ImageType,
@@ -256,4 +300,42 @@ async function clearImageFromDatabase(
       }
       break;
   }
+}
+
+async function addGalleryImage(
+  tenantId: string,
+  url: string,
+  publicId: string,
+  category: GalleryCategory,
+  caption?: string
+): Promise<GalleryImage> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { publicImages: true },
+  });
+
+  const currentPublicImages = (tenant?.publicImages as PublicImages) || {};
+  const currentGallery = currentPublicImages.gallery || [];
+
+  const newImage: GalleryImage = {
+    id: uuidv4(),
+    url,
+    publicId,
+    category,
+    caption,
+    order: currentGallery.length,
+    uploadedAt: new Date().toISOString(),
+  };
+
+  await prisma.tenant.update({
+    where: { id: tenantId },
+    data: {
+      publicImages: {
+        ...currentPublicImages,
+        gallery: [...currentGallery, newImage],
+      },
+    },
+  });
+
+  return newImage;
 }

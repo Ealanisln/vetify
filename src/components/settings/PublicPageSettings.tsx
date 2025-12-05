@@ -33,7 +33,9 @@ import {
 import { toast } from 'sonner';
 import { ThemeSelector } from './ThemeSelector';
 import { ImageUploader } from '../ui/ImageUploader';
+import { GalleryManager } from './GalleryManager';
 import type { ThemeId } from '@/lib/themes';
+import type { GalleryImage } from '@/lib/tenant';
 
 interface PublicHours {
   weekdays?: string;
@@ -57,6 +59,7 @@ interface PublicSocialMedia {
 
 interface PublicImages {
   hero?: string;
+  gallery?: GalleryImage[];
 }
 
 interface PublicPageData {
@@ -96,7 +99,7 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<PublicPageData | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'images' | 'theme' | 'hours' | 'services' | 'social'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'images' | 'gallery' | 'theme' | 'hours' | 'services' | 'social'>('general');
 
   const fetchData = async () => {
     try {
@@ -308,6 +311,7 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
         {[
           { id: 'general', label: 'General', icon: Globe },
           { id: 'images', label: 'Imagenes', icon: ImageIcon },
+          { id: 'gallery', label: 'Galeria', icon: ImageIcon },
           { id: 'theme', label: 'Tema', icon: Palette },
           { id: 'hours', label: 'Horarios', icon: Clock },
           { id: 'services', label: 'Servicios', icon: GripVertical },
@@ -478,6 +482,21 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
                 const { hero: _hero, ...rest } = currentImages;
                 handleChange('publicImages', Object.keys(rest).length ? rest : null);
+              }}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Gallery Tab */}
+      {activeTab === 'gallery' && (
+        <Card>
+          <CardContent className="pt-6">
+            <GalleryManager
+              gallery={data.publicImages?.gallery || []}
+              onUpdate={(gallery) => {
+                const currentImages = data.publicImages || {};
+                handleChange('publicImages', { ...currentImages, gallery });
               }}
             />
           </CardContent>

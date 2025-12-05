@@ -23,9 +23,21 @@ export interface PublicHours {
   sunday?: string;
 }
 
+export type GalleryCategory = 'instalaciones' | 'equipo' | 'pacientes';
+
+export interface GalleryImage {
+  id: string;
+  url: string;
+  publicId: string;
+  category: GalleryCategory;
+  caption?: string;
+  order: number;
+  uploadedAt: string;
+}
+
 export interface PublicImages {
   hero?: string;
-  gallery?: string[];
+  gallery?: GalleryImage[];
 }
 
 export interface PublicSocialMedia {
