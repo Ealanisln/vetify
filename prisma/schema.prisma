@@ -692,20 +692,25 @@ model SalePayment {
 }
 
 model Service {
-  id          String          @id @default(uuid())
-  tenantId    String
-  locationId  String?
-  name        String
-  description String?
-  category    ServiceCategory
-  price       Decimal         @db.Decimal(10, 2)
-  duration    Int?
-  isActive    Boolean         @default(true)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  saleItems   SaleItem[]
-  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  location    Location?       @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  id                 String          @id @default(uuid())
+  tenantId           String
+  locationId         String?
+  name               String
+  description        String?
+  category           ServiceCategory
+  price              Decimal         @db.Decimal(10, 2)
+  duration           Int?
+  isActive           Boolean         @default(true)
+  // Public page display fields
+  isFeatured         Boolean         @default(false)
+  publicDisplayOrder Int?
+  publicIcon         String?
+  publicPriceLabel   String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  saleItems          SaleItem[]
+  tenant             Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location           Location?       @relation(fields: [locationId], references: [id], onDelete: Restrict)
 
   @@index([tenantId])
   @@index([locationId])
@@ -715,6 +720,7 @@ model Service {
   @@index([name])
   @@index([tenantId, isActive, category])
   @@index([tenantId, locationId, isActive])
+  @@index([tenantId, isFeatured, publicDisplayOrder])
 }
 
 model TenantInvitation {

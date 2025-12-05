@@ -21,8 +21,6 @@ import {
   MapPin,
   Clock,
   Palette,
-  Plus,
-  Trash2,
   GripVertical,
   Facebook,
   Instagram,
@@ -83,16 +81,6 @@ interface PublicPageSettingsProps {
   tenantId: string;
 }
 
-const serviceIcons = [
-  { value: 'stethoscope', label: 'Estetoscopio' },
-  { value: 'syringe', label: 'Vacunas' },
-  { value: 'scissors', label: 'Peluquería' },
-  { value: 'heart', label: 'Corazón' },
-  { value: 'bone', label: 'Hueso' },
-  { value: 'paw', label: 'Pata' },
-  { value: 'pill', label: 'Medicamentos' },
-  { value: 'microscope', label: 'Laboratorio' },
-];
 
 export function PublicPageSettings({ }: PublicPageSettingsProps) {
   const [loading, setLoading] = useState(true);
@@ -153,42 +141,6 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
     setHasChanges(true);
   };
 
-  const handleAddService = () => {
-    if (!data) return;
-    const currentServices = data.publicServices || [];
-    if (currentServices.length >= 10) {
-      toast.error('Máximo 10 servicios permitidos');
-      return;
-    }
-    setData({
-      ...data,
-      publicServices: [
-        ...currentServices,
-        { title: '', description: '', price: '', icon: 'stethoscope' }
-      ]
-    });
-    setHasChanges(true);
-  };
-
-  const handleRemoveService = (index: number) => {
-    if (!data) return;
-    const currentServices = [...(data.publicServices || [])];
-    currentServices.splice(index, 1);
-    setData({ ...data, publicServices: currentServices });
-    setHasChanges(true);
-  };
-
-  const handleServiceChange = (
-    index: number,
-    field: keyof PublicService,
-    value: string
-  ) => {
-    if (!data) return;
-    const currentServices = [...(data.publicServices || [])];
-    currentServices[index] = { ...currentServices[index], [field]: value };
-    setData({ ...data, publicServices: currentServices });
-    setHasChanges(true);
-  };
 
   const handleSave = async () => {
     if (!data) return;
@@ -566,81 +518,38 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
               Servicios Destacados
             </CardTitle>
             <p className="text-sm text-gray-500">
-              Lista de servicios que aparecerán en tu página pública (máximo 10)
+              Los servicios que aparecen en tu página pública se configuran desde la sección de Servicios
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {(data.publicServices || []).map((service, index) => (
-              <div
-                key={index}
-                className="p-4 border rounded-lg space-y-3 bg-gray-50 dark:bg-gray-800"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-500">
-                    Servicio {index + 1}
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveService(index)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label>Título</Label>
-                    <Input
-                      placeholder="Consulta General"
-                      value={service.title}
-                      onChange={(e) => handleServiceChange(index, 'title', e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Precio (opcional)</Label>
-                    <Input
-                      placeholder="$500"
-                      value={service.price || ''}
-                      onChange={(e) => handleServiceChange(index, 'price', e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Descripción</Label>
-                  <Textarea
-                    placeholder="Descripción del servicio..."
-                    value={service.description}
-                    onChange={(e) => handleServiceChange(index, 'description', e.target.value)}
-                    rows={2}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Icono</Label>
-                  <select
-                    value={service.icon || 'stethoscope'}
-                    onChange={(e) => handleServiceChange(index, 'icon', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
-                  >
-                    {serviceIcons.map((icon) => (
-                      <option key={icon.value} value={icon.value}>
-                        {icon.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+            <div className="p-6 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-center">
+              <div className="mb-4">
+                <GripVertical className="h-12 w-12 mx-auto text-gray-400" />
               </div>
-            ))}
-
-            <Button
-              variant="outline"
-              onClick={handleAddService}
-              disabled={(data.publicServices || []).length >= 10}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar Servicio
-            </Button>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                Gestiona tus servicios
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Para mostrar servicios en tu página pública, ve a <strong>Configuración &gt; Servicios</strong> y marca la opción &quot;Mostrar en página pública&quot; en cada servicio que desees destacar.
+              </p>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const servicesTab = document.querySelector('[data-settings-tab="services"]');
+                  if (servicesTab) {
+                    (servicesTab as HTMLElement).click();
+                  } else {
+                    window.location.href = '/dashboard/settings?tab=services';
+                  }
+                }}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Ir a Servicios
+              </Button>
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              <strong>Tip:</strong> Puedes marcar hasta 10 servicios como destacados. El orden en que aparecen se puede ajustar desde el campo &quot;Orden de visualización&quot; en cada servicio.
+            </div>
           </CardContent>
         </Card>
       )}

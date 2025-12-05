@@ -12,7 +12,12 @@ const serviceSchema = z.object({
   price: z.number().min(0).max(99999),
   duration: z.number().min(1).max(480).optional(),
   isActive: z.boolean(),
-  tenantId: z.string()
+  tenantId: z.string(),
+  // Public page display fields
+  isFeatured: z.boolean().optional().default(false),
+  publicDisplayOrder: z.number().int().min(1).max(10).nullable().optional(),
+  publicIcon: z.string().max(50).nullable().optional(),
+  publicPriceLabel: z.string().max(100).nullable().optional()
 });
 
 export async function GET(request: NextRequest) {
@@ -89,7 +94,11 @@ export async function POST(request: NextRequest) {
         price: validatedData.price,
         duration: validatedData.duration,
         isActive: validatedData.isActive,
-        tenantId: tenant.id
+        tenantId: tenant.id,
+        isFeatured: validatedData.isFeatured ?? false,
+        publicDisplayOrder: validatedData.publicDisplayOrder ?? null,
+        publicIcon: validatedData.publicIcon ?? null,
+        publicPriceLabel: validatedData.publicPriceLabel ?? null
       }
     });
 

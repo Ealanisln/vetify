@@ -12,7 +12,12 @@ const updateServiceSchema = z.object({
   price: z.number().min(0).max(99999),
   duration: z.number().min(1).max(480).optional(),
   isActive: z.boolean(),
-  tenantId: z.string()
+  tenantId: z.string(),
+  // Public page display fields
+  isFeatured: z.boolean().optional(),
+  publicDisplayOrder: z.number().int().min(1).max(10).nullable().optional(),
+  publicIcon: z.string().max(50).nullable().optional(),
+  publicPriceLabel: z.string().max(100).nullable().optional()
 });
 
 export async function PUT(
@@ -79,7 +84,11 @@ export async function PUT(
         category: validatedData.category,
         price: validatedData.price,
         duration: validatedData.duration,
-        isActive: validatedData.isActive
+        isActive: validatedData.isActive,
+        isFeatured: validatedData.isFeatured,
+        publicDisplayOrder: validatedData.publicDisplayOrder,
+        publicIcon: validatedData.publicIcon,
+        publicPriceLabel: validatedData.publicPriceLabel
       }
     });
 

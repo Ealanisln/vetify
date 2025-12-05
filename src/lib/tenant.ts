@@ -380,7 +380,7 @@ export async function createOrUpdateStripeCustomer(
  */
 export async function getTenantBySlug(slug: string): Promise<PublicTenant | null> {
   const tenant = await prisma.tenant.findUnique({
-    where: { 
+    where: {
       slug,
       status: 'ACTIVE'
     },
@@ -419,4 +419,51 @@ export async function getTenantBySlug(slug: string): Promise<PublicTenant | null
   });
 
   return tenant ? transformTenantForPublic(tenant) : null;
+}
+
+/**
+ * Featured service type for public pages (serializable)
+ */
+export interface FeaturedService {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  publicIcon: string | null;
+  publicPriceLabel: string | null;
+  publicDisplayOrder: number | null;
+}
+
+/**
+ * Get featured services for a tenant's public page
+ * Converts Decimal to number for client component serialization
+ */
+export async function getFeaturedServices(tenantId: string): Promise<FeaturedService[]> {
+  const services = await prisma.service.findMany({
+    where: {
+      tenantId,
+      isActive: true,
+      isFeatured: true
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      price: true,
+      publicIcon: true,
+      publicPriceLabel: true,
+      publicDisplayOrder: true
+    },
+    orderBy: [
+      { publicDisplayOrder: 'asc' },
+      { name: 'asc' }
+    ],
+    take: 10
+  });
+
+  // Convert Decimal to number for client component serialization
+  return services.map(service => ({
+    ...service,
+    price: Number(service.price)
+  }));
 } 
