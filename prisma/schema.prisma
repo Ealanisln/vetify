@@ -256,6 +256,7 @@ model Pet {
   microchipNumber    String?
   isNeutered         Boolean             @default(false)
   isDeceased         Boolean             @default(false)
+  profileImage       String?
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
   appointments       Appointment[]

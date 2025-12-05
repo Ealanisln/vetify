@@ -28,9 +28,11 @@ import {
   Instagram,
   Twitter,
   MessageCircle,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ThemeSelector } from './ThemeSelector';
+import { ImageUploader } from '../ui/ImageUploader';
 import type { ThemeId } from '@/lib/themes';
 
 interface PublicHours {
@@ -53,6 +55,10 @@ interface PublicSocialMedia {
   whatsapp?: string;
 }
 
+interface PublicImages {
+  hero?: string;
+}
+
 interface PublicPageData {
   slug: string;
   publicPageEnabled: boolean;
@@ -66,6 +72,7 @@ interface PublicPageData {
   publicHours: PublicHours | null;
   publicServices: PublicService[] | null;
   publicSocialMedia: PublicSocialMedia | null;
+  publicImages: PublicImages | null;
   logo: string | null;
 }
 
@@ -89,7 +96,7 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<PublicPageData | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'theme' | 'hours' | 'services' | 'social'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'images' | 'theme' | 'hours' | 'services' | 'social'>('general');
 
   const fetchData = async () => {
     try {
@@ -300,6 +307,7 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
       <div className="flex gap-2 border-b pb-2 overflow-x-auto">
         {[
           { id: 'general', label: 'General', icon: Globe },
+          { id: 'images', label: 'Imagenes', icon: ImageIcon },
           { id: 'theme', label: 'Tema', icon: Palette },
           { id: 'hours', label: 'Horarios', icon: Clock },
           { id: 'services', label: 'Servicios', icon: GripVertical },
@@ -426,6 +434,52 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
                 onCheckedChange={(checked) => handleChange('publicBookingEnabled', checked)}
               />
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Images Tab */}
+      {activeTab === 'images' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              Imagenes de la Clinica
+            </CardTitle>
+            <p className="text-sm text-gray-500">
+              Sube el logo y la imagen principal de tu pagina publica
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Logo Upload */}
+            <ImageUploader
+              imageType="logo"
+              currentImage={data.logo}
+              aspectRatio="1:1"
+              label="Logo de la Clinica"
+              description="Se mostrara en la barra de navegacion y como favicon. Recomendado: 400x400px."
+              onUpload={(url) => handleChange('logo', url)}
+              onDelete={() => handleChange('logo', null)}
+            />
+
+            {/* Hero Image Upload */}
+            <ImageUploader
+              imageType="hero"
+              currentImage={data.publicImages?.hero}
+              aspectRatio="16:9"
+              label="Imagen Principal (Hero)"
+              description="Imagen destacada de la pagina publica. Recomendado: 1920x1080px."
+              onUpload={(url) => {
+                const currentImages = data.publicImages || {};
+                handleChange('publicImages', { ...currentImages, hero: url });
+              }}
+              onDelete={() => {
+                const currentImages = data.publicImages || {};
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                const { hero: _hero, ...rest } = currentImages;
+                handleChange('publicImages', Object.keys(rest).length ? rest : null);
+              }}
+            />
           </CardContent>
         </Card>
       )}
