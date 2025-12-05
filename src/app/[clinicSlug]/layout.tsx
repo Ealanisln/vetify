@@ -44,9 +44,11 @@ export default async function PublicLayout({
     notFound();
   }
 
+  const hasGallery = (tenant.publicImages?.gallery?.length ?? 0) > 0;
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <PublicNavbar tenant={tenant} />
+      <PublicNavbar tenant={{ ...tenant, hasGallery }} />
       <main className="flex-1">
         {children}
       </main>

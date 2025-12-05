@@ -7,7 +7,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-export type ImageType = 'logo' | 'hero' | 'pet-profile';
+export type ImageType = 'logo' | 'hero' | 'pet-profile' | 'gallery';
 
 interface UploadOptions {
   tenantId: string;
@@ -34,6 +34,8 @@ export function getFolderPath(options: UploadOptions): string {
       return `${basePath}/hero`;
     case 'pet-profile':
       return `${basePath}/pets/${entityId}`;
+    case 'gallery':
+      return `${basePath}/gallery`;
     default:
       return basePath;
   }
@@ -65,6 +67,13 @@ export function getTransformations(imageType: ImageType): Record<string, unknown
       return {
         transformation: [
           { width: 400, height: 400, crop: 'fill', gravity: 'auto' },
+          { quality: 'auto:good', fetch_format: 'auto' },
+        ],
+      };
+    case 'gallery':
+      return {
+        transformation: [
+          { width: 1200, height: 800, crop: 'limit' },
           { quality: 'auto:good', fetch_format: 'auto' },
         ],
       };
