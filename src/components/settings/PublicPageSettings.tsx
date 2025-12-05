@@ -28,7 +28,9 @@ import {
   Instagram,
   Twitter,
   MessageCircle,
+  ImageIcon,
 } from 'lucide-react';
+import { ImageUploader } from '../ui/ImageUploader';
 import { toast } from 'sonner';
 import { ThemeSelector } from './ThemeSelector';
 import type { ThemeId } from '@/lib/themes';
@@ -53,6 +55,10 @@ interface PublicSocialMedia {
   whatsapp?: string;
 }
 
+interface PublicImages {
+  hero?: string;
+}
+
 interface PublicPageData {
   slug: string;
   publicPageEnabled: boolean;
@@ -66,6 +72,7 @@ interface PublicPageData {
   publicHours: PublicHours | null;
   publicServices: PublicService[] | null;
   publicSocialMedia: PublicSocialMedia | null;
+  publicImages: PublicImages | null;
   logo: string | null;
 }
 
@@ -89,7 +96,7 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
   const [saving, setSaving] = useState(false);
   const [data, setData] = useState<PublicPageData | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
-  const [activeTab, setActiveTab] = useState<'general' | 'theme' | 'hours' | 'services' | 'social'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'images' | 'theme' | 'hours' | 'services' | 'social'>('general');
 
   const fetchData = async () => {
     try {
@@ -200,6 +207,8 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
           publicHours: data.publicHours,
           publicServices: data.publicServices?.filter(s => s.title.trim()),
           publicSocialMedia: data.publicSocialMedia,
+          publicImages: data.publicImages,
+          logo: data.logo,
         }),
       });
 
@@ -300,6 +309,7 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
       <div className="flex gap-2 border-b pb-2 overflow-x-auto">
         {[
           { id: 'general', label: 'General', icon: Globe },
+          { id: 'images', label: 'Imágenes', icon: ImageIcon },
           { id: 'theme', label: 'Tema', icon: Palette },
           { id: 'hours', label: 'Horarios', icon: Clock },
           { id: 'services', label: 'Servicios', icon: GripVertical },
@@ -425,6 +435,67 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
                 checked={data.publicBookingEnabled}
                 onCheckedChange={(checked) => handleChange('publicBookingEnabled', checked)}
               />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Images Tab */}
+      {activeTab === 'images' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              Imágenes de la Clínica
+            </CardTitle>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Sube el logo y la imagen principal de tu clínica
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            {/* Logo Upload */}
+            <div className="space-y-3">
+              <div>
+                <Label className="text-base font-medium">Logo de la Clínica</Label>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Recomendado: imagen cuadrada, mínimo 200x200px
+                </p>
+              </div>
+              <div className="max-w-xs">
+                <ImageUploader
+                  value={data.logo}
+                  onChange={(url) => handleChange('logo', url)}
+                  imageType="logo"
+                  aspectRatio="1:1"
+                  maxSizeMB={2}
+                  placeholder="Arrastra tu logo aquí"
+                />
+              </div>
+            </div>
+
+            {/* Hero Image Upload */}
+            <div className="space-y-3">
+              <div>
+                <Label className="text-base font-medium">Imagen Principal (Hero)</Label>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Recomendado: imagen horizontal, mínimo 1200x600px. Se mostrará en la cabecera de tu página pública.
+                </p>
+              </div>
+              <div className="max-w-2xl">
+                <ImageUploader
+                  value={data.publicImages?.hero || null}
+                  onChange={(url) => {
+                    handleChange('publicImages', {
+                      ...data.publicImages,
+                      hero: url || undefined,
+                    });
+                  }}
+                  imageType="hero"
+                  aspectRatio="16:9"
+                  maxSizeMB={5}
+                  placeholder="Arrastra la imagen principal aquí"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -30,6 +30,10 @@ const publicPageSettingsSchema = z.object({
     twitter: z.string().url().optional().or(z.literal('')),
     whatsapp: z.string().max(20).optional().or(z.literal('')),
   }).nullable().optional(),
+  publicImages: z.object({
+    hero: z.string().url().optional(),
+  }).nullable().optional(),
+  logo: z.string().url().nullable().optional(),
 });
 
 export async function GET() {
@@ -107,6 +111,10 @@ export async function PUT(request: Request) {
         twitter: data.publicSocialMedia.twitter || undefined,
         whatsapp: data.publicSocialMedia.whatsapp || undefined,
       } : null,
+      publicImages: data.publicImages ? {
+        hero: data.publicImages.hero || undefined,
+      } : null,
+      logo: data.logo || null,
     };
 
     const updatedTenant = await prisma.tenant.update({
