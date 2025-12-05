@@ -3,7 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { deleteImage } from '@/lib/cloudinary';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
-import type { GalleryImage, GalleryCategory, PublicImages } from '@/lib/tenant';
+import type { GalleryCategory, PublicImages } from '@/lib/tenant';
 
 const reorderSchema = z.object({
   images: z.array(
