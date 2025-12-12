@@ -1,6 +1,9 @@
+'use client';
+
 import { Pet, Customer } from '@prisma/client';
 import { differenceInYears, differenceInMonths } from 'date-fns';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { getThemeClasses } from '../../utils/theme-colors';
 import { parseWeight } from '../../utils/format';
 import { PET_SPECIES_MAP, PET_GENDER_MAP, type PetSpecies, type PetGender } from '../../types';
@@ -11,28 +14,18 @@ interface PetHeaderProps {
   pet: PetWithOwner;
 }
 
-// Temporary button components
-function EditPetButton() {
-  return (
-    <button className="btn-secondary">
-      <span className="hidden sm:inline">✏️ Editar</span>
-      <span className="sm:hidden">✏️</span>
-    </button>
-  );
-}
-
-function NewAppointmentButton() {
-  return (
-    <button className="btn-primary">
-      <span className="hidden sm:inline">📅 Nueva Cita</span>
-      <span className="sm:hidden">📅</span>
-    </button>
-  );
-}
-
 export function PetHeader({ pet }: PetHeaderProps) {
+  const router = useRouter();
   const age = differenceInYears(new Date(), pet.dateOfBirth);
   const ageInMonths = differenceInMonths(new Date(), pet.dateOfBirth);
+
+  const handleEditPet = () => {
+    router.push(`/dashboard/pets/${pet.id}/edit`);
+  };
+
+  const handleNewAppointment = () => {
+    router.push(`/dashboard/appointments/new?petId=${pet.id}&customerId=${pet.customerId}`);
+  };
 
   const displayAge = age > 0
     ? `${age} año${age !== 1 ? 's' : ''}`
@@ -102,8 +95,14 @@ export function PetHeader({ pet }: PetHeaderProps) {
         </div>
         
         <div className="flex flex-col sm:flex-row gap-3">
-          <EditPetButton />
-          <NewAppointmentButton />
+          <button onClick={handleEditPet} className="btn-secondary">
+            <span className="hidden sm:inline">✏️ Editar</span>
+            <span className="sm:hidden">✏️</span>
+          </button>
+          <button onClick={handleNewAppointment} className="btn-primary">
+            <span className="hidden sm:inline">📅 Nueva Cita</span>
+            <span className="sm:hidden">📅</span>
+          </button>
         </div>
       </div>
     </div>
