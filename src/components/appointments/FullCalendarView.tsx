@@ -31,6 +31,7 @@ interface FullCalendarViewProps {
   showToolbar?: boolean;
   editable?: boolean;
   selectable?: boolean;
+  refreshTrigger?: number; // Increment to trigger a refresh from parent
 }
 
 export function FullCalendarView({
@@ -44,22 +45,30 @@ export function FullCalendarView({
   showToolbar = true,
   editable = true,
   selectable = true,
+  refreshTrigger,
 }: FullCalendarViewProps) {
   const calendarRef = useRef<FullCalendar>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventApi | null>(null);
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  
-  const { 
-    events, 
-    loading, 
-    error, 
-    currentDate, 
-    currentView, 
-    setCurrentDate, 
+
+  const {
+    events,
+    loading,
+    error,
+    currentDate,
+    currentView,
+    setCurrentDate,
     setCurrentView,
-    refresh 
+    refresh
   } = useCalendar(defaultView);
+
+  // Refresh calendar when refreshTrigger changes (controlled by parent)
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      refresh();
+    }
+  }, [refreshTrigger, refresh]);
 
   // Detect mobile screen size
   useEffect(() => {
@@ -393,9 +402,9 @@ export function FullCalendarView({
               </div>
             )}
             eventClassNames={(info) => {
-              const appointment = info.event.extendedProps.appointment;
-              const priority = info.event.extendedProps.priority;
-              
+              const appointment = info.event.extendedProps?.appointment;
+              const priority = info.event.extendedProps?.priority;
+
               return [
                 'cursor-pointer',
                 'transition-all',
@@ -403,16 +412,18 @@ export function FullCalendarView({
                 'rounded-md',
                 'border-l-4',
                 priority === 'emergency' && 'animate-pulse',
-                !appointment.canEdit && 'opacity-60',
+                appointment && !appointment.canEdit && 'opacity-60',
               ].filter(Boolean);
             }}
             eventDidMount={(info) => {
-              const appointment = info.event.extendedProps.appointment;
-              info.el.setAttribute('title', 
-                `${appointment.pet.name} (${appointment.customer.name})\n` +
-                `${appointment.reason}\n` +
-                `Estado: ${getAppointmentStatusLabel(appointment.status)}`
-              );
+              const appointment = info.event.extendedProps?.appointment;
+              if (appointment) {
+                info.el.setAttribute('title',
+                  `${appointment.pet.name} (${appointment.customer.name})\n` +
+                  `${appointment.reason}\n` +
+                  `Estado: ${getAppointmentStatusLabel(appointment.status)}`
+                );
+              }
             }}
           />
         </div>
@@ -433,10 +444,21 @@ export function FullCalendarView({
 
 // Componente para renderizar el contenido de cada evento
 function EventContent({ event }: { event: EventContentArg }) {
-  const appointment = event.event.extendedProps.appointment;
-  const priority = event.event.extendedProps.priority;
+  const appointment = event.event.extendedProps?.appointment;
+  const priority = event.event.extendedProps?.priority;
   // Use the text color from the event for consistent styling
   const textColor = event.event.textColor || '#1f2937';
+
+  // If no appointment data, show basic event info
+  if (!appointment) {
+    return (
+      <div className="px-1 py-0.5 h-full flex items-center">
+        <span className="text-xs truncate" style={{ color: textColor }}>
+          {event.event.title || 'Evento'}
+        </span>
+      </div>
+    );
+  }
 
   // Check if this is a short appointment (30 min or less)
   const duration = appointment.duration || 30;
@@ -531,10 +553,12 @@ function EventDetailsModal({
   const handleQuickAction = async (action: string) => {
     setLoading(true);
     try {
+      // Close modal first to prevent state conflicts during update
+      onClose();
       await quickAction(appointment.id, action);
       toast.success('Estado actualizado exitosamente');
+      // Refresh calendar after modal is closed and action is complete
       onUpdate();
-      onClose();
     } catch {
       toast.error('Error al actualizar el estado');
     } finally {

@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FullCalendarView, AppointmentModal, TodayAppointments, AppointmentStats } from '../../../components/appointments';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { PlusIcon, Calendar, Clock, Users } from 'lucide-react';
 import { useAppointments, AppointmentWithDetails } from '../../../hooks/useAppointments';
-import { useCalendar } from '../../../hooks/useCalendar';
 import { DateSelectArg } from '@fullcalendar/core';
 import { formatDate, formatTime } from '../../../lib/utils/date-format';
 // Toast notifications will be handled by individual components
@@ -47,9 +46,38 @@ export function AppointmentsPageClient({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithDetails | undefined>();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
 
   const { quickAction, refresh } = useAppointments();
-  const { refresh: refreshCalendar } = useCalendar();
+
+  // Trigger calendar refresh
+  const triggerCalendarRefresh = () => {
+    setCalendarRefreshTrigger(prev => prev + 1);
+  };
+
+  // Auto-refresh calendar data when page mounts
+  // This ensures new appointments appear after navigating back from creation page
+  useEffect(() => {
+    // Small delay to ensure the calendar is mounted
+    const timer = setTimeout(() => {
+      triggerCalendarRefresh();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    // Refresh when page becomes visible again (e.g., returning from another tab)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        triggerCalendarRefresh();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   const handleNewAppointment = () => {
     setSelectedAppointment(undefined);
@@ -75,13 +103,15 @@ export function AppointmentsPageClient({
   };
 
   const handleModalSuccess = async () => {
-    await Promise.all([refresh(), refreshCalendar()]);
+    await refresh();
+    triggerCalendarRefresh();
   };
 
   const handleQuickAction = async (appointmentId: string, action: string) => {
     try {
       await quickAction(appointmentId, action);
-      await Promise.all([refresh(), refreshCalendar()]);
+      await refresh();
+      triggerCalendarRefresh();
     } catch (error) {
       throw error; // Re-throw to be handled by the QuickActions component
     }
@@ -171,6 +201,7 @@ export function AppointmentsPageClient({
         editable={true}
         selectable={true}
         className="mobile-calendar"
+        refreshTrigger={calendarRefreshTrigger}
       />
 
       {/* Data Summary Cards */}

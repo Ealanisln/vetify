@@ -68,7 +68,8 @@ export const useAppointments = (initialQuery?: Partial<AppointmentQuery>): UseAp
         throw new Error(result.error || 'Error al cargar las citas');
       }
 
-      // Convertir fechas de string a Date
+      // Convert date strings to Date objects - JSON returns UTC with Z suffix
+      // new Date() correctly interprets UTC and converts to local time for display
       const appointmentsWithDates = result.data.map((appointment: AppointmentWithDetails & { dateTime: string; createdAt: string; updatedAt: string }) => ({
         ...appointment,
         dateTime: new Date(appointment.dateTime),
@@ -91,6 +92,7 @@ export const useAppointments = (initialQuery?: Partial<AppointmentQuery>): UseAp
     setError(null);
 
     try {
+      // Send date as ISO string (UTC) - server stores UTC, browser displays local
       const response = await fetch('/api/appointments', {
         method: 'POST',
         headers: {
@@ -131,9 +133,10 @@ export const useAppointments = (initialQuery?: Partial<AppointmentQuery>): UseAp
     setError(null);
 
     try {
-      const updateData = { ...data };
-      if (updateData.dateTime) {
-        updateData.dateTime = updateData.dateTime.toISOString() as unknown as Date;
+      // Prepare data for sending, converting dateTime to ISO string (UTC)
+      const updateData: Record<string, unknown> = { ...data };
+      if (data.dateTime) {
+        updateData.dateTime = data.dateTime.toISOString();
       }
 
       const response = await fetch(`/api/appointments/${id}`, {
@@ -188,7 +191,7 @@ export const useAppointments = (initialQuery?: Partial<AppointmentQuery>): UseAp
         throw new Error(result.error || 'Error al cancelar la cita');
       }
 
-      // Actualizar el estado de la cita en lugar de eliminarla
+      // Update appointment state instead of removing it
       const cancelledAppointment = {
         ...result.data,
         dateTime: new Date(result.data.dateTime),
@@ -255,6 +258,7 @@ export const useTodayAppointments = () => {
   const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
 
+  // Use ISO format (UTC) for date range - server will parse correctly
   return useAppointments({
     start_date: startOfDay.toISOString(),
     end_date: endOfDay.toISOString(),
