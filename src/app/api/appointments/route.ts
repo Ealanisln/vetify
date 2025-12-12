@@ -4,6 +4,7 @@ import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
 import { sendAppointmentConfirmation, sendAppointmentStaffNotification } from '@/lib/email/email-service';
 import type { AppointmentConfirmationData, AppointmentStaffNotificationData } from '@/lib/email/types';
+import { shouldSendNotification } from '@/lib/enhanced-settings';
 
 // Helper to transform empty strings to undefined
 const emptyStringToUndefined = z.string().transform(val => val === '' ? undefined : val).optional();
@@ -259,7 +260,9 @@ export async function POST(request: Request) {
     });
 
     // Send confirmation email asynchronously (don't block response)
-    if (appointment.customer.email) {
+    // Check notification preference before sending
+    const sendConfirmation = await shouldSendNotification(tenant.id, 'appointmentConfirmation');
+    if (sendConfirmation && appointment.customer.email) {
       const appointmentTime = appointmentDateTime.toLocaleTimeString('es-MX', {
         hour: '2-digit',
         minute: '2-digit',
@@ -295,7 +298,9 @@ export async function POST(request: Request) {
     }
 
     // Send notification to assigned staff if exists
-    if (appointment.staffId && appointment.staff) {
+    // Check notification preference before sending
+    const sendStaffNotification = await shouldSendNotification(tenant.id, 'staffAppointmentNotification');
+    if (sendStaffNotification && appointment.staffId && appointment.staff) {
       // Get staff email
       const staffWithEmail = await prisma.staff.findUnique({
         where: { id: appointment.staffId },

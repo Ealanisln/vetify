@@ -10,6 +10,7 @@ import type {
   AppointmentCancellationData,
   AppointmentRescheduledData,
 } from '@/lib/email/types';
+import { shouldSendNotification } from '@/lib/enhanced-settings';
 
 const updateAppointmentSchema = z.object({
   dateTime: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -292,79 +293,87 @@ export async function PUT(
       existingAppointment.dateTime.getTime() !== new Date(validatedData.dateTime).getTime() &&
       !wasCancelled;
 
-    // Send appropriate notification email
+    // Send appropriate notification email (check preferences first)
     if (appointment.customer.email) {
       if (wasCancelled) {
-        // Send cancellation email
-        const cancelledBy = validatedData.status === 'CANCELLED_CLIENT' ? 'CLIENT' : 'CLINIC';
-        const appointmentTime = existingAppointment.dateTime.toLocaleTimeString('es-MX', {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        // Check notification preference before sending
+        const sendCancellation = await shouldSendNotification(tenant.id, 'appointmentCancellation');
+        if (sendCancellation) {
+          // Send cancellation email
+          const cancelledBy = validatedData.status === 'CANCELLED_CLIENT' ? 'CLIENT' : 'CLINIC';
+          const appointmentTime = existingAppointment.dateTime.toLocaleTimeString('es-MX', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
 
-        const cancellationEmailData: AppointmentCancellationData = {
-          template: 'appointment-cancellation',
-          to: {
-            email: appointment.customer.email,
-            name: appointment.customer.name,
-          },
-          subject: `Cita Cancelada - ${appointment.pet.name}`,
-          tenantId: tenant.id,
-          data: {
-            appointmentId: appointment.id,
-            petName: appointment.pet.name,
-            ownerName: appointment.customer.name,
-            appointmentDate: existingAppointment.dateTime,
-            appointmentTime,
-            serviceName: appointment.reason,
-            clinicName: appointment.tenant.name,
-            clinicPhone: appointment.tenant.publicPhone || undefined,
-            cancelledBy,
-            cancellationReason: validatedData.notes,
-          },
-        };
+          const cancellationEmailData: AppointmentCancellationData = {
+            template: 'appointment-cancellation',
+            to: {
+              email: appointment.customer.email,
+              name: appointment.customer.name,
+            },
+            subject: `Cita Cancelada - ${appointment.pet.name}`,
+            tenantId: tenant.id,
+            data: {
+              appointmentId: appointment.id,
+              petName: appointment.pet.name,
+              ownerName: appointment.customer.name,
+              appointmentDate: existingAppointment.dateTime,
+              appointmentTime,
+              serviceName: appointment.reason,
+              clinicName: appointment.tenant.name,
+              clinicPhone: appointment.tenant.publicPhone || undefined,
+              cancelledBy,
+              cancellationReason: validatedData.notes,
+            },
+          };
 
-        sendAppointmentCancellation(cancellationEmailData).catch((error) => {
-          console.error('[APPOINTMENT] Failed to send cancellation email:', error);
-        });
+          sendAppointmentCancellation(cancellationEmailData).catch((error) => {
+            console.error('[APPOINTMENT] Failed to send cancellation email:', error);
+          });
+        }
       } else if (wasRescheduled) {
-        // Send rescheduled email
-        const previousTime = existingAppointment.dateTime.toLocaleTimeString('es-MX', {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
-        const newTime = appointment.dateTime.toLocaleTimeString('es-MX', {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        // Check notification preference before sending
+        const sendRescheduled = await shouldSendNotification(tenant.id, 'appointmentRescheduled');
+        if (sendRescheduled) {
+          // Send rescheduled email
+          const previousTime = existingAppointment.dateTime.toLocaleTimeString('es-MX', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
+          const newTime = appointment.dateTime.toLocaleTimeString('es-MX', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
 
-        const rescheduledEmailData: AppointmentRescheduledData = {
-          template: 'appointment-rescheduled',
-          to: {
-            email: appointment.customer.email,
-            name: appointment.customer.name,
-          },
-          subject: `Cita Reprogramada - ${appointment.pet.name}`,
-          tenantId: tenant.id,
-          data: {
-            appointmentId: appointment.id,
-            petName: appointment.pet.name,
-            ownerName: appointment.customer.name,
-            previousDate: existingAppointment.dateTime,
-            previousTime,
-            newDate: appointment.dateTime,
-            newTime,
-            serviceName: appointment.reason,
-            clinicName: appointment.tenant.name,
-            clinicAddress: appointment.tenant.publicAddress || undefined,
-            clinicPhone: appointment.tenant.publicPhone || undefined,
-            veterinarianName: appointment.staff?.name,
-          },
-        };
+          const rescheduledEmailData: AppointmentRescheduledData = {
+            template: 'appointment-rescheduled',
+            to: {
+              email: appointment.customer.email,
+              name: appointment.customer.name,
+            },
+            subject: `Cita Reprogramada - ${appointment.pet.name}`,
+            tenantId: tenant.id,
+            data: {
+              appointmentId: appointment.id,
+              petName: appointment.pet.name,
+              ownerName: appointment.customer.name,
+              previousDate: existingAppointment.dateTime,
+              previousTime,
+              newDate: appointment.dateTime,
+              newTime,
+              serviceName: appointment.reason,
+              clinicName: appointment.tenant.name,
+              clinicAddress: appointment.tenant.publicAddress || undefined,
+              clinicPhone: appointment.tenant.publicPhone || undefined,
+              veterinarianName: appointment.staff?.name,
+            },
+          };
 
-        sendAppointmentRescheduled(rescheduledEmailData).catch((error) => {
-          console.error('[APPOINTMENT] Failed to send rescheduled email:', error);
-        });
+          sendAppointmentRescheduled(rescheduledEmailData).catch((error) => {
+            console.error('[APPOINTMENT] Failed to send rescheduled email:', error);
+          });
+        }
       }
     }
 
@@ -457,8 +466,9 @@ export async function DELETE(
       }
     });
 
-    // Send cancellation email to customer
-    if (appointment.customer.email) {
+    // Send cancellation email to customer (check preferences first)
+    const sendCancellation = await shouldSendNotification(tenant.id, 'appointmentCancellation');
+    if (sendCancellation && appointment.customer.email) {
       const appointmentTime = existingAppointment.dateTime.toLocaleTimeString('es-MX', {
         hour: '2-digit',
         minute: '2-digit',
