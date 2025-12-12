@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
-import { sendAppointmentConfirmation } from '@/lib/email/email-service';
-import type { AppointmentConfirmationData } from '@/lib/email/types';
+import { sendAppointmentConfirmation, sendAppointmentStaffNotification } from '@/lib/email/email-service';
+import type { AppointmentConfirmationData, AppointmentStaffNotificationData } from '@/lib/email/types';
 
 // Helper to transform empty strings to undefined
 const emptyStringToUndefined = z.string().transform(val => val === '' ? undefined : val).optional();
@@ -292,6 +292,51 @@ export async function POST(request: Request) {
       sendAppointmentConfirmation(emailData).catch((error) => {
         console.error('[APPOINTMENT] Failed to send confirmation email:', error);
       });
+    }
+
+    // Send notification to assigned staff if exists
+    if (appointment.staffId && appointment.staff) {
+      // Get staff email
+      const staffWithEmail = await prisma.staff.findUnique({
+        where: { id: appointment.staffId },
+        select: { email: true, name: true },
+      });
+
+      if (staffWithEmail?.email) {
+        const appointmentTime = appointmentDateTime.toLocaleTimeString('es-MX', {
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
+        const staffEmailData: AppointmentStaffNotificationData = {
+          template: 'appointment-staff-notification',
+          to: {
+            email: staffWithEmail.email,
+            name: staffWithEmail.name,
+          },
+          subject: `Nueva Cita Asignada - ${appointment.pet.name}`,
+          tenantId: tenant.id,
+          data: {
+            appointmentId: appointment.id,
+            staffName: staffWithEmail.name,
+            petName: appointment.pet.name,
+            petSpecies: appointment.pet.species,
+            petBreed: appointment.pet.breed || undefined,
+            ownerName: appointment.customer.name,
+            ownerPhone: appointment.customer.phone || undefined,
+            appointmentDate: appointmentDateTime,
+            appointmentTime,
+            serviceName: appointment.reason,
+            clinicName: appointment.tenant.name,
+            notes: appointment.notes || undefined,
+          },
+        };
+
+        // Send email without awaiting (fire and forget)
+        sendAppointmentStaffNotification(staffEmailData).catch((error) => {
+          console.error('[APPOINTMENT] Failed to send staff notification email:', error);
+        });
+      }
     }
 
     return NextResponse.json({
