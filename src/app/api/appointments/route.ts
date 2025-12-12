@@ -5,6 +5,9 @@ import { z } from 'zod';
 import { sendAppointmentConfirmation } from '@/lib/email/email-service';
 import type { AppointmentConfirmationData } from '@/lib/email/types';
 
+// Helper to transform empty strings to undefined
+const emptyStringToUndefined = z.string().transform(val => val === '' ? undefined : val).optional();
+
 // Schema de validación para las citas
 const appointmentSchema = z.object({
   dateTime: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -16,8 +19,8 @@ const appointmentSchema = z.object({
   reason: z.string(),
   status: z.enum(['SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']).default('SCHEDULED'),
   notes: z.string().optional(),
-  staffId: z.string().optional(),
-  locationId: z.string().optional(),
+  staffId: emptyStringToUndefined,
+  locationId: emptyStringToUndefined,
 });
 
 export async function GET(request: Request) {

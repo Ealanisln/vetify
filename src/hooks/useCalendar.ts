@@ -50,23 +50,19 @@ export interface AvailabilityData {
 export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
 
 /**
- * Parsea una fecha tratándola como hora local (no UTC).
- * La BD almacena timestamps sin timezone, así que necesitamos
- * interpretarlos como hora local del servidor/cliente.
+ * Formats a Date object as local time string for FullCalendar.
+ * FullCalendar with timeZone='local' needs dates without Z indicator
+ * to interpret them correctly in the local timezone.
  */
-function parseLocalDateTime(dateString: string): Date {
-  // Si la fecha viene con 'Z' (UTC indicator), la removemos
-  // para que JavaScript la interprete como hora local
-  const localDateString = dateString.replace('Z', '').replace('.000', '');
+function formatLocalDateTime(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
 
-  // Parsear manualmente para evitar problemas de timezone
-  // Formato esperado: "2025-12-05T10:00:00" o "2025-12-05 10:00:00"
-  const normalized = localDateString.replace(' ', 'T');
-  const [datePart, timePart] = normalized.split('T');
-  const [year, month, day] = datePart.split('-').map(Number);
-  const [hours, minutes, seconds] = (timePart || '00:00:00').split(':').map(Number);
-
-  return new Date(year, month - 1, day, hours, minutes, seconds || 0);
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
 }
 
 interface UseCalendarReturn {
@@ -100,7 +96,11 @@ export const useCalendar = (initialView: CalendarView = 'timeGridWeek'): UseCale
       case 'timeGridWeek':
       case 'listWeek':
         const dayOfWeek = start.getDay();
-        start.setDate(start.getDate() - dayOfWeek);
+        // Adjust for Monday-based week (Spanish locale)
+        // getDay(): 0=Sun, 1=Mon, ..., 6=Sat
+        // For Monday start: Sun becomes day 6, Mon becomes day 0
+        const adjustedDay = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        start.setDate(start.getDate() - adjustedDay);
         end.setDate(start.getDate() + 6);
         break;
       case 'timeGridDay':
@@ -144,8 +144,9 @@ export const useCalendar = (initialView: CalendarView = 'timeGridWeek'): UseCale
     return {
       id: appointment.id,
       title: `${appointment.pet.name} - ${appointment.customer.name}`,
-      start: startTime.toISOString(),
-      end: endTime.toISOString(),
+      // Usar formato local sin Z para que FullCalendar interprete correctamente
+      start: formatLocalDateTime(startTime),
+      end: formatLocalDateTime(endTime),
       backgroundColor: colors.bg,
       borderColor: colors.border,
       textColor: colors.text,
@@ -164,10 +165,11 @@ export const useCalendar = (initialView: CalendarView = 'timeGridWeek'): UseCale
     setError(null);
 
     try {
-      const { start: startDate, end: endDate } = start && end 
+      const { start: startDate, end: endDate } = start && end
         ? { start, end }
         : getViewDateRange(currentDate, currentView);
 
+      // Send dates as ISO (UTC) for the API query
       const params = new URLSearchParams({
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
@@ -182,9 +184,8 @@ export const useCalendar = (initialView: CalendarView = 'timeGridWeek'): UseCale
 
       const appointments: AppointmentWithDetails[] = result.data.map((appointment: AppointmentWithDetails & { dateTime: string; createdAt: string; updatedAt: string }) => ({
         ...appointment,
-        // Parsear fechas tratándolas como hora local (no UTC)
-        // La BD almacena timestamps sin timezone, así que removemos la 'Z' si existe
-        dateTime: parseLocalDateTime(appointment.dateTime),
+        // Parse dates from JSON - new Date() correctly interprets UTC (with Z) and converts to local
+        dateTime: new Date(appointment.dateTime),
         createdAt: new Date(appointment.createdAt),
         updatedAt: new Date(appointment.updatedAt),
       }));

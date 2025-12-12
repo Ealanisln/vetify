@@ -5,6 +5,20 @@ import { z } from 'zod';
 import { addMinutes, format, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+/**
+ * Formatea una fecha como ISO local (sin Z) para enviar al cliente.
+ * Esto evita la conversión a UTC que hace toISOString().
+ */
+function formatLocalDateTime(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
 const availabilitySchema = z.object({
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {
     message: "Invalid date format"
@@ -204,7 +218,7 @@ export async function GET(request: Request) {
         date: validatedData.date,
         duration: validatedData.duration,
         availableSlots: availableSlots.map(slot => ({
-          dateTime: slot.dateTime.toISOString(),
+          dateTime: formatLocalDateTime(slot.dateTime),
           time: format(slot.dateTime, 'HH:mm', { locale: es }),
           displayTime: format(slot.dateTime, 'h:mm a', { locale: es }),
           period: slot.period
@@ -388,8 +402,8 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       available: true,
-      dateTime: targetDateTime.toISOString(),
-      endDateTime: endDateTime.toISOString(),
+      dateTime: formatLocalDateTime(targetDateTime),
+      endDateTime: formatLocalDateTime(endDateTime),
       duration: slotDuration
     });
 
