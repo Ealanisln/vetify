@@ -110,7 +110,7 @@ jobs:
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
 
       - name: Seed subscription plans
-        run: pnpm tsx scripts/seed-ci-plans.ts
+        run: npx tsx scripts/seed-ci-plans.ts
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
@@ -225,7 +225,7 @@ jobs:
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
 
       - name: Seed subscription plans
-        run: pnpm tsx scripts/seed-ci-plans.ts
+        run: npx tsx scripts/seed-ci-plans.ts
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
