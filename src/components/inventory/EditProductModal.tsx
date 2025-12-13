@@ -6,6 +6,11 @@ import { getInventoryCategories } from '../../lib/inventory';
 import { InventoryItemWithStock } from '@/types';
 import { getThemeClasses } from '../../utils/theme-colors';
 
+interface LocationOption {
+  id: string;
+  name: string;
+}
+
 interface EditProductModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -25,6 +30,7 @@ interface ProductFormData {
   quantity: number;
   minStock: number;
   storageLocation: string;
+  locationId: string;
   expirationDate: string;
   cost: number;
   price: number;
@@ -44,6 +50,7 @@ export function EditProductModal({ isOpen, onClose, onSuccess, item, tenantId }:
     quantity: 0,
     minStock: 0,
     storageLocation: '',
+    locationId: '',
     expirationDate: '',
     cost: 0,
     price: 0,
@@ -52,8 +59,25 @@ export function EditProductModal({ isOpen, onClose, onSuccess, item, tenantId }:
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [locations, setLocations] = useState<LocationOption[]>([]);
 
   const categories = getInventoryCategories();
+
+  // Fetch available locations on mount
+  useEffect(() => {
+    async function fetchLocations() {
+      try {
+        const response = await fetch('/api/locations');
+        const data = await response.json();
+        setLocations(data.data || []);
+      } catch (err) {
+        console.error('Error fetching locations:', err);
+      }
+    }
+    if (isOpen) {
+      fetchLocations();
+    }
+  }, [isOpen]);
 
   // Populate form when item changes
   useEffect(() => {
@@ -69,6 +93,7 @@ export function EditProductModal({ isOpen, onClose, onSuccess, item, tenantId }:
         quantity: Number(item.quantity) || 0,
         minStock: Number(item.minStock) || 0,
         storageLocation: item.storageLocation || '',
+        locationId: item.locationId || '',
         expirationDate: item.expirationDate ? new Date(item.expirationDate).toISOString().split('T')[0] : '',
         cost: Number(item.cost) || 0,
         price: Number(item.price) || 0,
@@ -190,6 +215,29 @@ export function EditProductModal({ isOpen, onClose, onSuccess, item, tenantId }:
                   ))}
                 </select>
               </div>
+
+              {/* Location selector - only show when multiple locations (professional+ plans) */}
+              {locations.length > 1 && (
+                <div>
+                  <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
+                    Sucursal *
+                  </label>
+                  <select
+                    name="locationId"
+                    value={formData.locationId}
+                    onChange={handleInputChange}
+                    required
+                    className="form-input"
+                  >
+                    <option value="">Seleccionar sucursal</option>
+                    {locations.map((loc) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-1`}>
