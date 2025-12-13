@@ -32,6 +32,18 @@ jobs:
       - name: Generate Prisma Client
         run: pnpm prisma generate
 
+      - name: Create test environment file
+        run: |
+          cat > .env.local << 'EOF'
+          # Minimal CI environment
+          KINDE_SITE_URL=http://localhost:3000
+          KINDE_POST_LOGOUT_REDIRECT_URL=http://localhost:3000
+          KINDE_POST_LOGIN_REDIRECT_URL=http://localhost:3000/dashboard
+          VETIFY_API_URL=http://localhost:3000
+          NEXT_PUBLIC_APP_URL=http://localhost:3000
+          NEXT_PUBLIC_BASE_URL=http://localhost:3000
+          EOF
+
       - name: Run unit tests
         run: pnpm test:unit
 
@@ -71,6 +83,18 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm prisma generate
+
+      - name: Create test environment file
+        run: |
+          cat > .env.local << 'EOF'
+          # Minimal CI environment
+          KINDE_SITE_URL=http://localhost:3000
+          KINDE_POST_LOGOUT_REDIRECT_URL=http://localhost:3000
+          KINDE_POST_LOGIN_REDIRECT_URL=http://localhost:3000/dashboard
+          VETIFY_API_URL=http://localhost:3000
+          NEXT_PUBLIC_APP_URL=http://localhost:3000
+          NEXT_PUBLIC_BASE_URL=http://localhost:3000
+          EOF
 
       - name: Run integration tests
         run: pnpm test:integration
@@ -143,6 +167,18 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm prisma generate
+
+      - name: Create test environment file
+        run: |
+          cat > .env.local << 'EOF'
+          # Minimal CI environment
+          KINDE_SITE_URL=http://localhost:3000
+          KINDE_POST_LOGOUT_REDIRECT_URL=http://localhost:3000
+          KINDE_POST_LOGIN_REDIRECT_URL=http://localhost:3000/dashboard
+          VETIFY_API_URL=http://localhost:3000
+          NEXT_PUBLIC_APP_URL=http://localhost:3000
+          NEXT_PUBLIC_BASE_URL=http://localhost:3000
+          EOF
 
       - name: Run tests with coverage
         run: pnpm test:coverage
