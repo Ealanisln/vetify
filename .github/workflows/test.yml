@@ -107,11 +107,13 @@ jobs:
         run: pnpm prisma db push --skip-generate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
 
       - name: Run integration tests
         run: pnpm test:integration
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
           STRIPE_SECRET_KEY: sk_test_fake_key_for_ci
           STRIPE_WEBHOOK_SECRET: whsec_fake_secret_for_ci
 
@@ -214,11 +216,13 @@ jobs:
         run: pnpm prisma db push --skip-generate
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
 
       - name: Run tests with coverage
         run: pnpm test:coverage
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
           STRIPE_SECRET_KEY: sk_test_fake_key_for_ci
           STRIPE_WEBHOOK_SECRET: whsec_fake_secret_for_ci
 
