@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation';
 import { getTenantBySlug } from '../../lib/tenant';
 import { PublicNavbar } from '../../components/public/PublicNavbar';
 import { PublicFooter } from '../../components/public/PublicFooter';
-import { ForceLightTheme } from '../../components/public/ForceLightTheme';
+import { DynamicPublicTheme } from '../../components/public/DynamicPublicTheme';
+import { getTheme } from '../../lib/themes';
 import type { Metadata } from 'next';
 
 export async function generateMetadata({ 
@@ -47,15 +48,19 @@ export default async function PublicLayout({
 
   const hasGallery = (tenant.publicImages?.gallery?.length ?? 0) > 0;
 
+  // Get theme colors for the tenant
+  const theme = getTheme(tenant.publicTheme);
+  const primaryColor = tenant.publicThemeColor || theme.colors.primary;
+
   return (
-    <ForceLightTheme>
-      <div className="min-h-screen flex flex-col bg-gray-50">
+    <DynamicPublicTheme primaryColor={primaryColor} themeColors={theme.colors}>
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <PublicNavbar tenant={{ ...tenant, hasGallery }} />
         <main className="flex-1">
           {children}
         </main>
         <PublicFooter tenant={tenant} />
       </div>
-    </ForceLightTheme>
+    </DynamicPublicTheme>
   );
 } 

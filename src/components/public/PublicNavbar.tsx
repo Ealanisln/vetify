@@ -23,7 +23,7 @@ interface PublicNavbarProps {
 export function PublicNavbar({ tenant }: PublicNavbarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const themeColor = tenant.publicThemeColor || '#75a99c';
 
   // Avoid hydration mismatch
