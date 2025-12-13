@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { Badge } from '../../../components/ui/badge';
 import { ServiceManagement } from '../../../components/settings/ServiceManagement';
 import { BusinessHoursSettings } from '../../../components/settings/BusinessHoursSettings';
+import { NotificationSettings } from '../../../components/settings/NotificationSettings';
 import { SubscriptionManager } from '../../../components/subscription';
 import type { TenantWithPlan } from '@/types';
 import {
@@ -54,8 +55,7 @@ const settingsSections = [
     title: 'Notificaciones',
     description: 'Configure recordatorios y alertas automáticas',
     icon: Bell,
-    component: 'notifications',
-    comingSoon: true
+    component: 'notifications'
   },
   {
     id: 'staff',
@@ -100,6 +100,8 @@ export function SettingsPageClient({ tenant }: SettingsPageClientProps) {
         return <ServiceManagement tenantId={tenant.id} />;
       case 'subscription':
         return <SubscriptionManager tenant={tenant} />;
+      case 'notifications':
+        return <NotificationSettings tenantId={tenant.id} />;
       default:
         return (
           <div className="text-center py-12">

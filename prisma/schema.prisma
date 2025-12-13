@@ -740,24 +740,25 @@ model TenantInvitation {
 }
 
 model TenantSettings {
-  id                   String          @id @default(uuid())
-  tenantId             String          @unique
-  timezone             String          @default("UTC")
-  dateFormat           String          @default("DD/MM/YYYY")
-  enableEmailReminders Boolean         @default(true)
-  enableSmsReminders   Boolean         @default(false)
-  taxRate              Decimal         @default(0) @db.Decimal(5, 4)
-  currencyCode         String          @default("USD")
-  currencySymbol       String          @default("$")
-  appointmentDuration  Int             @default(30)
-  defaultStartTime     String          @default("08:00")
-  defaultEndTime       String          @default("18:00")
-  defaultLunchStart    String?         @default("13:00")
-  defaultLunchEnd      String?         @default("14:00")
-  defaultSlotDuration  Int             @default(15)
-  updatedAt            DateTime        @updatedAt
-  tenant               Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  businessHours        BusinessHours[]
+  id                      String          @id @default(uuid())
+  tenantId                String          @unique
+  timezone                String          @default("UTC")
+  dateFormat              String          @default("DD/MM/YYYY")
+  enableEmailReminders    Boolean         @default(true)
+  enableSmsReminders      Boolean         @default(false)
+  notificationPreferences Json?           // Granular notification preferences by type
+  taxRate                 Decimal         @default(0) @db.Decimal(5, 4)
+  currencyCode            String          @default("USD")
+  currencySymbol          String          @default("$")
+  appointmentDuration     Int             @default(30)
+  defaultStartTime        String          @default("08:00")
+  defaultEndTime          String          @default("18:00")
+  defaultLunchStart       String?         @default("13:00")
+  defaultLunchEnd         String?         @default("14:00")
+  defaultSlotDuration     Int             @default(15)
+  updatedAt               DateTime        @updatedAt
+  tenant                  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  businessHours           BusinessHours[]
 }
 
 model BusinessHours {
@@ -1236,6 +1237,9 @@ model EmailLog {
 enum EmailTemplate {
   APPOINTMENT_CONFIRMATION
   APPOINTMENT_REMINDER
+  APPOINTMENT_CANCELLATION
+  APPOINTMENT_RESCHEDULED
+  APPOINTMENT_STAFF_NOTIFICATION
   LOW_STOCK_ALERT
   TREATMENT_REMINDER
   NEW_USER_REGISTRATION

@@ -136,33 +136,44 @@ export async function PUT(request: Request) {
 
     // Update business hours for each day
     for (const businessHour of validatedData.businessHours) {
-      await prisma.businessHours.upsert({
+      // Find existing record (locationId is null for global hours)
+      const existingHour = await prisma.businessHours.findFirst({
         where: {
-          tenantId_dayOfWeek: {
-            tenantId: tenant.id,
-            dayOfWeek: businessHour.dayOfWeek
-          }
-        },
-        update: {
-          isWorkingDay: businessHour.isWorkingDay,
-          startTime: businessHour.startTime,
-          endTime: businessHour.endTime,
-          lunchStart: businessHour.lunchStart,
-          lunchEnd: businessHour.lunchEnd,
-          slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
-        },
-        create: {
           tenantId: tenant.id,
-          tenantSettingsId: tenantSettings.id,
-          dayOfWeek: businessHour.dayOfWeek,
-          isWorkingDay: businessHour.isWorkingDay,
-          startTime: businessHour.startTime,
-          endTime: businessHour.endTime,
-          lunchStart: businessHour.lunchStart,
-          lunchEnd: businessHour.lunchEnd,
-          slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
+          locationId: null,
+          dayOfWeek: businessHour.dayOfWeek
         }
       });
+
+      if (existingHour) {
+        // Update existing record
+        await prisma.businessHours.update({
+          where: { id: existingHour.id },
+          data: {
+            isWorkingDay: businessHour.isWorkingDay,
+            startTime: businessHour.startTime,
+            endTime: businessHour.endTime,
+            lunchStart: businessHour.lunchStart,
+            lunchEnd: businessHour.lunchEnd,
+            slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
+          }
+        });
+      } else {
+        // Create new record
+        await prisma.businessHours.create({
+          data: {
+            tenantId: tenant.id,
+            tenantSettingsId: tenantSettings.id,
+            dayOfWeek: businessHour.dayOfWeek,
+            isWorkingDay: businessHour.isWorkingDay,
+            startTime: businessHour.startTime,
+            endTime: businessHour.endTime,
+            lunchStart: businessHour.lunchStart,
+            lunchEnd: businessHour.lunchEnd,
+            slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
+          }
+        });
+      }
     }
 
     // Fetch the updated settings

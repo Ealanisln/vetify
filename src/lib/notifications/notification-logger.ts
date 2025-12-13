@@ -24,6 +24,9 @@ export async function logEmailSend(
     const templateMap = {
       'appointment-confirmation': EmailTemplate.APPOINTMENT_CONFIRMATION,
       'appointment-reminder': EmailTemplate.APPOINTMENT_REMINDER,
+      'appointment-cancellation': EmailTemplate.APPOINTMENT_CANCELLATION,
+      'appointment-rescheduled': EmailTemplate.APPOINTMENT_RESCHEDULED,
+      'appointment-staff-notification': EmailTemplate.APPOINTMENT_STAFF_NOTIFICATION,
       'low-stock-alert': EmailTemplate.LOW_STOCK_ALERT,
       'treatment-reminder': EmailTemplate.TREATMENT_REMINDER,
       'new-user-registration': EmailTemplate.NEW_USER_REGISTRATION,
