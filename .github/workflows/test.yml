@@ -1,0 +1,311 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+
+      - name: Create test environment file
+        run: |
+          cat > .env.local << 'EOF'
+          # Minimal CI environment
+          KINDE_SITE_URL=http://localhost:3000
+          KINDE_POST_LOGOUT_REDIRECT_URL=http://localhost:3000
+          KINDE_POST_LOGIN_REDIRECT_URL=http://localhost:3000/dashboard
+          VETIFY_API_URL=http://localhost:3000
+          NEXT_PUBLIC_APP_URL=http://localhost:3000
+          NEXT_PUBLIC_BASE_URL=http://localhost:3000
+          STRIPE_SECRET_KEY=sk_test_fake_key_for_ci
+          STRIPE_WEBHOOK_SECRET=whsec_fake_secret_for_ci
+          EOF
+
+      - name: Run unit tests
+        run: pnpm test:unit
+        env:
+          STRIPE_SECRET_KEY: sk_test_fake_key_for_ci
+          STRIPE_WEBHOOK_SECRET: whsec_fake_secret_for_ci
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vetify_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+
+      - name: Create test environment file
+        run: |
+          cat > .env.local << 'EOF'
+          # Minimal CI environment
+          KINDE_SITE_URL=http://localhost:3000
+          KINDE_POST_LOGOUT_REDIRECT_URL=http://localhost:3000
+          KINDE_POST_LOGIN_REDIRECT_URL=http://localhost:3000/dashboard
+          VETIFY_API_URL=http://localhost:3000
+          NEXT_PUBLIC_APP_URL=http://localhost:3000
+          NEXT_PUBLIC_BASE_URL=http://localhost:3000
+          STRIPE_SECRET_KEY=sk_test_fake_key_for_ci
+          STRIPE_WEBHOOK_SECRET=whsec_fake_secret_for_ci
+          EOF
+
+      - name: Push database schema
+        run: pnpm prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+
+      - name: Seed subscription plans
+        run: npx tsx scripts/seed-ci-plans.ts
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+
+      - name: Run integration tests
+        run: pnpm test:integration
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          STRIPE_SECRET_KEY: sk_test_fake_key_for_ci
+          STRIPE_WEBHOOK_SECRET: whsec_fake_secret_for_ci
+
+  e2e-tests:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+
+      - name: Create test environment file
+        run: |
+          cat > .env.local << 'EOF'
+          # Minimal CI environment for E2E
+          KINDE_SITE_URL=http://localhost:3000
+          KINDE_POST_LOGOUT_REDIRECT_URL=http://localhost:3000
+          KINDE_POST_LOGIN_REDIRECT_URL=http://localhost:3000/dashboard
+          KINDE_ISSUER_URL=https://test.kinde.com
+          KINDE_CLIENT_ID=test_client_id
+          KINDE_CLIENT_SECRET=test_client_secret
+          VETIFY_API_URL=http://localhost:3000
+          NEXT_PUBLIC_APP_URL=http://localhost:3000
+          NEXT_PUBLIC_BASE_URL=http://localhost:3000
+          STRIPE_SECRET_KEY=sk_test_fake_key_for_ci
+          STRIPE_WEBHOOK_SECRET=whsec_fake_secret_for_ci
+          EOF
+
+      - name: Build application
+        run: pnpm build
+        env:
+          SKIP_ENV_VALIDATION: true
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          CI: true
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  coverage-check:
+    name: Coverage Check
+    runs-on: ubuntu-latest
+    needs: [unit-tests, integration-tests]
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vetify_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+
+      - name: Create test environment file
+        run: |
+          cat > .env.local << 'EOF'
+          # Minimal CI environment
+          KINDE_SITE_URL=http://localhost:3000
+          KINDE_POST_LOGOUT_REDIRECT_URL=http://localhost:3000
+          KINDE_POST_LOGIN_REDIRECT_URL=http://localhost:3000/dashboard
+          VETIFY_API_URL=http://localhost:3000
+          NEXT_PUBLIC_APP_URL=http://localhost:3000
+          NEXT_PUBLIC_BASE_URL=http://localhost:3000
+          STRIPE_SECRET_KEY=sk_test_fake_key_for_ci
+          STRIPE_WEBHOOK_SECRET=whsec_fake_secret_for_ci
+          EOF
+
+      - name: Push database schema
+        run: pnpm prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+
+      - name: Seed subscription plans
+        run: npx tsx scripts/seed-ci-plans.ts
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+
+      - name: Run tests with coverage
+        continue-on-error: true  # Coverage threshold not met yet - building up tests
+        run: pnpm test:coverage
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          STRIPE_SECRET_KEY: sk_test_fake_key_for_ci
+          STRIPE_WEBHOOK_SECRET: whsec_fake_secret_for_ci
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+
+      - name: Run type check
+        run: pnpm typecheck
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run linter
+        run: pnpm lint

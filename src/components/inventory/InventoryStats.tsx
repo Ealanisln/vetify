@@ -97,21 +97,19 @@ export function InventoryStats({ tenantId }: InventoryStatsProps) {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 items-stretch">
       {statsCards.map((stat) => (
-        <div key={stat.title} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center">
-            <div className={`flex-shrink-0 p-3 rounded-lg ${stat.bgColor}`}>
-              <stat.icon className={`h-6 w-6 ${stat.color}`} />
-            </div>
-            <div className="ml-4 flex-1">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                {stat.title}
-              </p>
-              <p className={`text-2xl font-semibold ${stat.color}`}>
-                {stat.value}
-              </p>
-            </div>
+        <div key={stat.title} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 flex items-center">
+          <div className={`flex-shrink-0 p-3 rounded-lg ${stat.bgColor}`}>
+            <stat.icon className={`h-6 w-6 ${stat.color}`} />
+          </div>
+          <div className="ml-4 flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-400 leading-tight">
+              {stat.title}
+            </p>
+            <p className={`text-2xl font-semibold ${stat.color}`}>
+              {stat.value}
+            </p>
           </div>
         </div>
       ))}

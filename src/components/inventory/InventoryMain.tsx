@@ -166,14 +166,28 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
       key: 'location',
       header: 'Ubicación',
       mobileLabel: 'Ubicación',
-      render: (item: InventoryItemWithStock) => (
-        <div className="flex items-center gap-1.5">
-          <MapPinIcon className="h-4 w-4 text-gray-400" />
-          <span className={`text-sm ${themeColors.text.primary}`}>
-            {item.location?.name || 'Sin ubicación'}
-          </span>
-        </div>
-      ),
+      render: (item: InventoryItemWithStock) => {
+        const branchName = item.location?.name;
+        const storageLoc = item.storageLocation;
+        let displayText = 'Sin ubicación';
+
+        if (branchName && storageLoc) {
+          displayText = `${branchName} > ${storageLoc}`;
+        } else if (branchName) {
+          displayText = branchName;
+        } else if (storageLoc) {
+          displayText = storageLoc;
+        }
+
+        return (
+          <div className="flex items-center gap-1.5">
+            <MapPinIcon className="h-4 w-4 text-gray-400" />
+            <span className={`text-sm ${themeColors.text.primary}`}>
+              {displayText}
+            </span>
+          </div>
+        );
+      },
     },
     {
       key: 'quantity',
@@ -252,7 +266,7 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
   ];
 
   return (
-    <div id="inventory-main" className={`${themeColors.background.card} shadow rounded-lg border ${themeColors.border.primary}`}>
+    <div id="inventory-main" className={`${themeColors.background.card} shadow rounded-lg border ${themeColors.border.primary} overflow-hidden`}>
       {/* Header */}
       <div className={`${responsive.padding.card} border-b ${themeColors.border.primary}`}>
         <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">

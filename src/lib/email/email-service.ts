@@ -14,6 +14,9 @@ import type {
   EmailServiceConfig,
   AppointmentConfirmationData,
   AppointmentReminderData,
+  AppointmentCancellationData,
+  AppointmentRescheduledData,
+  AppointmentStaffNotificationData,
   LowStockAlertData,
   TreatmentReminderData,
 } from './types';
@@ -21,6 +24,9 @@ import { logEmailSend } from '../notifications/notification-logger';
 import {
   AppointmentConfirmationEmail,
   AppointmentReminderEmail,
+  AppointmentCancellationEmail,
+  AppointmentRescheduledEmail,
+  AppointmentStaffNotificationEmail,
   LowStockAlertEmail,
   TreatmentReminderEmail,
   NewUserRegistrationEmail,
@@ -166,6 +172,33 @@ export async function sendTreatmentReminder(
 }
 
 /**
+ * Send appointment cancellation email
+ */
+export async function sendAppointmentCancellation(
+  data: AppointmentCancellationData
+): Promise<EmailSendResult> {
+  return sendEmail(data);
+}
+
+/**
+ * Send appointment rescheduled email
+ */
+export async function sendAppointmentRescheduled(
+  data: AppointmentRescheduledData
+): Promise<EmailSendResult> {
+  return sendEmail(data);
+}
+
+/**
+ * Send appointment staff notification email
+ */
+export async function sendAppointmentStaffNotification(
+  data: AppointmentStaffNotificationData
+): Promise<EmailSendResult> {
+  return sendEmail(data);
+}
+
+/**
  * Render email template to HTML using React Email
  */
 async function renderTemplate(emailData: EmailData): Promise<string> {
@@ -204,6 +237,65 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
           clinicPhone: d.clinicPhone,
           veterinarianName: d.veterinarianName,
           hoursUntilAppointment: d.hoursUntilAppointment,
+        })
+      );
+    }
+
+    case 'appointment-cancellation': {
+      const d = emailData.data;
+      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      return await render(
+        AppointmentCancellationEmail({
+          ownerName: d.ownerName,
+          petName: d.petName,
+          appointmentDate: appointmentDateStr,
+          appointmentTime: d.appointmentTime,
+          serviceName: d.serviceName,
+          clinicName: d.clinicName,
+          clinicPhone: d.clinicPhone,
+          cancelledBy: d.cancelledBy,
+          cancellationReason: d.cancellationReason,
+        })
+      );
+    }
+
+    case 'appointment-rescheduled': {
+      const d = emailData.data;
+      const previousDateStr = formatDateLong(d.previousDate);
+      const newDateStr = formatDateLong(d.newDate);
+      return await render(
+        AppointmentRescheduledEmail({
+          ownerName: d.ownerName,
+          petName: d.petName,
+          previousDate: previousDateStr,
+          previousTime: d.previousTime,
+          newDate: newDateStr,
+          newTime: d.newTime,
+          serviceName: d.serviceName,
+          clinicName: d.clinicName,
+          clinicAddress: d.clinicAddress,
+          clinicPhone: d.clinicPhone,
+          veterinarianName: d.veterinarianName,
+        })
+      );
+    }
+
+    case 'appointment-staff-notification': {
+      const d = emailData.data;
+      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      return await render(
+        AppointmentStaffNotificationEmail({
+          staffName: d.staffName,
+          petName: d.petName,
+          petSpecies: d.petSpecies,
+          petBreed: d.petBreed,
+          ownerName: d.ownerName,
+          ownerPhone: d.ownerPhone,
+          appointmentDate: appointmentDateStr,
+          appointmentTime: d.appointmentTime,
+          serviceName: d.serviceName,
+          clinicName: d.clinicName,
+          notes: d.notes,
         })
       );
     }

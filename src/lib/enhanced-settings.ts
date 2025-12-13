@@ -19,6 +19,24 @@ export const clinicSettingsSchema = z.object({
   }).optional(),
 });
 
+// Notification preferences schema - aligned with email notification types
+export const notificationPreferencesSchema = z.object({
+  // Customer-facing notifications
+  appointmentConfirmation: z.boolean().default(true),
+  appointmentReminder: z.boolean().default(true),
+  appointmentCancellation: z.boolean().default(true),
+  appointmentRescheduled: z.boolean().default(true),
+  treatmentReminder: z.boolean().default(true),
+
+  // Internal notifications (staff)
+  staffAppointmentNotification: z.boolean().default(true),
+  lowStockAlert: z.boolean().default(true),
+
+  // Configuration
+  reminderHoursBefore: z.number().min(1).max(72).default(24),
+});
+
+// Legacy schema for backwards compatibility (will be deprecated)
 export const notificationSettingsSchema = z.object({
   whatsappEnabled: z.boolean().default(true),
   emailEnabled: z.boolean().default(false),
@@ -26,7 +44,7 @@ export const notificationSettingsSchema = z.object({
   appointmentReminders: z.boolean().default(true),
   treatmentReminders: z.boolean().default(true),
   paymentReminders: z.boolean().default(true),
-  reminderHours: z.number().min(1).max(168).default(24), // 1 hour to 1 week
+  reminderHours: z.number().min(1).max(168).default(24),
   templates: z.object({
     appointmentReminder: z.string().optional(),
     treatmentReminder: z.string().optional(),
@@ -43,6 +61,7 @@ export const userRoleSchema = z.object({
 });
 
 export type ClinicSettingsData = z.infer<typeof clinicSettingsSchema>;
+export type NotificationPreferencesData = z.infer<typeof notificationPreferencesSchema>;
 export type NotificationSettingsData = z.infer<typeof notificationSettingsSchema>;
 export type UserRoleData = z.infer<typeof userRoleSchema>;
 
@@ -137,13 +156,71 @@ export async function updateClinicSettings(tenantId: string, data: ClinicSetting
   return settings;
 }
 
+/**
+ * Get notification preferences for a tenant
+ * Returns preferences with defaults applied for any missing values
+ */
+export async function getNotificationPreferences(tenantId: string): Promise<NotificationPreferencesData> {
+  const settings = await prisma.tenantSettings.findUnique({
+    where: { tenantId },
+    select: { notificationPreferences: true }
+  });
+
+  // Parse JSON and apply defaults via Zod schema
+  const storedPrefs = (settings?.notificationPreferences as object) || {};
+  return notificationPreferencesSchema.parse(storedPrefs);
+}
+
+/**
+ * Update notification preferences for a tenant
+ * Creates TenantSettings record if it doesn't exist
+ */
+export async function updateNotificationPreferences(
+  tenantId: string,
+  data: Partial<NotificationPreferencesData>
+): Promise<NotificationPreferencesData> {
+  // Get current preferences to merge with updates
+  const currentPrefs = await getNotificationPreferences(tenantId);
+  const mergedData = { ...currentPrefs, ...data };
+
+  // Validate the merged data
+  const validated = notificationPreferencesSchema.parse(mergedData);
+
+  // Upsert the settings
+  await prisma.tenantSettings.upsert({
+    where: { tenantId },
+    update: {
+      notificationPreferences: validated,
+    },
+    create: {
+      tenantId,
+      notificationPreferences: validated,
+    }
+  });
+
+  return validated;
+}
+
+/**
+ * Check if a specific notification type should be sent
+ * Helper function for use in email sending logic
+ */
+export async function shouldSendNotification(
+  tenantId: string,
+  type: keyof NotificationPreferencesData
+): Promise<boolean> {
+  const prefs = await getNotificationPreferences(tenantId);
+  const value = prefs[type];
+  // For boolean preferences, return the value; for numeric, always return true
+  return typeof value === 'boolean' ? value : true;
+}
+
+// Legacy function - kept for backwards compatibility
 export async function getNotificationSettings(tenantId: string) {
   const settings = await prisma.tenantSettings.findUnique({
     where: { tenantId }
   });
 
-  // TODO: Implement proper notification settings with schema update
-  // For now, return default settings to prevent build errors
   return {
     whatsappEnabled: true,
     emailEnabled: settings?.enableEmailReminders || false,
@@ -161,11 +238,10 @@ export async function getNotificationSettings(tenantId: string) {
   };
 }
 
+// Legacy function - kept for backwards compatibility
 export async function updateNotificationSettings(tenantId: string, data: NotificationSettingsData) {
   const validatedData = notificationSettingsSchema.parse(data);
 
-  // TODO: This function needs to be updated to work with the actual TenantSettings schema
-  // For now, return basic settings to prevent build errors
   const settings = await prisma.tenantSettings.upsert({
     where: { tenantId },
     update: {

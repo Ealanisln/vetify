@@ -288,3 +288,49 @@ const pets = await prisma.pet.findMany({
 - **Next.js 15**: Uses force-dynamic rendering (`export const dynamic = 'force-dynamic'`) to prevent static generation issues with Kinde Auth
 - **Symlinks**: Root config files are symlinks to `/config/` directory for Next.js compatibility
 - **Sentry**: Integrated but can be noisy - use `pnpm sentry:quiet` to reduce logs
+
+### Dark Mode Design Guidelines
+
+**CRITICAL: Always use dark mode variants for borders and backgrounds.**
+
+The project has a theme utility at `src/utils/theme-colors.ts` with predefined patterns. Use these consistently.
+
+#### Card & Container Borders
+
+```tsx
+// ❌ NEVER do this - creates white borders in dark mode
+className="border"
+className="border border-gray-200"
+className="border border-white"
+
+// ✅ ALWAYS use dark mode variant
+className="border border-gray-200 dark:border-gray-700"
+
+// ✅ Or use the theme utility
+import { themeColors } from '@/utils/theme-colors'
+className={`border ${themeColors.border.card}`}
+```
+
+#### Standard Border Patterns
+
+| Use Case | Light Mode | Dark Mode | Combined Class |
+|----------|------------|-----------|----------------|
+| Card borders | `border-gray-200` | `dark:border-gray-700` | `border border-gray-200 dark:border-gray-700` |
+| Input borders | `border-gray-300` | `dark:border-gray-600` | `border border-gray-300 dark:border-gray-600` |
+| Subtle borders | `border-gray-100` | `dark:border-gray-800` | `border border-gray-100 dark:border-gray-800` |
+| Accent borders | `border-[#d5e3df]` | `dark:border-gray-700` | `border border-[#d5e3df] dark:border-gray-700` |
+
+#### Background Patterns
+
+```tsx
+// ✅ Correct background patterns
+className="bg-white dark:bg-gray-800"           // Cards
+className="bg-gray-50 dark:bg-gray-900"         // Page backgrounds
+className="bg-gray-100 dark:bg-gray-700"        // Tertiary backgrounds
+```
+
+#### Reference Files
+
+- **Theme utility**: `src/utils/theme-colors.ts` - Pre-defined class combinations
+- **Good example**: `src/components/dashboard/StatsCard.tsx` - Proper dark mode styling
+- **Documentation**: See Plane issue VETIF-82 for detailed examples

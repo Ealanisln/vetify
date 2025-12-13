@@ -7,6 +7,8 @@ import Link from 'next/link';
 import type { PublicTenant, PublicService } from '../../lib/tenant';
 import { getTheme, getThemeClasses } from '../../lib/themes';
 import { formatDate } from '../../lib/utils/date-format';
+import { useThemeAware } from '@/hooks/useThemeAware';
+import { generateDarkColors } from '@/lib/color-utils';
 
 interface Pet {
   id: string;
@@ -99,6 +101,27 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
   const theme = getTheme(tenant.publicTheme);
   const themeColor = tenant.publicThemeColor || theme.colors.primary;
   const themeClasses = getThemeClasses(theme);
+  const { isDark } = useThemeAware();
+
+  // Generate dark mode colors from theme primary
+  const darkColors = generateDarkColors(themeColor);
+
+  // Select colors based on current theme
+  const colors = isDark ? {
+    text: darkColors.text,
+    textMuted: darkColors.textMuted,
+    cardBg: darkColors.cardBg,
+    background: darkColors.background,
+    backgroundAlt: darkColors.backgroundAlt,
+    border: darkColors.border,
+  } : {
+    text: theme.colors.text,
+    textMuted: theme.colors.textMuted,
+    cardBg: theme.colors.cardBg,
+    background: theme.colors.background,
+    backgroundAlt: theme.colors.backgroundAlt,
+    border: theme.colors.border,
+  };
 
   // Get services from tenant config or use defaults
   const services: PublicService[] = tenant.publicServices && tenant.publicServices.length > 0
@@ -281,40 +304,40 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
   // 🎉 MOSTRAR RESULTADO DE LA SOLICITUD
   if (submissionResult?.success) {
     const data = submissionResult.data!;
-    
+
     return (
-      <section className="py-16 bg-white">
+      <section className="py-16 transition-colors duration-200" style={{ backgroundColor: colors.cardBg }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-6" />
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            <CheckCircle className="h-16 w-16 text-green-500 dark:text-green-400 mx-auto mb-6" />
+            <h2 className="text-3xl font-bold mb-4" style={{ color: colors.text }}>
               ¡Solicitud Enviada!
             </h2>
-            <p className="text-lg text-gray-600 mb-8">
+            <p className="text-lg mb-8" style={{ color: colors.textMuted }}>
               Hemos recibido tu solicitud de cita. Nos contactaremos contigo pronto para confirmar.
             </p>
 
             {/* 🔍 INFORMACIÓN DE IDENTIFICACIÓN */}
             {data.customerStatus === 'existing' && data.confidence === 'high' && (
-              <div className="mb-6 border border-blue-200 bg-blue-50 rounded-lg p-4">
+              <div className="mb-6 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 rounded-lg p-4 transition-colors">
                 <div className="flex items-start space-x-3">
-                  <User className="h-4 w-4 text-blue-600 mt-1" />
+                  <User className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-1" />
                   <div className="text-left">
-                    <p className="font-semibold text-blue-800 mb-2">
+                    <p className="font-semibold text-blue-800 dark:text-blue-300 mb-2">
                       ¡Te reconocemos! 👋
                     </p>
-                    <p className="text-blue-700 mb-3">
+                    <p className="text-blue-700 dark:text-blue-400 mb-3">
                       Encontramos tu perfil en nuestro sistema. Esta solicitud se agregará a tu historial.
                     </p>
                     {data.existingPets?.length > 0 && (
-                      <div className="bg-blue-100 rounded-lg p-3">
-                        <p className="text-sm font-medium text-blue-800 mb-1 flex items-center">
+                      <div className="bg-blue-100 dark:bg-blue-900 rounded-lg p-3">
+                        <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1 flex items-center">
                           <Heart className="h-4 w-4 mr-2" />
                           Tus mascotas registradas:
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {data.existingPets.map((pet: Pet) => (
-                            <span key={pet.id} className="bg-blue-200 text-blue-800 px-2 py-1 rounded-full text-xs">
+                            <span key={pet.id} className="bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs">
                               {pet.name} ({pet.species})
                             </span>
                           ))}
@@ -328,20 +351,20 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
 
             {/* 🔐 PROMPT PARA LOGIN */}
             {data.hasAccount && data.loginPrompt && (
-              <div className="mb-6 border border-green-200 bg-green-50 rounded-lg p-4">
+              <div className="mb-6 border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 rounded-lg p-4 transition-colors">
                 <div className="flex items-start space-x-3">
-                  <AlertCircle className="h-4 w-4 text-green-600 mt-1" />
+                  <AlertCircle className="h-4 w-4 text-green-600 dark:text-green-400 mt-1" />
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
                     <div className="text-left">
-                      <p className="font-semibold text-green-800">
+                      <p className="font-semibold text-green-800 dark:text-green-300">
                         {data.loginPrompt.message}
                       </p>
-                      <p className="text-sm text-green-700 mt-1">
+                      <p className="text-sm text-green-700 dark:text-green-400 mt-1">
                         Accede a tu historial, mascotas y citas anteriores
                       </p>
                     </div>
                     <Link href={data.loginPrompt.loginUrl}>
-                      <Button className="bg-green-600 hover:bg-green-700 whitespace-nowrap text-sm px-3 py-1">
+                      <Button className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 whitespace-nowrap text-sm px-3 py-1">
                         Iniciar Sesión
                         <ArrowRight className="h-4 w-4 ml-2" />
                       </Button>
@@ -353,15 +376,15 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
 
             {/* ⚠️ CLIENTE NECESITA REVISIÓN */}
             {data.customerStatus === 'needs_review' && (
-              <div className="mb-6 border border-orange-200 bg-orange-50 rounded-lg p-4">
+              <div className="mb-6 border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950 rounded-lg p-4 transition-colors">
                 <div className="flex items-start space-x-3">
-                  <Users className="h-4 w-4 text-orange-600 mt-1" />
+                  <Users className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-1" />
                   <div className="text-left">
-                    <p className="font-semibold text-orange-800 mb-2">
+                    <p className="font-semibold text-orange-800 dark:text-orange-300 mb-2">
                       Información recibida ✓
                     </p>
-                    <p className="text-orange-700 text-sm">
-                      Hemos encontrado información similar en nuestro sistema. 
+                    <p className="text-orange-700 dark:text-orange-400 text-sm">
+                      Hemos encontrado información similar en nuestro sistema.
                       Nuestro equipo revisará y consolidará tu información para brindarte un mejor servicio.
                     </p>
                   </div>
@@ -370,45 +393,45 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
             )}
 
             {/* 📋 RESUMEN DE LA SOLICITUD */}
-            <div className="bg-gray-50 rounded-lg p-6 text-left">
-              <h3 className="font-semibold mb-4 flex items-center">
+            <div className="rounded-lg p-6 text-left transition-colors" style={{ backgroundColor: colors.backgroundAlt }}>
+              <h3 className="font-semibold mb-4 flex items-center" style={{ color: colors.text }}>
                 <Clock className="h-5 w-5 mr-2" style={{ color: themeColor }} />
                 Detalles de tu solicitud:
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" style={{ color: colors.textMuted }}>
                 <div>
-                  <p><strong>Cliente:</strong> {formData.customerName}</p>
-                  <p><strong>Teléfono:</strong> {formData.customerPhone}</p>
+                  <p><strong style={{ color: colors.text }}>Cliente:</strong> {formData.customerName}</p>
+                  <p><strong style={{ color: colors.text }}>Teléfono:</strong> {formData.customerPhone}</p>
                   {formData.customerEmail && (
-                    <p><strong>Email:</strong> {formData.customerEmail}</p>
+                    <p><strong style={{ color: colors.text }}>Email:</strong> {formData.customerEmail}</p>
                   )}
                 </div>
                 <div>
-                  <p><strong>Mascota:</strong> {formData.petName}</p>
-                  {formData.service && <p><strong>Servicio:</strong> {formData.service}</p>}
+                  <p><strong style={{ color: colors.text }}>Mascota:</strong> {formData.petName}</p>
+                  {formData.service && <p><strong style={{ color: colors.text }}>Servicio:</strong> {formData.service}</p>}
                   {formData.preferredDate && (
-                    <p><strong>Fecha preferida:</strong> {formatDate(formData.preferredDate)}</p>
+                    <p><strong style={{ color: colors.text }}>Fecha preferida:</strong> {formatDate(formData.preferredDate)}</p>
                   )}
                   {formData.preferredTime && (
-                    <p><strong>Hora preferida:</strong> {formData.preferredTime}</p>
+                    <p><strong style={{ color: colors.text }}>Hora preferida:</strong> {formData.preferredTime}</p>
                   )}
                 </div>
               </div>
               {formData.notes && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <p className="text-sm"><strong>Notas:</strong> {formData.notes}</p>
+                <div className="mt-4 pt-4 border-t transition-colors" style={{ borderColor: colors.border }}>
+                  <p className="text-sm" style={{ color: colors.textMuted }}><strong style={{ color: colors.text }}>Notas:</strong> {formData.notes}</p>
                 </div>
               )}
             </div>
 
             {/* 📞 INFORMACIÓN DE CONTACTO */}
             <div className="mt-8 text-center">
-              <p className="text-gray-600 mb-4">
+              <p className="mb-4" style={{ color: colors.textMuted }}>
                 ¿Tienes alguna pregunta? No dudes en contactarnos:
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href={`/${tenant.slug}`}>
-                  <Button variant="outline">
+                  <Button variant="outline" className="dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700">
                     Volver al inicio
                   </Button>
                 </Link>
@@ -423,20 +446,20 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
   // ❌ MOSTRAR ERROR
   if (submissionResult?.error) {
     return (
-      <section className="py-16 bg-white">
+      <section className="py-16 transition-colors duration-200" style={{ backgroundColor: colors.cardBg }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-6" />
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            <AlertCircle className="h-16 w-16 text-red-500 dark:text-red-400 mx-auto mb-6" />
+            <h2 className="text-3xl font-bold mb-4" style={{ color: colors.text }}>
               Error al enviar solicitud
             </h2>
-            <p className="text-lg text-gray-600 mb-8">
+            <p className="text-lg mb-8" style={{ color: colors.textMuted }}>
               {submissionResult.error}
             </p>
-            <Button 
+            <Button
               onClick={() => setSubmissionResult(null)}
               style={{ backgroundColor: themeColor }}
-              className="hover:opacity-90"
+              className="hover:opacity-90 text-white"
             >
               Intentar de nuevo
             </Button>
@@ -449,22 +472,22 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
   // 📝 FORMULARIO ORIGINAL
   return (
     <section
-      className="py-16"
-      style={{ backgroundColor: theme.colors.background }}
+      className="py-16 transition-colors duration-200"
+      style={{ backgroundColor: colors.background }}
     >
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <h2
             className="text-3xl font-bold mb-4"
             style={{
-              color: theme.colors.text,
+              color: colors.text,
               fontFamily: theme.typography.fontFamily,
               fontWeight: theme.typography.headingWeight
             }}
           >
             Agenda tu Cita
           </h2>
-          <p className="text-lg" style={{ color: theme.colors.textMuted }}>
+          <p className="text-lg" style={{ color: colors.textMuted }}>
             Completa el formulario y nos contactaremos contigo para confirmar tu cita
           </p>
         </div>
@@ -473,13 +496,13 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Información del cliente */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center" style={{ color: theme.colors.text }}>
+              <h3 className="text-lg font-semibold flex items-center" style={{ color: colors.text }}>
                 <User className="h-5 w-5 mr-2" style={{ color: themeColor }} />
                 Información de Contacto
               </h3>
-              
+
               <div>
-                <label htmlFor="customerName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="customerName" className="block text-sm font-medium mb-2" style={{ color: colors.text }}>
                   Nombre completo *
                 </label>
                 <input
@@ -489,12 +512,12 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                   onChange={(e) => setFormData({...formData, customerName: e.target.value})}
                   required
                   placeholder="Tu nombre completo"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </div>
-              
+
               <div>
-                <label htmlFor="customerPhone" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="customerPhone" className="block text-sm font-medium mb-2" style={{ color: colors.text }}>
                   Teléfono *
                 </label>
                 <input
@@ -504,12 +527,12 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                   onChange={(e) => setFormData({...formData, customerPhone: e.target.value})}
                   required
                   placeholder="Tu número de teléfono"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                 />
               </div>
-              
+
               <div>
-                <label htmlFor="customerEmail" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="customerEmail" className="block text-sm font-medium mb-2" style={{ color: colors.text }}>
                   Email (opcional)
                 </label>
                 <input
@@ -518,9 +541,9 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                   value={formData.customerEmail}
                   onChange={(e) => setFormData({...formData, customerEmail: e.target.value})}
                   placeholder="tu@email.com"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs mt-1" style={{ color: colors.textMuted }}>
                   Nos ayuda a identificarte si ya eres cliente
                 </p>
               </div>
@@ -528,24 +551,24 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
 
             {/* Información de la cita */}
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold flex items-center" style={{ color: theme.colors.text }}>
+              <h3 className="text-lg font-semibold flex items-center" style={{ color: colors.text }}>
                 <Heart className="h-5 w-5 mr-2" style={{ color: themeColor }} />
                 Detalles de la Cita
               </h3>
-              
+
               {/* Pet selection - shows existing pets if customer is recognized */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium mb-2" style={{ color: colors.text }}>
                   Mascota *
                   {isLookingUpCustomer && (
-                    <Loader2 className="inline-block ml-2 h-3 w-3 animate-spin text-gray-400" />
+                    <Loader2 className="inline-block ml-2 h-3 w-3 animate-spin text-gray-400 dark:text-gray-500" />
                   )}
                 </label>
 
                 {/* Show existing pets if customer is recognized */}
                 {customerLookup?.found && customerLookup.pets && customerLookup.pets.length > 0 ? (
                   <div className="space-y-3">
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700 mb-2">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md text-sm text-blue-700 dark:text-blue-300 mb-2 transition-colors">
                       <User className="inline-block h-4 w-4 mr-1" />
                       ¡Te reconocemos! Selecciona una de tus mascotas o agrega una nueva.
                     </div>
@@ -560,14 +583,14 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                           className={`px-3 py-2 rounded-md border text-sm transition-colors flex items-center gap-2 ${
                             formData.petId === pet.id
                               ? 'text-white border-transparent'
-                              : 'border-gray-300 hover:border-gray-400 bg-white'
+                              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-800'
                           }`}
-                          style={formData.petId === pet.id ? { backgroundColor: themeColor } : {}}
+                          style={formData.petId === pet.id ? { backgroundColor: themeColor } : { color: isDark ? colors.text : undefined }}
                         >
                           <Heart className="h-4 w-4" />
                           <span>{pet.name}</span>
                           {pet.species && (
-                            <span className={`text-xs ${formData.petId === pet.id ? 'text-white/80' : 'text-gray-500'}`}>
+                            <span className={`text-xs ${formData.petId === pet.id ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
                               ({pet.species})
                             </span>
                           )}
@@ -580,9 +603,10 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                         onClick={() => handlePetSelect(null)}
                         className={`px-3 py-2 rounded-md border text-sm transition-colors ${
                           formData.petId === '' && formData.petName === ''
-                            ? 'border-gray-400 bg-gray-100'
-                            : 'border-gray-300 hover:border-gray-400 bg-white'
+                            ? 'border-gray-400 dark:border-gray-500 bg-gray-100 dark:bg-gray-700'
+                            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-800'
                         }`}
+                        style={{ color: colors.text }}
                       >
                         + Nueva mascota
                       </button>
@@ -597,7 +621,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                         onChange={(e) => setFormData({...formData, petName: e.target.value})}
                         required
                         placeholder="Nombre de la nueva mascota"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                        className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                       />
                     )}
                   </div>
@@ -610,20 +634,20 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                     onChange={(e) => setFormData({...formData, petName: e.target.value, petId: ''})}
                     required
                     placeholder="Nombre de tu mascota"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 )}
               </div>
               
               <div>
-                <label htmlFor="service" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="service" className="block text-sm font-medium mb-2" style={{ color: colors.text }}>
                   Tipo de servicio
                 </label>
                 <select
                   id="service"
                   value={formData.service}
                   onChange={(e) => setFormData({...formData, service: e.target.value, customService: ''})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                  className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                   style={{
                     '--tw-ring-color': themeColor
                   } as React.CSSProperties}
@@ -641,7 +665,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
               {/* Custom service input when "otro" is selected */}
               {formData.service === 'otro' && (
                 <div>
-                  <label htmlFor="customService" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="customService" className="block text-sm font-medium mb-2" style={{ color: colors.text }}>
                     Describe el servicio que necesitas
                   </label>
                   <input
@@ -650,14 +674,14 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                     value={formData.customService}
                     onChange={(e) => setFormData({...formData, customService: e.target.value})}
                     placeholder="Ej: Revisión dental, desparasitación..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                    className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
                   />
                 </div>
               )}
 
               {/* Date selector */}
               <div>
-                <label htmlFor="preferredDate" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="preferredDate" className="block text-sm font-medium mb-2" style={{ color: colors.text }}>
                   Fecha preferida
                 </label>
                 <input
@@ -666,14 +690,14 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                   value={formData.preferredDate}
                   onChange={(e) => setFormData({...formData, preferredDate: e.target.value, preferredTime: ''})}
                   min={new Date().toISOString().split('T')[0]}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent"
+                  className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                 />
               </div>
 
               {/* Time slots - Smart selector based on availability */}
               {formData.preferredDate && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium mb-2" style={{ color: colors.text }}>
                     Hora preferida
                     {isLoadingSlots && (
                       <Loader2 className="inline-block ml-2 h-4 w-4 animate-spin" />
@@ -683,11 +707,11 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                   {!isLoadingSlots && availability && (
                     <>
                       {!availability.workingDay ? (
-                        <div className="text-sm text-orange-600 bg-orange-50 p-3 rounded-md">
+                        <div className="text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950 p-3 rounded-md transition-colors">
                           {availability.message || 'Este día no hay servicio disponible'}
                         </div>
                       ) : availability.availableSlots.length === 0 ? (
-                        <div className="text-sm text-orange-600 bg-orange-50 p-3 rounded-md">
+                        <div className="text-sm text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950 p-3 rounded-md transition-colors">
                           No hay horarios disponibles para este día. Por favor selecciona otra fecha.
                         </div>
                       ) : (
@@ -695,7 +719,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                           {/* Morning slots */}
                           {availability.availableSlots.filter(s => s.period === 'morning').length > 0 && (
                             <div>
-                              <p className="text-xs text-gray-500 mb-2">Mañana</p>
+                              <p className="text-xs mb-2" style={{ color: colors.textMuted }}>Mañana</p>
                               <div className="flex flex-wrap gap-2">
                                 {availability.availableSlots
                                   .filter(slot => slot.period === 'morning')
@@ -707,9 +731,9 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                                       className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
                                         formData.preferredTime === slot.time
                                           ? 'text-white border-transparent'
-                                          : 'border-gray-300 hover:border-gray-400 bg-white'
+                                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-800'
                                       }`}
-                                      style={formData.preferredTime === slot.time ? { backgroundColor: themeColor } : {}}
+                                      style={formData.preferredTime === slot.time ? { backgroundColor: themeColor } : { color: isDark ? colors.text : undefined }}
                                     >
                                       {slot.displayTime}
                                     </button>
@@ -721,7 +745,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                           {/* Afternoon slots */}
                           {availability.availableSlots.filter(s => s.period === 'afternoon').length > 0 && (
                             <div>
-                              <p className="text-xs text-gray-500 mb-2">Tarde</p>
+                              <p className="text-xs mb-2" style={{ color: colors.textMuted }}>Tarde</p>
                               <div className="flex flex-wrap gap-2">
                                 {availability.availableSlots
                                   .filter(slot => slot.period === 'afternoon')
@@ -733,9 +757,9 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                                       className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
                                         formData.preferredTime === slot.time
                                           ? 'text-white border-transparent'
-                                          : 'border-gray-300 hover:border-gray-400 bg-white'
+                                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 bg-white dark:bg-gray-800'
                                       }`}
-                                      style={formData.preferredTime === slot.time ? { backgroundColor: themeColor } : {}}
+                                      style={formData.preferredTime === slot.time ? { backgroundColor: themeColor } : { color: isDark ? colors.text : undefined }}
                                     >
                                       {slot.displayTime}
                                     </button>
@@ -745,7 +769,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                           )}
 
                           {formData.preferredTime && (
-                            <p className="text-sm text-green-600">
+                            <p className="text-sm text-green-600 dark:text-green-400">
                               <CheckCircle className="inline-block h-4 w-4 mr-1" />
                               Horario seleccionado: {availability.availableSlots.find(s => s.time === formData.preferredTime)?.displayTime}
                             </p>
@@ -756,7 +780,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                   )}
 
                   {!isLoadingSlots && !availability && formData.preferredDate && (
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm" style={{ color: colors.textMuted }}>
                       Selecciona una fecha para ver horarios disponibles
                     </div>
                   )}
@@ -767,7 +791,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
 
           {/* Notas adicionales */}
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="notes" className="block text-sm font-medium mb-2" style={{ color: colors.text }}>
               Notas adicionales (opcional)
             </label>
             <textarea
@@ -776,7 +800,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
               value={formData.notes}
               onChange={(e) => setFormData({...formData, notes: e.target.value})}
               rows={4}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent resize-none transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
             />
           </div>
 

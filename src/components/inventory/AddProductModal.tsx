@@ -1,9 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { getInventoryCategories } from '../../lib/inventory';
 import { themeColors, responsive } from '../../utils/theme-colors';
+
+interface LocationOption {
+  id: string;
+  name: string;
+}
 
 interface AddProductModalProps {
   isOpen: boolean;
@@ -22,7 +27,8 @@ interface ProductFormData {
   brand: string;
   quantity: number;
   minStock: number;
-  location: string;
+  storageLocation: string;
+  locationId: string;
   expirationDate: string;
   cost: number;
   price: number;
@@ -41,7 +47,8 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
     brand: '',
     quantity: 0,
     minStock: 0,
-    location: '',
+    storageLocation: '',
+    locationId: '',
     expirationDate: '',
     cost: 0,
     price: 0,
@@ -50,8 +57,31 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [locations, setLocations] = useState<LocationOption[]>([]);
 
   const categories = getInventoryCategories();
+
+  // Fetch available locations on mount
+  useEffect(() => {
+    async function fetchLocations() {
+      try {
+        const response = await fetch('/api/locations');
+        const data = await response.json();
+        const locationList = data.data || [];
+        setLocations(locationList);
+
+        // Auto-select if only 1 location (basic plan)
+        if (locationList.length === 1) {
+          setFormData(prev => ({ ...prev, locationId: locationList[0].id }));
+        }
+      } catch (err) {
+        console.error('Error fetching locations:', err);
+      }
+    }
+    if (isOpen) {
+      fetchLocations();
+    }
+  }, [isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -87,6 +117,8 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
 
       if (response.ok) {
         onSuccess();
+        // Reset form but preserve locationId if single location (basic plan)
+        const defaultLocationId = locations.length === 1 ? locations[0].id : '';
         setFormData({
           name: '',
           category: '',
@@ -97,7 +129,8 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
           brand: '',
           quantity: 0,
           minStock: 0,
-          location: '',
+          storageLocation: '',
+          locationId: defaultLocationId,
           expirationDate: '',
           cost: 0,
           price: 0,
@@ -181,6 +214,29 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
                 ))}
               </select>
             </div>
+
+            {/* Location selector - only show when multiple locations (professional+ plans) */}
+            {locations.length > 1 && (
+              <div>
+                <label className="form-label">
+                  Sucursal *
+                </label>
+                <select
+                  name="locationId"
+                  value={formData.locationId}
+                  onChange={handleInputChange}
+                  required
+                  className="form-select"
+                >
+                  <option value="">Seleccionar sucursal</option>
+                  {locations.map((loc) => (
+                    <option key={loc.id} value={loc.id}>
+                      {loc.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <div>
               <label className="form-label">
@@ -316,8 +372,8 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
               </label>
               <input
                 type="text"
-                name="location"
-                value={formData.location}
+                name="storageLocation"
+                value={formData.storageLocation}
                 onChange={handleInputChange}
                 placeholder="ej: Estante A, Refrigerador"
                 className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"

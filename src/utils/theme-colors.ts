@@ -11,6 +11,7 @@ export const themeColors = {
     tertiary: "bg-gray-100 dark:bg-gray-700",
     card: "bg-white dark:bg-gray-800",
     muted: "bg-gray-50 dark:bg-gray-800/50",
+    overlay: "bg-black/50 dark:bg-black/70",
   },
 
   // Text colors

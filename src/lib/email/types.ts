@@ -7,6 +7,9 @@
 export type EmailTemplate =
   | 'appointment-confirmation'
   | 'appointment-reminder'
+  | 'appointment-cancellation'
+  | 'appointment-rescheduled'
+  | 'appointment-staff-notification'
   | 'low-stock-alert'
   | 'treatment-reminder'
   | 'new-user-registration'
@@ -163,11 +166,75 @@ export interface NewSubscriptionPaymentData extends BaseEmailData {
 }
 
 /**
+ * Appointment Cancellation Email Data
+ */
+export interface AppointmentCancellationData extends BaseEmailData {
+  template: 'appointment-cancellation';
+  data: {
+    appointmentId: string;
+    petName: string;
+    ownerName: string;
+    appointmentDate: Date;
+    appointmentTime: string;
+    serviceName: string;
+    clinicName: string;
+    clinicPhone?: string;
+    cancelledBy: 'CLIENT' | 'CLINIC';
+    cancellationReason?: string;
+  };
+}
+
+/**
+ * Appointment Rescheduled Email Data
+ */
+export interface AppointmentRescheduledData extends BaseEmailData {
+  template: 'appointment-rescheduled';
+  data: {
+    appointmentId: string;
+    petName: string;
+    ownerName: string;
+    previousDate: Date;
+    previousTime: string;
+    newDate: Date;
+    newTime: string;
+    serviceName: string;
+    clinicName: string;
+    clinicAddress?: string;
+    clinicPhone?: string;
+    veterinarianName?: string;
+  };
+}
+
+/**
+ * Appointment Staff Notification Email Data
+ */
+export interface AppointmentStaffNotificationData extends BaseEmailData {
+  template: 'appointment-staff-notification';
+  data: {
+    appointmentId: string;
+    staffName: string;
+    petName: string;
+    petSpecies: string;
+    petBreed?: string;
+    ownerName: string;
+    ownerPhone?: string;
+    appointmentDate: Date;
+    appointmentTime: string;
+    serviceName: string;
+    clinicName: string;
+    notes?: string;
+  };
+}
+
+/**
  * Union type for all email data types
  */
 export type EmailData =
   | AppointmentConfirmationData
   | AppointmentReminderData
+  | AppointmentCancellationData
+  | AppointmentRescheduledData
+  | AppointmentStaffNotificationData
   | LowStockAlertData
   | TreatmentReminderData
   | NewUserRegistrationData

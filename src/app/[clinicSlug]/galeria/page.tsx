@@ -93,27 +93,27 @@ export default async function GaleriaPage({
     <>
       <StructuredData data={breadcrumbSchema} />
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
         {/* Header con navegación */}
-        <div className="bg-white shadow-sm">
+        <div className="bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-900/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <Link
                   href={`/${tenant.slug}`}
-                  className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+                  className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
                 >
                   <ArrowLeft className="h-5 w-5 mr-2" />
                   Volver a {tenant.name}
                 </Link>
               </div>
               <div className="text-right flex items-center gap-2">
-                <ImageIcon className="h-5 w-5 text-gray-400" />
+                <ImageIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 <div>
-                  <h1 className="text-xl font-semibold text-gray-900">
+                  <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     Galería
                   </h1>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     {gallery.length} {gallery.length === 1 ? 'imagen' : 'imágenes'}
                   </p>
                 </div>
@@ -127,16 +127,16 @@ export default async function GaleriaPage({
           <ClinicGallery tenant={tenant} images={gallery} />
         ) : (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-            <ImageIcon className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-700 mb-2">
+            <ImageIcon className="h-16 w-16 mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+            <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
               Galería en construcción
             </h2>
-            <p className="text-gray-500 mb-6">
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
               Pronto tendremos fotos de nuestras instalaciones y equipo.
             </p>
             <Link
               href={`/${tenant.slug}`}
-              className="inline-flex items-center text-primary hover:underline"
+              className="inline-flex items-center text-primary dark:text-[#75a99c] hover:underline"
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
               Volver al inicio
