@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+# Run lint-staged for formatting and linting
+pnpm exec lint-staged
+
+# Run unit tests on changed files only
+pnpm test:unit --changedSince=HEAD --passWithNoTests
