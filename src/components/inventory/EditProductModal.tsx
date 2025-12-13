@@ -24,7 +24,7 @@ interface ProductFormData {
   brand: string;
   quantity: number;
   minStock: number;
-  location: string;
+  storageLocation: string;
   expirationDate: string;
   cost: number;
   price: number;
@@ -43,7 +43,7 @@ export function EditProductModal({ isOpen, onClose, onSuccess, item, tenantId }:
     brand: '',
     quantity: 0,
     minStock: 0,
-    location: '',
+    storageLocation: '',
     expirationDate: '',
     cost: 0,
     price: 0,
@@ -68,7 +68,7 @@ export function EditProductModal({ isOpen, onClose, onSuccess, item, tenantId }:
         brand: item.brand || '',
         quantity: Number(item.quantity) || 0,
         minStock: Number(item.minStock) || 0,
-        location: item.location || '',
+        storageLocation: item.storageLocation || '',
         expirationDate: item.expirationDate ? new Date(item.expirationDate).toISOString().split('T')[0] : '',
         cost: Number(item.cost) || 0,
         price: Number(item.price) || 0,
@@ -274,8 +274,8 @@ export function EditProductModal({ isOpen, onClose, onSuccess, item, tenantId }:
                 </label>
                 <input
                   type="text"
-                  name="location"
-                  value={formData.location}
+                  name="storageLocation"
+                  value={formData.storageLocation}
                   onChange={handleInputChange}
                   className="form-input"
                   placeholder="Ej: Estante A-1"

@@ -465,9 +465,10 @@ model InventoryItem {
   minStock       Decimal?            @db.Decimal(8, 2)
   expirationDate DateTime?
   status         InventoryStatus     @default(ACTIVE)
-  batchNumber    String?
-  specialNotes   String?
-  cost           Decimal?            @db.Decimal(10, 2)
+  batchNumber     String?
+  specialNotes    String?
+  storageLocation String?             // Physical storage location (e.g., "Shelf A-1", "Refrigerator")
+  cost            Decimal?            @db.Decimal(10, 2)
   price          Decimal?            @db.Decimal(10, 2)
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt

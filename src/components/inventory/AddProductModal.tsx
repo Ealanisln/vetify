@@ -22,7 +22,7 @@ interface ProductFormData {
   brand: string;
   quantity: number;
   minStock: number;
-  location: string;
+  storageLocation: string;
   expirationDate: string;
   cost: number;
   price: number;
@@ -41,7 +41,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
     brand: '',
     quantity: 0,
     minStock: 0,
-    location: '',
+    storageLocation: '',
     expirationDate: '',
     cost: 0,
     price: 0,
@@ -316,8 +316,8 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
               </label>
               <input
                 type="text"
-                name="location"
-                value={formData.location}
+                name="storageLocation"
+                value={formData.storageLocation}
                 onChange={handleInputChange}
                 placeholder="ej: Estante A, Refrigerador"
                 className="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-[#75a99c] focus:border-[#75a99c] bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"

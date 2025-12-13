@@ -107,7 +107,7 @@ export type InventoryFormData = {
   brand?: string;
   quantity: number;
   minStock?: number;
-  location?: string;
+  storageLocation?: string;
   expirationDate?: string;
   cost?: number;
   price?: number;
