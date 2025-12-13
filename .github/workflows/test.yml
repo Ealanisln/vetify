@@ -109,6 +109,12 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
 
+      - name: Seed subscription plans
+        run: pnpm tsx scripts/seed-ci-plans.ts
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+
       - name: Run integration tests
         run: pnpm test:integration
         env:
@@ -214,6 +220,12 @@ jobs:
 
       - name: Push database schema
         run: pnpm prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+
+      - name: Seed subscription plans
+        run: pnpm tsx scripts/seed-ci-plans.ts
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
