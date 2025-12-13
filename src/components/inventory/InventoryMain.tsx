@@ -266,7 +266,7 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
   ];
 
   return (
-    <div id="inventory-main" className={`${themeColors.background.card} shadow rounded-lg border ${themeColors.border.primary}`}>
+    <div id="inventory-main" className={`${themeColors.background.card} shadow rounded-lg border ${themeColors.border.primary} overflow-hidden`}>
       {/* Header */}
       <div className={`${responsive.padding.card} border-b ${themeColors.border.primary}`}>
         <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
