@@ -42,6 +42,8 @@ jobs:
           VETIFY_API_URL=http://localhost:3000
           NEXT_PUBLIC_APP_URL=http://localhost:3000
           NEXT_PUBLIC_BASE_URL=http://localhost:3000
+          STRIPE_SECRET_KEY=sk_test_fake_key_for_ci
+          STRIPE_WEBHOOK_SECRET=whsec_fake_secret_for_ci
           EOF
 
       - name: Run unit tests
@@ -94,6 +96,8 @@ jobs:
           VETIFY_API_URL=http://localhost:3000
           NEXT_PUBLIC_APP_URL=http://localhost:3000
           NEXT_PUBLIC_BASE_URL=http://localhost:3000
+          STRIPE_SECRET_KEY=sk_test_fake_key_for_ci
+          STRIPE_WEBHOOK_SECRET=whsec_fake_secret_for_ci
           EOF
 
       - name: Run integration tests
@@ -178,6 +182,8 @@ jobs:
           VETIFY_API_URL=http://localhost:3000
           NEXT_PUBLIC_APP_URL=http://localhost:3000
           NEXT_PUBLIC_BASE_URL=http://localhost:3000
+          STRIPE_SECRET_KEY=sk_test_fake_key_for_ci
+          STRIPE_WEBHOOK_SECRET=whsec_fake_secret_for_ci
           EOF
 
       - name: Run tests with coverage
