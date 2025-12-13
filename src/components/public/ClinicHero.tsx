@@ -6,6 +6,8 @@ import { Button } from '../ui/button';
 import { Phone, MapPin, Clock, Star } from 'lucide-react';
 import type { PublicTenant } from '../../lib/tenant';
 import { getTheme, getThemeClasses } from '../../lib/themes';
+import { useThemeAware } from '@/hooks/useThemeAware';
+import { generateDarkColors } from '@/lib/color-utils';
 
 interface ClinicHeroProps {
   tenant: PublicTenant;
@@ -17,12 +19,35 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
   const theme = getTheme(tenant.publicTheme);
   const themeColor = tenant.publicThemeColor || theme.colors.primary;
   const themeClasses = getThemeClasses(theme);
+  const { isDark } = useThemeAware();
+
+  // Generate dark mode colors from theme primary
+  const darkColors = generateDarkColors(themeColor);
+
+  // Select colors based on current theme
+  const colors = isDark ? {
+    text: darkColors.text,
+    textMuted: darkColors.textMuted,
+    cardBg: darkColors.cardBg,
+    border: darkColors.border,
+    primaryLight: darkColors.primaryLight,
+    heroGradientFrom: darkColors.heroGradientFrom,
+    heroGradientTo: darkColors.heroGradientTo,
+  } : {
+    text: theme.colors.text,
+    textMuted: theme.colors.textMuted,
+    cardBg: theme.colors.cardBg,
+    border: theme.colors.border,
+    primaryLight: theme.colors.primaryLight,
+    heroGradientFrom: theme.colors.heroGradientFrom,
+    heroGradientTo: theme.colors.heroGradientTo,
+  };
 
   return (
     <section
-      className="relative py-20"
+      className="relative py-20 transition-colors duration-200"
       style={{
-        background: `linear-gradient(135deg, ${theme.colors.heroGradientFrom} 0%, ${theme.colors.heroGradientTo} 100%)`
+        background: `linear-gradient(135deg, ${colors.heroGradientFrom} 0%, ${colors.heroGradientTo} 100%)`
       }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -35,7 +60,7 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
                   <Star key={i} className="h-5 w-5 fill-current" />
                 ))}
               </div>
-              <span className="ml-2 text-gray-600 text-sm">
+              <span className="ml-2 text-sm" style={{ color: colors.textMuted }}>
                 Clínica de confianza
               </span>
             </div>
@@ -43,7 +68,7 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
             <h1
               className="text-4xl lg:text-6xl font-bold mb-6"
               style={{
-                color: theme.colors.text,
+                color: colors.text,
                 fontFamily: theme.typography.fontFamily,
                 fontWeight: theme.typography.headingWeight
               }}
@@ -54,7 +79,7 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
             {tenant.publicDescription && (
               <p
                 className="text-xl mb-8 leading-relaxed"
-                style={{ color: theme.colors.textMuted }}
+                style={{ color: colors.textMuted }}
               >
                 {tenant.publicDescription}
               </p>
@@ -64,44 +89,44 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
               {tenant.publicPhone && (
                 <div
-                  className={`flex items-center p-4 ${themeClasses.card}`}
+                  className={`flex items-center p-4 ${themeClasses.card} transition-colors`}
                   style={{
-                    backgroundColor: theme.colors.cardBg,
+                    backgroundColor: colors.cardBg,
                     borderRadius: theme.layout.borderRadius,
-                    borderColor: theme.colors.border
+                    borderColor: colors.border
                   }}
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
-                    style={{ backgroundColor: theme.colors.primaryLight }}
+                    style={{ backgroundColor: colors.primaryLight }}
                   >
                     <Phone className="h-5 w-5" style={{ color: themeColor }} />
                   </div>
                   <div>
-                    <p className="text-sm" style={{ color: theme.colors.textMuted }}>Teléfono</p>
-                    <p className="font-semibold" style={{ color: theme.colors.text }}>{tenant.publicPhone}</p>
+                    <p className="text-sm" style={{ color: colors.textMuted }}>Teléfono</p>
+                    <p className="font-semibold" style={{ color: colors.text }}>{tenant.publicPhone}</p>
                   </div>
                 </div>
               )}
 
               {tenant.publicAddress && (
                 <div
-                  className={`flex items-center p-4 ${themeClasses.card}`}
+                  className={`flex items-center p-4 ${themeClasses.card} transition-colors`}
                   style={{
-                    backgroundColor: theme.colors.cardBg,
+                    backgroundColor: colors.cardBg,
                     borderRadius: theme.layout.borderRadius,
-                    borderColor: theme.colors.border
+                    borderColor: colors.border
                   }}
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
-                    style={{ backgroundColor: theme.colors.primaryLight }}
+                    style={{ backgroundColor: colors.primaryLight }}
                   >
                     <MapPin className="h-5 w-5" style={{ color: themeColor }} />
                   </div>
                   <div>
-                    <p className="text-sm" style={{ color: theme.colors.textMuted }}>Ubicación</p>
-                    <p className="font-semibold text-sm" style={{ color: theme.colors.text }}>
+                    <p className="text-sm" style={{ color: colors.textMuted }}>Ubicación</p>
+                    <p className="font-semibold text-sm" style={{ color: colors.text }}>
                       {tenant.publicAddress}
                     </p>
                   </div>
@@ -110,22 +135,22 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
 
               {publicHours && (
                 <div
-                  className={`flex items-center p-4 sm:col-span-2 ${themeClasses.card}`}
+                  className={`flex items-center p-4 sm:col-span-2 ${themeClasses.card} transition-colors`}
                   style={{
-                    backgroundColor: theme.colors.cardBg,
+                    backgroundColor: colors.cardBg,
                     borderRadius: theme.layout.borderRadius,
-                    borderColor: theme.colors.border
+                    borderColor: colors.border
                   }}
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
-                    style={{ backgroundColor: theme.colors.primaryLight }}
+                    style={{ backgroundColor: colors.primaryLight }}
                   >
                     <Clock className="h-5 w-5" style={{ color: themeColor }} />
                   </div>
                   <div>
-                    <p className="text-sm" style={{ color: theme.colors.textMuted }}>Horarios</p>
-                    <p className="font-semibold" style={{ color: theme.colors.text }}>
+                    <p className="text-sm" style={{ color: colors.textMuted }}>Horarios</p>
+                    <p className="font-semibold" style={{ color: colors.text }}>
                       {publicHours.weekdays || 'Lun-Vie: 9:00 - 18:00'}
                     </p>
                   </div>

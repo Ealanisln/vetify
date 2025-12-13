@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { Building2, Users, Heart, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PublicTenant, GalleryImage, GalleryCategory } from '../../lib/tenant';
 import { getTheme, getThemeClasses } from '../../lib/themes';
+import { useThemeAware } from '@/hooks/useThemeAware';
+import { generateDarkColors } from '@/lib/color-utils';
 import Lightbox from 'yet-another-react-lightbox';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
 import 'yet-another-react-lightbox/styles.css';
@@ -29,6 +31,25 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
   const theme = getTheme(tenant.publicTheme);
   const themeColor = tenant.publicThemeColor || theme.colors.primary;
   const themeClasses = getThemeClasses(theme);
+  const { isDark } = useThemeAware();
+
+  // Generate dark mode colors from theme primary
+  const darkColors = generateDarkColors(themeColor);
+
+  // Select colors based on current theme
+  const colors = isDark ? {
+    text: darkColors.text,
+    textMuted: darkColors.textMuted,
+    cardBg: darkColors.cardBg,
+    background: darkColors.background,
+    backgroundAlt: darkColors.backgroundAlt,
+  } : {
+    text: theme.colors.text,
+    textMuted: theme.colors.textMuted,
+    cardBg: theme.colors.cardBg,
+    background: theme.colors.background,
+    backgroundAlt: theme.colors.backgroundAlt,
+  };
 
   const sortedImages = useMemo(
     () => [...images].sort((a, b) => a.order - b.order),
@@ -75,8 +96,8 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
 
   return (
     <section
-      className="py-16"
-      style={{ backgroundColor: theme.colors.background }}
+      className="py-16 transition-colors duration-200"
+      style={{ backgroundColor: colors.background }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -84,7 +105,7 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
           <h2
             className="text-3xl lg:text-4xl font-bold mb-4"
             style={{
-              color: theme.colors.text,
+              color: colors.text,
               fontFamily: theme.typography.fontFamily,
               fontWeight: theme.typography.headingWeight,
             }}
@@ -93,7 +114,7 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
           </h2>
           <p
             className="text-lg max-w-2xl mx-auto"
-            style={{ color: theme.colors.textMuted }}
+            style={{ color: colors.textMuted }}
           >
             Conoce nuestras instalaciones, equipo y algunos de nuestros pacientes
           </p>
@@ -105,8 +126,8 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
             onClick={() => setActiveFilter('all')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${themeClasses.button}`}
             style={{
-              backgroundColor: activeFilter === 'all' ? themeColor : theme.colors.backgroundAlt,
-              color: activeFilter === 'all' ? '#fff' : theme.colors.text,
+              backgroundColor: activeFilter === 'all' ? themeColor : colors.backgroundAlt,
+              color: activeFilter === 'all' ? '#fff' : colors.text,
               borderRadius: theme.layout.buttonStyle === 'pill' ? '9999px' : theme.layout.borderRadius,
             }}
           >
@@ -120,8 +141,8 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
                   onClick={() => setActiveFilter(key)}
                   className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${themeClasses.button}`}
                   style={{
-                    backgroundColor: activeFilter === key ? themeColor : theme.colors.backgroundAlt,
-                    color: activeFilter === key ? '#fff' : theme.colors.text,
+                    backgroundColor: activeFilter === key ? themeColor : colors.backgroundAlt,
+                    color: activeFilter === key ? '#fff' : colors.text,
                     borderRadius: theme.layout.buttonStyle === 'pill' ? '9999px' : theme.layout.borderRadius,
                   }}
                 >
@@ -137,10 +158,10 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
           {filteredImages.map((image, index) => (
             <div
               key={image.id}
-              className={`relative group cursor-pointer overflow-hidden ${themeClasses.card}`}
+              className={`relative group cursor-pointer overflow-hidden transition-colors ${themeClasses.card}`}
               style={{
                 borderRadius: theme.layout.borderRadius,
-                backgroundColor: theme.colors.cardBg,
+                backgroundColor: colors.cardBg,
               }}
               onClick={() => handleImageClick(index)}
             >
@@ -184,7 +205,7 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
 
                 {/* Category badge */}
                 <div
-                  className="absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-white/90 backdrop-blur-sm"
+                  className="absolute top-2 left-2 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm"
                   style={{ color: themeColor }}
                 >
                   {CATEGORY_LABELS[image.category].icon}
@@ -200,7 +221,7 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
         {/* Empty state for filtered results */}
         {filteredImages.length === 0 && activeFilter !== 'all' && (
           <div className="text-center py-12">
-            <p style={{ color: theme.colors.textMuted }}>
+            <p style={{ color: colors.textMuted }}>
               No hay imágenes en esta categoría
             </p>
             <button
