@@ -196,7 +196,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
     return (
       <div className="text-center py-8">
         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-        <p className="text-gray-600">Error al cargar la configuración de horarios</p>
+        <p className="text-gray-600 dark:text-gray-400">Error al cargar la configuración de horarios</p>
       </div>
     );
   }
@@ -210,20 +210,20 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
             <Clock className="h-5 w-5" />
             Configuración por Defecto
           </CardTitle>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Estos valores se aplicarán como predeterminados para todos los días
           </p>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Hora de Apertura
               </label>
               <select
                 value={businessHours.defaultStartTime}
                 onChange={(e) => handleDefaultTimeChange('defaultStartTime', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {timeSlots.map(time => (
                   <option key={time} value={time}>{time}</option>
@@ -232,13 +232,13 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Hora de Cierre
               </label>
               <select
                 value={businessHours.defaultEndTime}
                 onChange={(e) => handleDefaultTimeChange('defaultEndTime', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {timeSlots.map(time => (
                   <option key={time} value={time}>{time}</option>
@@ -247,13 +247,13 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Duración de Cita
               </label>
               <select
                 value={businessHours.defaultSlotDuration}
                 onChange={(e) => handleDefaultTimeChange('defaultSlotDuration', parseInt(e.target.value))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {slotDurations.map(duration => (
                   <option key={duration.value} value={duration.value}>
@@ -264,13 +264,13 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Inicio de comida
               </label>
               <select
                 value={businessHours.defaultLunchStart || ''}
                 onChange={(e) => handleDefaultTimeChange('defaultLunchStart', e.target.value || '')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Sin comida</option>
                 {timeSlots.map(time => (
@@ -280,13 +280,13 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Fin de comida
               </label>
               <select
                 value={businessHours.defaultLunchEnd || ''}
                 onChange={(e) => handleDefaultTimeChange('defaultLunchEnd', e.target.value || '')}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 dark:disabled:bg-gray-700"
                 disabled={!businessHours.defaultLunchStart}
               >
                 <option value="">Sin comida</option>
@@ -313,7 +313,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
       <Card>
         <CardHeader>
           <CardTitle>Horarios por Día</CardTitle>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             Personaliza los horarios para cada día de la semana
           </p>
         </CardHeader>
@@ -322,11 +322,11 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
             {businessHours.businessHours.map((day) => (
               <div
                 key={day.dayOfWeek}
-                className={`p-4 border rounded-lg ${day.isWorkingDay ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}
+                className={`p-4 border rounded-lg ${day.isWorkingDay ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'}`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <h3 className="font-medium text-gray-900">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
                       {dayNames[day.dayOfWeek]}
                     </h3>
                     <Badge variant={day.isWorkingDay ? 'default' : 'secondary'}>
@@ -345,13 +345,13 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                 {day.isWorkingDay && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                         Apertura
                       </label>
                       <select
                         value={day.startTime}
                         onChange={(e) => handleDayTimeChange(day.dayOfWeek, 'startTime', e.target.value)}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         {timeSlots.map(time => (
                           <option key={time} value={time}>{time}</option>
@@ -360,13 +360,13 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                         Cierre
                       </label>
                       <select
                         value={day.endTime}
                         onChange={(e) => handleDayTimeChange(day.dayOfWeek, 'endTime', e.target.value)}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         {timeSlots.map(time => (
                           <option key={time} value={time}>{time}</option>
@@ -375,13 +375,13 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                         Inicio comida
                       </label>
                       <select
                         value={day.lunchStart || ''}
                         onChange={(e) => handleDayTimeChange(day.dayOfWeek, 'lunchStart', e.target.value || '')}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         <option value="">Sin comida</option>
                         {timeSlots.map(time => (
@@ -391,13 +391,13 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
                         Fin comida
                       </label>
                       <select
                         value={day.lunchEnd || ''}
                         onChange={(e) => handleDayTimeChange(day.dayOfWeek, 'lunchEnd', e.target.value || '')}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 dark:disabled:bg-gray-700"
                         disabled={!day.lunchStart}
                       >
                         <option value="">Sin comida</option>
@@ -416,10 +416,10 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
 
       {/* Action Buttons */}
       {hasChanges && (
-        <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center justify-between p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-blue-600" />
-            <span className="text-sm text-blue-800">
+            <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <span className="text-sm text-blue-800 dark:text-blue-200">
               Tienes cambios sin guardar
             </span>
           </div>

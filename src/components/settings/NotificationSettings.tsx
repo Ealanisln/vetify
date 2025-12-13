@@ -295,7 +295,7 @@ export function NotificationSettings({ }: NotificationSettingsProps) {
             return (
               <div
                 key={option.key}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-accent/50 transition-colors"
               >
                 <div className="flex items-start gap-4">
                   <div className="p-2 bg-primary/10 rounded-lg">
@@ -336,7 +336,7 @@ export function NotificationSettings({ }: NotificationSettingsProps) {
             return (
               <div
                 key={option.key}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-accent/50 transition-colors"
               >
                 <div className="flex items-start gap-4">
                   <div className="p-2 bg-primary/10 rounded-lg">

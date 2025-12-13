@@ -34,30 +34,51 @@ function UserSection({ onNavigate }: { onNavigate?: () => void }) {
   useEffect(() => {
     setMounted(true);
 
+    const abortController = new AbortController();
+
     // Función para obtener datos del usuario
     const fetchUserData = async () => {
       try {
         // Obtener información del usuario
-        const userResponse = await fetch('/api/user');
+        const userResponse = await fetch('/api/user', {
+          signal: abortController.signal,
+        });
         if (userResponse.ok) {
           const userData = await userResponse.json();
-          setUser(userData);
+          if (!abortController.signal.aborted) {
+            setUser(userData);
+          }
 
           // Si hay usuario, obtener información del tenant
-          const tenantResponse = await fetch('/api/user/tenant');
-          if (tenantResponse.ok) {
+          const tenantResponse = await fetch('/api/user/tenant', {
+            signal: abortController.signal,
+          });
+          if (tenantResponse.ok && !abortController.signal.aborted) {
             const tenantData = await tenantResponse.json();
             setTenant(tenantData.tenant);
           }
         }
       } catch (error) {
-        console.error('Error fetching user data:', error);
+        // Ignore abort errors (happens during normal navigation/unmount)
+        if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
+        // Only log non-abort errors in development
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error fetching user data:', error);
+        }
       } finally {
-        setIsLoading(false);
+        if (!abortController.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchUserData();
+
+    return () => {
+      abortController.abort();
+    };
   }, []);
 
   useEffect(() => {
