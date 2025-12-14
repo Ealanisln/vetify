@@ -3,6 +3,17 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { checkLocationLimit } from './plan-limits';
 
+// Import schemas for internal use
+import {
+  createLocationSchema,
+  updateLocationSchema,
+  createTransferSchema,
+  generateSlug,
+  type CreateLocationInput,
+  type UpdateLocationInput,
+  type CreateTransferInput,
+} from './location-utils';
+
 // ============================================================================
 // Re-export client-safe utilities and schemas
 // ============================================================================
@@ -17,7 +28,7 @@ export {
   type CreateLocationInput,
   type UpdateLocationInput,
   type CreateTransferInput,
-} from './location-utils';
+};
 
 // ============================================================================
 // Location-Based Permission Helpers (SERVER-ONLY)
