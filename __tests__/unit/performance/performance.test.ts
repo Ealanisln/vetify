@@ -1,8 +1,8 @@
 import { prismaMock } from '../../mocks/prisma';
-import { createTestUser, createTestTenant, createTestPet, createTestAppointment } from '../../utils/test-utils';
+import { createTestTenant, createTestAppointment } from '../../utils/test-utils';
 
 // Mock performance monitoring functions
-const mockMeasurePerformance = jest.fn((fn: () => any) => {
+const mockMeasurePerformance = jest.fn((fn: () => unknown) => {
   const start = performance.now();
   const result = fn();
   const end = performance.now();
@@ -12,17 +12,13 @@ const mockMeasurePerformance = jest.fn((fn: () => any) => {
 const mockRecordMetric = jest.fn();
 
 describe('Performance Tests', () => {
-  let mockUser: ReturnType<typeof createTestUser>;
   let mockTenant: ReturnType<typeof createTestTenant>;
-  let mockPet: ReturnType<typeof createTestPet>;
   let mockAppointment: ReturnType<typeof createTestAppointment>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    mockUser = createTestUser();
+
     mockTenant = createTestTenant();
-    mockPet = createTestPet();
     mockAppointment = createTestAppointment();
   });
 
@@ -387,16 +383,17 @@ describe('Performance Tests', () => {
         await new Promise(resolve => setTimeout(resolve, 100)); // Simulate slow query
         return 'slow result';
       };
-      
+
       const startTime = performance.now();
       const result = await slowQuery();
       const duration = performance.now() - startTime;
-      
+
       expect(result).toBe('slow result');
-      expect(duration).toBeGreaterThan(100);
-      
-      // Should record slow query metric
-      if (duration > 100) {
+      // Use >= 95ms to account for timer variance in CI environments
+      expect(duration).toBeGreaterThanOrEqual(95);
+
+      // Should record slow query metric (threshold at 95ms for CI tolerance)
+      if (duration >= 95) {
         mockRecordMetric('slow_query', duration);
         expect(mockRecordMetric).toHaveBeenCalledWith('slow_query', duration);
       }

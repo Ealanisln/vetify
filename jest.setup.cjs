@@ -213,6 +213,43 @@ jest.mock('@prisma/client', () => ({
       delete: jest.fn(),
     },
   })),
+  // Prisma enums
+  TreatmentType: {
+    VACCINATION: 'VACCINATION',
+    DEWORMING: 'DEWORMING',
+    FLEA_TICK: 'FLEA_TICK',
+    OTHER_PREVENTATIVE: 'OTHER_PREVENTATIVE',
+  },
+  VaccinationStage: {
+    PUPPY_KITTEN: 'PUPPY_KITTEN',
+    ADULT: 'ADULT',
+    SENIOR: 'SENIOR',
+    BOOSTER: 'BOOSTER',
+  },
+  DewormingType: {
+    INTERNAL: 'INTERNAL',
+    EXTERNAL: 'EXTERNAL',
+    BOTH: 'BOTH',
+  },
+  TreatmentStatus: {
+    SCHEDULED: 'SCHEDULED',
+    COMPLETED: 'COMPLETED',
+    OVERDUE: 'OVERDUE',
+    CANCELLED: 'CANCELLED',
+  },
+  AppointmentStatus: {
+    SCHEDULED: 'SCHEDULED',
+    CONFIRMED: 'CONFIRMED',
+    IN_PROGRESS: 'IN_PROGRESS',
+    COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED',
+    NO_SHOW: 'NO_SHOW',
+  },
+  TransferStatus: {
+    PENDING: 'PENDING',
+    COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED',
+  },
 }));
 
 // Global test environment setup
