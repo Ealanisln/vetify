@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter() {
@@ -22,7 +23,7 @@ jest.mock('next/navigation', () => ({
 jest.mock('next/image', () => ({
   __esModule: true,
   default: (props: any) => {
-    // eslint-disable-next-line @next/next/no-img-element
+     
     return `[Image: ${props.alt || 'image'}]`;
   },
 }));
@@ -270,6 +271,172 @@ export const createTestStaffLocation = (overrides = {}) => ({
   isPrimary: true,
   createdAt: new Date('2024-01-01'),
   updatedAt: new Date('2024-01-01'),
+  ...overrides,
+});
+
+// Sale-related factories
+export const createTestSale = (overrides = {}) => ({
+  id: 'sale-1',
+  tenantId: 'tenant-1',
+  customerId: 'customer-1',
+  petId: 'pet-1',
+  userId: 'user-1',
+  staffId: 'staff-1',
+  saleNumber: 'SALE-202401010001',
+  subtotal: 100.0,
+  tax: 16.0,
+  discount: 0,
+  total: 116.0,
+  status: 'COMPLETED' as const,
+  notes: null,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+  ...overrides,
+});
+
+export const createTestSaleItem = (overrides = {}) => ({
+  id: 'sale-item-1',
+  saleId: 'sale-1',
+  itemId: 'inventory-1',
+  serviceId: null,
+  description: 'Rabies Vaccine',
+  quantity: 1,
+  unitPrice: 100.0,
+  discount: 0,
+  total: 100.0,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+  ...overrides,
+});
+
+export const createTestSalePayment = (overrides = {}) => ({
+  id: 'payment-1',
+  saleId: 'sale-1',
+  paymentMethod: 'CASH' as const,
+  amount: 116.0,
+  paymentDate: new Date('2024-01-01'),
+  transactionId: null,
+  notes: null,
+  cashTransactionId: null,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+  ...overrides,
+});
+
+// Cash Register (Caja) factories
+export const createTestCashDrawer = (overrides = {}) => ({
+  id: 'drawer-1',
+  tenantId: 'tenant-1',
+  locationId: null,
+  openedById: 'user-1',
+  closedById: null,
+  initialAmount: 500.0,
+  finalAmount: null,
+  expectedAmount: null,
+  difference: null,
+  status: 'OPEN' as const,
+  notes: null,
+  openedAt: new Date(),
+  closedAt: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  ...overrides,
+});
+
+export const createTestCashTransaction = (overrides = {}) => ({
+  id: 'transaction-1',
+  drawerId: 'drawer-1',
+  amount: 100.0,
+  type: 'SALE_CASH' as const,
+  description: 'Sale payment',
+  relatedId: 'sale-1',
+  relatedType: 'SALE',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  ...overrides,
+});
+
+// Treatment Schedule factories
+export const createTestTreatmentSchedule = (overrides = {}) => ({
+  id: 'schedule-1',
+  tenantId: 'tenant-1',
+  petId: 'pet-1',
+  treatmentType: 'VACCINATION' as const,
+  productName: 'Rabies Vaccine',
+  scheduledDate: new Date('2024-06-01'),
+  status: 'SCHEDULED' as const,
+  reminderSent: false,
+  vaccineStage: 'ADULT' as const,
+  dewormingType: null,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+  ...overrides,
+});
+
+// Reminder factory
+export const createTestReminder = (overrides = {}) => ({
+  id: 'reminder-1',
+  tenantId: 'tenant-1',
+  petId: 'pet-1',
+  customerId: 'customer-1',
+  userId: null,
+  type: 'TREATMENT' as const,
+  title: 'Vaccination Reminder',
+  message: 'Your pet has a vaccination scheduled',
+  dueDate: new Date('2024-05-25'),
+  status: 'PENDING' as const,
+  sentAt: null,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+  ...overrides,
+});
+
+// Medical History factories
+export const createTestMedicalHistory = (overrides = {}) => ({
+  id: 'history-1',
+  tenantId: 'tenant-1',
+  petId: 'pet-1',
+  staffId: 'staff-1',
+  visitDate: new Date('2024-01-15'),
+  reasonForVisit: 'Annual checkup and vaccination',
+  diagnosis: 'Healthy pet, no issues found',
+  treatment: 'Administered annual vaccines',
+  notes: 'Pet appears healthy overall',
+  medicalOrderId: null,
+  createdAt: new Date('2024-01-15'),
+  updatedAt: new Date('2024-01-15'),
+  ...overrides,
+});
+
+export const createTestMedicalOrder = (overrides = {}) => ({
+  id: 'order-1',
+  tenantId: 'tenant-1',
+  petId: 'pet-1',
+  staffId: 'staff-1',
+  userId: null,
+  visitDate: new Date('2024-01-15'),
+  diagnosis: 'Minor infection',
+  treatment: 'Antibiotics prescribed',
+  notes: null,
+  status: 'PENDING' as const,
+  saleId: null,
+  createdAt: new Date('2024-01-15'),
+  updatedAt: new Date('2024-01-15'),
+  ...overrides,
+});
+
+export const createTestPrescription = (overrides = {}) => ({
+  id: 'prescription-1',
+  orderId: 'order-1',
+  productId: 'inventory-1',
+  quantity: 1,
+  unitPrice: 150.0,
+  dosage: '10mg',
+  frequency: 'Twice daily',
+  duration: '7 days',
+  instructions: 'Give with food',
+  createdAt: new Date('2024-01-15'),
+  updatedAt: new Date('2024-01-15'),
   ...overrides,
 });
 
