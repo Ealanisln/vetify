@@ -111,6 +111,7 @@ model Location {
   services         Service[]
   businessHours    BusinessHours[]
   customers        Customer[]
+  sales            Sale[]
   transfersFrom    InventoryTransfer[] @relation("TransfersFrom")
   transfersTo      InventoryTransfer[] @relation("TransfersTo")
   staffLocations   StaffLocation[]
@@ -617,6 +618,7 @@ model CashTransaction {
 model Sale {
   id         String     @id @default(uuid())
   tenantId   String
+  locationId String?
   customerId String?
   petId      String?
   userId     String?
@@ -632,6 +634,7 @@ model Sale {
   updatedAt  DateTime   @updatedAt
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location     Location?     @relation(fields: [locationId], references: [id], onDelete: Restrict)
   customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
   pet          Pet?          @relation(fields: [petId], references: [id])
   user         User?         @relation(fields: [userId], references: [id])
@@ -641,6 +644,7 @@ model Sale {
   medicalOrder MedicalOrder?
 
   @@index([tenantId])
+  @@index([locationId])
   @@index([customerId])
   @@index([petId])
   @@index([userId])
@@ -649,6 +653,7 @@ model Sale {
   @@index([status])
   @@index([createdAt])
   @@index([tenantId, status, createdAt])
+  @@index([tenantId, locationId, status])
 }
 
 model SaleItem {
