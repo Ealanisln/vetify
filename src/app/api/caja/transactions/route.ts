@@ -65,8 +65,7 @@ export async function GET(request: Request) {
         }
       });
 
-      // Obtener pagos con tarjeta del día
-      // TODO: Add location filtering once Sale model includes locationId
+      // Obtener pagos con tarjeta del día (filtrados por ubicación si aplica)
       const cardPayments = await prisma.salePayment.aggregate({
         where: {
           paymentMethod: {
@@ -78,8 +77,8 @@ export async function GET(request: Request) {
           },
           sale: {
             tenantId,
-            status: { in: ['COMPLETED', 'PAID'] }
-            // Future: Add locationId filter when available
+            status: { in: ['COMPLETED', 'PAID'] },
+            ...(locationId && { locationId })
           }
         },
         _sum: {
@@ -87,8 +86,7 @@ export async function GET(request: Request) {
         }
       });
 
-      // Obtener total de ventas del día
-      // TODO: Add location filtering once Sale model includes locationId
+      // Obtener total de ventas del día (filtradas por ubicación si aplica)
       const totalSales = await prisma.sale.aggregate({
         where: {
           tenantId,
@@ -96,8 +94,8 @@ export async function GET(request: Request) {
           createdAt: {
             gte: today,
             lt: tomorrow
-          }
-          // Future: Add locationId filter when available
+          },
+          ...(locationId && { locationId })
         },
         _sum: {
           total: true
