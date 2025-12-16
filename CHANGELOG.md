@@ -5,15 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-12-13
+## [Unreleased] - 2025-12-15
 
 ### Added
 - Comprehensive testing infrastructure with GitHub Actions CI
-  - Unit tests with Jest (35 suites, 1110+ tests)
-  - Integration tests for API routes (19 suites, 345+ tests)
+  - Unit tests with Jest (49 suites, 1600+ tests)
+  - Integration tests for API routes (40+ suites, 600+ tests)
   - E2E tests with Playwright (490 tests across Chrome, Firefox, Safari)
   - Coverage reporting with configurable thresholds
   - Pre-commit hooks for lint-staged and unit tests
+- Extended integration test coverage (Phase 2 testing initiative)
+  - Admin Billing & Pricing API tests (VETIF-94)
+  - Stripe checkout and webhook integration tests (VETIF-93)
+  - Subscription API tests including upgrades/downgrades (VETIF-92)
+  - Settings & Onboarding API tests (VETIF-61)
+  - Hook unit tests for useErrorHandler and useThemeAware (VETIF-60)
 - Email notification system for appointments
   - Configurable notification templates
   - Support for appointment reminders and confirmations
