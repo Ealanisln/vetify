@@ -46,10 +46,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Calcular ventas en efectivo del día
-    // TODO: Add location filtering to sales once Sale model includes locationId
-    // For now, we rely on the drawer's time-based scoping which implicitly
-    // scopes to sales made during this drawer's open period
+    // Calcular ventas en efectivo del día (filtradas por ubicación si aplica)
     const cashPayments = await prisma.salePayment.aggregate({
       where: {
         paymentMethod: 'CASH',
@@ -59,9 +56,8 @@ export async function POST(request: Request) {
         },
         sale: {
           tenantId,
-          status: 'COMPLETED'
-          // Future: Add locationId filter when available
-          // ...(openDrawer.locationId && { locationId: openDrawer.locationId })
+          status: 'COMPLETED',
+          ...(openDrawer.locationId && { locationId: openDrawer.locationId })
         }
       },
       _sum: {

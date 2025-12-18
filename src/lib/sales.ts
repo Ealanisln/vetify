@@ -169,6 +169,7 @@ export async function createSale(
     const newSale = await tx.sale.create({
       data: {
         tenantId,
+        locationId: saleData.locationId,
         customerId: saleData.customerId,
         petId: saleData.petId,
         userId,
@@ -232,6 +233,7 @@ export async function createSale(
       const currentDrawer = await tx.cashDrawer.findFirst({
         where: {
           tenantId,
+          ...(saleData.locationId && { locationId: saleData.locationId }),
           status: 'OPEN',
           openedAt: {
             gte: today,

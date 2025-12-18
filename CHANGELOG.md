@@ -5,9 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-12-15
+## [Unreleased] - 2025-12-17
 
 ### Added
+- API v1 authentication system (VETIF-36)
+  - API key authentication with SHA-256 hashed keys
+  - Location-scoped API keys for multi-branch access control
+  - Granular permission scopes (read:pets, write:appointments, etc.)
+  - Configurable rate limiting per API key (default 1000 req/hour)
+  - API key management utilities with secure key generation
+- Per-location sales tracking (VETIF-95)
+  - Added locationId to Sale model for branch-specific reporting
+  - Location-based filtering in sales queries
+  - Performance indexes for location-scoped sales queries
 - Comprehensive testing infrastructure with GitHub Actions CI
   - Unit tests with Jest (49 suites, 1600+ tests)
   - Integration tests for API routes (40+ suites, 600+ tests)

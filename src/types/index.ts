@@ -81,6 +81,7 @@ export type SaleItemForm = {
 export type SaleFormData = {
   customerId: string;
   petId?: string;
+  locationId?: string;
   items: SaleItemForm[];
   discount?: number;
   tax?: number;

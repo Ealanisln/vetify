@@ -88,36 +88,38 @@ model Tenant {
 }
 
 model Location {
-  id               String    @id @default(uuid())
-  name             String
-  slug             String    // URL-friendly identifier
-  address          String?
-  phone            String?
-  email            String?
-  timezone         String?   @default("America/Mexico_City")
-  isActive         Boolean   @default(true)
-  isPrimary        Boolean   @default(false) // One primary location per tenant
+  id        String  @id @default(uuid())
+  name      String
+  slug      String // URL-friendly identifier
+  address   String?
+  phone     String?
+  email     String?
+  timezone  String? @default("America/Mexico_City")
+  isActive  Boolean @default(true)
+  isPrimary Boolean @default(false) // One primary location per tenant
 
   // Multi-tenant isolation
-  tenantId         String
-  tenant           Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
   // Relations to location-scoped models
-  pets             Pet[]
-  appointments     Appointment[]
-  staff            Staff[]
-  inventoryItems   InventoryItem[]
-  cashDrawers      CashDrawer[]
-  services         Service[]
-  businessHours    BusinessHours[]
-  customers        Customer[]
-  transfersFrom    InventoryTransfer[] @relation("TransfersFrom")
-  transfersTo      InventoryTransfer[] @relation("TransfersTo")
-  staffLocations   StaffLocation[]
+  pets           Pet[]
+  appointments   Appointment[]
+  staff          Staff[]
+  inventoryItems InventoryItem[]
+  cashDrawers    CashDrawer[]
+  services       Service[]
+  businessHours  BusinessHours[]
+  customers      Customer[]
+  sales          Sale[]
+  transfersFrom  InventoryTransfer[] @relation("TransfersFrom")
+  transfersTo    InventoryTransfer[] @relation("TransfersTo")
+  staffLocations StaffLocation[]
+  apiKeys        TenantApiKey[]
 
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  deletedAt        DateTime? // Soft delete support
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete support
 
   @@unique([tenantId, slug])
   @@index([tenantId, isActive])
@@ -241,35 +243,35 @@ model Customer {
 }
 
 model Pet {
-  id                 String              @id @default(uuid())
-  tenantId           String
-  locationId         String?
-  customerId         String
-  internalId         String?
-  name               String
-  species            String
-  breed              String
-  dateOfBirth        DateTime
-  gender             String
-  weight             Decimal?            @db.Decimal(6, 2)
-  weightUnit         String?
-  microchipNumber    String?
-  isNeutered         Boolean             @default(false)
-  isDeceased         Boolean             @default(false)
-  profileImage       String?
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
-  appointments       Appointment[]
-  medicalHistories   MedicalHistory[]
-  medicalOrders      MedicalOrder[]
-  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  location           Location?           @relation(fields: [locationId], references: [id], onDelete: Restrict)
-  customer           Customer            @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  reminders            Reminder[]
-  sales                Sale[]
-  treatmentRecords     TreatmentRecord[]
-  treatmentSchedules   TreatmentSchedule[]
-  appointmentRequests  AppointmentRequest[]
+  id                  String               @id @default(uuid())
+  tenantId            String
+  locationId          String?
+  customerId          String
+  internalId          String?
+  name                String
+  species             String
+  breed               String
+  dateOfBirth         DateTime
+  gender              String
+  weight              Decimal?             @db.Decimal(6, 2)
+  weightUnit          String?
+  microchipNumber     String?
+  isNeutered          Boolean              @default(false)
+  isDeceased          Boolean              @default(false)
+  profileImage        String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  appointments        Appointment[]
+  medicalHistories    MedicalHistory[]
+  medicalOrders       MedicalOrder[]
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location            Location?            @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  customer            Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reminders           Reminder[]
+  sales               Sale[]
+  treatmentRecords    TreatmentRecord[]
+  treatmentSchedules  TreatmentSchedule[]
+  appointmentRequests AppointmentRequest[]
 
   @@index([tenantId, customerId])
   @@index([tenantId])
@@ -440,6 +442,7 @@ model Staff {
   treatmentRecords   TreatmentRecord[]
   inventoryTransfers InventoryTransfer[]
   staffLocations     StaffLocation[]
+  createdApiKeys     TenantApiKey[]      @relation("ApiKeyCreatedBy")
 
   @@index([tenantId])
   @@index([locationId])
@@ -451,33 +454,33 @@ model Staff {
 }
 
 model InventoryItem {
-  id             String              @id @default(uuid())
-  tenantId       String
-  locationId     String?
-  name           String
-  category       InventoryCategory
-  description    String?
-  activeCompound String?
-  presentation   String?
-  measure        String?
-  brand          String?
-  quantity       Decimal             @default(0) @db.Decimal(8, 2)
-  minStock       Decimal?            @db.Decimal(8, 2)
-  expirationDate DateTime?
-  status         InventoryStatus     @default(ACTIVE)
+  id              String              @id @default(uuid())
+  tenantId        String
+  locationId      String?
+  name            String
+  category        InventoryCategory
+  description     String?
+  activeCompound  String?
+  presentation    String?
+  measure         String?
+  brand           String?
+  quantity        Decimal             @default(0) @db.Decimal(8, 2)
+  minStock        Decimal?            @db.Decimal(8, 2)
+  expirationDate  DateTime?
+  status          InventoryStatus     @default(ACTIVE)
   batchNumber     String?
   specialNotes    String?
-  storageLocation String?             // Physical storage location (e.g., "Shelf A-1", "Refrigerator")
+  storageLocation String? // Physical storage location (e.g., "Shelf A-1", "Refrigerator")
   cost            Decimal?            @db.Decimal(10, 2)
-  price          Decimal?            @db.Decimal(10, 2)
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  tenant         Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  location       Location?           @relation(fields: [locationId], references: [id], onDelete: Restrict)
-  movements      InventoryMovement[]
-  prescriptions  Prescription[]
-  saleItems      SaleItem[]
-  transfers      InventoryTransfer[]
+  price           Decimal?            @db.Decimal(10, 2)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  tenant          Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location        Location?           @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  movements       InventoryMovement[]
+  prescriptions   Prescription[]
+  saleItems       SaleItem[]
+  transfers       InventoryTransfer[]
 
   @@index([tenantId])
   @@index([locationId])
@@ -617,6 +620,7 @@ model CashTransaction {
 model Sale {
   id         String     @id @default(uuid())
   tenantId   String
+  locationId String?
   customerId String?
   petId      String?
   userId     String?
@@ -632,6 +636,7 @@ model Sale {
   updatedAt  DateTime   @updatedAt
 
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location     Location?     @relation(fields: [locationId], references: [id], onDelete: Restrict)
   customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
   pet          Pet?          @relation(fields: [petId], references: [id])
   user         User?         @relation(fields: [userId], references: [id])
@@ -641,6 +646,7 @@ model Sale {
   medicalOrder MedicalOrder?
 
   @@index([tenantId])
+  @@index([locationId])
   @@index([customerId])
   @@index([petId])
   @@index([userId])
@@ -649,6 +655,7 @@ model Sale {
   @@index([status])
   @@index([createdAt])
   @@index([tenantId, status, createdAt])
+  @@index([tenantId, locationId, status])
 }
 
 model SaleItem {
@@ -747,7 +754,7 @@ model TenantSettings {
   dateFormat              String          @default("DD/MM/YYYY")
   enableEmailReminders    Boolean         @default(true)
   enableSmsReminders      Boolean         @default(false)
-  notificationPreferences Json?           // Granular notification preferences by type
+  notificationPreferences Json? // Granular notification preferences by type
   taxRate                 Decimal         @default(0) @db.Decimal(5, 4)
   currencyCode            String          @default("USD")
   currencySymbol          String          @default("$")
@@ -812,10 +819,22 @@ model TenantApiKey {
   expiresAt DateTime?
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
+
+  // API v1 features - location scoping, permissions, rate limiting
+  locationId  String? // Scope to specific location (null = all locations)
+  scopes      String[] // Permission scopes e.g. ["read:pets", "write:appointments"]
+  rateLimit   Int      @default(1000) // Requests per hour
+  createdById String? // Staff member who created the key
+
+  // Relations
   tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location  Location? @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  createdBy Staff?    @relation("ApiKeyCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([tenantId])
   @@index([isActive])
+  @@index([keyHash])
+  @@index([tenantId, locationId])
 }
 
 model TenantUsageStats {
@@ -831,31 +850,31 @@ model TenantUsageStats {
 }
 
 model InventoryTransfer {
-  id              String         @id @default(uuid())
+  id String @id @default(uuid())
 
   inventoryItemId String
-  inventoryItem   InventoryItem  @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Restrict)
 
-  fromLocationId  String
-  fromLocation    Location       @relation("TransfersFrom", fields: [fromLocationId], references: [id], onDelete: Restrict)
+  fromLocationId String
+  fromLocation   Location @relation("TransfersFrom", fields: [fromLocationId], references: [id], onDelete: Restrict)
 
-  toLocationId    String
-  toLocation      Location       @relation("TransfersTo", fields: [toLocationId], references: [id], onDelete: Restrict)
+  toLocationId String
+  toLocation   Location @relation("TransfersTo", fields: [toLocationId], references: [id], onDelete: Restrict)
 
-  quantity        Decimal        @db.Decimal(8, 2)
-  status          TransferStatus @default(PENDING)
-  notes           String?        @db.Text
+  quantity Decimal        @db.Decimal(8, 2)
+  status   TransferStatus @default(PENDING)
+  notes    String?        @db.Text
 
-  requestedById   String
-  requestedBy     Staff          @relation(fields: [requestedById], references: [id], onDelete: Restrict)
+  requestedById String
+  requestedBy   Staff  @relation(fields: [requestedById], references: [id], onDelete: Restrict)
 
-  completedAt     DateTime?
+  completedAt DateTime?
 
-  tenantId        String
-  tenant          Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  tenantId String
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([tenantId])
   @@index([inventoryItemId])
@@ -869,18 +888,18 @@ model InventoryTransfer {
 }
 
 model StaffLocation {
-  id         String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  staffId    String
-  staff      Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  staffId String
+  staff   Staff  @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   locationId String
   location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
 
-  isPrimary  Boolean  @default(false)
+  isPrimary Boolean @default(false)
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([staffId, locationId])
   @@index([staffId])
@@ -1104,8 +1123,8 @@ model AppointmentRequest {
   id            String                   @id @default(uuid())
   tenantId      String
   customerId    String
-  petId         String?                  // Mascota vinculada (si se identificó)
-  petName       String                   // Nombre proporcionado por el usuario
+  petId         String? // Mascota vinculada (si se identificó)
+  petName       String // Nombre proporcionado por el usuario
   service       String?
   preferredDate DateTime?
   preferredTime String?
@@ -1207,22 +1226,22 @@ model TrialAccessLog {
 }
 
 model EmailLog {
-  id             String      @id @default(uuid())
+  id             String        @id @default(uuid())
   tenantId       String
   recipientEmail String
   recipientName  String?
   subject        String
   template       EmailTemplate
-  status         EmailStatus @default(PENDING)
+  status         EmailStatus   @default(PENDING)
   sentAt         DateTime?
   deliveredAt    DateTime?
   bouncedAt      DateTime?
   failedAt       DateTime?
-  error          String?     @db.Text
-  resendId       String?     @unique
+  error          String?       @db.Text
+  resendId       String?       @unique
   metadata       Json?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
 
