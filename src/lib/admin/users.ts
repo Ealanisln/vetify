@@ -75,30 +75,31 @@ export async function getUserStats(): Promise<UserStats> {
 
 /**
  * Count super administrators
+ * Counts unique users who have either SUPER_ADMIN role OR authorized email domain
  */
 async function countSuperAdmins(): Promise<number> {
-  const [roleBasedSuperAdmins, emailBasedSuperAdmins] = await Promise.all([
-    prisma.userRole.count({
-      where: {
-        role: {
-          key: 'SUPER_ADMIN',
-          isSystem: true
-        }
-      }
-    }),
-    prisma.user.count({
-      where: {
-        OR: [
-          { email: { endsWith: '@vetify.pro' } },
-          { email: { endsWith: '@vetify.com' } },
-          { email: { endsWith: '@alanis.dev' } }
-        ]
-      }
-    })
-  ]);
+  const superAdmins = await prisma.user.findMany({
+    where: {
+      OR: [
+        {
+          userRoles: {
+            some: {
+              role: {
+                key: 'SUPER_ADMIN',
+                isSystem: true
+              }
+            }
+          }
+        },
+        { email: { endsWith: '@vetify.pro' } },
+        { email: { endsWith: '@vetify.com' } },
+        { email: { endsWith: '@alanis.dev' } }
+      ]
+    },
+    select: { id: true }
+  });
 
-  // Return the higher count to avoid double counting
-  return Math.max(roleBasedSuperAdmins, emailBasedSuperAdmins);
+  return superAdmins.length;
 }
 
 /**
