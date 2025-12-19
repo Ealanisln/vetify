@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
 export interface Location {
   id: string;
@@ -23,27 +23,40 @@ export function useCurrentLocation() {
   const [availableLocations, setAvailableLocations] = useState<Location[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Fetch available locations
   const fetchLocations = useCallback(async () => {
+    // Cancel any pending request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new AbortController for this request
+    abortControllerRef.current = new AbortController();
+
     setIsLoading(true);
     try {
-      const response = await fetch('/api/locations');
+      const response = await fetch('/api/locations', {
+        signal: abortControllerRef.current.signal,
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch locations');
       }
       const data = await response.json();
-      setAvailableLocations(data.locations || []);
+      // API returns { success: true, data: locations }
+      const locations = data.data || data.locations || [];
+      setAvailableLocations(locations);
       setError(null);
 
       // If no current location is set, set it to the primary or first location
-      if (!currentLocation && data.locations && data.locations.length > 0) {
+      if (!currentLocation && locations.length > 0) {
         const storedLocationId = localStorage.getItem('currentLocationId');
         let locationToSet: Location | undefined;
 
         // Try to use stored location ID, but validate it exists and is active
         if (storedLocationId) {
-          locationToSet = data.locations.find(
+          locationToSet = locations.find(
             (loc: Location) => loc.id === storedLocationId && loc.isActive
           );
 
@@ -55,17 +68,17 @@ export function useCurrentLocation() {
 
         // Fallback to primary location
         if (!locationToSet) {
-          locationToSet = data.locations.find((loc: Location) => loc.isPrimary && loc.isActive);
+          locationToSet = locations.find((loc: Location) => loc.isPrimary && loc.isActive);
         }
 
         // Fallback to first active location
         if (!locationToSet) {
-          locationToSet = data.locations.find((loc: Location) => loc.isActive);
+          locationToSet = locations.find((loc: Location) => loc.isActive);
         }
 
         // Fallback to first location (even if inactive, as last resort)
-        if (!locationToSet && data.locations.length > 0) {
-          locationToSet = data.locations[0];
+        if (!locationToSet && locations.length > 0) {
+          locationToSet = locations[0];
         }
 
         if (locationToSet) {
@@ -75,6 +88,10 @@ export function useCurrentLocation() {
         }
       }
     } catch (err) {
+      // Ignore abort errors (expected when component unmounts or request is cancelled)
+      if (err instanceof Error && err.name === 'AbortError') {
+        return;
+      }
       console.error('Error fetching locations:', err);
       setError(err as Error);
     } finally {
@@ -85,6 +102,13 @@ export function useCurrentLocation() {
   // Initial load
   useEffect(() => {
     fetchLocations();
+
+    // Cleanup: abort any pending request when component unmounts
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchLocations]);
 
   // Switch to a different location

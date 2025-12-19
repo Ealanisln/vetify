@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 // Modal component will use custom pattern
 import { AppointmentForm } from './AppointmentForm';
 import { AppointmentFormData } from '../../lib/validations/appointments';
@@ -50,7 +51,13 @@ export function AppointmentModal({
   initialDate,
 }: AppointmentModalProps) {
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { createAppointment, updateAppointment } = useAppointments();
+
+  // For portal - ensure we're on client side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const isEditing = !!appointment;
 
@@ -106,12 +113,12 @@ export function AppointmentModal({
     return undefined;
   };
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+  const modalContent = (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-8 p-4 z-[9999]">
       <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden border-0">
-        <div className="relative h-[90vh] overflow-y-auto">
+        <div className="relative max-h-[90vh] h-auto overflow-y-auto">
           <button
             onClick={handleCancel}
             className="absolute top-4 right-4 z-20 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -133,4 +140,7 @@ export function AppointmentModal({
       </div>
     </div>
   );
+
+  // Use portal to render modal at document body level
+  return createPortal(modalContent, document.body);
 }

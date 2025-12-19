@@ -20,6 +20,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
 import { LocationSwitcher } from '@/components/locations/LocationSwitcher';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface SidebarProps {
   user: UserWithTenant;
@@ -28,23 +30,31 @@ interface SidebarProps {
   setSidebarOpen: (open: boolean) => void;
 }
 
+interface NavigationItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  isPro?: boolean;
+  proTooltip?: string;
+}
+
 // Navigation items for the sidebar
 // NOTE: All features are accessible to basic plans with some limitations:
 // - Inventario: Basic inventory for all, advanced features require Plan Profesional
 // - Reportes: Basic reports for all, advanced analytics require Plan Profesional
 // - Caja: Basic single cash drawer for all, multiple drawers require Plan Profesional
-const navigation = [
+const navigation: NavigationItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon },
   { name: 'Mascotas', href: '/dashboard/pets', icon: UserGroupIcon },
   { name: 'Personal', href: '/dashboard/staff', icon: UsersIcon },
   { name: 'Ubicaciones', href: '/dashboard/locations', icon: MapPinIcon },
   { name: 'Punto de Venta', href: '/dashboard/sales', icon: CreditCardIcon },
-  { name: 'Caja', href: '/dashboard/caja', icon: CurrencyDollarIcon }, // Basic: 1 caja | Pro: múltiples cajas
-  { name: 'Inventario', href: '/dashboard/inventory', icon: CubeIcon }, // Basic: inventario básico | Pro: avanzado
+  { name: 'Caja', href: '/dashboard/caja', icon: CurrencyDollarIcon, isPro: true, proTooltip: 'Múltiples cajas en Plan Profesional' },
+  { name: 'Inventario', href: '/dashboard/inventory', icon: CubeIcon, isPro: true, proTooltip: 'Análisis avanzado en Plan Profesional' },
   { name: 'Historia Clínica', href: '/dashboard/medical-history', icon: DocumentTextIcon },
   { name: 'Citas', href: '/dashboard/appointments', icon: CalendarIcon },
-  { name: 'Reportes', href: '/dashboard/reports', icon: ChartBarIcon }, // Basic: reportes básicos | Pro: avanzados
+  { name: 'Reportes', href: '/dashboard/reports', icon: ChartBarIcon, isPro: true, proTooltip: 'Analytics avanzados en Plan Profesional' },
   { name: 'Configuración', href: '/dashboard/settings', icon: CogIcon },
 ];
 
@@ -143,14 +153,23 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
                               <item.icon className={`h-6 w-6 shrink-0 transition-colors ${
                                 isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#5b9788] dark:text-gray-500 dark:group-hover:text-[#75a99c]'
                               }`} />
-                              {item.name}
+                              <span className="flex items-center gap-2">
+                                {item.name}
+                                {item.isPro && item.proTooltip && (
+                                  <Tooltip content={item.proTooltip} position="top">
+                                    <Badge variant="pro" className="text-[10px] px-1.5 py-0 leading-tight">
+                                      PRO
+                                    </Badge>
+                                  </Tooltip>
+                                )}
+                              </span>
                             </Link>
                           </li>
                         );
                       })}
                     </ul>
                   </li>
-                  
+
                   {/* User info section */}
                   <li className="-mx-6 mt-auto">
                     <div className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 border-t border-[#d5e3df] dark:border-gray-800">
@@ -212,14 +231,23 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
                           <item.icon className={`h-6 w-6 shrink-0 transition-colors ${
                             isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#5b9788] dark:text-gray-500 dark:group-hover:text-[#75a99c]'
                           }`} />
-                          {item.name}
+                          <span className="flex items-center gap-2">
+                            {item.name}
+                            {item.isPro && item.proTooltip && (
+                              <Tooltip content={item.proTooltip} position="top">
+                                <Badge variant="pro" className="text-[10px] px-1.5 py-0 leading-tight">
+                                  PRO
+                                </Badge>
+                              </Tooltip>
+                            )}
+                          </span>
                         </Link>
                       </li>
                     );
                   })}
                 </ul>
               </li>
-              
+
               {/* User info section */}
               <li className="-mx-6 mt-auto">
                 <div className="flex items-center gap-x-4 px-6 py-3 text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 border-t border-[#d5e3df] dark:border-gray-800">

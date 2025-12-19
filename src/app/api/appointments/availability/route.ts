@@ -186,9 +186,19 @@ export async function GET(request: Request) {
     });
 
     // Filtrar slots disponibles
+    const now = new Date();
+    const todayDateString = format(now, 'yyyy-MM-dd');
+    const targetDateString = format(targetDate, 'yyyy-MM-dd');
+    const isToday = todayDateString === targetDateString;
+
     const availableSlots = slots.filter(slot => {
+      // Don't show past slots for today
+      if (isToday && slot.dateTime <= now) {
+        return false;
+      }
+
       const slotEnd = addMinutes(slot.dateTime, validatedData.duration);
-      
+
       // Verificar si el slot no se solapa con citas existentes
       return !existingAppointments.some(appointment => {
         const appointmentStart = appointment.dateTime;

@@ -551,8 +551,10 @@ describe('useCurrentLocation Hook', () => {
         await result.current.refreshLocations();
       });
 
-      // refreshLocations should call fetch
-      expect(mockFetch).toHaveBeenCalledWith('/api/locations');
+      // refreshLocations should call fetch with abort signal
+      expect(mockFetch).toHaveBeenCalledWith('/api/locations', expect.objectContaining({
+        signal: expect.any(AbortSignal),
+      }));
     });
 
     it('should set loading state during refresh', async () => {
@@ -647,13 +649,15 @@ describe('useCurrentLocation Hook', () => {
       localStorageMock.getItem = originalGetItem;
     });
 
-    it('should call fetch with correct URL', async () => {
+    it('should call fetch with correct URL and abort signal', async () => {
       mockFetch.mockResolvedValueOnce(createMockApiResponse([]));
 
       renderHook(() => useCurrentLocation());
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/locations');
+        expect(mockFetch).toHaveBeenCalledWith('/api/locations', expect.objectContaining({
+          signal: expect.any(AbortSignal),
+        }));
       });
     });
 

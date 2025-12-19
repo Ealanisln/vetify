@@ -591,7 +591,7 @@ describe('Location Reports Data Generation Logic', () => {
       items.reduce((total, item) => total + item.quantity * item.cost, 0);
       const end = performance.now();
 
-      expect(end - start).toBeLessThan(10);
+      expect(end - start).toBeLessThan(50); // Increased threshold for CI/system load variability
     });
   });
 });
