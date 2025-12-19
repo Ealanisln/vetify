@@ -156,7 +156,7 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
                               <span className="flex items-center gap-2">
                                 {item.name}
                                 {item.isPro && item.proTooltip && (
-                                  <Tooltip content={item.proTooltip} position="right">
+                                  <Tooltip content={item.proTooltip} position="top">
                                     <Badge variant="pro" className="text-[10px] px-1.5 py-0 leading-tight">
                                       PRO
                                     </Badge>
@@ -234,7 +234,7 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
                           <span className="flex items-center gap-2">
                             {item.name}
                             {item.isPro && item.proTooltip && (
-                              <Tooltip content={item.proTooltip} position="right">
+                              <Tooltip content={item.proTooltip} position="top">
                                 <Badge variant="pro" className="text-[10px] px-1.5 py-0 leading-tight">
                                   PRO
                                 </Badge>
