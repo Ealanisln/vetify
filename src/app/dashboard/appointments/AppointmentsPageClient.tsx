@@ -9,6 +9,15 @@ import { PlusIcon, Calendar, Clock, Users } from 'lucide-react';
 import { useAppointments, AppointmentWithDetails } from '../../../hooks/useAppointments';
 import { DateSelectArg } from '@fullcalendar/core';
 import { formatDate, formatTime } from '../../../lib/utils/date-format';
+
+// Translation mapping for species (English to Spanish)
+const speciesTranslation: Record<string, string> = {
+  dog: 'Perro',
+  cat: 'Gato',
+  bird: 'Ave',
+  rabbit: 'Conejo',
+  other: 'Otro',
+};
 // Toast notifications will be handled by individual components
 
 interface Customer {
@@ -245,7 +254,7 @@ export function AppointmentsPageClient({
                 }, {} as Record<string, number>)
               ).map(([species, count]) => (
                 <div key={species} className="flex items-center justify-between">
-                  <span className="font-medium">{species}</span>
+                  <span className="font-medium">{speciesTranslation[species] || species}</span>
                   <Badge variant="outline">{count}</Badge>
                 </div>
               ))}

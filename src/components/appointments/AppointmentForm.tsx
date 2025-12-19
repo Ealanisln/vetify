@@ -207,6 +207,25 @@ export function AppointmentForm({
         </div>
       </div>
 
+      {/* Selected DateTime Display - Moved to top for better visibility */}
+      {watch('dateTime') && (
+        <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div>
+                <p className="font-medium text-green-800 dark:text-green-200">
+                  Fecha y hora seleccionada:
+                </p>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  {format(watch('dateTime'), 'PPP \'a las\' HH:mm', { locale: es })}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Date and Time Selection */}
       <div className="appointment-form-grid grid grid-cols-1 xl:grid-cols-5 gap-4">
         {/* Calendar - Responsive sizing */}
@@ -349,25 +368,6 @@ export function AppointmentForm({
           </Card>
         </div>
       </div>
-
-      {/* Selected DateTime Display */}
-      {watch('dateTime') && (
-        <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700">
-          <CardContent className="pt-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-              <div>
-                <p className="font-medium text-green-800 dark:text-green-200">
-                  Fecha y hora seleccionada:
-                </p>
-                <p className="text-sm text-green-700 dark:text-green-300">
-                  {format(watch('dateTime'), 'PPP \'a las\' HH:mm', { locale: es })}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Appointment Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
