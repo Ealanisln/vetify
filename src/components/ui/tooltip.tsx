@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +28,7 @@ export function Tooltip({
     setMounted(true);
   }, []);
 
-  const updatePosition = () => {
+  const updatePosition = useCallback(() => {
     if (!triggerRef.current || !tooltipRef.current) return;
 
     const triggerRect = triggerRef.current.getBoundingClientRect();
@@ -65,13 +65,13 @@ export function Tooltip({
     if (top < padding) top = padding;
 
     setTooltipPosition({ top, left });
-  };
+  }, [position]);
 
   useEffect(() => {
     if (isVisible) {
       updatePosition();
     }
-  }, [isVisible, position]);
+  }, [isVisible, updatePosition]);
 
   const handleMouseEnter = () => {
     setIsVisible(true);
