@@ -137,6 +137,7 @@ model Plan {
   maxUsers            Int
   maxPets             Int
   storageGB           Int
+  maxCashRegisters    Int                  @default(1)
   isRecommended       Boolean              @default(false)
   isActive            Boolean              @default(true)
   isMvp               Boolean              @default(true)

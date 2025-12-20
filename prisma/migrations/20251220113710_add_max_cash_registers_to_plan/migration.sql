@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Plan" ADD COLUMN "maxCashRegisters" INTEGER NOT NULL DEFAULT 1;
