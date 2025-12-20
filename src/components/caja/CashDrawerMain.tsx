@@ -12,6 +12,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useLocation } from '@/components/providers/LocationProvider';
+import { CashDrawerSelector } from './CashDrawerSelector';
 
 interface CashDrawerMainProps {
   tenantId: string;
@@ -43,6 +44,8 @@ interface TransactionSummary {
 
 export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
   const { currentLocation } = useLocation();
+  const [drawers, setDrawers] = useState<CashDrawer[]>([]);
+  const [selectedDrawerId, setSelectedDrawerId] = useState<string | null>(null);
   const [currentDrawer, setCurrentDrawer] = useState<CashDrawer | null>(null);
   const [transactionSummary, setTransactionSummary] = useState<TransactionSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,14 +62,33 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
       const response = await fetch(`/api/caja?tenantId=${tenantId}${locationParam}`);
       if (response.ok) {
         const data = await response.json();
-        setCurrentDrawer(data.drawer);
+        const openDrawers = (data.drawers || []).filter(
+          (d: CashDrawer) => d.status === 'OPEN'
+        );
+        setDrawers(openDrawers);
+
+        // Auto-select first drawer if none selected or current selection is invalid
+        if (openDrawers.length > 0) {
+          const validSelection = openDrawers.find(
+            (d: CashDrawer) => d.id === selectedDrawerId
+          );
+          if (!validSelection) {
+            setSelectedDrawerId(openDrawers[0].id);
+            setCurrentDrawer(openDrawers[0]);
+          } else {
+            setCurrentDrawer(validSelection);
+          }
+        } else {
+          setSelectedDrawerId(null);
+          setCurrentDrawer(null);
+        }
       }
     } catch (error) {
       console.error('Error fetching drawer:', error);
     } finally {
       setLoading(false);
     }
-  }, [tenantId, currentLocation?.id]);
+  }, [tenantId, currentLocation?.id, selectedDrawerId]);
 
   const fetchTransactionSummary = useCallback(async () => {
     try {
@@ -126,6 +148,11 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
       return;
     }
 
+    if (!currentDrawer) {
+      alert('No hay caja seleccionada para cerrar');
+      return;
+    }
+
     setIsClosing(true);
     try {
       const response = await fetch('/api/caja/close', {
@@ -133,7 +160,7 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenantId,
-          locationId: currentLocation?.id,
+          drawerId: currentDrawer.id,
           finalAmount: parseFloat(finalAmount)
         })
       });
@@ -183,19 +210,32 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
               <CurrencyDollarIcon className="h-5 w-5" />
               Estado de Caja
             </CardTitle>
-            <Badge variant={isOpen ? 'default' : 'secondary'}>
-              {isOpen ? (
-                <>
-                  <LockOpenIcon className="h-3 w-3 mr-1" />
-                  ABIERTA
-                </>
-              ) : (
-                <>
-                  <LockClosedIcon className="h-3 w-3 mr-1" />
-                  CERRADA
-                </>
+            <div className="flex items-center gap-3">
+              {drawers.length > 1 && (
+                <CashDrawerSelector
+                  drawers={drawers}
+                  selectedDrawerId={selectedDrawerId}
+                  onSelect={(id) => {
+                    setSelectedDrawerId(id);
+                    const selected = drawers.find((d) => d.id === id);
+                    setCurrentDrawer(selected || null);
+                  }}
+                />
               )}
-            </Badge>
+              <Badge variant={isOpen ? 'default' : 'secondary'}>
+                {isOpen ? (
+                  <>
+                    <LockOpenIcon className="h-3 w-3 mr-1" />
+                    ABIERTA
+                  </>
+                ) : (
+                  <>
+                    <LockClosedIcon className="h-3 w-3 mr-1" />
+                    CERRADA
+                  </>
+                )}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
