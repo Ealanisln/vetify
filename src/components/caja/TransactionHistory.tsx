@@ -3,14 +3,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { 
+import {
   ClockIcon,
   CurrencyDollarIcon,
   CreditCardIcon,
-  ReceiptRefundIcon
+  ReceiptRefundIcon,
+  EyeIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { SaleDetailModal } from '@/components/sales/SaleDetailModal';
 
 interface TransactionHistoryProps {
   tenantId: string;
@@ -18,18 +20,35 @@ interface TransactionHistoryProps {
 
 interface Transaction {
   id: string;
-  type: 'SALE' | 'REFUND' | 'OPENING' | 'CLOSING';
+  type: 'SALE' | 'REFUND' | 'OPENING' | 'CLOSING' | 'SALE_CASH' | 'DEPOSIT' | 'WITHDRAWAL';
   amount: number;
   paymentMethod: 'CASH' | 'CARD' | 'MIXED';
   description: string;
   customerName?: string;
   createdAt: Date;
   status: string;
+  saleId?: string | null;
 }
+
+// Traducciones de estatus
+const STATUS_LABELS: Record<string, string> = {
+  COMPLETED: 'Completado',
+  PENDING: 'Pendiente',
+  CANCELLED: 'Cancelado',
+  PAID: 'Pagado',
+  PARTIALLY_PAID: 'Pago Parcial',
+  REFUNDED: 'Reembolsado',
+  PROCESSING: 'Procesando'
+};
 
 export function TransactionHistory({ tenantId }: TransactionHistoryProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+
+  const isSaleTransaction = (type: string) => {
+    return type === 'SALE_CASH' || type === 'SALE';
+  };
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -116,9 +135,23 @@ export function TransactionHistory({ tenantId }: TransactionHistoryProps) {
             {transactions.map((transaction) => {
               const Icon = getTransactionIcon(transaction.type, transaction.paymentMethod);
               const iconColor = getTransactionColor(transaction.type, transaction.paymentMethod);
-              
+              const isClickable = isSaleTransaction(transaction.type) && transaction.saleId;
+
               return (
-                <div key={transaction.id} className="flex items-center space-x-3 p-2 hover:bg-accent rounded-lg transition-colors">
+                <div
+                  key={transaction.id}
+                  onClick={() => {
+                    if (isClickable && transaction.saleId) {
+                      setSelectedSaleId(transaction.saleId);
+                    }
+                  }}
+                  className={`flex items-center space-x-3 p-2 rounded-lg transition-colors ${
+                    isClickable
+                      ? 'cursor-pointer hover:bg-primary/10 hover:border-primary/20 border border-transparent'
+                      : 'hover:bg-accent'
+                  }`}
+                  title={isClickable ? 'Click para ver detalles de la venta' : undefined}
+                >
                   <div className={`p-2 rounded-full bg-muted`}>
                     <Icon className={`h-4 w-4 ${iconColor}`} />
                   </div>
@@ -129,7 +162,7 @@ export function TransactionHistory({ tenantId }: TransactionHistoryProps) {
                         {transaction.description}
                       </p>
                       <Badge variant={getStatusBadge(transaction.status)} className="text-xs">
-                        {transaction.status}
+                        {STATUS_LABELS[transaction.status] || transaction.status}
                       </Badge>
                     </div>
                     <div className="flex items-center text-xs text-muted-foreground">
@@ -144,18 +177,25 @@ export function TransactionHistory({ tenantId }: TransactionHistoryProps) {
                       )}
                     </div>
                   </div>
-                  
-                  <div className="text-right">
-                    <p className={`text-sm font-medium ${
-                      transaction.type === 'REFUND' ? 'text-red-600' : 'text-green-600'
-                    }`}>
-                      {transaction.type === 'REFUND' ? '-' : '+'}
-                      ${transaction.amount.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-muted-foreground uppercase">
-                      {transaction.paymentMethod === 'MIXED' ? 'MIXTO' :
-                       transaction.paymentMethod === 'CASH' ? 'EFECTIVO' : 'TARJETA'}
-                    </p>
+
+                  <div className="flex items-center gap-2">
+                    <div className="text-right">
+                      <p className={`text-sm font-medium ${
+                        transaction.type === 'REFUND' || transaction.type === 'REFUND_CASH'
+                          ? 'text-red-600'
+                          : 'text-green-600'
+                      }`}>
+                        {transaction.type === 'REFUND' || transaction.type === 'REFUND_CASH' ? '-' : '+'}
+                        ${transaction.amount.toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground uppercase">
+                        {transaction.paymentMethod === 'MIXED' ? 'MIXTO' :
+                         transaction.paymentMethod === 'CASH' ? 'EFECTIVO' : 'TARJETA'}
+                      </p>
+                    </div>
+                    {isClickable && (
+                      <EyeIcon className="h-4 w-4 text-muted-foreground" />
+                    )}
                   </div>
                 </div>
               );
@@ -163,6 +203,13 @@ export function TransactionHistory({ tenantId }: TransactionHistoryProps) {
           </div>
         )}
       </CardContent>
+
+      {/* Modal de detalle de venta */}
+      <SaleDetailModal
+        saleId={selectedSaleId}
+        open={!!selectedSaleId}
+        onClose={() => setSelectedSaleId(null)}
+      />
     </Card>
   );
 } 

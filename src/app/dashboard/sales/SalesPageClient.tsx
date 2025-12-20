@@ -1,19 +1,48 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  MagnifyingGlassIcon, 
+import {
+  MagnifyingGlassIcon,
   TrashIcon,
   PrinterIcon,
   CreditCardIcon
 } from '@heroicons/react/24/outline';
 import { CustomerSearchResult, ProductSearchResult, SaleItemForm } from '@/types';
 import { toast } from 'sonner';
+import { SaleDetailModal } from '@/components/sales/SaleDetailModal';
 
 interface SalesPageClientProps {
   tenantId: string;
   userId: string;
 }
+
+interface ProcessedSale {
+  id: string;
+  saleNumber: string;
+}
+
+// Traducciones de categorías
+const CATEGORY_LABELS: Record<string, string> = {
+  // Categorías de inventario
+  MEDICINE: 'Medicamento',
+  FOOD: 'Alimento',
+  ACCESSORY: 'Accesorio',
+  SUPPLEMENT: 'Suplemento',
+  HYGIENE: 'Higiene',
+  EQUIPMENT: 'Equipo',
+  OTHER: 'Otro',
+  // Categorías de servicios
+  CONSULTATION: 'Consulta',
+  SURGERY: 'Cirugía',
+  VACCINATION: 'Vacunación',
+  GROOMING: 'Estética',
+  LABORATORY: 'Laboratorio',
+  IMAGING: 'Imagenología',
+  DENTAL: 'Dental',
+  EMERGENCY: 'Emergencia',
+  HOSPITALIZATION: 'Hospitalización',
+  DEWORMING: 'Desparasitación'
+};
 
 export default function SalesPageClient({}: SalesPageClientProps) {
   const [customerQuery, setCustomerQuery] = useState('');
@@ -26,6 +55,8 @@ export default function SalesPageClient({}: SalesPageClientProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showProductSearch, setShowProductSearch] = useState(false);
+  const [lastProcessedSale, setLastProcessedSale] = useState<ProcessedSale | null>(null);
+  const [showSaleModal, setShowSaleModal] = useState(false);
 
   // Buscar clientes
   const searchCustomers = async (query: string) => {
@@ -61,6 +92,11 @@ export default function SalesPageClient({}: SalesPageClientProps) {
 
   // Agregar producto al carrito
   const addToCart = (product: ProductSearchResult) => {
+    // Limpiar la última venta procesada al iniciar una nueva venta
+    if (lastProcessedSale) {
+      setLastProcessedSale(null);
+    }
+
     const existingItemIndex = cartItems.findIndex(
       item => item.itemId === product.id || item.serviceId === product.id
     );
@@ -142,19 +178,23 @@ export default function SalesPageClient({}: SalesPageClientProps) {
 
       if (response.ok) {
         const sale = await response.json();
-        
+
+        // Guardar la venta procesada para permitir impresión
+        setLastProcessedSale({
+          id: sale.id,
+          saleNumber: sale.saleNumber
+        });
+
         // Limpiar formulario
         setSelectedCustomer(null);
         setSelectedPet('');
         setCartItems([]);
         setCustomerQuery('');
-        
-        toast.success(`🎉 Venta procesada exitosamente`, {
-          description: `Número de venta: ${sale.saleNumber}`,
+
+        toast.success(`Venta procesada exitosamente`, {
+          description: `Número de venta: ${sale.saleNumber}. Puedes imprimir el ticket ahora.`,
           duration: 5000,
         });
-        
-        // Aquí podrías abrir una ventana de impresión o generar un PDF
       } else {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || 'Error procesando la venta';
@@ -299,7 +339,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
                           {product.name}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {product.category}
+                          {CATEGORY_LABELS[product.category] || product.category}
                           {product.type === 'product' && ` • Stock: ${product.quantity}`}
                         </div>
                       </div>
@@ -405,15 +445,24 @@ export default function SalesPageClient({}: SalesPageClientProps) {
             </button>
             
             <button
-              disabled={cartItems.length === 0}
+              onClick={() => setShowSaleModal(true)}
+              disabled={!lastProcessedSale}
               className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!lastProcessedSale ? 'Procesa una venta primero' : `Ver ticket #${lastProcessedSale.saleNumber}`}
             >
               <PrinterIcon className="h-4 w-4 mr-2" />
-              Imprimir Ticket
+              {lastProcessedSale ? `Imprimir Ticket #${lastProcessedSale.saleNumber}` : 'Imprimir Ticket'}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Modal de detalle de venta */}
+      <SaleDetailModal
+        saleId={lastProcessedSale?.id || null}
+        open={showSaleModal}
+        onClose={() => setShowSaleModal(false)}
+      />
     </div>
   );
 } 

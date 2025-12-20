@@ -11,6 +11,7 @@ interface TransactionData {
   customerName: string;
   createdAt: Date;
   status: string;
+  saleId: string | null;
 }
 
 export async function GET(request: Request) {
@@ -161,9 +162,10 @@ export async function GET(request: Request) {
         amount: Number(transaction.amount),
         paymentMethod: 'CASH',
         description: transaction.description || 'Transacción de caja',
-        customerName: transaction.SalePayment?.sale.customer.name || 'N/A',
+        customerName: transaction.SalePayment?.sale.customer?.name || 'N/A',
         createdAt: transaction.createdAt,
-        status: 'COMPLETED'
+        status: 'COMPLETED',
+        saleId: transaction.SalePayment?.sale.id || null
       }));
     }
 
