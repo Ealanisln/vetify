@@ -165,6 +165,35 @@ export async function createSale(
     // Generar número de venta DENTRO de la transacción para evitar duplicados
     const saleNumber = await generateSaleNumberWithClient(tx, tenantId);
 
+    // Buscar el turno activo para obtener el cajero
+    let staffId: string | null = null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const activeShift = await tx.cashShift.findFirst({
+      where: {
+        tenantId,
+        status: 'ACTIVE',
+        drawer: {
+          status: 'OPEN',
+          ...(saleData.locationId && { locationId: saleData.locationId }),
+          openedAt: {
+            gte: today,
+            lt: tomorrow
+          }
+        }
+      },
+      select: {
+        cashierId: true
+      }
+    });
+
+    if (activeShift) {
+      staffId = activeShift.cashierId;
+    }
+
     // Crear la venta
     const newSale = await tx.sale.create({
       data: {
@@ -173,6 +202,7 @@ export async function createSale(
         customerId: saleData.customerId,
         petId: saleData.petId,
         userId,
+        staffId, // Cajero del turno activo
         saleNumber,
         subtotal,
         tax,
