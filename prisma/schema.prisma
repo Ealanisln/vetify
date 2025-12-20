@@ -57,6 +57,7 @@ model Tenant {
   automationLogs      AutomationLog[]
   businessHours       BusinessHours[]
   cashDrawers         CashDrawer[]
+  cashShifts          CashShift[]
   customers           Customer[]
   inventoryItems      InventoryItem[]
   InventoryMovement   InventoryMovement[]
@@ -444,6 +445,8 @@ model Staff {
   inventoryTransfers InventoryTransfer[]
   staffLocations     StaffLocation[]
   createdApiKeys     TenantApiKey[]      @relation("ApiKeyCreatedBy")
+  cashShifts         CashShift[]         @relation("CashShift_cashier")
+  handedOffShifts    CashShift[]         @relation("CashShift_handedOffTo")
 
   @@index([tenantId])
   @@index([locationId])
@@ -588,6 +591,7 @@ model CashDrawer {
   tenant           Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   location         Location?         @relation(fields: [locationId], references: [id], onDelete: Restrict)
   cashTransactions CashTransaction[]
+  shifts           CashShift[]
 
   @@index([tenantId])
   @@index([locationId])
@@ -603,6 +607,7 @@ model CashDrawer {
 model CashTransaction {
   id          String          @id @default(uuid())
   drawerId    String
+  shiftId     String?
   amount      Decimal         @db.Decimal(10, 2)
   type        TransactionType
   description String?
@@ -611,11 +616,49 @@ model CashTransaction {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @default(now()) @updatedAt
   cashDrawer  CashDrawer      @relation(fields: [drawerId], references: [id], onDelete: Cascade)
+  shift       CashShift?      @relation(fields: [shiftId], references: [id], onDelete: SetNull)
   SalePayment SalePayment?
 
   @@index([drawerId])
+  @@index([shiftId])
   @@index([relatedId, relatedType])
   @@index([type])
+}
+
+model CashShift {
+  id              String      @id @default(uuid())
+  tenantId        String
+  drawerId        String
+  cashierId       String      // Staff asignado
+
+  startedAt       DateTime    @default(now())
+  endedAt         DateTime?
+
+  startingBalance Decimal     @db.Decimal(10, 2)
+  endingBalance   Decimal?    @db.Decimal(10, 2)
+  expectedBalance Decimal?    @db.Decimal(10, 2)
+  difference      Decimal?    @db.Decimal(10, 2)
+
+  status          ShiftStatus @default(ACTIVE)
+  notes           String?     @db.Text
+  handoffNotes    String?     @db.Text
+
+  handedOffToId   String?
+  handedOffAt     DateTime?
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  tenant          Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  drawer          CashDrawer  @relation(fields: [drawerId], references: [id], onDelete: Cascade)
+  cashier         Staff       @relation("CashShift_cashier", fields: [cashierId], references: [id])
+  handedOffTo     Staff?      @relation("CashShift_handedOffTo", fields: [handedOffToId], references: [id])
+  transactions    CashTransaction[]
+
+  @@index([tenantId])
+  @@index([tenantId, drawerId])
+  @@index([drawerId, status])
+  @@index([cashierId])
 }
 
 model Sale {
@@ -1052,6 +1095,12 @@ enum DrawerStatus {
   OPEN
   CLOSED
   RECONCILED
+}
+
+enum ShiftStatus {
+  ACTIVE      // Turno en curso
+  ENDED       // Fin normal
+  HANDED_OFF  // Entregado a otro cajero
 }
 
 enum TransactionType {

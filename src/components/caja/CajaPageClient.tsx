@@ -5,14 +5,15 @@ import { CashDrawerMain } from './CashDrawerMain';
 import { CashStats } from './CashStats';
 import { TransactionHistory } from './TransactionHistory';
 import { MultiCashDrawerManager } from './MultiCashDrawerManager';
-import { CurrencyDollarIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { ShiftManagement } from './ShiftManagement';
+import { CurrencyDollarIcon, Cog6ToothIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 interface CajaPageClientProps {
   tenantId: string;
 }
 
 export function CajaPageClient({ tenantId }: CajaPageClientProps) {
-  const [view, setView] = useState<'operation' | 'management'>('operation');
+  const [view, setView] = useState<'operation' | 'management' | 'shifts'>('operation');
 
   return (
     <div className="space-y-6">
@@ -49,11 +50,22 @@ export function CajaPageClient({ tenantId }: CajaPageClientProps) {
               <Cog6ToothIcon className="h-4 w-4" />
               Gestión
             </button>
+            <button
+              onClick={() => setView('shifts')}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                view === 'shifts'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <ClockIcon className="h-4 w-4" />
+              Turnos
+            </button>
           </div>
         </div>
       </div>
 
-      {view === 'operation' ? (
+      {view === 'operation' && (
         <>
           {/* Estadísticas de caja */}
           <CashStats tenantId={tenantId} />
@@ -70,8 +82,14 @@ export function CajaPageClient({ tenantId }: CajaPageClientProps) {
             </div>
           </div>
         </>
-      ) : (
+      )}
+
+      {view === 'management' && (
         <MultiCashDrawerManager tenantId={tenantId} />
+      )}
+
+      {view === 'shifts' && (
+        <ShiftManagement tenantId={tenantId} />
       )}
     </div>
   );
