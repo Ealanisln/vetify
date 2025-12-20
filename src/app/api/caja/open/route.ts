@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
+import { checkCashRegisterLimit } from '../../../../lib/plan-limits';
 import { z } from 'zod';
 
 const openDrawerSchema = z.object({
@@ -21,28 +22,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 403 });
     }
 
-    // Verificar que no haya una caja abierta para esta ubicación
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const existingDrawer = await prisma.cashDrawer.findFirst({
-      where: {
-        tenantId,
-        ...(locationId && { locationId }),
-        status: 'OPEN',
-        openedAt: {
-          gte: today,
-          lt: tomorrow
-        }
-      }
-    });
-
-    if (existingDrawer) {
+    // Verificar límite de cajas según el plan
+    const limitCheck = await checkCashRegisterLimit(tenantId);
+    if (!limitCheck.canAdd) {
       return NextResponse.json(
-        { error: 'Ya hay una caja abierta para esta ubicación hoy' },
-        { status: 400 }
+        {
+          error: 'Has alcanzado el límite de cajas de tu plan',
+          limit: limitCheck.limit,
+          current: limitCheck.current,
+          upgradeRequired: true
+        },
+        { status: 402 }
       );
     }
 
