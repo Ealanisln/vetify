@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   XMarkIcon,
   PlusIcon,
   TrashIcon,
   UserCircleIcon,
+  UserPlusIcon,
 } from '@heroicons/react/24/outline';
 
 interface Staff {
@@ -35,10 +37,16 @@ export function LocationStaffModal({
   locationName,
   onUpdate,
 }: LocationStaffModalProps) {
+  const router = useRouter();
   const [assignedStaff, setAssignedStaff] = useState<AssignedStaff[]>([]);
   const [availableStaff, setAvailableStaff] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const handleAddNewStaff = () => {
+    onClose();
+    router.push('/dashboard/staff');
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -272,7 +280,14 @@ export function LocationStaffModal({
           </div>
 
           {/* Footer */}
-          <div className="flex justify-end p-4 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between p-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              onClick={handleAddNewStaff}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#75a99c] hover:bg-[#5d8b80] rounded-lg transition-colors"
+            >
+              <UserPlusIcon className="w-4 h-4" />
+              Agregar personal nuevo
+            </button>
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg"

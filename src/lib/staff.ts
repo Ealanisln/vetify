@@ -12,6 +12,11 @@ type StaffWhereInput = {
   }>;
   position?: { contains: string; mode: 'insensitive' };
   isActive?: boolean;
+  staffLocations?: {
+    some: {
+      locationId: string;
+    };
+  };
 };
 
 // TODO: Remove these when analytics functions are fixed
@@ -58,6 +63,7 @@ export const staffFiltersSchema = z.object({
   search: z.string().optional(),
   position: z.string().optional(),
   isActive: z.boolean().optional(),
+  locationId: z.string().optional(),
   page: z.number().min(1).optional().default(1),
   limit: z.number().min(1).max(100).optional().default(20),
 });
@@ -104,8 +110,8 @@ export async function createStaff(tenantId: string, data: CreateStaffData) {
 }
 
 export async function getStaffByTenant(tenantId: string, filters: Partial<StaffFilters> = {}) {
-  const { search, position, isActive, page, limit } = staffFiltersSchema.parse(filters);
-  
+  const { search, position, isActive, locationId, page, limit } = staffFiltersSchema.parse(filters);
+
   const where: StaffWhereInput = {
     tenantId,
   };
@@ -125,6 +131,14 @@ export async function getStaffByTenant(tenantId: string, filters: Partial<StaffF
 
   if (isActive !== undefined) {
     where.isActive = isActive;
+  }
+
+  if (locationId) {
+    where.staffLocations = {
+      some: {
+        locationId,
+      },
+    };
   }
 
   const [staff, total] = await Promise.all([
