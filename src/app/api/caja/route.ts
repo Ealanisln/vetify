@@ -35,10 +35,19 @@ export async function GET(request: Request) {
     // Obtener límites del plan
     const planLimits = await checkCashRegisterLimit(tenantId);
 
+    // Serializar los valores Decimal a números
+    const serializedDrawers = drawers.map(d => ({
+      ...d,
+      initialAmount: Number(d.initialAmount),
+      finalAmount: d.finalAmount ? Number(d.finalAmount) : null,
+      expectedAmount: d.expectedAmount ? Number(d.expectedAmount) : null,
+      difference: d.difference ? Number(d.difference) : null
+    }));
+
     return NextResponse.json({
-      drawers,
-      count: drawers.length,
-      openCount: drawers.filter(d => d.status === 'OPEN').length,
+      drawers: serializedDrawers,
+      count: serializedDrawers.length,
+      openCount: serializedDrawers.filter(d => d.status === 'OPEN').length,
       planLimits: {
         limit: planLimits.limit,
         current: planLimits.current,
@@ -46,7 +55,7 @@ export async function GET(request: Request) {
         canAdd: planLimits.canAdd
       },
       // Mantener compatibilidad con código existente
-      drawer: drawers.find(d => d.status === 'OPEN') || null
+      drawer: serializedDrawers.find(d => d.status === 'OPEN') || null
     });
   } catch (error) {
     console.error('Error en GET /api/caja:', error);
