@@ -117,32 +117,31 @@ export async function searchProducts(
 export const searchProductsAndServices = searchProducts;
 
 /**
- * Generar número de venta único
+ * Generar número de venta único (para uso fuera de transacciones)
  */
 export async function generateSaleNumber(tenantId: string): Promise<string> {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  
-  const prefix = `${year}${month}${day}`;
-  
-  // Buscar el último número de venta del día
-  const lastSale = await prisma.sale.findFirst({
-    where: {
-      tenantId,
-      saleNumber: { startsWith: prefix }
-    },
-    orderBy: { saleNumber: 'desc' }
-  });
+  return generateSaleNumberWithClient(prisma, tenantId);
+}
 
-  let sequence = 1;
-  if (lastSale) {
-    const lastSequence = parseInt(lastSale.saleNumber.slice(-4));
-    sequence = lastSequence + 1;
-  }
+/**
+ * Generar número de venta único (para uso dentro de transacciones)
+ * Usa timestamp + random para garantizar unicidad
+ */
+async function generateSaleNumberWithClient(
+  client: typeof prisma | Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  tenantId: string
+): Promise<string> {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const ms = String(now.getMilliseconds()).padStart(3, '0');
 
-  return `${prefix}${String(sequence).padStart(4, '0')}`;
+  // Formato: YYYYMMDD-HHMMSSmmm (totalmente único basado en timestamp)
+  return `${year}${month}${day}-${hours}${minutes}${seconds}${ms}`;
 }
 
 /**
@@ -153,18 +152,19 @@ export async function createSale(
   userId: string,
   saleData: SaleFormData
 ): Promise<SaleWithDetails> {
-  const saleNumber = await generateSaleNumber(tenantId);
-  
   // Calcular totales
-  const subtotal = saleData.items.reduce((sum, item) => 
+  const subtotal = saleData.items.reduce((sum, item) =>
     sum + (item.quantity * item.unitPrice - (item.discount || 0)), 0
   );
-  
+
   const tax = saleData.tax || 0;
   const discount = saleData.discount || 0;
   const total = subtotal + tax - discount;
 
   const sale = await prisma.$transaction(async (tx) => {
+    // Generar número de venta DENTRO de la transacción para evitar duplicados
+    const saleNumber = await generateSaleNumberWithClient(tx, tenantId);
+
     // Crear la venta
     const newSale = await tx.sale.create({
       data: {
