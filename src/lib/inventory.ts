@@ -14,13 +14,24 @@ export async function getInventoryItems(
 ): Promise<{ items: InventoryItemWithStock[], total: number }> {
   const where = {
     tenantId,
-    ...(locationId && { locationId }),
-    ...(category && { category: category as 'MEDICINE' | 'VACCINE' | 'DEWORMER' | 'FLEA_TICK_PREVENTION' | 'FOOD_PRESCRIPTION' | 'FOOD_REGULAR' | 'SUPPLEMENT' | 'ACCESSORY' | 'CONSUMABLE_CLINIC' | 'SURGICAL_MATERIAL' | 'LAB_SUPPLIES' | 'HYGIENE_GROOMING' | 'OTHER' }),
-    ...(search && {
+    // Include items with the specified location OR items without any location assigned
+    ...(locationId && {
       OR: [
-        { name: { contains: search, mode: 'insensitive' as const } },
-        { description: { contains: search, mode: 'insensitive' as const } },
-        { brand: { contains: search, mode: 'insensitive' as const } }
+        { locationId },
+        { locationId: null }
+      ]
+    }),
+    ...(category && { category: category as 'MEDICINE' | 'VACCINE' | 'DEWORMER' | 'FLEA_TICK_PREVENTION' | 'FOOD_PRESCRIPTION' | 'FOOD_REGULAR' | 'SUPPLEMENT' | 'ACCESSORY' | 'CONSUMABLE_CLINIC' | 'SURGICAL_MATERIAL' | 'LAB_SUPPLIES' | 'HYGIENE_GROOMING' | 'OTHER' }),
+    // Search query wrapped in AND to avoid conflict with location OR
+    ...(search && {
+      AND: [
+        {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' as const } },
+            { description: { contains: search, mode: 'insensitive' as const } },
+            { brand: { contains: search, mode: 'insensitive' as const } }
+          ]
+        }
       ]
     })
   };
