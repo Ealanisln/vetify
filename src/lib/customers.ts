@@ -51,9 +51,13 @@ export async function createCustomer(
   return serializeCustomer(customer);
 }
 
-export async function getCustomersByTenant(tenantId: string) {
+export async function getCustomersByTenant(tenantId: string, locationId?: string) {
   const customers = await prisma.customer.findMany({
-    where: { tenantId, isActive: true },
+    where: {
+      tenantId,
+      isActive: true,
+      ...(locationId && { locationId }),
+    },
     include: {
       pets: {
         select: {
@@ -148,11 +152,12 @@ export async function deleteCustomer(customerId: string, tenantId: string) {
   return serializeCustomer(customer);
 }
 
-export async function searchCustomers(tenantId: string, query: string) {
+export async function searchCustomers(tenantId: string, query: string, locationId?: string) {
   const customers = await prisma.customer.findMany({
     where: {
       tenantId,
       isActive: true,
+      ...(locationId && { locationId }),
       OR: [
         { name: { contains: query, mode: 'insensitive' } },
         { firstName: { contains: query, mode: 'insensitive' } },

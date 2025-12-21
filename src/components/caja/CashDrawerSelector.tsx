@@ -12,6 +12,10 @@ interface CashDrawer {
   openedBy: {
     name: string;
   };
+  location?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 interface CashDrawerSelectorProps {
@@ -41,8 +45,7 @@ export function CashDrawerSelector({
       >
         {drawers.map((drawer) => (
           <option key={drawer.id} value={drawer.id}>
-            {drawer.openedBy.name} - {format(new Date(drawer.openedAt), 'HH:mm', { locale: es })} - $
-            {drawer.initialAmount.toLocaleString()}
+            {drawer.location?.name || 'Sin ubicación'} - {drawer.openedBy.name} ({format(new Date(drawer.openedAt), 'HH:mm', { locale: es })})
           </option>
         ))}
       </select>

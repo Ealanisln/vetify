@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { prisma } from '../prisma';
 import { isLaunchPromotionActive, PRICING_CONFIG, isStripeInLiveMode } from '../pricing-config';
 
-import type { Tenant, SubscriptionStatus } from '@prisma/client';
+import type { Tenant, SubscriptionStatus, PlanType } from '@prisma/client';
 
 // Type for Stripe subscription creation data
 interface StripeSubscriptionData {
@@ -653,6 +653,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
       stripeSubscriptionId: subscriptionId,
       stripeProductId: stripeProductId,
       planName: dbPlan.name, // Use DB plan name for consistency
+      planType: planKey.toUpperCase() as PlanType, // Update planType on subscription changes
       subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
       subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
       isTrialPeriod: status === 'trialing',

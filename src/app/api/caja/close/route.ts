@@ -82,7 +82,25 @@ export async function POST(request: Request) {
       }
     });
 
-    return NextResponse.json(closedDrawer);
+    // Auto-cerrar turnos activos de esta caja
+    const closedShifts = await prisma.cashShift.updateMany({
+      where: {
+        drawerId: openDrawer.id,
+        status: 'ACTIVE'
+      },
+      data: {
+        status: 'ENDED',
+        endedAt: new Date(),
+        endingBalance: finalAmount,
+        expectedBalance: expectedAmount,
+        difference: difference
+      }
+    });
+
+    return NextResponse.json({
+      ...closedDrawer,
+      closedShiftsCount: closedShifts.count
+    });
   } catch (error) {
     console.error('Error en POST /api/caja/close:', error);
     return NextResponse.json(

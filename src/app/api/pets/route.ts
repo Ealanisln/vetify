@@ -107,11 +107,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // CRITICAL FIX: Use requireActiveSubscription to block access with expired trial
     const { tenant } = await requireActiveSubscription();
-    const pets = await getPetsByTenant(tenant.id as string);
+    const { searchParams } = new URL(request.url);
+    const locationId = searchParams.get('locationId') || undefined;
+
+    const pets = await getPetsByTenant(tenant.id as string, locationId);
 
     return NextResponse.json(pets);
   } catch (error) {

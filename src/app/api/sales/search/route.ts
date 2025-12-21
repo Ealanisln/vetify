@@ -24,6 +24,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type'); // 'customers' o 'products'
     const query = searchParams.get('q') || '';
+    const locationId = searchParams.get('locationId') || undefined;
 
     if (!type) {
       return NextResponse.json({ error: 'Tipo de búsqueda requerido' }, { status: 400 });
@@ -32,9 +33,9 @@ export async function GET(request: Request) {
     let results = [];
 
     if (type === 'customers') {
-      results = await searchCustomers(userWithTenant.tenant.id, query);
+      results = await searchCustomers(userWithTenant.tenant.id, query, locationId);
     } else if (type === 'products') {
-      results = await searchProductsAndServices(userWithTenant.tenant.id, query);
+      results = await searchProductsAndServices(userWithTenant.tenant.id, query, locationId);
     } else {
       return NextResponse.json({ error: 'Tipo de búsqueda inválido' }, { status: 400 });
     }

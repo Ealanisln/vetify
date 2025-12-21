@@ -9,8 +9,10 @@ import {
   TrashIcon,
   CheckCircleIcon,
   XCircleIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import { MapPinIcon } from '@heroicons/react/24/solid';
+import { LocationStaffModal } from './LocationStaffModal';
 
 interface Location {
   id: string;
@@ -39,6 +41,8 @@ export default function LocationsList({
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState<string | null>(null);
+  const [showStaffModal, setShowStaffModal] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
 
   // Filter locations based on search term
   const filteredLocations = useMemo(() => {
@@ -267,6 +271,16 @@ export default function LocationsList({
                           <MapPinIcon className="w-5 h-5" />
                         </button>
                       )}
+                      <button
+                        onClick={() => {
+                          setSelectedLocation(location);
+                          setShowStaffModal(true);
+                        }}
+                        className="text-[#75a99c] hover:text-[#639688]"
+                        title="Gestionar Personal"
+                      >
+                        <UserGroupIcon className="w-5 h-5" />
+                      </button>
                       <Link
                         href={`/dashboard/locations/${location.id}`}
                         className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
@@ -294,6 +308,20 @@ export default function LocationsList({
           </tbody>
         </table>
       </div>
+
+      {/* Staff Management Modal */}
+      {selectedLocation && (
+        <LocationStaffModal
+          isOpen={showStaffModal}
+          onClose={() => {
+            setShowStaffModal(false);
+            setSelectedLocation(null);
+          }}
+          locationId={selectedLocation.id}
+          locationName={selectedLocation.name}
+          onUpdate={() => router.refresh()}
+        />
+      )}
     </div>
   );
 }

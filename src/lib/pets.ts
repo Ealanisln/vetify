@@ -68,9 +68,12 @@ export async function createPet(
   return serializePet(pet);
 }
 
-export async function getPetsByTenant(tenantId: string) {
+export async function getPetsByTenant(tenantId: string, locationId?: string) {
   const pets = await prisma.pet.findMany({
-    where: { tenantId },
+    where: {
+      tenantId,
+      ...(locationId && { locationId }),
+    },
     include: {
       customer: true,
       appointments: true,

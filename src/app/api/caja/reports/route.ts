@@ -86,16 +86,16 @@ export async function GET(request: NextRequest) {
 
     // Build transaction where clause
     const transactionWhere: {
-      drawer: { tenantId: string; id?: string };
+      cashDrawer: { tenantId: string; id?: string };
       createdAt: { gte: Date; lte: Date };
       shift?: { cashierId: string };
     } = {
-      drawer: { tenantId },
+      cashDrawer: { tenantId },
       createdAt: { gte: periodStart, lte: periodEnd }
     };
 
     if (drawerId) {
-      transactionWhere.drawer.id = drawerId;
+      transactionWhere.cashDrawer.id = drawerId;
     }
     if (cashierId) {
       transactionWhere.shift = { cashierId };
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     const transactions = await prisma.cashTransaction.findMany({
       where: transactionWhere,
       include: {
-        drawer: { select: { id: true, locationId: true, openedAt: true } },
+        cashDrawer: { select: { id: true, locationId: true, openedAt: true } },
         shift: { select: { id: true, cashierId: true, cashier: { select: { id: true, name: true } } } }
       }
     });
@@ -193,10 +193,10 @@ export async function GET(request: NextRequest) {
       }>();
 
       transactions.forEach(t => {
-        const did = t.drawer.id;
+        const did = t.cashDrawer.id;
         if (!drawerMap.has(did)) {
           drawerMap.set(did, {
-            locationId: t.drawer.locationId,
+            locationId: t.cashDrawer.locationId,
             income: 0,
             expenses: 0,
             net: 0,

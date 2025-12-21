@@ -33,6 +33,10 @@ interface CashDrawer {
   closedBy?: {
     name: string;
   };
+  location?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 interface TransactionSummary {
@@ -55,6 +59,11 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
   const [finalAmount, setFinalAmount] = useState<string>('');
   const [showOpenForm, setShowOpenForm] = useState(false);
   const [showCloseForm, setShowCloseForm] = useState(false);
+
+  // Staff selection for opening drawer
+  const [staffList, setStaffList] = useState<Array<{id: string; name: string; position: string}>>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
+  const [loadingStaff, setLoadingStaff] = useState(false);
 
   const fetchCurrentDrawer = useCallback(async () => {
     try {
@@ -108,6 +117,29 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
     fetchTransactionSummary();
   }, [fetchCurrentDrawer, fetchTransactionSummary]);
 
+  // Fetch active staff for drawer opening
+  useEffect(() => {
+    const fetchStaff = async () => {
+      setLoadingStaff(true);
+      try {
+        const response = await fetch('/api/staff?isActive=true');
+        if (response.ok) {
+          const data = await response.json();
+          setStaffList(data.staff || []);
+          // Pre-select first staff as default
+          if (data.staff?.length > 0) {
+            setSelectedStaffId(data.staff[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching staff:', error);
+      } finally {
+        setLoadingStaff(false);
+      }
+    };
+    fetchStaff();
+  }, []);
+
   const openDrawer = async () => {
     if (!initialAmount || parseFloat(initialAmount) < 0) {
       alert('Ingresa un monto inicial válido');
@@ -122,7 +154,8 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
         body: JSON.stringify({
           tenantId,
           locationId: currentLocation?.id,
-          initialAmount: parseFloat(initialAmount)
+          initialAmount: parseFloat(initialAmount),
+          staffId: selectedStaffId || undefined
         })
       });
 
@@ -325,6 +358,29 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
                 ) : (
                   <div className="space-y-4 border border-border rounded-lg p-4 bg-card">
                     <h4 className="font-medium text-foreground">Abrir Caja</h4>
+                    <div>
+                      <label className="form-label">
+                        Cajero Responsable
+                      </label>
+                      <select
+                        value={selectedStaffId}
+                        onChange={(e) => setSelectedStaffId(e.target.value)}
+                        className="form-input"
+                        disabled={loadingStaff}
+                      >
+                        {loadingStaff ? (
+                          <option>Cargando...</option>
+                        ) : staffList.length === 0 ? (
+                          <option value="">No hay personal activo</option>
+                        ) : (
+                          staffList.map((staff) => (
+                            <option key={staff.id} value={staff.id}>
+                              {staff.name} - {staff.position}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
                     <div>
                       <label className="form-label">
                         Monto inicial en efectivo

@@ -5,8 +5,9 @@ import { SaleFormData, SaleWithDetails, CustomerSearchResult, ProductSearchResul
  * Buscar clientes con sus mascotas para el POS
  */
 export async function searchCustomers(
-  tenantId: string, 
-  query: string
+  tenantId: string,
+  query: string,
+  locationId?: string
 ): Promise<CustomerSearchResult[]> {
   if (!query || query.length < 2) return [];
 
@@ -14,6 +15,7 @@ export async function searchCustomers(
     where: {
       tenantId,
       isActive: true,
+      ...(locationId && { locationId }),
       OR: [
         { name: { contains: query, mode: 'insensitive' } },
         { phone: { contains: query } },
@@ -54,8 +56,9 @@ export async function searchCustomers(
  * Buscar productos y servicios para el POS
  */
 export async function searchProducts(
-  tenantId: string, 
-  query: string
+  tenantId: string,
+  query: string,
+  locationId?: string
 ): Promise<ProductSearchResult[]> {
   if (!query || query.length < 2) return [];
 
@@ -65,6 +68,7 @@ export async function searchProducts(
       tenantId,
       status: 'ACTIVE',
       quantity: { gt: 0 },
+      ...(locationId && { locationId }),
       OR: [
         { name: { contains: query, mode: 'insensitive' } },
         { description: { contains: query, mode: 'insensitive' } },
@@ -79,6 +83,7 @@ export async function searchProducts(
     where: {
       tenantId,
       isActive: true,
+      ...(locationId && { locationId }),
       OR: [
         { name: { contains: query, mode: 'insensitive' } },
         { description: { contains: query, mode: 'insensitive' } }
@@ -117,32 +122,31 @@ export async function searchProducts(
 export const searchProductsAndServices = searchProducts;
 
 /**
- * Generar número de venta único
+ * Generar número de venta único (para uso fuera de transacciones)
  */
 export async function generateSaleNumber(tenantId: string): Promise<string> {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, '0');
-  const day = String(today.getDate()).padStart(2, '0');
-  
-  const prefix = `${year}${month}${day}`;
-  
-  // Buscar el último número de venta del día
-  const lastSale = await prisma.sale.findFirst({
-    where: {
-      tenantId,
-      saleNumber: { startsWith: prefix }
-    },
-    orderBy: { saleNumber: 'desc' }
-  });
+  return generateSaleNumberWithClient(prisma, tenantId);
+}
 
-  let sequence = 1;
-  if (lastSale) {
-    const lastSequence = parseInt(lastSale.saleNumber.slice(-4));
-    sequence = lastSequence + 1;
-  }
+/**
+ * Generar número de venta único (para uso dentro de transacciones)
+ * Usa timestamp + random para garantizar unicidad
+ */
+async function generateSaleNumberWithClient(
+  _client: typeof prisma | Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  _tenantId: string
+): Promise<string> {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const ms = String(now.getMilliseconds()).padStart(3, '0');
 
-  return `${prefix}${String(sequence).padStart(4, '0')}`;
+  // Formato: YYYYMMDD-HHMMSSmmm (totalmente único basado en timestamp)
+  return `${year}${month}${day}-${hours}${minutes}${seconds}${ms}`;
 }
 
 /**
@@ -153,18 +157,48 @@ export async function createSale(
   userId: string,
   saleData: SaleFormData
 ): Promise<SaleWithDetails> {
-  const saleNumber = await generateSaleNumber(tenantId);
-  
   // Calcular totales
-  const subtotal = saleData.items.reduce((sum, item) => 
+  const subtotal = saleData.items.reduce((sum, item) =>
     sum + (item.quantity * item.unitPrice - (item.discount || 0)), 0
   );
-  
+
   const tax = saleData.tax || 0;
   const discount = saleData.discount || 0;
   const total = subtotal + tax - discount;
 
   const sale = await prisma.$transaction(async (tx) => {
+    // Generar número de venta DENTRO de la transacción para evitar duplicados
+    const saleNumber = await generateSaleNumberWithClient(tx, tenantId);
+
+    // Buscar el turno activo para obtener el cajero
+    let staffId: string | null = null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const activeShift = await tx.cashShift.findFirst({
+      where: {
+        tenantId,
+        status: 'ACTIVE',
+        drawer: {
+          status: 'OPEN',
+          ...(saleData.locationId && { locationId: saleData.locationId }),
+          openedAt: {
+            gte: today,
+            lt: tomorrow
+          }
+        }
+      },
+      select: {
+        cashierId: true
+      }
+    });
+
+    if (activeShift) {
+      staffId = activeShift.cashierId;
+    }
+
     // Crear la venta
     const newSale = await tx.sale.create({
       data: {
@@ -173,6 +207,7 @@ export async function createSale(
         customerId: saleData.customerId,
         petId: saleData.petId,
         userId,
+        staffId, // Cajero del turno activo
         saleNumber,
         subtotal,
         tax,
@@ -312,10 +347,14 @@ export async function getSaleById(tenantId: string, saleId: string): Promise<Sal
  */
 export async function getRecentSales(
   tenantId: string,
-  limit: number = 10
+  limit: number = 10,
+  locationId?: string
 ): Promise<SaleWithDetails[]> {
   const sales = await prisma.sale.findMany({
-    where: { tenantId },
+    where: {
+      tenantId,
+      ...(locationId && { locationId }),
+    },
     include: {
       customer: true,
       pet: true,
@@ -337,10 +376,10 @@ export async function getRecentSales(
 /**
  * Obtener estadísticas de ventas
  */
-export async function getSalesStats(tenantId: string) {
+export async function getSalesStats(tenantId: string, locationId?: string) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -351,6 +390,7 @@ export async function getSalesStats(tenantId: string) {
     prisma.sale.aggregate({
       where: {
         tenantId,
+        ...(locationId && { locationId }),
         createdAt: { gte: today, lt: tomorrow },
         status: { in: ['PAID', 'COMPLETED'] }
       },
@@ -360,6 +400,7 @@ export async function getSalesStats(tenantId: string) {
     prisma.sale.aggregate({
       where: {
         tenantId,
+        ...(locationId && { locationId }),
         createdAt: { gte: thisMonth, lt: nextMonth },
         status: { in: ['PAID', 'COMPLETED'] }
       },
@@ -369,6 +410,7 @@ export async function getSalesStats(tenantId: string) {
     prisma.sale.aggregate({
       where: {
         tenantId,
+        ...(locationId && { locationId }),
         status: { in: ['PAID', 'COMPLETED'] }
       },
       _sum: { total: true },

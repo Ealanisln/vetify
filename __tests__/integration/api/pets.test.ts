@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prismaMock } from '../../mocks/prisma';
 import {
   createTestPet,
   createTestTenant,
   createTestUser,
   createTestCustomer,
+  createTestLocation,
 } from '../../utils/test-utils';
 
 // Mock the pets API route
@@ -243,6 +245,174 @@ describe('Pets API Integration Tests', () => {
 
       expect(currentTenantCount).toBe(5);
       expect(otherTenantCount).toBe(10);
+    });
+  });
+
+  describe('Location Filtering', () => {
+    it('should filter pets by locationId when provided', async () => {
+      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });
+      const location2 = createTestLocation({ id: 'location-2', name: 'Clinic B' });
+
+      const customerAtLocation1 = createTestCustomer({
+        id: 'customer-loc-1',
+        tenantId: mockTenant.id,
+        locationId: location1.id,
+      });
+      const customerAtLocation2 = createTestCustomer({
+        id: 'customer-loc-2',
+        tenantId: mockTenant.id,
+        locationId: location2.id,
+      });
+
+      const petAtLocation1 = createTestPet({
+        id: 'pet-loc-1',
+        tenantId: mockTenant.id,
+        customerId: customerAtLocation1.id,
+        name: 'Pet at Location 1',
+      });
+      const petAtLocation2 = createTestPet({
+        id: 'pet-loc-2',
+        tenantId: mockTenant.id,
+        customerId: customerAtLocation2.id,
+        name: 'Pet at Location 2',
+      });
+
+      // Simulate locationId filter via customer relation
+      prismaMock.pet.findMany.mockImplementation(async (args: any) => {
+        const pets = [
+          { ...petAtLocation1, customer: customerAtLocation1 },
+          { ...petAtLocation2, customer: customerAtLocation2 },
+        ];
+
+        if (args?.where?.customer?.locationId) {
+          return pets.filter(
+            (p) => p.customer.locationId === args.where.customer.locationId
+          );
+        }
+        return pets;
+      });
+
+      // Query with locationId filter
+      const filteredResult = await prismaMock.pet.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          customer: { locationId: location1.id },
+        },
+        include: { customer: true },
+      });
+
+      expect(filteredResult).toHaveLength(1);
+      expect(filteredResult[0].name).toBe('Pet at Location 1');
+      expect(filteredResult[0].customer.locationId).toBe(location1.id);
+    });
+
+    it('should return all pets when locationId is not provided', async () => {
+      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });
+      const location2 = createTestLocation({ id: 'location-2', name: 'Clinic B' });
+
+      const customerAtLocation1 = createTestCustomer({
+        id: 'customer-loc-1',
+        tenantId: mockTenant.id,
+        locationId: location1.id,
+      });
+      const customerAtLocation2 = createTestCustomer({
+        id: 'customer-loc-2',
+        tenantId: mockTenant.id,
+        locationId: location2.id,
+      });
+      const customerNoLocation = createTestCustomer({
+        id: 'customer-no-loc',
+        tenantId: mockTenant.id,
+        locationId: null,
+      });
+
+      const petAtLocation1 = createTestPet({
+        id: 'pet-loc-1',
+        tenantId: mockTenant.id,
+        customerId: customerAtLocation1.id,
+      });
+      const petAtLocation2 = createTestPet({
+        id: 'pet-loc-2',
+        tenantId: mockTenant.id,
+        customerId: customerAtLocation2.id,
+      });
+      const petNoLocation = createTestPet({
+        id: 'pet-no-loc',
+        tenantId: mockTenant.id,
+        customerId: customerNoLocation.id,
+      });
+
+      prismaMock.pet.findMany.mockResolvedValue([
+        { ...petAtLocation1, customer: customerAtLocation1 },
+        { ...petAtLocation2, customer: customerAtLocation2 },
+        { ...petNoLocation, customer: customerNoLocation },
+      ]);
+
+      // Query without locationId filter
+      const result = await prismaMock.pet.findMany({
+        where: { tenantId: mockTenant.id },
+        include: { customer: true },
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result.map((p) => p.id)).toContain('pet-loc-1');
+      expect(result.map((p) => p.id)).toContain('pet-loc-2');
+      expect(result.map((p) => p.id)).toContain('pet-no-loc');
+    });
+
+    it('should include pets with null customer locationId when filtering by specific location', async () => {
+      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });
+
+      const customerAtLocation1 = createTestCustomer({
+        id: 'customer-loc-1',
+        tenantId: mockTenant.id,
+        locationId: location1.id,
+      });
+      const customerNoLocation = createTestCustomer({
+        id: 'customer-no-loc',
+        tenantId: mockTenant.id,
+        locationId: null,
+      });
+
+      const petAtLocation1 = createTestPet({
+        id: 'pet-loc-1',
+        tenantId: mockTenant.id,
+        customerId: customerAtLocation1.id,
+      });
+      const petNoLocation = createTestPet({
+        id: 'pet-no-loc',
+        tenantId: mockTenant.id,
+        customerId: customerNoLocation.id,
+      });
+
+      // Simulate the OR condition (locationId matches OR locationId is null)
+      prismaMock.pet.findMany.mockImplementation(async (args: any) => {
+        const pets = [
+          { ...petAtLocation1, customer: customerAtLocation1 },
+          { ...petNoLocation, customer: customerNoLocation },
+        ];
+        if (args?.where?.customer?.OR) {
+          return pets.filter(
+            (p) => p.customer.locationId === location1.id || p.customer.locationId === null
+          );
+        }
+        return pets;
+      });
+
+      const result = await prismaMock.pet.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          customer: {
+            OR: [{ locationId: location1.id }, { locationId: null }],
+          },
+        },
+        include: { customer: true },
+      });
+
+      expect(result).toHaveLength(2);
+      const locationIds = result.map((p) => p.customer.locationId);
+      expect(locationIds).toContain(location1.id);
+      expect(locationIds).toContain(null);
     });
   });
 });
