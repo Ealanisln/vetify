@@ -5,8 +5,9 @@ import { SaleFormData, SaleWithDetails, CustomerSearchResult, ProductSearchResul
  * Buscar clientes con sus mascotas para el POS
  */
 export async function searchCustomers(
-  tenantId: string, 
-  query: string
+  tenantId: string,
+  query: string,
+  locationId?: string
 ): Promise<CustomerSearchResult[]> {
   if (!query || query.length < 2) return [];
 
@@ -14,6 +15,7 @@ export async function searchCustomers(
     where: {
       tenantId,
       isActive: true,
+      ...(locationId && { locationId }),
       OR: [
         { name: { contains: query, mode: 'insensitive' } },
         { phone: { contains: query } },
@@ -54,8 +56,9 @@ export async function searchCustomers(
  * Buscar productos y servicios para el POS
  */
 export async function searchProducts(
-  tenantId: string, 
-  query: string
+  tenantId: string,
+  query: string,
+  locationId?: string
 ): Promise<ProductSearchResult[]> {
   if (!query || query.length < 2) return [];
 
@@ -65,6 +68,7 @@ export async function searchProducts(
       tenantId,
       status: 'ACTIVE',
       quantity: { gt: 0 },
+      ...(locationId && { locationId }),
       OR: [
         { name: { contains: query, mode: 'insensitive' } },
         { description: { contains: query, mode: 'insensitive' } },
@@ -79,6 +83,7 @@ export async function searchProducts(
     where: {
       tenantId,
       isActive: true,
+      ...(locationId && { locationId }),
       OR: [
         { name: { contains: query, mode: 'insensitive' } },
         { description: { contains: query, mode: 'insensitive' } }
@@ -128,8 +133,8 @@ export async function generateSaleNumber(tenantId: string): Promise<string> {
  * Usa timestamp + random para garantizar unicidad
  */
 async function generateSaleNumberWithClient(
-  client: typeof prisma | Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
-  tenantId: string
+  _client: typeof prisma | Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  _tenantId: string
 ): Promise<string> {
   const now = new Date();
   const year = now.getFullYear();
@@ -342,10 +347,14 @@ export async function getSaleById(tenantId: string, saleId: string): Promise<Sal
  */
 export async function getRecentSales(
   tenantId: string,
-  limit: number = 10
+  limit: number = 10,
+  locationId?: string
 ): Promise<SaleWithDetails[]> {
   const sales = await prisma.sale.findMany({
-    where: { tenantId },
+    where: {
+      tenantId,
+      ...(locationId && { locationId }),
+    },
     include: {
       customer: true,
       pet: true,
@@ -367,10 +376,10 @@ export async function getRecentSales(
 /**
  * Obtener estadísticas de ventas
  */
-export async function getSalesStats(tenantId: string) {
+export async function getSalesStats(tenantId: string, locationId?: string) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -381,6 +390,7 @@ export async function getSalesStats(tenantId: string) {
     prisma.sale.aggregate({
       where: {
         tenantId,
+        ...(locationId && { locationId }),
         createdAt: { gte: today, lt: tomorrow },
         status: { in: ['PAID', 'COMPLETED'] }
       },
@@ -390,6 +400,7 @@ export async function getSalesStats(tenantId: string) {
     prisma.sale.aggregate({
       where: {
         tenantId,
+        ...(locationId && { locationId }),
         createdAt: { gte: thisMonth, lt: nextMonth },
         status: { in: ['PAID', 'COMPLETED'] }
       },
@@ -399,6 +410,7 @@ export async function getSalesStats(tenantId: string) {
     prisma.sale.aggregate({
       where: {
         tenantId,
+        ...(locationId && { locationId }),
         status: { in: ['PAID', 'COMPLETED'] }
       },
       _sum: { total: true },

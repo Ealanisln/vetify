@@ -10,6 +10,7 @@ import {
 import { CustomerSearchResult, ProductSearchResult, SaleItemForm } from '@/types';
 import { toast } from 'sonner';
 import { SaleDetailModal } from '@/components/sales/SaleDetailModal';
+import { useLocation } from '@/components/providers/LocationProvider';
 
 interface SalesPageClientProps {
   tenantId: string;
@@ -58,6 +59,16 @@ export default function SalesPageClient({}: SalesPageClientProps) {
   const [lastProcessedSale, setLastProcessedSale] = useState<ProcessedSale | null>(null);
   const [showSaleModal, setShowSaleModal] = useState(false);
 
+  const { currentLocation, isAllLocations } = useLocation();
+
+  // Build location query param
+  const getLocationParam = () => {
+    if (!isAllLocations && currentLocation?.id) {
+      return `&locationId=${currentLocation.id}`;
+    }
+    return '';
+  };
+
   // Buscar clientes
   const searchCustomers = async (query: string) => {
     if (query.length < 2) {
@@ -66,7 +77,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
     }
 
     try {
-      const response = await fetch(`/api/sales/search?type=customers&q=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/sales/search?type=customers&q=${encodeURIComponent(query)}${getLocationParam()}`);
       const data = await response.json();
       setCustomers(data);
     } catch (error) {
@@ -82,7 +93,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
     }
 
     try {
-      const response = await fetch(`/api/sales/search?type=products&q=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/sales/search?type=products&q=${encodeURIComponent(query)}${getLocationParam()}`);
       const data = await response.json();
       setProducts(data);
     } catch (error) {
@@ -163,6 +174,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
       const saleData = {
         customerId: selectedCustomer.id,
         petId: selectedPet || undefined,
+        locationId: !isAllLocations && currentLocation?.id ? currentLocation.id : undefined,
         items: cartItems,
         tax,
         paymentMethod: 'CASH', // Por simplicidad, por ahora solo efectivo
@@ -228,11 +240,21 @@ export default function SalesPageClient({}: SalesPageClientProps) {
   // Effects
   useEffect(() => {
     searchCustomers(customerQuery);
-  }, [customerQuery]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerQuery, currentLocation?.id, isAllLocations]);
 
   useEffect(() => {
     searchProducts(productQuery);
-  }, [productQuery]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productQuery, currentLocation?.id, isAllLocations]);
+
+  // Clear selection when location changes
+  useEffect(() => {
+    setSelectedCustomer(null);
+    setSelectedPet('');
+    setCustomerQuery('');
+    setCartItems([]);
+  }, [currentLocation?.id]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

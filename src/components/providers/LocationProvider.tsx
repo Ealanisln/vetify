@@ -9,6 +9,7 @@ interface LocationContextType {
   isLoading: boolean;
   error: Error | null;
   hasMultipleLocations: boolean;
+  isAllLocations: boolean;
   primaryLocation: Location | undefined;
   switchLocation: (locationId: string) => void;
   switchToAllLocations: () => void;

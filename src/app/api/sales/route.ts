@@ -32,16 +32,17 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
+    const locationId = searchParams.get('locationId') || undefined;
 
     // Obtener estadísticas de ventas
     if (action === 'stats') {
-      const stats = await getSalesStats(userWithTenant.tenant.id);
+      const stats = await getSalesStats(userWithTenant.tenant.id, locationId);
       return NextResponse.json(stats);
     }
 
     // Obtener ventas recientes por defecto
     const limit = parseInt(searchParams.get('limit') || '10');
-    const sales = await getRecentSales(userWithTenant.tenant.id, limit);
+    const sales = await getRecentSales(userWithTenant.tenant.id, limit, locationId);
 
     return NextResponse.json(sales);
   } catch (error) {

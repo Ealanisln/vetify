@@ -3,9 +3,12 @@
 import { useThemeAware } from '../../hooks/useThemeAware';
 import { useTheme } from 'next-themes';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bars3Icon, BellIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, UserIcon } from '@heroicons/react/24/outline';
+import { Bars3Icon, BellIcon, ChevronDownIcon, ArrowRightOnRectangleIcon, UserIcon, MapPinIcon, BuildingOffice2Icon, CheckIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Fragment } from 'react';
+import { useLocation } from '@/components/providers/LocationProvider';
+import { Menu, Transition } from '@headlessui/react';
+import { cn } from '@/lib/utils';
 
 interface DashboardHeaderProps {
   user: UserWithTenant;
@@ -52,6 +55,17 @@ export function DashboardHeader({ user, tenant, onMenuClick }: DashboardHeaderPr
   const pageTitle = getPageTitle(pathname);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Location context
+  const {
+    currentLocation,
+    availableLocations,
+    isLoading: locationLoading,
+    hasMultipleLocations,
+    isAllLocations,
+    switchLocation,
+    switchToAllLocations,
+  } = useLocation();
 
   const toggleTheme = () => {
     // Cycle through: light -> dark -> system
@@ -139,6 +153,83 @@ export function DashboardHeader({ user, tenant, onMenuClick }: DashboardHeaderPr
 
         {/* Actions */}
         <div className="flex items-center gap-x-2 lg:gap-x-4">
+          {/* Location Switcher (Header) - Only show if multiple locations */}
+          {!locationLoading && hasMultipleLocations && (
+            <Menu as="div" className="relative hidden sm:block">
+              <Menu.Button className="flex items-center gap-x-2 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700">
+                {isAllLocations ? (
+                  <BuildingOffice2Icon className="h-4 w-4 text-[#75a99c]" aria-hidden="true" />
+                ) : (
+                  <MapPinIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+                )}
+                <span className="max-w-[120px] truncate">
+                  {isAllLocations ? 'Todas' : (currentLocation?.name || 'Ubicación')}
+                </span>
+                <ChevronUpDownIcon className="h-4 w-4 text-gray-400" aria-hidden="true" />
+              </Menu.Button>
+
+              <Transition
+                as={Fragment}
+                enter="transition ease-out duration-100"
+                enterFrom="transform opacity-0 scale-95"
+                enterTo="transform opacity-100 scale-100"
+                leave="transition ease-in duration-75"
+                leaveFrom="transform opacity-100 scale-100"
+                leaveTo="transform opacity-0 scale-95"
+              >
+                <Menu.Items className="absolute right-0 z-50 mt-2 w-56 origin-top-right rounded-lg bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-gray-700 focus:outline-none">
+                  <div className="py-1">
+                    {/* All Locations Option */}
+                    <Menu.Item>
+                      {({ active }) => (
+                        <button
+                          onClick={switchToAllLocations}
+                          className={cn(
+                            'flex w-full items-center gap-x-3 px-4 py-2 text-sm',
+                            active
+                              ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
+                              : 'text-gray-700 dark:text-gray-200'
+                          )}
+                        >
+                          <BuildingOffice2Icon className="h-5 w-5 shrink-0 text-[#75a99c]" aria-hidden="true" />
+                          <span className="flex-1 truncate text-left font-medium">Todas las ubicaciones</span>
+                          {isAllLocations && (
+                            <CheckIcon className="h-5 w-5 shrink-0 text-[#75a99c]" aria-hidden="true" />
+                          )}
+                        </button>
+                      )}
+                    </Menu.Item>
+
+                    <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+
+                    {availableLocations.map((location) => (
+                      <Menu.Item key={location.id}>
+                        {({ active }) => (
+                          <button
+                            onClick={() => switchLocation(location.id)}
+                            className={cn(
+                              'flex w-full items-center gap-x-3 px-4 py-2 text-sm',
+                              active
+                                ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
+                                : 'text-gray-700 dark:text-gray-200',
+                              !location.isActive && 'opacity-50'
+                            )}
+                          >
+                            <MapPinIcon className="h-5 w-5 shrink-0 text-gray-400" aria-hidden="true" />
+                            <span className="flex-1 truncate text-left">{location.name}</span>
+                            {!isAllLocations && currentLocation?.id === location.id && (
+                              <CheckIcon className="h-5 w-5 shrink-0 text-[#75a99c]" aria-hidden="true" />
+                            )}
+                          </button>
+                        )}
+                      </Menu.Item>
+                    ))}
+                  </div>
+                </Menu.Items>
+              </Transition>
+            </Menu>
+          )}
+
           {/* Theme toggle */}
           <button
             onClick={toggleTheme}

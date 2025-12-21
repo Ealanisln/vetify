@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prismaMock } from '../../mocks/prisma';
 import {
   createTestCustomer,
@@ -5,6 +6,7 @@ import {
   createTestUser,
   createTestPet,
   createTestAppointment,
+  createTestLocation,
 } from '../../utils/test-utils';
 
 // Mock the customers API route
@@ -294,6 +296,125 @@ describe('Customers API Integration Tests', () => {
       });
 
       expect(result.count).toBe(0);
+    });
+  });
+
+  describe('Location Filtering', () => {
+    it('should filter customers by locationId when provided', async () => {
+      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });
+      const location2 = createTestLocation({ id: 'location-2', name: 'Clinic B' });
+
+      const customerAtLocation1 = createTestCustomer({
+        id: 'customer-loc-1',
+        tenantId: mockTenant.id,
+        locationId: location1.id,
+        name: 'Customer at Location 1',
+      });
+      const customerAtLocation2 = createTestCustomer({
+        id: 'customer-loc-2',
+        tenantId: mockTenant.id,
+        locationId: location2.id,
+        name: 'Customer at Location 2',
+      });
+
+      // Simulate locationId filter in query
+      prismaMock.customer.findMany.mockImplementation(async (args: any) => {
+        const customers = [customerAtLocation1, customerAtLocation2];
+        if (args?.where?.locationId) {
+          return customers.filter((c) => c.locationId === args.where.locationId);
+        }
+        return customers;
+      });
+
+      // Query with locationId filter
+      const filteredResult = await prismaMock.customer.findMany({
+        where: { tenantId: mockTenant.id, locationId: location1.id },
+      });
+
+      expect(filteredResult).toHaveLength(1);
+      expect(filteredResult[0].locationId).toBe(location1.id);
+      expect(filteredResult[0].name).toBe('Customer at Location 1');
+    });
+
+    it('should return all customers when locationId is not provided', async () => {
+      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });
+      const location2 = createTestLocation({ id: 'location-2', name: 'Clinic B' });
+
+      const customerAtLocation1 = createTestCustomer({
+        id: 'customer-loc-1',
+        tenantId: mockTenant.id,
+        locationId: location1.id,
+        name: 'Customer at Location 1',
+      });
+      const customerAtLocation2 = createTestCustomer({
+        id: 'customer-loc-2',
+        tenantId: mockTenant.id,
+        locationId: location2.id,
+        name: 'Customer at Location 2',
+      });
+      const customerNoLocation = createTestCustomer({
+        id: 'customer-no-loc',
+        tenantId: mockTenant.id,
+        locationId: null,
+        name: 'Customer without Location',
+      });
+
+      prismaMock.customer.findMany.mockResolvedValue([
+        customerAtLocation1,
+        customerAtLocation2,
+        customerNoLocation,
+      ]);
+
+      // Query without locationId filter
+      const result = await prismaMock.customer.findMany({
+        where: { tenantId: mockTenant.id },
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result.map((c) => c.id)).toContain('customer-loc-1');
+      expect(result.map((c) => c.id)).toContain('customer-loc-2');
+      expect(result.map((c) => c.id)).toContain('customer-no-loc');
+    });
+
+    it('should include customers with null locationId when filtering by specific location', async () => {
+      // This tests the OR condition: locationId matches OR locationId is null
+      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });
+
+      const customerAtLocation1 = createTestCustomer({
+        id: 'customer-loc-1',
+        tenantId: mockTenant.id,
+        locationId: location1.id,
+        name: 'Customer at Location 1',
+      });
+      const customerNoLocation = createTestCustomer({
+        id: 'customer-no-loc',
+        tenantId: mockTenant.id,
+        locationId: null,
+        name: 'Customer without Location',
+      });
+
+      // Simulate the OR condition in the API (locationId matches OR locationId is null)
+      prismaMock.customer.findMany.mockImplementation(async (args: any) => {
+        const customers = [customerAtLocation1, customerNoLocation];
+        if (args?.where?.OR) {
+          // Complex OR query - return customers matching the OR condition
+          return customers.filter(
+            (c) => c.locationId === location1.id || c.locationId === null
+          );
+        }
+        return customers;
+      });
+
+      const result = await prismaMock.customer.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          OR: [{ locationId: location1.id }, { locationId: null }],
+        },
+      });
+
+      expect(result).toHaveLength(2);
+      expect(result.map((c) => c.locationId)).toContain(location1.id);
+      expect(result.map((c) => c.locationId)).toContain(null);
     });
   });
 });
