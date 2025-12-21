@@ -27,10 +27,18 @@ export async function createCustomer(
         email: data.email,
         isActive: true,
       },
+      include: {
+        location: {
+          select: { name: true }
+        }
+      }
     });
 
     if (existingCustomer) {
-      throw new Error(`Ya existe un cliente con el email ${data.email}`);
+      const locationInfo = existingCustomer.location?.name
+        ? ` en la ubicación "${existingCustomer.location.name}"`
+        : ' (sin ubicación asignada)';
+      throw new Error(`Ya existe un cliente "${existingCustomer.name}" con el email ${data.email}${locationInfo}. Puedes verlo cambiando a "Todas las ubicaciones".`);
     }
   }
 
@@ -56,7 +64,13 @@ export async function getCustomersByTenant(tenantId: string, locationId?: string
     where: {
       tenantId,
       isActive: true,
-      ...(locationId && { locationId }),
+      // Include customers with the specified location OR customers without any location assigned
+      ...(locationId && {
+        OR: [
+          { locationId },
+          { locationId: null }
+        ]
+      }),
     },
     include: {
       pets: {
@@ -157,14 +171,25 @@ export async function searchCustomers(tenantId: string, query: string, locationI
     where: {
       tenantId,
       isActive: true,
-      ...(locationId && { locationId }),
-      OR: [
-        { name: { contains: query, mode: 'insensitive' } },
-        { firstName: { contains: query, mode: 'insensitive' } },
-        { lastName: { contains: query, mode: 'insensitive' } },
-        { email: { contains: query, mode: 'insensitive' } },
-        { phone: { contains: query, mode: 'insensitive' } },
-      ]
+      // Include customers with the specified location OR customers without any location assigned
+      ...(locationId && {
+        OR: [
+          { locationId },
+          { locationId: null }
+        ]
+      }),
+      // Search query filters
+      AND: [
+        {
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { firstName: { contains: query, mode: 'insensitive' } },
+            { lastName: { contains: query, mode: 'insensitive' } },
+            { email: { contains: query, mode: 'insensitive' } },
+            { phone: { contains: query, mode: 'insensitive' } },
+          ]
+        }
+      ],
     },
     include: {
       pets: {

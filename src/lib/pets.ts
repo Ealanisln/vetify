@@ -72,7 +72,13 @@ export async function getPetsByTenant(tenantId: string, locationId?: string) {
   const pets = await prisma.pet.findMany({
     where: {
       tenantId,
-      ...(locationId && { locationId }),
+      // Include pets with the specified location OR pets without any location assigned
+      ...(locationId && {
+        OR: [
+          { locationId },
+          { locationId: null }
+        ]
+      }),
     },
     include: {
       customer: true,
