@@ -141,9 +141,13 @@ export async function generateSaleNumber(tenantId: string): Promise<string> {
 /**
  * Generar número de venta único (para uso dentro de transacciones)
  * Usa timestamp + random para garantizar unicidad
+ * @param _client - Cliente Prisma (reservado para futuras consultas de secuencia)
+ * @param _tenantId - ID del tenant (reservado para secuencias por tenant)
  */
 async function generateSaleNumberWithClient(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _client: typeof prisma | Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _tenantId: string
 ): Promise<string> {
   const now = new Date();
