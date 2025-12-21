@@ -82,8 +82,8 @@ export async function POST(request: Request) {
 
     const saleData: SaleFormData = await request.json();
 
-    // Validaciones básicas
-    if (!saleData.customerId || !saleData.items || saleData.items.length === 0) {
+    // Validaciones básicas - customerId es opcional para ventas generales
+    if (!saleData.items || saleData.items.length === 0) {
       return NextResponse.json(
         { error: 'Datos de venta incompletos' },
         { status: 400 }

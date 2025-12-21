@@ -15,17 +15,27 @@ export async function searchCustomers(
     where: {
       tenantId,
       isActive: true,
-      ...(locationId && { locationId }),
-      OR: [
-        { name: { contains: query, mode: 'insensitive' } },
-        { phone: { contains: query } },
-        { email: { contains: query, mode: 'insensitive' } },
+      // Include customers with matching locationId OR null locationId (global customers)
+      ...(locationId && {
+        OR: [
+          { locationId },
+          { locationId: null }
+        ]
+      }),
+      AND: [
         {
-          pets: {
-            some: {
-              name: { contains: query, mode: 'insensitive' }
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { phone: { contains: query } },
+            { email: { contains: query, mode: 'insensitive' } },
+            {
+              pets: {
+                some: {
+                  name: { contains: query, mode: 'insensitive' }
+                }
+              }
             }
-          }
+          ]
         }
       ]
     },
@@ -151,20 +161,24 @@ async function generateSaleNumberWithClient(
 
 /**
  * Crear nueva venta
+ * Nota: Los precios de los items YA incluyen IVA (cumplimiento ley mexicana)
+ * El tax es solo el desglose informativo, NO se suma al total
  */
 export async function createSale(
   tenantId: string,
   userId: string,
   saleData: SaleFormData
 ): Promise<SaleWithDetails> {
-  // Calcular totales
+  // Los precios YA incluyen IVA - el subtotal es la suma de items (con IVA incluido)
   const subtotal = saleData.items.reduce((sum, item) =>
     sum + (item.quantity * item.unitPrice - (item.discount || 0)), 0
   );
 
+  // El tax es el desglose informativo del IVA incluido, NO se suma al total
   const tax = saleData.tax || 0;
   const discount = saleData.discount || 0;
-  const total = subtotal + tax - discount;
+  // Total = subtotal - descuento (NO sumamos tax porque ya está incluido en precios)
+  const total = subtotal - discount;
 
   const sale = await prisma.$transaction(async (tx) => {
     // Generar número de venta DENTRO de la transacción para evitar duplicados

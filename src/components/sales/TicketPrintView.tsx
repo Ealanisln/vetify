@@ -3,6 +3,7 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { SaleDetail } from './SaleDetailModal';
+import { formatTaxRateLabel } from '@/lib/tax-utils';
 
 interface TicketPrintViewProps {
   sale: SaleDetail;
@@ -82,11 +83,11 @@ export function TicketPrintView({ sale }: TicketPrintViewProps) {
       {/* Totals */}
       <div className="mb-2 pb-2 border-b border-dashed border-black text-[11px]">
         <div className="flex justify-between">
-          <span>Subtotal:</span>
+          <span>Subtotal (sin IVA):</span>
           <span>{formatCurrency(sale.subtotal)}</span>
         </div>
         <div className="flex justify-between">
-          <span>IVA (16%):</span>
+          <span>IVA incluido ({formatTaxRateLabel(Number(sale.tenant.tenantSettings?.taxRate) || 0.16)}):</span>
           <span>{formatCurrency(sale.tax)}</span>
         </div>
         {parseFloat(sale.discount) > 0 && (

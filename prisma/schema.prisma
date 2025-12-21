@@ -799,7 +799,7 @@ model TenantSettings {
   enableEmailReminders    Boolean         @default(true)
   enableSmsReminders      Boolean         @default(false)
   notificationPreferences Json? // Granular notification preferences by type
-  taxRate                 Decimal         @default(0) @db.Decimal(5, 4)
+  taxRate                 Decimal         @default(0.16) @db.Decimal(5, 4)
   currencyCode            String          @default("USD")
   currencySymbol          String          @default("$")
   appointmentDuration     Int             @default(30)

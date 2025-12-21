@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { XMarkIcon, PrinterIcon, ReceiptPercentIcon, UserIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { formatTaxRateLabel } from '@/lib/tax-utils';
 
 interface SaleDetailModalProps {
   saleId: string | null;
@@ -222,11 +223,11 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
             {/* Totals */}
             <div className="mb-2 pb-2 border-b border-dashed border-black">
               <div className="flex justify-between">
-                <span>Subtotal:</span>
+                <span>Subtotal (sin IVA):</span>
                 <span>{formatCurrency(sale.subtotal).replace('MX$', '$')}</span>
               </div>
               <div className="flex justify-between">
-                <span>IVA (16%):</span>
+                <span>IVA incluido ({formatTaxRateLabel(Number(sale.tenant.tenantSettings?.taxRate) || 0.16)}):</span>
                 <span>{formatCurrency(sale.tax).replace('MX$', '$')}</span>
               </div>
               {parseFloat(sale.discount) > 0 && (
@@ -397,11 +398,11 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-4">
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Subtotal:</span>
+                        <span className="text-muted-foreground">Subtotal (sin IVA):</span>
                         <span className="font-medium text-foreground">{formatCurrency(sale.subtotal)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">IVA (16%):</span>
+                        <span className="text-muted-foreground">IVA incluido ({formatTaxRateLabel(Number(sale.tenant.tenantSettings?.taxRate) || 0.16)}):</span>
                         <span className="font-medium text-foreground">{formatCurrency(sale.tax)}</span>
                       </div>
                       {parseFloat(sale.discount) > 0 && (

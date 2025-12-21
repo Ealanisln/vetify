@@ -175,7 +175,7 @@ export async function createTenantWithDefaults(data: {
         dateFormat: 'DD/MM/YYYY',
         enableEmailReminders: true,
         enableSmsReminders: false,
-        taxRate: 0,
+        taxRate: 0.16,
         currencyCode: 'USD',
         currencySymbol: '$',
         appointmentDuration: 30,
