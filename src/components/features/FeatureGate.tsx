@@ -41,11 +41,11 @@ export function FeatureGate({
   if (!hasAccess) {
     return (
       fallback || (
-        <div className="flex flex-col items-center justify-center gap-3 p-6 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+        <div className="flex flex-col items-center justify-center gap-3 p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800">
           <Lock className="w-8 h-8 text-gray-400" />
           <div className="text-center">
-            <p className="font-semibold text-gray-700">Función Premium</p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="font-semibold text-gray-700 dark:text-gray-200">Función Premium</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {upgradeMessage || 'Requiere plan profesional o superior'}
             </p>
           </div>

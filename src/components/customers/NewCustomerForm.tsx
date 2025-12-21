@@ -137,7 +137,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
               tenantId,
               locationId: locationId || null,
               weight: pet.weight ? parseFloat(pet.weight) : undefined,
-              dateOfBirth: new Date(pet.dateOfBirth).toISOString()
+              dateOfBirth: pet.dateOfBirth // Send as YYYY-MM-DD string directly
             })
           });
 

@@ -356,6 +356,25 @@ export const createTestCashTransaction = (overrides = {}) => ({
   ...overrides,
 });
 
+export const createTestCashShift = (overrides = {}) => ({
+  id: 'shift-1',
+  tenantId: 'tenant-1',
+  drawerId: 'drawer-1',
+  cashierId: 'staff-1',
+  startedAt: new Date(),
+  endedAt: null,
+  startingBalance: 1000.0,
+  endingBalance: null,
+  expectedBalance: null,
+  difference: null,
+  status: 'ACTIVE' as const,
+  notes: null,
+  handedOffToId: null,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  ...overrides,
+});
+
 // Treatment Schedule factories
 export const createTestTreatmentSchedule = (overrides = {}) => ({
   id: 'schedule-1',

@@ -29,11 +29,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { tenant } = await requireAuth();
-    const customers = await getCustomersByTenant(tenant.id as string);
-    
+    const { searchParams } = new URL(request.url);
+    const locationId = searchParams.get('locationId') || undefined;
+
+    const customers = await getCustomersByTenant(tenant.id as string, locationId);
+
     return NextResponse.json(customers);
   } catch (error) {
     console.error('Error fetching customers:', error);

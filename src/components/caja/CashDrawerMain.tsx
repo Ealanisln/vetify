@@ -12,6 +12,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useLocation } from '@/components/providers/LocationProvider';
+import { CashDrawerSelector } from './CashDrawerSelector';
 
 interface CashDrawerMainProps {
   tenantId: string;
@@ -32,6 +33,10 @@ interface CashDrawer {
   closedBy?: {
     name: string;
   };
+  location?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 interface TransactionSummary {
@@ -43,6 +48,8 @@ interface TransactionSummary {
 
 export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
   const { currentLocation } = useLocation();
+  const [drawers, setDrawers] = useState<CashDrawer[]>([]);
+  const [selectedDrawerId, setSelectedDrawerId] = useState<string | null>(null);
   const [currentDrawer, setCurrentDrawer] = useState<CashDrawer | null>(null);
   const [transactionSummary, setTransactionSummary] = useState<TransactionSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -53,20 +60,44 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
   const [showOpenForm, setShowOpenForm] = useState(false);
   const [showCloseForm, setShowCloseForm] = useState(false);
 
+  // Staff selection for opening drawer
+  const [staffList, setStaffList] = useState<Array<{id: string; name: string; position: string}>>([]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
+  const [loadingStaff, setLoadingStaff] = useState(false);
+
   const fetchCurrentDrawer = useCallback(async () => {
     try {
       const locationParam = currentLocation?.id ? `&locationId=${currentLocation.id}` : '';
       const response = await fetch(`/api/caja?tenantId=${tenantId}${locationParam}`);
       if (response.ok) {
         const data = await response.json();
-        setCurrentDrawer(data.drawer);
+        const openDrawers = (data.drawers || []).filter(
+          (d: CashDrawer) => d.status === 'OPEN'
+        );
+        setDrawers(openDrawers);
+
+        // Auto-select first drawer if none selected or current selection is invalid
+        if (openDrawers.length > 0) {
+          const validSelection = openDrawers.find(
+            (d: CashDrawer) => d.id === selectedDrawerId
+          );
+          if (!validSelection) {
+            setSelectedDrawerId(openDrawers[0].id);
+            setCurrentDrawer(openDrawers[0]);
+          } else {
+            setCurrentDrawer(validSelection);
+          }
+        } else {
+          setSelectedDrawerId(null);
+          setCurrentDrawer(null);
+        }
       }
     } catch (error) {
       console.error('Error fetching drawer:', error);
     } finally {
       setLoading(false);
     }
-  }, [tenantId, currentLocation?.id]);
+  }, [tenantId, currentLocation?.id, selectedDrawerId]);
 
   const fetchTransactionSummary = useCallback(async () => {
     try {
@@ -86,6 +117,29 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
     fetchTransactionSummary();
   }, [fetchCurrentDrawer, fetchTransactionSummary]);
 
+  // Fetch active staff for drawer opening
+  useEffect(() => {
+    const fetchStaff = async () => {
+      setLoadingStaff(true);
+      try {
+        const response = await fetch('/api/staff?isActive=true');
+        if (response.ok) {
+          const data = await response.json();
+          setStaffList(data.staff || []);
+          // Pre-select first staff as default
+          if (data.staff?.length > 0) {
+            setSelectedStaffId(data.staff[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching staff:', error);
+      } finally {
+        setLoadingStaff(false);
+      }
+    };
+    fetchStaff();
+  }, []);
+
   const openDrawer = async () => {
     if (!initialAmount || parseFloat(initialAmount) < 0) {
       alert('Ingresa un monto inicial válido');
@@ -100,7 +154,8 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
         body: JSON.stringify({
           tenantId,
           locationId: currentLocation?.id,
-          initialAmount: parseFloat(initialAmount)
+          initialAmount: parseFloat(initialAmount),
+          staffId: selectedStaffId || undefined
         })
       });
 
@@ -126,6 +181,11 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
       return;
     }
 
+    if (!currentDrawer) {
+      alert('No hay caja seleccionada para cerrar');
+      return;
+    }
+
     setIsClosing(true);
     try {
       const response = await fetch('/api/caja/close', {
@@ -133,7 +193,7 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenantId,
-          locationId: currentLocation?.id,
+          drawerId: currentDrawer.id,
           finalAmount: parseFloat(finalAmount)
         })
       });
@@ -183,19 +243,32 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
               <CurrencyDollarIcon className="h-5 w-5" />
               Estado de Caja
             </CardTitle>
-            <Badge variant={isOpen ? 'default' : 'secondary'}>
-              {isOpen ? (
-                <>
-                  <LockOpenIcon className="h-3 w-3 mr-1" />
-                  ABIERTA
-                </>
-              ) : (
-                <>
-                  <LockClosedIcon className="h-3 w-3 mr-1" />
-                  CERRADA
-                </>
+            <div className="flex items-center gap-3">
+              {drawers.length > 1 && (
+                <CashDrawerSelector
+                  drawers={drawers}
+                  selectedDrawerId={selectedDrawerId}
+                  onSelect={(id) => {
+                    setSelectedDrawerId(id);
+                    const selected = drawers.find((d) => d.id === id);
+                    setCurrentDrawer(selected || null);
+                  }}
+                />
               )}
-            </Badge>
+              <Badge variant={isOpen ? 'default' : 'secondary'}>
+                {isOpen ? (
+                  <>
+                    <LockOpenIcon className="h-3 w-3 mr-1" />
+                    ABIERTA
+                  </>
+                ) : (
+                  <>
+                    <LockClosedIcon className="h-3 w-3 mr-1" />
+                    CERRADA
+                  </>
+                )}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -285,6 +358,29 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
                 ) : (
                   <div className="space-y-4 border border-border rounded-lg p-4 bg-card">
                     <h4 className="font-medium text-foreground">Abrir Caja</h4>
+                    <div>
+                      <label className="form-label">
+                        Cajero Responsable
+                      </label>
+                      <select
+                        value={selectedStaffId}
+                        onChange={(e) => setSelectedStaffId(e.target.value)}
+                        className="form-input"
+                        disabled={loadingStaff}
+                      >
+                        {loadingStaff ? (
+                          <option>Cargando...</option>
+                        ) : staffList.length === 0 ? (
+                          <option value="">No hay personal activo</option>
+                        ) : (
+                          staffList.map((staff) => (
+                            <option key={staff.id} value={staff.id}>
+                              {staff.name} - {staff.position}
+                            </option>
+                          ))
+                        )}
+                      </select>
+                    </div>
                     <div>
                       <label className="form-label">
                         Monto inicial en efectivo

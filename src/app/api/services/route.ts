@@ -25,7 +25,8 @@ export async function GET(request: NextRequest) {
     const { tenant } = await requireAuth();
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId');
-    
+    const locationId = searchParams.get('locationId') || undefined;
+
     // Verificar acceso al tenant
     if (tenantId && tenantId !== tenant.id) {
       return NextResponse.json(
@@ -36,7 +37,8 @@ export async function GET(request: NextRequest) {
 
     const services = await prisma.service.findMany({
       where: {
-        tenantId: tenant.id
+        tenantId: tenant.id,
+        ...(locationId && { locationId }),
       },
       orderBy: [
         { category: 'asc' },

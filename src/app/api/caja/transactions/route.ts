@@ -11,6 +11,7 @@ interface TransactionData {
   customerName: string;
   createdAt: Date;
   status: string;
+  saleId: string | null;
 }
 
 export async function GET(request: Request) {
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId') || tenant.id;
     const locationId = searchParams.get('locationId') || undefined;
+    const drawerId = searchParams.get('drawerId') || undefined; // Filtrar por caja específica
     const limit = parseInt(searchParams.get('limit') || '20');
     const summary = searchParams.get('summary') === 'true';
 
@@ -29,18 +31,19 @@ export async function GET(request: Request) {
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      // Obtener caja actual
-      const currentDrawer = await prisma.cashDrawer.findFirst({
-        where: {
-          tenantId,
-          ...(locationId && { locationId }),
-          openedAt: {
-            gte: today,
-            lt: tomorrow
-          }
-        },
-        orderBy: { openedAt: 'desc' }
-      });
+      // Obtener caja (por ID específico o la más reciente)
+      const currentDrawer = drawerId
+        ? await prisma.cashDrawer.findFirst({
+            where: { id: drawerId, tenantId }
+          })
+        : await prisma.cashDrawer.findFirst({
+            where: {
+              tenantId,
+              ...(locationId && { locationId }),
+              status: 'OPEN'
+            },
+            orderBy: { openedAt: 'desc' }
+          });
 
       if (!currentDrawer) {
         return NextResponse.json({
@@ -114,23 +117,19 @@ export async function GET(request: Request) {
     }
 
     // Obtener transacciones recientes (combinando cash transactions y payments)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    // Obtener caja actual
-    const currentDrawer = await prisma.cashDrawer.findFirst({
-      where: {
-        tenantId,
-        ...(locationId && { locationId }),
-        openedAt: {
-          gte: today,
-          lt: tomorrow
-        }
-      },
-      orderBy: { openedAt: 'desc' }
-    });
+    // Obtener caja (por ID específico o la más reciente abierta)
+    const currentDrawer = drawerId
+      ? await prisma.cashDrawer.findFirst({
+          where: { id: drawerId, tenantId }
+        })
+      : await prisma.cashDrawer.findFirst({
+          where: {
+            tenantId,
+            ...(locationId && { locationId }),
+            status: 'OPEN'
+          },
+          orderBy: { openedAt: 'desc' }
+        });
 
     let transactions: TransactionData[] = [];
 
@@ -163,9 +162,10 @@ export async function GET(request: Request) {
         amount: Number(transaction.amount),
         paymentMethod: 'CASH',
         description: transaction.description || 'Transacción de caja',
-        customerName: transaction.SalePayment?.sale.customer.name || 'N/A',
+        customerName: transaction.SalePayment?.sale.customer?.name || 'N/A',
         createdAt: transaction.createdAt,
-        status: 'COMPLETED'
+        status: 'COMPLETED',
+        saleId: transaction.SalePayment?.sale.id || null
       }));
     }
 

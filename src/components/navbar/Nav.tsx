@@ -63,7 +63,12 @@ function UserSection({ onNavigate }: { onNavigate?: () => void }) {
         if (error instanceof Error && error.name === 'AbortError') {
           return;
         }
-        // Only log non-abort errors in development
+        // Ignore network errors that occur during navigation/logout
+        // These are typically "Failed to fetch" TypeErrors when the page is navigating away
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+          return;
+        }
+        // Only log unexpected errors in development
         if (process.env.NODE_ENV === 'development') {
           console.error('Error fetching user data:', error);
         }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
+import { checkCashRegisterLimit } from '../../../lib/plan-limits';
 
 export async function GET(request: Request) {
   try {
@@ -8,34 +9,54 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get('tenantId') || tenant.id;
     const locationId = searchParams.get('locationId') || undefined;
+    const statusFilter = searchParams.get('status') || 'OPEN'; // Default: solo abiertas
 
-    // Buscar la caja actual del día
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const currentDrawer = await prisma.cashDrawer.findFirst({
+    // Buscar todas las cajas (filtradas por status)
+    const drawers = await prisma.cashDrawer.findMany({
       where: {
         tenantId,
         ...(locationId && { locationId }),
-        openedAt: {
-          gte: today,
-          lt: tomorrow
-        }
+        ...(statusFilter !== 'ALL' && { status: statusFilter as 'OPEN' | 'CLOSED' | 'RECONCILED' })
       },
       include: {
         openedBy: {
-          select: { name: true }
+          select: { id: true, name: true }
         },
         closedBy: {
-          select: { name: true }
+          select: { id: true, name: true }
+        },
+        location: {
+          select: { id: true, name: true }
         }
       },
       orderBy: { openedAt: 'desc' }
     });
 
-    return NextResponse.json({ drawer: currentDrawer });
+    // Obtener límites del plan
+    const planLimits = await checkCashRegisterLimit(tenantId);
+
+    // Serializar los valores Decimal a números
+    const serializedDrawers = drawers.map(d => ({
+      ...d,
+      initialAmount: Number(d.initialAmount),
+      finalAmount: d.finalAmount ? Number(d.finalAmount) : null,
+      expectedAmount: d.expectedAmount ? Number(d.expectedAmount) : null,
+      difference: d.difference ? Number(d.difference) : null
+    }));
+
+    return NextResponse.json({
+      drawers: serializedDrawers,
+      count: serializedDrawers.length,
+      openCount: serializedDrawers.filter(d => d.status === 'OPEN').length,
+      planLimits: {
+        limit: planLimits.limit,
+        current: planLimits.current,
+        remaining: planLimits.remaining,
+        canAdd: planLimits.canAdd
+      },
+      // Mantener compatibilidad con código existente
+      drawer: serializedDrawers.find(d => d.status === 'OPEN') || null
+    });
   } catch (error) {
     console.error('Error en GET /api/caja:', error);
     return NextResponse.json(

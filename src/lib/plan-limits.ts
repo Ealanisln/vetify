@@ -11,6 +11,7 @@ interface PlanFeatures {
   multiDoctor?: boolean;
   smsReminders?: boolean;
   apiAccess?: boolean;
+  shiftManagement?: boolean;
 }
 
 export interface PlanLimits {
@@ -26,6 +27,7 @@ export interface PlanLimits {
   canUseMultiDoctor: boolean;
   canUseSMSReminders: boolean;
   canUseApiAccess?: boolean;
+  canUseShiftManagement: boolean;
 }
 
 export interface PlanUsageStats {
@@ -69,7 +71,8 @@ export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
       canUseMultiLocation: false,
       canUseMultiDoctor: false,
       canUseSMSReminders: false,
-      canUseApiAccess: false
+      canUseApiAccess: false,
+      canUseShiftManagement: false
     };
   }
 
@@ -88,7 +91,8 @@ export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
       canUseMultiLocation: false,
       canUseMultiDoctor: true,
       canUseSMSReminders: true,
-      canUseApiAccess: false
+      canUseApiAccess: false,
+      canUseShiftManagement: false // Only for PROFESIONAL+
     };
   }
 
@@ -107,7 +111,8 @@ export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
     canUseMultiLocation: features?.multiLocation || false,
     canUseMultiDoctor: features?.multiDoctor || false,
     canUseSMSReminders: features?.smsReminders || false,
-    canUseApiAccess: features?.apiAccess || false
+    canUseApiAccess: features?.apiAccess || false,
+    canUseShiftManagement: features?.shiftManagement || false
   };
 }
 
@@ -343,7 +348,7 @@ export async function checkLocationLimit(tenantId: string): Promise<{
  */
 export async function checkFeatureAccess(
   tenantId: string,
-  feature: 'automations' | 'advancedReports' | 'advancedInventory' | 'multiLocation' | 'multiDoctor' | 'smsReminders' | 'apiAccess'
+  feature: 'automations' | 'advancedReports' | 'advancedInventory' | 'multiLocation' | 'multiDoctor' | 'smsReminders' | 'apiAccess' | 'shiftManagement'
 ): Promise<boolean> {
   const limits = await getPlanLimits(tenantId);
 
@@ -362,9 +367,18 @@ export async function checkFeatureAccess(
       return limits.canUseSMSReminders;
     case 'apiAccess':
       return limits.canUseApiAccess || false;
+    case 'shiftManagement':
+      return limits.canUseShiftManagement;
     default:
       return false;
   }
+}
+
+/**
+ * Check if tenant has shift management access
+ */
+export async function checkShiftManagementAccess(tenantId: string): Promise<boolean> {
+  return checkFeatureAccess(tenantId, 'shiftManagement');
 }
 
 /**

@@ -2,7 +2,7 @@
 
 import { Fragment } from 'react';
 import { Menu, Transition } from '@headlessui/react';
-import { MapPinIcon, ChevronUpDownIcon, CheckIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, ChevronUpDownIcon, CheckIcon, BuildingOffice2Icon } from '@heroicons/react/24/outline';
 import { useLocation } from '@/components/providers/LocationProvider';
 import { cn } from '@/lib/utils';
 
@@ -30,7 +30,9 @@ export function LocationSwitcher() {
     availableLocations,
     isLoading,
     hasMultipleLocations,
+    isAllLocations,
     switchLocation,
+    switchToAllLocations,
   } = useLocation();
 
   // Don't show switcher if only one location or still loading
@@ -41,9 +43,13 @@ export function LocationSwitcher() {
   return (
     <Menu as="div" className="relative">
       <Menu.Button className="flex w-full items-center gap-x-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800 transition-colors">
-        <MapPinIcon className="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+        {isAllLocations ? (
+          <BuildingOffice2Icon className="h-5 w-5 shrink-0 text-[#75a99c]" aria-hidden="true" />
+        ) : (
+          <MapPinIcon className="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+        )}
         <span className="flex-1 truncate text-left">
-          {currentLocation?.name || 'Seleccionar ubicación'}
+          {isAllLocations ? 'Todas las ubicaciones' : (currentLocation?.name || 'Seleccionar ubicación')}
         </span>
         <ChevronUpDownIcon
           className="h-5 w-5 shrink-0 text-gray-400"
@@ -62,6 +68,39 @@ export function LocationSwitcher() {
       >
         <Menu.Items className="absolute left-0 right-0 z-10 mt-2 origin-top-left rounded-lg bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
           <div className="py-1">
+            {/* All Locations Option */}
+            <Menu.Item>
+              {({ active }) => (
+                <button
+                  onClick={switchToAllLocations}
+                  className={cn(
+                    'flex w-full items-center gap-x-3 px-4 py-2 text-sm',
+                    active
+                      ? 'bg-gray-100 text-gray-900 dark:bg-gray-700 dark:text-white'
+                      : 'text-gray-700 dark:text-gray-200'
+                  )}
+                >
+                  <BuildingOffice2Icon
+                    className="h-5 w-5 shrink-0 text-[#75a99c]"
+                    aria-hidden="true"
+                  />
+                  <span className="flex-1 truncate text-left font-medium">
+                    Todas las ubicaciones
+                  </span>
+                  {isAllLocations && (
+                    <CheckIcon
+                      className="h-5 w-5 shrink-0 text-[#75a99c]"
+                      aria-hidden="true"
+                    />
+                  )}
+                </button>
+              )}
+            </Menu.Item>
+
+            {/* Divider */}
+            <div className="border-t border-gray-200 dark:border-gray-700 my-1" />
+
+            {/* Individual Locations */}
             {availableLocations.map((location) => (
               <Menu.Item key={location.id}>
                 {({ active }) => (
@@ -87,7 +126,7 @@ export function LocationSwitcher() {
                         </span>
                       )}
                     </span>
-                    {currentLocation?.id === location.id && (
+                    {!isAllLocations && currentLocation?.id === location.id && (
                       <CheckIcon
                         className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-500"
                         aria-hidden="true"
@@ -116,17 +155,26 @@ export function LocationSwitcher() {
  * ```
  */
 export function LocationBadge() {
-  const { currentLocation, isLoading } = useLocation();
+  const { currentLocation, isLoading, isAllLocations, availableLocations } = useLocation();
 
-  if (isLoading || !currentLocation) {
+  if (isLoading || (!currentLocation && !isAllLocations)) {
+    return null;
+  }
+
+  // Don't show if only one location
+  if (availableLocations.length <= 1) {
     return null;
   }
 
   return (
     <div className="flex items-center gap-x-2 rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-1.5 text-sm">
-      <MapPinIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+      {isAllLocations ? (
+        <BuildingOffice2Icon className="h-4 w-4 text-[#75a99c]" aria-hidden="true" />
+      ) : (
+        <MapPinIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+      )}
       <span className="font-medium text-gray-700 dark:text-gray-200">
-        {currentLocation.name}
+        {isAllLocations ? 'Todas' : currentLocation?.name}
       </span>
     </div>
   );
@@ -144,16 +192,25 @@ export function LocationBadge() {
  * ```
  */
 export function LocationIndicator() {
-  const { currentLocation, isLoading } = useLocation();
+  const { currentLocation, isLoading, isAllLocations, availableLocations } = useLocation();
 
-  if (isLoading || !currentLocation) {
+  if (isLoading || (!currentLocation && !isAllLocations)) {
+    return null;
+  }
+
+  // Don't show if only one location
+  if (availableLocations.length <= 1) {
     return null;
   }
 
   return (
     <div className="flex items-center gap-x-1.5 text-xs text-gray-600 dark:text-gray-400">
-      <MapPinIcon className="h-3.5 w-3.5" aria-hidden="true" />
-      <span>{currentLocation.name}</span>
+      {isAllLocations ? (
+        <BuildingOffice2Icon className="h-3.5 w-3.5 text-[#75a99c]" aria-hidden="true" />
+      ) : (
+        <MapPinIcon className="h-3.5 w-3.5" aria-hidden="true" />
+      )}
+      <span>{isAllLocations ? 'Todas las ubicaciones' : currentLocation?.name}</span>
     </div>
   );
 }

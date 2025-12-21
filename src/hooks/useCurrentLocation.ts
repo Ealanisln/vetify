@@ -50,8 +50,15 @@ export function useCurrentLocation() {
       setError(null);
 
       // If no current location is set, set it to the primary or first location
-      if (!currentLocation && locations.length > 0) {
+      if (currentLocation === null && locations.length > 0) {
         const storedLocationId = localStorage.getItem('currentLocationId');
+
+        // Check if "all locations" was previously selected
+        if (storedLocationId === 'all') {
+          setCurrentLocation(null);
+          return;
+        }
+
         let locationToSet: Location | undefined;
 
         // Try to use stored location ID, but validate it exists and is active
@@ -125,7 +132,7 @@ export function useCurrentLocation() {
   // Switch to "All Locations" view (for admins)
   const switchToAllLocations = useCallback(() => {
     setCurrentLocation(null);
-    localStorage.removeItem('currentLocationId');
+    localStorage.setItem('currentLocationId', 'all');
   }, []);
 
   // Refresh locations list
@@ -136,6 +143,9 @@ export function useCurrentLocation() {
   // Check if user has multiple locations
   const hasMultipleLocations = availableLocations.length > 1;
 
+  // Check if "all locations" is selected
+  const isAllLocations = currentLocation === null && availableLocations.length > 0;
+
   // Get primary location
   const primaryLocation = availableLocations.find((loc) => loc.isPrimary);
 
@@ -145,6 +155,7 @@ export function useCurrentLocation() {
     isLoading,
     error,
     hasMultipleLocations,
+    isAllLocations,
     primaryLocation,
     switchLocation,
     switchToAllLocations,

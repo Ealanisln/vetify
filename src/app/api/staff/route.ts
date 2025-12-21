@@ -37,12 +37,13 @@ export async function GET(request: NextRequest) {
   try {
     const { tenant } = await requireAuth();
     const { searchParams } = new URL(request.url);
-    
+
     // Parse query parameters
     const filters = {
       search: searchParams.get('search') || undefined,
       position: searchParams.get('position') || undefined,
       isActive: searchParams.get('isActive') ? searchParams.get('isActive') === 'true' : undefined,
+      locationId: searchParams.get('locationId') || undefined,
       page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : undefined,
       limit: searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined,
     };

@@ -312,12 +312,65 @@ describe('useCurrentLocation Hook', () => {
 
       expect(result.current.currentLocation).not.toBeNull();
 
+      // Clear previous setItem calls
+      localStorageMock.setItem.mockClear();
+
       act(() => {
         result.current.switchToAllLocations();
       });
 
       expect(result.current.currentLocation).toBeNull();
-      expect(localStorageMock.removeItem).toHaveBeenCalledWith('currentLocationId');
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('currentLocationId', 'all');
+    });
+
+    it('should set isAllLocations to true when viewing all locations', async () => {
+      const locations = [
+        createMockLocation({ id: 'loc-1', isPrimary: true }),
+        createMockLocation({ id: 'loc-2', isPrimary: false }),
+      ];
+
+      mockFetch.mockResolvedValueOnce(createMockApiResponse(locations));
+
+      const { result } = renderHook(() => useCurrentLocation());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Initially not in "all locations" mode
+      expect(result.current.isAllLocations).toBe(false);
+      expect(result.current.currentLocation).not.toBeNull();
+
+      act(() => {
+        result.current.switchToAllLocations();
+      });
+
+      // Now in "all locations" mode
+      expect(result.current.isAllLocations).toBe(true);
+      expect(result.current.currentLocation).toBeNull();
+    });
+
+    it('should restore all locations view from localStorage', async () => {
+      // Pre-set localStorage to 'all' using the mock's setItem
+      // This updates the internal store without overriding the mock implementation
+      localStorageMock.setItem('currentLocationId', 'all');
+
+      const locations = [
+        createMockLocation({ id: 'loc-1', isPrimary: true }),
+        createMockLocation({ id: 'loc-2', isPrimary: false }),
+      ];
+
+      mockFetch.mockResolvedValueOnce(createMockApiResponse(locations));
+
+      const { result } = renderHook(() => useCurrentLocation());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      // Should restore to "all locations" view
+      expect(result.current.isAllLocations).toBe(true);
+      expect(result.current.currentLocation).toBeNull();
     });
 
     it('should allow switching to inactive location', async () => {

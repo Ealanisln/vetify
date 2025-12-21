@@ -1,19 +1,51 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  MagnifyingGlassIcon, 
+import {
+  MagnifyingGlassIcon,
   TrashIcon,
   PrinterIcon,
-  CreditCardIcon
+  CreditCardIcon,
+  UserIcon
 } from '@heroicons/react/24/outline';
 import { CustomerSearchResult, ProductSearchResult, SaleItemForm } from '@/types';
 import { toast } from 'sonner';
+import { SaleDetailModal } from '@/components/sales/SaleDetailModal';
+import { useLocation } from '@/components/providers/LocationProvider';
+import { calculateTaxBreakdown, formatTaxRateLabel } from '@/lib/tax-utils';
 
 interface SalesPageClientProps {
   tenantId: string;
   userId: string;
 }
+
+interface ProcessedSale {
+  id: string;
+  saleNumber: string;
+}
+
+// Traducciones de categorías
+const CATEGORY_LABELS: Record<string, string> = {
+  // Categorías de inventario
+  MEDICINE: 'Medicamento',
+  FOOD: 'Alimento',
+  ACCESSORY: 'Accesorio',
+  SUPPLEMENT: 'Suplemento',
+  HYGIENE: 'Higiene',
+  EQUIPMENT: 'Equipo',
+  OTHER: 'Otro',
+  // Categorías de servicios
+  CONSULTATION: 'Consulta',
+  SURGERY: 'Cirugía',
+  VACCINATION: 'Vacunación',
+  GROOMING: 'Estética',
+  LABORATORY: 'Laboratorio',
+  IMAGING: 'Imagenología',
+  DENTAL: 'Dental',
+  EMERGENCY: 'Emergencia',
+  HOSPITALIZATION: 'Hospitalización',
+  DEWORMING: 'Desparasitación'
+};
 
 export default function SalesPageClient({}: SalesPageClientProps) {
   const [customerQuery, setCustomerQuery] = useState('');
@@ -21,11 +53,43 @@ export default function SalesPageClient({}: SalesPageClientProps) {
   const [customers, setCustomers] = useState<CustomerSearchResult[]>([]);
   const [products, setProducts] = useState<ProductSearchResult[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerSearchResult | null>(null);
+  const [isGeneralSale, setIsGeneralSale] = useState(false);
   const [selectedPet, setSelectedPet] = useState<string>('');
   const [cartItems, setCartItems] = useState<SaleItemForm[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showProductSearch, setShowProductSearch] = useState(false);
+  const [lastProcessedSale, setLastProcessedSale] = useState<ProcessedSale | null>(null);
+  const [showSaleModal, setShowSaleModal] = useState(false);
+  const [taxRate, setTaxRate] = useState<number>(0.16);
+
+  const { currentLocation, isAllLocations } = useLocation();
+
+  // Cargar tasa de IVA del tenant
+  useEffect(() => {
+    const fetchTenantSettings = async () => {
+      try {
+        const response = await fetch('/api/settings/clinic');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.settings?.taxRate) {
+            setTaxRate(Number(data.settings.taxRate));
+          }
+        }
+      } catch (error) {
+        console.error('Error loading tenant settings:', error);
+      }
+    };
+    fetchTenantSettings();
+  }, []);
+
+  // Build location query param
+  const getLocationParam = () => {
+    if (!isAllLocations && currentLocation?.id) {
+      return `&locationId=${currentLocation.id}`;
+    }
+    return '';
+  };
 
   // Buscar clientes
   const searchCustomers = async (query: string) => {
@@ -35,7 +99,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
     }
 
     try {
-      const response = await fetch(`/api/sales/search?type=customers&q=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/sales/search?type=customers&q=${encodeURIComponent(query)}${getLocationParam()}`);
       const data = await response.json();
       setCustomers(data);
     } catch (error) {
@@ -51,7 +115,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
     }
 
     try {
-      const response = await fetch(`/api/sales/search?type=products&q=${encodeURIComponent(query)}`);
+      const response = await fetch(`/api/sales/search?type=products&q=${encodeURIComponent(query)}${getLocationParam()}`);
       const data = await response.json();
       setProducts(data);
     } catch (error) {
@@ -61,6 +125,11 @@ export default function SalesPageClient({}: SalesPageClientProps) {
 
   // Agregar producto al carrito
   const addToCart = (product: ProductSearchResult) => {
+    // Limpiar la última venta procesada al iniciar una nueva venta
+    if (lastProcessedSale) {
+      setLastProcessedSale(null);
+    }
+
     const existingItemIndex = cartItems.findIndex(
       item => item.itemId === product.id || item.serviceId === product.id
     );
@@ -110,14 +179,17 @@ export default function SalesPageClient({}: SalesPageClientProps) {
   };
 
   // Calcular totales
-  const subtotal = cartItems.reduce((sum, item) => sum + item.total, 0);
-  const tax = subtotal * 0.16; // 16% IVA - esto debería venir de la configuración del tenant
-  const total = subtotal + tax;
+  // Los precios YA incluyen IVA - calculamos desglose informativo
+  const totalWithTax = cartItems.reduce((sum, item) => sum + item.total, 0);
+  const taxBreakdown = calculateTaxBreakdown(totalWithTax, taxRate);
+  const subtotal = taxBreakdown.subtotalWithoutTax; // Subtotal SIN IVA (base gravable)
+  const tax = taxBreakdown.taxAmount;               // IVA incluido (desglose informativo)
+  const total = taxBreakdown.total;                 // Total = suma de precios (NO suma adicional)
 
   // Procesar venta
   const processSale = async () => {
-    if (!selectedCustomer || cartItems.length === 0) {
-      toast.error('Selecciona un cliente y agrega productos');
+    if ((!selectedCustomer && !isGeneralSale) || cartItems.length === 0) {
+      toast.error('Selecciona un cliente o venta general y agrega productos');
       return;
     }
 
@@ -125,8 +197,9 @@ export default function SalesPageClient({}: SalesPageClientProps) {
 
     try {
       const saleData = {
-        customerId: selectedCustomer.id,
-        petId: selectedPet || undefined,
+        customerId: isGeneralSale ? undefined : selectedCustomer?.id,
+        petId: isGeneralSale ? undefined : (selectedPet || undefined),
+        locationId: !isAllLocations && currentLocation?.id ? currentLocation.id : undefined,
         items: cartItems,
         tax,
         paymentMethod: 'CASH', // Por simplicidad, por ahora solo efectivo
@@ -142,19 +215,24 @@ export default function SalesPageClient({}: SalesPageClientProps) {
 
       if (response.ok) {
         const sale = await response.json();
-        
+
+        // Guardar la venta procesada para permitir impresión
+        setLastProcessedSale({
+          id: sale.id,
+          saleNumber: sale.saleNumber
+        });
+
         // Limpiar formulario
         setSelectedCustomer(null);
+        setIsGeneralSale(false);
         setSelectedPet('');
         setCartItems([]);
         setCustomerQuery('');
-        
-        toast.success(`🎉 Venta procesada exitosamente`, {
-          description: `Número de venta: ${sale.saleNumber}`,
+
+        toast.success(`Venta procesada exitosamente`, {
+          description: `Número de venta: ${sale.saleNumber}. Puedes imprimir el ticket ahora.`,
           duration: 5000,
         });
-        
-        // Aquí podrías abrir una ventana de impresión o generar un PDF
       } else {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.error || 'Error procesando la venta';
@@ -188,11 +266,22 @@ export default function SalesPageClient({}: SalesPageClientProps) {
   // Effects
   useEffect(() => {
     searchCustomers(customerQuery);
-  }, [customerQuery]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerQuery, currentLocation?.id, isAllLocations]);
 
   useEffect(() => {
     searchProducts(productQuery);
-  }, [productQuery]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productQuery, currentLocation?.id, isAllLocations]);
+
+  // Clear selection when location changes
+  useEffect(() => {
+    setSelectedCustomer(null);
+    setIsGeneralSale(false);
+    setSelectedPet('');
+    setCustomerQuery('');
+    setCartItems([]);
+  }, [currentLocation?.id]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -200,10 +289,37 @@ export default function SalesPageClient({}: SalesPageClientProps) {
       <div className="space-y-6">
         {/* Búsqueda de cliente */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-            Cliente
-          </h3>
-          
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+              Cliente
+            </h3>
+            <button
+              onClick={() => {
+                setIsGeneralSale(!isGeneralSale);
+                if (!isGeneralSale) {
+                  setSelectedCustomer(null);
+                  setSelectedPet('');
+                  setCustomerQuery('');
+                }
+              }}
+              className={`flex items-center px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                isGeneralSale
+                  ? 'bg-[#75a99c] text-white border-[#75a99c]'
+                  : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+              }`}
+            >
+              <UserIcon className="h-4 w-4 mr-1.5" />
+              Venta General
+            </button>
+          </div>
+
+          {isGeneralSale ? (
+            <div className="flex items-center justify-center py-4 px-3 bg-gray-50 dark:bg-gray-700/50 rounded-md border border-dashed border-gray-300 dark:border-gray-600">
+              <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
+              <span className="text-gray-600 dark:text-gray-400">Venta sin cliente registrado</span>
+            </div>
+          ) : (
+          <>
           <div className="relative">
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -265,6 +381,8 @@ export default function SalesPageClient({}: SalesPageClientProps) {
               </select>
             </div>
           )}
+          </>
+          )}
         </div>
 
         {/* Búsqueda de productos */}
@@ -299,7 +417,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
                           {product.name}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {product.category}
+                          {CATEGORY_LABELS[product.category] || product.category}
                           {product.type === 'product' && ` • Stock: ${product.quantity}`}
                         </div>
                       </div>
@@ -379,11 +497,11 @@ export default function SalesPageClient({}: SalesPageClientProps) {
           
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">Subtotal:</span>
+              <span className="text-gray-600 dark:text-gray-400">Subtotal (sin IVA):</span>
               <span className="font-medium">${subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600 dark:text-gray-400">IVA (16%):</span>
+              <span className="text-gray-600 dark:text-gray-400">IVA incluido ({formatTaxRateLabel(taxRate)}):</span>
               <span className="font-medium">${tax.toFixed(2)}</span>
             </div>
             <div className="border-t border-gray-200 dark:border-gray-600 pt-2">
@@ -397,7 +515,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
           <div className="mt-6 space-y-3">
             <button
               onClick={processSale}
-              disabled={!selectedCustomer || cartItems.length === 0 || isProcessing}
+              disabled={(!selectedCustomer && !isGeneralSale) || cartItems.length === 0 || isProcessing}
               className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-[#75a99c] hover:bg-[#5b9788] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <CreditCardIcon className="h-4 w-4 mr-2" />
@@ -405,15 +523,24 @@ export default function SalesPageClient({}: SalesPageClientProps) {
             </button>
             
             <button
-              disabled={cartItems.length === 0}
+              onClick={() => setShowSaleModal(true)}
+              disabled={!lastProcessedSale}
               className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!lastProcessedSale ? 'Procesa una venta primero' : `Ver ticket #${lastProcessedSale.saleNumber}`}
             >
               <PrinterIcon className="h-4 w-4 mr-2" />
-              Imprimir Ticket
+              {lastProcessedSale ? `Imprimir Ticket #${lastProcessedSale.saleNumber}` : 'Imprimir Ticket'}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Modal de detalle de venta */}
+      <SaleDetailModal
+        saleId={lastProcessedSale?.id || null}
+        open={showSaleModal}
+        onClose={() => setShowSaleModal(false)}
+      />
     </div>
   );
 } 

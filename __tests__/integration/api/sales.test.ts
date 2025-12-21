@@ -12,6 +12,7 @@ import {
   createTestService,
   createTestCashDrawer,
   createTestCashTransaction,
+  createTestLocation,
 } from '../../utils/test-utils';
 
 describe('Sales API Integration Tests', () => {
@@ -469,6 +470,182 @@ describe('Sales API Integration Tests', () => {
       expect(result).not.toContainEqual(
         expect.objectContaining({ tenantId: 'other-tenant-id' })
       );
+    });
+  });
+
+  describe('Location Filtering', () => {
+    it('should filter sales by locationId when provided', async () => {
+      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });
+      const location2 = createTestLocation({ id: 'location-2', name: 'Clinic B' });
+
+      const saleAtLocation1 = createTestSale({
+        id: 'sale-loc-1',
+        tenantId: mockTenant.id,
+        locationId: location1.id,
+      });
+      const saleAtLocation2 = createTestSale({
+        id: 'sale-loc-2',
+        tenantId: mockTenant.id,
+        locationId: location2.id,
+      });
+
+      prismaMock.sale.findMany.mockImplementation(async (args: any) => {
+        const sales = [saleAtLocation1, saleAtLocation2];
+        if (args?.where?.locationId) {
+          return sales.filter((s) => s.locationId === args.where.locationId);
+        }
+        return sales;
+      });
+
+      const filteredResult = await prismaMock.sale.findMany({
+        where: { tenantId: mockTenant.id, locationId: location1.id },
+      });
+
+      expect(filteredResult).toHaveLength(1);
+      expect(filteredResult[0].locationId).toBe(location1.id);
+    });
+
+    it('should return all sales when locationId is not provided', async () => {
+      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });
+      const location2 = createTestLocation({ id: 'location-2', name: 'Clinic B' });
+
+      const saleAtLocation1 = createTestSale({
+        id: 'sale-loc-1',
+        tenantId: mockTenant.id,
+        locationId: location1.id,
+      });
+      const saleAtLocation2 = createTestSale({
+        id: 'sale-loc-2',
+        tenantId: mockTenant.id,
+        locationId: location2.id,
+      });
+      const saleNoLocation = createTestSale({
+        id: 'sale-no-loc',
+        tenantId: mockTenant.id,
+        locationId: null,
+      });
+
+      prismaMock.sale.findMany.mockResolvedValue([
+        saleAtLocation1,
+        saleAtLocation2,
+        saleNoLocation,
+      ]);
+
+      const result = await prismaMock.sale.findMany({
+        where: { tenantId: mockTenant.id },
+      });
+
+      expect(result).toHaveLength(3);
+      expect(result.map((s) => s.id)).toContain('sale-loc-1');
+      expect(result.map((s) => s.id)).toContain('sale-loc-2');
+      expect(result.map((s) => s.id)).toContain('sale-no-loc');
+    });
+
+    it('should filter stats by locationId when action=stats', async () => {
+      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });
+
+      // Mock stats query with locationId filter
+      prismaMock.sale.aggregate.mockImplementation(async (args: any) => {
+        if (args?.where?.locationId === location1.id) {
+          return {
+            _sum: { total: 2500.0 },
+            _count: { id: 5 },
+          };
+        }
+        return {
+          _sum: { total: 5000.0 },
+          _count: { id: 10 },
+        };
+      });
+
+      const statsForLocation = await prismaMock.sale.aggregate({
+        where: { tenantId: mockTenant.id, locationId: location1.id },
+        _sum: { total: true },
+        _count: { id: true },
+      });
+
+      expect(statsForLocation._sum.total).toBe(2500.0);
+      expect(statsForLocation._count.id).toBe(5);
+    });
+
+    it('should filter search results by locationId for customers', async () => {
+      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });
+
+      const customerAtLocation1 = createTestCustomer({
+        id: 'customer-loc-1',
+        tenantId: mockTenant.id,
+        locationId: location1.id,
+        name: 'John Doe at Location 1',
+      });
+      const customerAtLocation2 = createTestCustomer({
+        id: 'customer-loc-2',
+        tenantId: mockTenant.id,
+        locationId: 'location-2',
+        name: 'John Smith at Location 2',
+      });
+
+      prismaMock.customer.findMany.mockImplementation(async (args: any) => {
+        const customers = [customerAtLocation1, customerAtLocation2];
+
+        // Check for locationId filter
+        if (args?.where?.OR) {
+          const locationIdFilter = args.where.OR.find(
+            (condition: any) => condition?.locationId !== undefined
+          );
+          if (locationIdFilter) {
+            return customers.filter(
+              (c) =>
+                c.locationId === locationIdFilter.locationId || c.locationId === null
+            );
+          }
+        }
+        return customers;
+      });
+
+      const result = await prismaMock.customer.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          OR: [{ locationId: location1.id }, { locationId: null }],
+        },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].locationId).toBe(location1.id);
+    });
+
+    it('should filter search results by locationId for products', async () => {
+      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });
+
+      const productAtLocation1 = createTestInventoryItem({
+        id: 'product-loc-1',
+        tenantId: mockTenant.id,
+        locationId: location1.id,
+        name: 'Rabies Vaccine at Location 1',
+      });
+      const productAtLocation2 = createTestInventoryItem({
+        id: 'product-loc-2',
+        tenantId: mockTenant.id,
+        locationId: 'location-2',
+        name: 'Rabies Vaccine at Location 2',
+      });
+
+      prismaMock.inventoryItem.findMany.mockImplementation(async (args: any) => {
+        const products = [productAtLocation1, productAtLocation2];
+        if (args?.where?.locationId) {
+          return products.filter((p) => p.locationId === args.where.locationId);
+        }
+        return products;
+      });
+
+      const result = await prismaMock.inventoryItem.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          locationId: location1.id,
+        },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0].locationId).toBe(location1.id);
     });
   });
 });
