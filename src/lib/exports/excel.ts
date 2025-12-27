@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type {
@@ -17,22 +17,67 @@ export interface ExcelSheet {
 }
 
 // ============================================================================
+// Browser Download Helper
+// ============================================================================
+
+/**
+ * Trigger a file download in the browser from an ArrayBuffer
+ */
+async function downloadWorkbook(workbook: ExcelJS.Workbook, filename: string): Promise<void> {
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================================
 // Generic Excel Export
 // ============================================================================
 
 /**
  * Export data to an Excel file with multiple sheets
  */
-export function exportToExcel(sheets: ExcelSheet[], filename: string): void {
-  const workbook = XLSX.utils.book_new();
+export async function exportToExcel(sheets: ExcelSheet[], filename: string): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
 
   for (const sheet of sheets) {
-    const worksheet = XLSX.utils.json_to_sheet(sheet.data);
-    XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name);
+    const worksheet = workbook.addWorksheet(sheet.name);
+
+    if (sheet.data.length > 0) {
+      // Get column keys from first row
+      const keys = Object.keys(sheet.data[0]);
+
+      // Set columns with headers
+      worksheet.columns = keys.map((key) => ({
+        header: key,
+        key: key,
+        width: 20,
+      }));
+
+      // Add data rows
+      for (const row of sheet.data) {
+        worksheet.addRow(row);
+      }
+
+      // Style header row
+      const headerRow = worksheet.getRow(1);
+      headerRow.font = { bold: true };
+      headerRow.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFE0E0E0' },
+      };
+    }
   }
 
   const dateStr = format(new Date(), 'yyyy-MM-dd');
-  XLSX.writeFile(workbook, `${filename}-${dateStr}.xlsx`);
+  await downloadWorkbook(workbook, `${filename}-${dateStr}.xlsx`);
 }
 
 // ============================================================================
@@ -42,13 +87,13 @@ export function exportToExcel(sheets: ExcelSheet[], filename: string): void {
 /**
  * Create a location report Excel file with all report sections
  */
-export function createLocationReportExcel(
+export async function createLocationReportExcel(
   revenue: LocationRevenueAnalytics,
   inventory: LocationInventoryAnalytics,
   performance: LocationPerformanceMetrics,
   locationName: string,
   dateRange?: { startDate: Date | null; endDate: Date | null }
-): void {
+): Promise<void> {
   const sheets: ExcelSheet[] = [];
 
   // Revenue sheet
@@ -63,7 +108,7 @@ export function createLocationReportExcel(
   sheets.push({ name: 'Ventas', data: revenueData });
 
   // Inventory sheet
-  const inventoryData = [
+  const inventoryData: Record<string, unknown>[] = [
     { Metrica: 'Productos Totales', Valor: inventory.totalItems },
     { Metrica: 'Valor del Inventario', Valor: formatCurrency(inventory.inventoryValue) },
     { Metrica: 'Productos con Stock Bajo', Valor: inventory.lowStockCount },
@@ -109,7 +154,7 @@ export function createLocationReportExcel(
     filename = `reporte-${safeName}-${startStr}-a-${endStr}`;
   }
 
-  exportToExcel(sheets, filename);
+  await exportToExcel(sheets, filename);
 }
 
 // ============================================================================
@@ -130,10 +175,10 @@ interface ComparisonLocation {
 /**
  * Create a comparison report Excel file
  */
-export function createComparisonReportExcel(
+export async function createComparisonReportExcel(
   comparison: ComparisonLocation[],
   dateRange?: { startDate: Date | null; endDate: Date | null }
-): void {
+): Promise<void> {
   const comparisonData = comparison
     .sort((a, b) => a.rank - b.rank)
     .map((loc) => ({
@@ -153,7 +198,7 @@ export function createComparisonReportExcel(
     filename = `comparacion-${startStr}-a-${endStr}`;
   }
 
-  exportToExcel([{ name: 'Comparación', data: comparisonData }], filename);
+  await exportToExcel([{ name: 'Comparación', data: comparisonData }], filename);
 }
 
 // ============================================================================

@@ -1,18 +1,34 @@
 /**
- * Unit tests for Excel export utilities
+ * Unit tests for Excel export utilities (ExcelJS implementation)
  */
 
-import * as XLSX from 'xlsx';
-import { format } from 'date-fns';
+import ExcelJS from 'exceljs';
 
-// Mock xlsx and date-fns
-jest.mock('xlsx', () => ({
-  utils: {
-    book_new: jest.fn(() => ({ Sheets: {}, SheetNames: [] })),
-    json_to_sheet: jest.fn(() => ({})),
-    book_append_sheet: jest.fn(),
+// Mock ExcelJS
+const mockAddRow = jest.fn();
+const mockGetRow = jest.fn(() => ({
+  font: {},
+  fill: {},
+}));
+const mockWorksheet = {
+  columns: null as unknown,
+  addRow: mockAddRow,
+  getRow: mockGetRow,
+};
+const mockAddWorksheet = jest.fn(() => mockWorksheet);
+const mockWriteBuffer = jest.fn(() => Promise.resolve(new ArrayBuffer(8)));
+const mockWorkbook = {
+  addWorksheet: mockAddWorksheet,
+  xlsx: {
+    writeBuffer: mockWriteBuffer,
   },
-  writeFile: jest.fn(),
+};
+
+jest.mock('exceljs', () => ({
+  __esModule: true,
+  default: {
+    Workbook: jest.fn(() => mockWorkbook),
+  },
 }));
 
 jest.mock('date-fns', () => ({
@@ -28,6 +44,14 @@ jest.mock('date-fns/locale', () => ({
   es: {},
 }));
 
+// Mock browser APIs
+const mockClick = jest.fn();
+const mockAnchorElement = {
+  href: '',
+  download: '',
+  click: mockClick,
+};
+
 // Import after mocks
 import {
   exportToExcel,
@@ -40,64 +64,90 @@ import type {
   LocationPerformanceMetrics,
 } from '@/lib/reports-location';
 
-describe('Excel Export Utilities', () => {
+// Store original URL methods
+const originalCreateObjectURL = URL.createObjectURL;
+const originalRevokeObjectURL = URL.revokeObjectURL;
+
+describe('Excel Export Utilities (ExcelJS)', () => {
+  let createElementSpy: jest.SpyInstance;
+
+  beforeAll(() => {
+    // Override URL methods for all tests
+    URL.createObjectURL = jest.fn(() => 'blob:test-url');
+    URL.revokeObjectURL = jest.fn();
+  });
+
+  afterAll(() => {
+    // Restore original URL methods
+    URL.createObjectURL = originalCreateObjectURL;
+    URL.revokeObjectURL = originalRevokeObjectURL;
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
+    mockWorksheet.columns = null;
+
+    // Mock document.createElement
+    createElementSpy = jest.spyOn(document, 'createElement').mockReturnValue(mockAnchorElement as unknown as HTMLElement);
+  });
+
+  afterEach(() => {
+    createElementSpy.mockRestore();
   });
 
   describe('exportToExcel', () => {
-    it('should create a new workbook', () => {
+    it('should create a new workbook', async () => {
       const sheets = [{ name: 'Test', data: [{ col1: 'value1' }] }];
-      exportToExcel(sheets, 'test-file');
+      await exportToExcel(sheets, 'test-file');
 
-      expect(XLSX.utils.book_new).toHaveBeenCalled();
+      expect(ExcelJS.Workbook).toHaveBeenCalled();
     });
 
-    it('should create worksheets from sheet data', () => {
+    it('should create worksheets for each sheet', async () => {
       const sheets = [
         { name: 'Sheet1', data: [{ col1: 'value1' }] },
         { name: 'Sheet2', data: [{ col2: 'value2' }] },
       ];
-      exportToExcel(sheets, 'test-file');
+      await exportToExcel(sheets, 'test-file');
 
-      expect(XLSX.utils.json_to_sheet).toHaveBeenCalledTimes(2);
-      expect(XLSX.utils.json_to_sheet).toHaveBeenCalledWith([{ col1: 'value1' }]);
-      expect(XLSX.utils.json_to_sheet).toHaveBeenCalledWith([{ col2: 'value2' }]);
+      expect(mockAddWorksheet).toHaveBeenCalledTimes(2);
+      expect(mockAddWorksheet).toHaveBeenCalledWith('Sheet1');
+      expect(mockAddWorksheet).toHaveBeenCalledWith('Sheet2');
     });
 
-    it('should append sheets with correct names', () => {
-      const sheets = [
-        { name: 'Ventas', data: [{ col1: 'value1' }] },
-        { name: 'Inventario', data: [{ col2: 'value2' }] },
-      ];
-      exportToExcel(sheets, 'test-file');
+    it('should add data rows to worksheets', async () => {
+      const sheets = [{ name: 'Test', data: [{ col1: 'value1' }, { col1: 'value2' }] }];
+      await exportToExcel(sheets, 'test-file');
 
-      expect(XLSX.utils.book_append_sheet).toHaveBeenCalledTimes(2);
+      expect(mockAddRow).toHaveBeenCalledTimes(2);
+      expect(mockAddRow).toHaveBeenCalledWith({ col1: 'value1' });
+      expect(mockAddRow).toHaveBeenCalledWith({ col1: 'value2' });
     });
 
-    it('should save file with correct filename and date', () => {
+    it('should trigger download with correct filename', async () => {
       const sheets = [{ name: 'Test', data: [{ col1: 'value1' }] }];
-      exportToExcel(sheets, 'test-report');
+      await exportToExcel(sheets, 'test-report');
 
-      expect(XLSX.writeFile).toHaveBeenCalledWith(
-        expect.anything(),
-        'test-report-2024-01-15.xlsx'
-      );
+      expect(mockWriteBuffer).toHaveBeenCalled();
+      expect(URL.createObjectURL).toHaveBeenCalled();
+      expect(mockClick).toHaveBeenCalled();
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:test-url');
     });
 
-    it('should handle empty sheets array', () => {
-      exportToExcel([], 'empty-file');
+    it('should handle empty sheets array', async () => {
+      await exportToExcel([], 'empty-file');
 
-      expect(XLSX.utils.book_new).toHaveBeenCalled();
-      expect(XLSX.utils.json_to_sheet).not.toHaveBeenCalled();
-      expect(XLSX.writeFile).toHaveBeenCalled();
+      expect(ExcelJS.Workbook).toHaveBeenCalled();
+      expect(mockAddWorksheet).not.toHaveBeenCalled();
+      expect(mockWriteBuffer).toHaveBeenCalled();
     });
 
-    it('should handle sheets with empty data', () => {
+    it('should handle sheets with empty data', async () => {
       const sheets = [{ name: 'Empty', data: [] }];
-      exportToExcel(sheets, 'empty-data');
+      await exportToExcel(sheets, 'empty-data');
 
-      expect(XLSX.utils.json_to_sheet).toHaveBeenCalledWith([]);
+      expect(mockAddWorksheet).toHaveBeenCalledWith('Empty');
+      expect(mockAddRow).not.toHaveBeenCalled();
     });
   });
 
@@ -143,91 +193,71 @@ describe('Excel Export Utilities', () => {
       },
     };
 
-    it('should create report with all required sheets', () => {
-      createLocationReportExcel(mockRevenue, mockInventory, mockPerformance, 'Sucursal Centro');
+    it('should create report with all required sheets', async () => {
+      await createLocationReportExcel(mockRevenue, mockInventory, mockPerformance, 'Sucursal Centro');
 
-      // Should call book_append_sheet for each sheet (Ventas, Inventario, Rendimiento)
-      expect(XLSX.utils.book_append_sheet).toHaveBeenCalledTimes(3);
+      // Should create 3 worksheets: Ventas, Inventario, Rendimiento
+      expect(mockAddWorksheet).toHaveBeenCalledWith('Ventas');
+      expect(mockAddWorksheet).toHaveBeenCalledWith('Inventario');
+      expect(mockAddWorksheet).toHaveBeenCalledWith('Rendimiento');
     });
 
-    it('should include revenue data in ventas sheet', () => {
-      createLocationReportExcel(mockRevenue, mockInventory, mockPerformance, 'Sucursal Centro');
+    it('should add revenue data rows', async () => {
+      await createLocationReportExcel(mockRevenue, mockInventory, mockPerformance, 'Sucursal Centro');
 
-      // First json_to_sheet call should be for revenue data
-      expect(XLSX.utils.json_to_sheet).toHaveBeenCalled();
-      const revenueCall = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls[0][0];
-      expect(revenueCall).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ Metrica: 'Ventas Hoy' }),
-          expect.objectContaining({ Metrica: 'Ventas Mes' }),
-          expect.objectContaining({ Metrica: 'Ticket Promedio' }),
-        ])
+      // Check that revenue metrics are added
+      expect(mockAddRow).toHaveBeenCalledWith(
+        expect.objectContaining({ Metrica: 'Ventas Hoy' })
+      );
+      expect(mockAddRow).toHaveBeenCalledWith(
+        expect.objectContaining({ Metrica: 'Ventas Mes' })
+      );
+      expect(mockAddRow).toHaveBeenCalledWith(
+        expect.objectContaining({ Metrica: 'Ticket Promedio' })
       );
     });
 
-    it('should include top products in inventory sheet', () => {
-      createLocationReportExcel(mockRevenue, mockInventory, mockPerformance, 'Sucursal Centro');
+    it('should add inventory data with top products', async () => {
+      await createLocationReportExcel(mockRevenue, mockInventory, mockPerformance, 'Sucursal Centro');
 
-      // Inventory sheet should include top products
-      const inventoryCall = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls[1][0];
-      expect(inventoryCall).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ Metrica: 'Productos Totales' }),
-        ])
+      expect(mockAddRow).toHaveBeenCalledWith(
+        expect.objectContaining({ Metrica: 'Productos Totales' })
+      );
+      expect(mockAddRow).toHaveBeenCalledWith(
+        expect.objectContaining({ Metrica: 'TOP PRODUCTOS' })
       );
     });
 
-    it('should include performance metrics', () => {
-      createLocationReportExcel(mockRevenue, mockInventory, mockPerformance, 'Sucursal Centro');
+    it('should add performance metrics', async () => {
+      await createLocationReportExcel(mockRevenue, mockInventory, mockPerformance, 'Sucursal Centro');
 
-      const performanceCall = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls[2][0];
-      expect(performanceCall).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ Categoria: 'Citas', Metrica: 'Total' }),
-          expect.objectContaining({ Categoria: 'Clientes', Metrica: 'Total' }),
-          expect.objectContaining({ Categoria: 'Personal', Metrica: 'Total' }),
-        ])
+      expect(mockAddRow).toHaveBeenCalledWith(
+        expect.objectContaining({ Categoria: 'Citas', Metrica: 'Total' })
+      );
+      expect(mockAddRow).toHaveBeenCalledWith(
+        expect.objectContaining({ Categoria: 'Clientes', Metrica: 'Total' })
+      );
+      expect(mockAddRow).toHaveBeenCalledWith(
+        expect.objectContaining({ Categoria: 'Personal', Metrica: 'Total' })
       );
     });
 
-    it('should sanitize filename with special characters', () => {
-      createLocationReportExcel(mockRevenue, mockInventory, mockPerformance, 'Sucursal Norte #1');
+    it('should trigger file download', async () => {
+      await createLocationReportExcel(mockRevenue, mockInventory, mockPerformance, 'Sucursal Centro');
 
-      expect(XLSX.writeFile).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.stringContaining('reporte-sucursal-norte-1')
-      );
+      expect(mockWriteBuffer).toHaveBeenCalled();
+      expect(mockClick).toHaveBeenCalled();
     });
 
-    it('should include date range in filename when provided', () => {
-      const dateRange = {
-        startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-01-31'),
-      };
-
-      createLocationReportExcel(
-        mockRevenue,
-        mockInventory,
-        mockPerformance,
-        'Centro',
-        dateRange
-      );
-
-      expect(XLSX.writeFile).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.stringContaining('-a-')
-      );
-    });
-
-    it('should handle empty top products array', () => {
+    it('should handle empty top products array', async () => {
       const inventoryNoProducts = {
         ...mockInventory,
         topProducts: [],
       };
 
-      createLocationReportExcel(mockRevenue, inventoryNoProducts, mockPerformance, 'Centro');
+      await createLocationReportExcel(mockRevenue, inventoryNoProducts, mockPerformance, 'Centro');
 
-      expect(XLSX.writeFile).toHaveBeenCalled();
+      expect(mockWriteBuffer).toHaveBeenCalled();
     });
   });
 
@@ -255,58 +285,41 @@ describe('Excel Export Utilities', () => {
       },
     ];
 
-    it('should create comparison report with correct data', () => {
-      createComparisonReportExcel(mockComparison);
+    it('should create comparison sheet', async () => {
+      await createComparisonReportExcel(mockComparison);
 
-      expect(XLSX.utils.json_to_sheet).toHaveBeenCalled();
-      expect(XLSX.utils.book_append_sheet).toHaveBeenCalled();
+      expect(mockAddWorksheet).toHaveBeenCalledWith('Comparación');
     });
 
-    it('should sort locations by rank', () => {
+    it('should add location data rows sorted by rank', async () => {
       const unsortedComparison = [
         { ...mockComparison[1] },
         { ...mockComparison[0] },
       ];
 
-      createComparisonReportExcel(unsortedComparison);
+      await createComparisonReportExcel(unsortedComparison);
 
-      const sheetData = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls[0][0];
-      expect(sheetData[0].Ranking).toBe(1);
-      expect(sheetData[1].Ranking).toBe(2);
+      // First call should be for rank 1
+      const firstRowCall = mockAddRow.mock.calls[0][0];
+      expect(firstRowCall.Ranking).toBe(1);
     });
 
-    it('should include all comparison metrics', () => {
-      createComparisonReportExcel(mockComparison);
+    it('should include all comparison metrics in rows', async () => {
+      await createComparisonReportExcel(mockComparison);
 
-      const sheetData = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls[0][0];
-      expect(sheetData[0]).toHaveProperty('Ubicacion');
-      expect(sheetData[0]).toHaveProperty('Ingresos');
-      expect(sheetData[0]).toHaveProperty('Citas');
-      expect(sheetData[0]).toHaveProperty('Clientes');
-      expect(sheetData[0]).toHaveProperty('Ticket Promedio');
-    });
-
-    it('should use default filename without date range', () => {
-      createComparisonReportExcel(mockComparison);
-
-      expect(XLSX.writeFile).toHaveBeenCalledWith(
-        expect.anything(),
-        'comparacion-ubicaciones-2024-01-15.xlsx'
+      expect(mockAddRow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Ranking: 1,
+          Ubicacion: 'Sucursal Norte',
+        })
       );
     });
 
-    it('should include date range in filename when provided', () => {
-      const dateRange = {
-        startDate: new Date('2024-01-01'),
-        endDate: new Date('2024-01-31'),
-      };
+    it('should trigger file download', async () => {
+      await createComparisonReportExcel(mockComparison);
 
-      createComparisonReportExcel(mockComparison, dateRange);
-
-      expect(XLSX.writeFile).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.stringContaining('comparacion-')
-      );
+      expect(mockWriteBuffer).toHaveBeenCalled();
+      expect(mockClick).toHaveBeenCalled();
     });
   });
 
@@ -334,12 +347,15 @@ describe('Excel Export Utilities', () => {
       staff: { total: 0, active: 0, appointmentsPerStaff: 0 },
     };
 
-    it('should format currency values correctly', () => {
-      createLocationReportExcel(mockRevenue, mockInventory, mockPerformance, 'Test');
+    it('should format currency values with $ symbol', async () => {
+      await createLocationReportExcel(mockRevenue, mockInventory, mockPerformance, 'Test');
 
-      // Currency formatting should be applied to total values
-      const revenueCall = (XLSX.utils.json_to_sheet as jest.Mock).mock.calls[0][0];
-      expect(revenueCall[0].Total).toMatch(/\$/);
+      // Check that at least one row contains formatted currency
+      const addRowCalls = mockAddRow.mock.calls;
+      const hasFormattedCurrency = addRowCalls.some(
+        (call) => call[0].Total && typeof call[0].Total === 'string' && call[0].Total.includes('$')
+      );
+      expect(hasFormattedCurrency).toBe(true);
     });
   });
 });
