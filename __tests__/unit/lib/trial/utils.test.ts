@@ -34,10 +34,19 @@ function createMockTenant(overrides: Partial<Tenant> = {}): Tenant {
   } as Tenant;
 }
 
-// Helper to get date X days from now
+// Helper to get date X days from now with consistent time handling
+// For future dates: set to end of day to maximize day count
+// For past dates: set to start of day to maximize negative day count
 function daysFromNow(days: number): Date {
   const date = new Date();
   date.setDate(date.getDate() + days);
+  if (days >= 0) {
+    // Future dates: end of day for full day counts
+    date.setHours(23, 59, 59, 999);
+  } else {
+    // Past dates: start of day for correct negative day counts
+    date.setHours(0, 0, 0, 0);
+  }
   return date;
 }
 
