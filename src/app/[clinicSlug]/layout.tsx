@@ -3,6 +3,7 @@ import { getTenantBySlug } from '../../lib/tenant';
 import { PublicNavbar } from '../../components/public/PublicNavbar';
 import { PublicFooter } from '../../components/public/PublicFooter';
 import { DynamicPublicTheme } from '../../components/public/DynamicPublicTheme';
+import { WhatsAppButton } from '../../components/public/WhatsAppButton';
 import { getTheme } from '../../lib/themes';
 import type { Metadata } from 'next';
 
@@ -60,6 +61,15 @@ export default async function PublicLayout({
           {children}
         </main>
         <PublicFooter tenant={tenant} />
+
+        {/* Floating WhatsApp button */}
+        {tenant.publicPhone && (
+          <WhatsAppButton
+            phoneNumber={tenant.publicPhone}
+            clinicName={tenant.name}
+            themeColor={primaryColor}
+          />
+        )}
       </div>
     </DynamicPublicTheme>
   );
