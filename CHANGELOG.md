@@ -60,8 +60,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - Added Email Log model for audit trail of sent notifications
 - Performance indexes improve query response times
-
-### Known Issues
-- xlsx package has 2 high-severity vulnerabilities (no patch available yet)
-  - GHSA-4r6h-8v6p-xvw6: Prototype Pollution
-  - GHSA-5pgg-2g8v-p4x9: ReDoS
+- Replaced xlsx package with exceljs to fix high-severity vulnerabilities
+  - Resolved GHSA-4r6h-8v6p-xvw6: Prototype Pollution
+  - Resolved GHSA-5pgg-2g8v-p4x9: ReDoS

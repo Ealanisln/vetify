@@ -263,9 +263,9 @@ export default function LocationReportsClient() {
   };
 
   // Excel export handler
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!reportsData) return;
-    createLocationReportExcel(
+    await createLocationReportExcel(
       reportsData.revenue,
       reportsData.inventory,
       reportsData.performance,
@@ -287,9 +287,9 @@ export default function LocationReportsClient() {
   };
 
   // Comparison Excel export handler
-  const handleExportComparisonExcel = () => {
+  const handleExportComparisonExcel = async () => {
     if (!comparisonData) return;
-    createComparisonReportExcel(comparisonData, dateRange);
+    await createComparisonReportExcel(comparisonData, dateRange);
   };
 
   // Comparison PDF export handler
