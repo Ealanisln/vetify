@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import Link from 'next/link';
 import {
@@ -20,6 +21,16 @@ import type { PublicTenant, FeaturedService } from '../../lib/tenant';
 import { getTheme, getThemeClasses } from '../../lib/themes';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
+import {
+  fadeInUp,
+  staggerContainerFast,
+  cardVariant,
+  cardHover,
+  buttonHover,
+  buttonTap,
+  sectionVariant,
+  viewportSettings,
+} from './animations';
 
 interface ClinicServicesProps {
   tenant: PublicTenant;
@@ -86,12 +97,16 @@ export function ClinicServices({ tenant, featuredServices }: ClinicServicesProps
   const hasServices = services.length > 0;
 
   return (
-    <section
+    <motion.section
       className="py-16 transition-colors duration-200"
       style={{ backgroundColor: colors.backgroundAlt }}
+      initial="hidden"
+      whileInView="visible"
+      viewport={viewportSettings}
+      variants={sectionVariant}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
+        <motion.div className="text-center mb-12" variants={fadeInUp}>
           <h2
             className="text-3xl font-bold mb-4"
             style={{
@@ -109,16 +124,24 @@ export function ClinicServices({ tenant, featuredServices }: ClinicServicesProps
             Ofrecemos una amplia gama de servicios veterinarios profesionales
             para cuidar la salud y bienestar de tu mascota.
           </p>
-        </div>
+        </motion.div>
 
         {hasServices ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+          <motion.div
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
+            variants={staggerContainerFast}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewportSettings}
+          >
             {services.slice(0, 6).map((service, index: number) => {
               const IconComponent = service.icon || Stethoscope;
 
               return (
-                <div
+                <motion.div
                   key={index}
+                  variants={cardVariant}
+                  whileHover={cardHover}
                   className={`p-6 transition-all duration-200 ${themeClasses.card}`}
                   style={{
                     backgroundColor: colors.cardBg,
@@ -160,12 +183,16 @@ export function ClinicServices({ tenant, featuredServices }: ClinicServicesProps
                   >
                     {service.description}
                   </p>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         ) : (
-          <div
+          <motion.div
+            variants={fadeInUp}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewportSettings}
             className={`p-12 text-center mb-12 transition-colors ${themeClasses.card}`}
             style={{
               backgroundColor: colors.cardBg,
@@ -198,11 +225,17 @@ export function ClinicServices({ tenant, featuredServices }: ClinicServicesProps
               Estamos preparando la información de nuestros servicios.
               Contáctanos para conocer más sobre lo que ofrecemos.
             </p>
-          </div>
+          </motion.div>
         )}
 
         {/* Call to action */}
-        <div className="text-center">
+        <motion.div
+          className="text-center"
+          variants={fadeInUp}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportSettings}
+        >
           <div
             className={`p-8 ${themeClasses.card} transition-colors`}
             style={{
@@ -225,36 +258,40 @@ export function ClinicServices({ tenant, featuredServices }: ClinicServicesProps
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href={`/${tenant.slug}/agendar`}>
-                <Button
-                  size="lg"
-                  className={`text-white shadow-lg hover:shadow-xl transition-all duration-200 ${themeClasses.button}`}
-                  style={{
-                    backgroundColor: themeColor,
-                    borderRadius: theme.layout.borderRadius
-                  }}
-                >
-                  Agendar Consulta
-                  <ArrowRight className="h-5 w-5 ml-2" />
-                </Button>
+                <motion.div whileHover={buttonHover} whileTap={buttonTap}>
+                  <Button
+                    size="lg"
+                    className={`text-white shadow-lg hover:shadow-xl transition-all duration-200 ${themeClasses.button}`}
+                    style={{
+                      backgroundColor: themeColor,
+                      borderRadius: theme.layout.borderRadius
+                    }}
+                  >
+                    Agendar Consulta
+                    <ArrowRight className="h-5 w-5 ml-2" />
+                  </Button>
+                </motion.div>
               </Link>
               <Link href={`/${tenant.slug}/servicios`}>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className={`border-2 transition-all duration-200 ${themeClasses.button}`}
-                  style={{
-                    borderColor: themeColor,
-                    color: themeColor,
-                    borderRadius: theme.layout.borderRadius
-                  }}
-                >
-                  Ver Todos los Servicios
-                </Button>
+                <motion.div whileHover={buttonHover} whileTap={buttonTap}>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className={`border-2 transition-all duration-200 ${themeClasses.button}`}
+                    style={{
+                      borderColor: themeColor,
+                      color: themeColor,
+                      borderRadius: theme.layout.borderRadius
+                    }}
+                  >
+                    Ver Todos los Servicios
+                  </Button>
+                </motion.div>
               </Link>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
-    </section>
+    </motion.section>
   );
 } 

@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Phone, MapPin, Clock, Mail, Navigation, Star } from 'lucide-react';
 import Link from 'next/link';
@@ -7,6 +8,18 @@ import type { PublicTenant } from '../../lib/tenant';
 import { getTheme, getThemeClasses } from '../../lib/themes';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
+import {
+  fadeInUp,
+  fadeInLeft,
+  fadeInRight,
+  staggerContainer,
+  cardVariant,
+  cardHover,
+  buttonHover,
+  buttonTap,
+  sectionVariant,
+  viewportSettings,
+} from './animations';
 
 interface ClinicInfoProps {
   tenant: PublicTenant;
@@ -46,12 +59,16 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
   };
 
   return (
-    <section
+    <motion.section
       className="py-16 transition-colors duration-200"
       style={{ backgroundColor: colors.background }}
+      initial="hidden"
+      whileInView="visible"
+      viewport={viewportSettings}
+      variants={sectionVariant}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
+        <motion.div className="text-center mb-12" variants={fadeInUp}>
           <h2
             className="text-3xl font-bold mb-4"
             style={{
@@ -65,11 +82,17 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
           <p className="text-lg" style={{ color: colors.textMuted }}>
             Estamos aquí para cuidar a tu mascota. Contáctanos cuando lo necesites.
           </p>
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           {/* Información de contacto */}
-          <div className="space-y-8">
+          <motion.div
+            className="space-y-8"
+            variants={fadeInLeft}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewportSettings}
+          >
             <div>
               <h3 className="text-xl font-semibold mb-6" style={{ color: colors.text }}>
                 Datos de Contacto
@@ -243,10 +266,16 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
                 )}
               </div>
             </div>
-          </div>
+          </motion.div>
 
           {/* Call to action y testimonios */}
-          <div className="space-y-8">
+          <motion.div
+            className="space-y-8"
+            variants={fadeInRight}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewportSettings}
+          >
             {/* CTA principal */}
             <div
               className="p-8 text-center transition-colors"
@@ -272,14 +301,16 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
                 Nuestro equipo profesional está esperando para brindar el mejor cuidado a tu mascota.
               </p>
               <Link href={`/${tenant.slug}/agendar`}>
-                <Button
-                  size="lg"
-                  className={`text-white shadow-lg hover:shadow-xl transition-all duration-200 ${themeClasses.button}`}
-                  style={{ backgroundColor: themeColor }}
-                >
-                  <Phone className="h-5 w-5 mr-2" />
-                  Agendar Ahora
-                </Button>
+                <motion.div whileHover={buttonHover} whileTap={buttonTap}>
+                  <Button
+                    size="lg"
+                    className={`text-white shadow-lg hover:shadow-xl transition-all duration-200 ${themeClasses.button}`}
+                    style={{ backgroundColor: themeColor }}
+                  >
+                    <Phone className="h-5 w-5 mr-2" />
+                    Agendar Ahora
+                  </Button>
+                </motion.div>
               </Link>
             </div>
 
@@ -296,13 +327,15 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
               </p>
               {tenant.publicPhone && (
                 <a href={`tel:${tenant.publicPhone}`}>
-                  <Button
-                    size="sm"
-                    className={`bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white ${themeClasses.button}`}
-                  >
-                    <Phone className="h-4 w-4 mr-2" />
-                    Llamar Emergencia
-                  </Button>
+                  <motion.div whileHover={buttonHover} whileTap={buttonTap}>
+                    <Button
+                      size="sm"
+                      className={`bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 text-white ${themeClasses.button}`}
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      Llamar Emergencia
+                    </Button>
+                  </motion.div>
                 </a>
               )}
             </div>
@@ -351,9 +384,9 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
-    </section>
+    </motion.section>
   );
 } 

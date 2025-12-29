@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { Building2, Users, Heart, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { PublicTenant, GalleryImage, GalleryCategory } from '../../lib/tenant';
 import { getTheme, getThemeClasses } from '../../lib/themes';
@@ -11,6 +12,13 @@ import Lightbox from 'yet-another-react-lightbox';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
 import 'yet-another-react-lightbox/styles.css';
 import 'yet-another-react-lightbox/plugins/captions.css';
+import {
+  fadeInUp,
+  staggerContainerFast,
+  cardVariant,
+  sectionVariant,
+  viewportSettings,
+} from './animations';
 
 interface ClinicGalleryProps {
   tenant: PublicTenant;
@@ -95,13 +103,17 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
   }
 
   return (
-    <section
+    <motion.section
       className="py-16 transition-colors duration-200"
       style={{ backgroundColor: colors.background }}
+      initial="hidden"
+      whileInView="visible"
+      viewport={viewportSettings}
+      variants={sectionVariant}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-12">
+        <motion.div className="text-center mb-12" variants={fadeInUp}>
           <h2
             className="text-3xl lg:text-4xl font-bold mb-4"
             style={{
@@ -118,10 +130,10 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
           >
             Conoce nuestras instalaciones, equipo y algunos de nuestros pacientes
           </p>
-        </div>
+        </motion.div>
 
         {/* Category Filters */}
-        <div className="flex flex-wrap justify-center gap-2 mb-10">
+        <motion.div className="flex flex-wrap justify-center gap-2 mb-10" variants={fadeInUp}>
           <button
             onClick={() => setActiveFilter('all')}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${themeClasses.button}`}
@@ -151,12 +163,20 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
                 </button>
               )
           )}
-        </div>
+        </motion.div>
 
         {/* Gallery Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <motion.div
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+          variants={staggerContainerFast}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportSettings}
+        >
           {filteredImages.map((image, index) => (
-            <div
+            <motion.div
+              variants={cardVariant}
+              whileHover={{ scale: 1.02, transition: { duration: 0.2 } }}
               key={image.id}
               className={`relative group cursor-pointer overflow-hidden transition-colors ${themeClasses.card}`}
               style={{
@@ -214,9 +234,9 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
                   </span>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Empty state for filtered results */}
         {filteredImages.length === 0 && activeFilter !== 'all' && (
@@ -252,6 +272,6 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
           iconNext: () => <ChevronRight className="w-8 h-8" />,
         }}
       />
-    </section>
+    </motion.section>
   );
 }
