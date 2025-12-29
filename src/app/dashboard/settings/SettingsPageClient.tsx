@@ -6,6 +6,7 @@ import { Badge } from '../../../components/ui/badge';
 import { ServiceManagement } from '../../../components/settings/ServiceManagement';
 import { BusinessHoursSettings } from '../../../components/settings/BusinessHoursSettings';
 import { NotificationSettings } from '../../../components/settings/NotificationSettings';
+import { DomainSettings } from '../../../components/settings/DomainSettings';
 import { SubscriptionManager } from '../../../components/subscription';
 import type { TenantWithPlan } from '@/types';
 import {
@@ -17,7 +18,8 @@ import {
   Shield,
   Building2,
   CreditCard,
-  Globe
+  Globe,
+  Link
 } from 'lucide-react';
 import { PublicPageSettings } from '../../../components/settings/PublicPageSettings';
 
@@ -28,6 +30,13 @@ const settingsSections = [
     description: 'Configura la landing page de tu clínica',
     icon: Globe,
     component: 'public-page'
+  },
+  {
+    id: 'custom-domain',
+    title: 'Dominio Personalizado',
+    description: 'Usa tu propio dominio para tu página pública',
+    icon: Link,
+    component: 'custom-domain'
   },
   {
     id: 'business-hours',
@@ -94,6 +103,8 @@ export function SettingsPageClient({ tenant }: SettingsPageClientProps) {
     switch (activeSection) {
       case 'public-page':
         return <PublicPageSettings tenantId={tenant.id} />;
+      case 'custom-domain':
+        return <DomainSettings tenantId={tenant.id} />;
       case 'business-hours':
         return <BusinessHoursSettings tenantId={tenant.id} />;
       case 'services':

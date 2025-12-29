@@ -422,6 +422,93 @@ export async function getTenantBySlug(slug: string): Promise<PublicTenant | null
 }
 
 /**
+ * Get tenant by custom domain for public pages
+ */
+export async function getTenantByDomain(domain: string): Promise<PublicTenant | null> {
+  const tenant = await prisma.tenant.findUnique({
+    where: {
+      domain,
+      status: 'ACTIVE'
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      logo: true,
+      primaryColor: true,
+      secondaryColor: true,
+      publicPageEnabled: true,
+      publicDescription: true,
+      publicPhone: true,
+      publicEmail: true,
+      publicAddress: true,
+      publicHours: true,
+      publicServices: true,
+      publicImages: true,
+      publicSocialMedia: true,
+      publicThemeColor: true,
+      publicTheme: true,
+      publicBookingEnabled: true,
+      createdAt: true,
+      tenantSubscription: {
+        select: {
+          id: true,
+          plan: {
+            select: {
+              id: true,
+              name: true
+            }
+          }
+        }
+      }
+    }
+  });
+
+  return tenant ? transformTenantForPublic(tenant) : null;
+}
+
+/**
+ * Check if a domain is available for use
+ */
+export async function isDomainAvailable(domain: string, excludeTenantId?: string): Promise<boolean> {
+  const existingTenant = await prisma.tenant.findUnique({
+    where: { domain },
+    select: { id: true }
+  });
+
+  if (!existingTenant) return true;
+  if (excludeTenantId && existingTenant.id === excludeTenantId) return true;
+  return false;
+}
+
+/**
+ * Update tenant's custom domain
+ */
+export async function updateTenantDomain(
+  tenantId: string,
+  domain: string | null
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (domain) {
+      const available = await isDomainAvailable(domain, tenantId);
+      if (!available) {
+        return { success: false, error: 'Este dominio ya está en uso' };
+      }
+    }
+
+    await prisma.tenant.update({
+      where: { id: tenantId },
+      data: { domain }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating tenant domain:', error);
+    return { success: false, error: 'Error al actualizar el dominio' };
+  }
+}
+
+/**
  * Featured service type for public pages (serializable)
  */
 export interface FeaturedService {

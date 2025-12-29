@@ -13,6 +13,7 @@ model Tenant {
   name           String
   slug           String       @unique
   domain         String?      @unique
+  domainVerified Boolean      @default(false)
   logo           String?
   primaryColor   String?
   secondaryColor String?

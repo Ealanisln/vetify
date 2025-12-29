@@ -14,6 +14,58 @@ import {
 import { securityHeaders } from './lib/security/input-sanitization';
 
 /**
+ * System domains that are not custom domains
+ */
+const SYSTEM_DOMAINS = [
+  'localhost',
+  '127.0.0.1',
+  'vetify.app',
+  'vercel.app',
+  'vercel.dev',
+];
+
+/**
+ * Check if a hostname is a custom domain
+ */
+function isCustomDomain(hostname: string): boolean {
+  const normalizedHost = hostname.toLowerCase().split(':')[0];
+  return !SYSTEM_DOMAINS.some(domain =>
+    normalizedHost === domain || normalizedHost.endsWith(`.${domain}`)
+  );
+}
+
+/**
+ * Resolve custom domain to tenant slug
+ * Uses the /api/domain/resolve endpoint with caching
+ */
+async function resolveCustomDomain(
+  hostname: string,
+  baseUrl: string
+): Promise<{ slug: string } | null> {
+  try {
+    const url = new URL('/api/domain/resolve', baseUrl);
+    url.searchParams.set('domain', hostname);
+
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const data = await response.json();
+    return data.data ? { slug: data.data.slug } : null;
+  } catch (error) {
+    console.error('Error resolving custom domain:', error);
+    return null;
+  }
+}
+
+/**
  * Protected routes that require trial/subscription access
  * All operational features require active subscription
  * Only Dashboard and Settings are accessible without active plan
@@ -84,11 +136,54 @@ const ALLOWED_WITHOUT_PLAN = [
 // All other routes will be publicly accessible by default.
 export default withAuth(
   async function middleware(req: NextRequest) {
-    const { pathname } = req.nextUrl;
+    const { pathname, hostname } = req.nextUrl;
     let userId: string | undefined;
 
     // Initialize audit middleware
     const auditMiddleware = createAuditMiddleware();
+
+    // ============================================
+    // CUSTOM DOMAIN RESOLUTION
+    // ============================================
+    // Check if this is a custom domain request (not vetify.app, localhost, etc.)
+    // If so, resolve it to a tenant and rewrite to their public page
+    if (isCustomDomain(hostname)) {
+      // Only handle root and non-API paths for custom domains
+      // API routes, auth routes, dashboard, etc. should not be accessible via custom domain
+      const isPublicPath = pathname === '/' ||
+        pathname.startsWith('/agendar') ||
+        pathname === '/robots.txt' ||
+        pathname === '/sitemap.xml';
+
+      if (isPublicPath) {
+        const baseUrl = `${req.nextUrl.protocol}//${req.nextUrl.host}`;
+        const domainInfo = await resolveCustomDomain(hostname, baseUrl);
+
+        if (domainInfo) {
+          // Rewrite to the tenant's public page
+          const rewriteUrl = new URL(`/${domainInfo.slug}${pathname === '/' ? '' : pathname}`, req.url);
+
+          const response = NextResponse.rewrite(rewriteUrl);
+
+          // Add security headers
+          Object.entries(securityHeaders).forEach(([key, value]) => {
+            response.headers.set(key, value);
+          });
+
+          // Set header to indicate this was a custom domain request
+          response.headers.set('X-Custom-Domain', hostname);
+
+          return response;
+        }
+
+        // Domain not found or not verified - return 404
+        return new NextResponse('Domain not found', { status: 404 });
+      }
+
+      // For non-public paths on custom domains, redirect to main site
+      const mainSiteUrl = new URL(pathname, 'https://vetify.app');
+      return NextResponse.redirect(mainSiteUrl.toString());
+    }
 
     // Get user info for authenticated requests (for logging and audit purposes)
     try {
@@ -98,7 +193,7 @@ export default withAuth(
     } catch {
       // User not authenticated, continue with undefined userId
     }
-    
+
     // Apply rate limiting to all API routes (if enabled)
     if (pathname.startsWith('/api/') && isRateLimitingEnabled()) {
       const clientIdentifier = getClientIdentifier(req, userId);
