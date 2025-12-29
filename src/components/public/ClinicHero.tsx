@@ -10,6 +10,7 @@ import { getTheme, getThemeClasses } from '../../lib/themes';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
 import { PLACEHOLDER_BLUR, imageSizes } from '@/lib/image-utils';
+import { ShareButtons } from './ShareButtons';
 import {
   fadeInUp,
   fadeInRight,
@@ -217,6 +218,14 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
                   </motion.div>
                 </a>
               )}
+
+              {/* Share button */}
+              <ShareButtons
+                url={typeof window !== 'undefined' ? window.location.href : `https://vetify.app/${tenant.slug}`}
+                title={`${tenant.name} - Clínica Veterinaria`}
+                description={tenant.publicDescription || `Agenda tu cita en ${tenant.name}`}
+                themeColor={themeColor}
+              />
             </motion.div>
           </motion.div>
 
