@@ -63,6 +63,10 @@ describe('useCalendar', () => {
 
       const { result } = renderHook(() => useCalendar());
 
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
       const today = new Date();
       expect(result.current.currentDate.toDateString()).toBe(today.toDateString());
     });
@@ -75,6 +79,10 @@ describe('useCalendar', () => {
 
       const { result } = renderHook(() => useCalendar());
 
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
+
       expect(result.current.currentView).toBe('timeGridWeek');
     });
 
@@ -85,6 +93,10 @@ describe('useCalendar', () => {
       });
 
       const { result } = renderHook(() => useCalendar('dayGridMonth'));
+
+      await waitFor(() => {
+        expect(result.current.loading).toBe(false);
+      });
 
       expect(result.current.currentView).toBe('dayGridMonth');
     });
@@ -127,10 +139,10 @@ describe('useCalendar', () => {
         json: () => Promise.resolve({ success: true, data: [] }),
       });
 
-      renderHook(() => useCalendar('dayGridMonth'));
+      const { result } = renderHook(() => useCalendar('dayGridMonth'));
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalled();
+        expect(result.current.loading).toBe(false);
       });
 
       const fetchUrl = mockFetch.mock.calls[0][0];
@@ -145,10 +157,10 @@ describe('useCalendar', () => {
         json: () => Promise.resolve({ success: true, data: [] }),
       });
 
-      renderHook(() => useCalendar('timeGridWeek'));
+      const { result } = renderHook(() => useCalendar('timeGridWeek'));
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalled();
+        expect(result.current.loading).toBe(false);
       });
 
       const fetchUrl = mockFetch.mock.calls[0][0];
@@ -162,10 +174,10 @@ describe('useCalendar', () => {
         json: () => Promise.resolve({ success: true, data: [] }),
       });
 
-      renderHook(() => useCalendar('timeGridDay'));
+      const { result } = renderHook(() => useCalendar('timeGridDay'));
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalled();
+        expect(result.current.loading).toBe(false);
       });
 
       const fetchUrl = mockFetch.mock.calls[0][0];
@@ -227,12 +239,16 @@ describe('useCalendar', () => {
 
       const { result } = renderHook(() => useCalendar());
 
-      // Should be loading initially
-      expect(result.current.loading).toBe(true);
+      // Should be loading initially (after useEffect triggers fetchEvents)
+      await waitFor(() => {
+        expect(result.current.loading).toBe(true);
+      });
 
-      resolvePromise!({
-        ok: true,
-        json: () => Promise.resolve({ success: true, data: [] }),
+      await act(async () => {
+        resolvePromise!({
+          ok: true,
+          json: () => Promise.resolve({ success: true, data: [] }),
+        });
       });
 
       await waitFor(() => {
@@ -498,13 +514,14 @@ describe('useCalendar', () => {
         json: () => Promise.resolve({ success: true, data: [mockAppointment] }),
       });
 
-      const { result } = renderHook(() => useCalendar());
+      const { result, unmount } = renderHook(() => useCalendar());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
 
       expect(result.current.events[0].backgroundColor).toBe(expectedBg);
+      unmount();
       mockFetchLocal.mockRestore();
     };
 
@@ -568,13 +585,14 @@ describe('useCalendar', () => {
         json: () => Promise.resolve({ success: true, data: [mockAppointment] }),
       });
 
-      const { result } = renderHook(() => useCalendar());
+      const { result, unmount } = renderHook(() => useCalendar());
 
       await waitFor(() => {
         expect(result.current.loading).toBe(false);
       });
 
       expect(result.current.events[0].extendedProps.priority).toBe(expectedPriority);
+      unmount();
       mockFetchLocal.mockRestore();
     };
 
