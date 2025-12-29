@@ -40,12 +40,12 @@ export const metadata: Metadata = {
     apple: [
       { url: '/favicon/apple-touch-icon.png' },
     ],
-    other: [
-      {
-        rel: 'manifest',
-        url: '/favicon/site.webmanifest',
-      },
-    ],
+  },
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Vetify',
   },
   // Additional metadata
   authors: [{ name: 'Vetify Team' }],
@@ -62,6 +62,10 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#75a99c' },
+    { media: '(prefers-color-scheme: dark)', color: '#1f2937' },
+  ],
 }
 
 export default function RootLayout({

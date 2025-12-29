@@ -2,12 +2,24 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Button } from '../ui/button';
 import { Phone, MapPin, Clock, Star } from 'lucide-react';
 import type { PublicTenant } from '../../lib/tenant';
 import { getTheme, getThemeClasses } from '../../lib/themes';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
+import { PLACEHOLDER_BLUR, imageSizes } from '@/lib/image-utils';
+import { ShareButtons } from './ShareButtons';
+import {
+  fadeInUp,
+  fadeInRight,
+  staggerContainer,
+  imageReveal,
+  buttonHover,
+  buttonTap,
+  cardHover,
+} from './animations';
 
 interface ClinicHeroProps {
   tenant: PublicTenant;
@@ -53,8 +65,12 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Información de la clínica */}
-          <div>
-            <div className="flex items-center mb-4">
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={staggerContainer}
+          >
+            <motion.div variants={fadeInUp} className="flex items-center mb-4">
               <div className="flex text-yellow-400">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} className="h-5 w-5 fill-current" />
@@ -63,9 +79,10 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
               <span className="ml-2 text-sm" style={{ color: colors.textMuted }}>
                 Clínica de confianza
               </span>
-            </div>
+            </motion.div>
 
-            <h1
+            <motion.h1
+              variants={fadeInUp}
               className="text-4xl lg:text-6xl font-bold mb-6"
               style={{
                 color: colors.text,
@@ -74,21 +91,23 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
               }}
             >
               {tenant.name}
-            </h1>
+            </motion.h1>
 
             {tenant.publicDescription && (
-              <p
+              <motion.p
+                variants={fadeInUp}
                 className="text-xl mb-8 leading-relaxed"
                 style={{ color: colors.textMuted }}
               >
                 {tenant.publicDescription}
-              </p>
+              </motion.p>
             )}
 
             {/* Información de contacto destacada */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+            <motion.div variants={fadeInUp} className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
               {tenant.publicPhone && (
-                <div
+                <motion.div
+                  whileHover={cardHover}
                   className={`flex items-center p-4 ${themeClasses.card} transition-colors`}
                   style={{
                     backgroundColor: colors.cardBg,
@@ -106,11 +125,12 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
                     <p className="text-sm" style={{ color: colors.textMuted }}>Teléfono</p>
                     <p className="font-semibold" style={{ color: colors.text }}>{tenant.publicPhone}</p>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {tenant.publicAddress && (
-                <div
+                <motion.div
+                  whileHover={cardHover}
                   className={`flex items-center p-4 ${themeClasses.card} transition-colors`}
                   style={{
                     backgroundColor: colors.cardBg,
@@ -130,11 +150,12 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
                       {tenant.publicAddress}
                     </p>
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {publicHours && (
-                <div
+                <motion.div
+                  whileHover={cardHover}
                   className={`flex items-center p-4 sm:col-span-2 ${themeClasses.card} transition-colors`}
                   style={{
                     backgroundColor: colors.cardBg,
@@ -154,56 +175,77 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
                       {publicHours.weekdays || 'Lun-Vie: 9:00 - 18:00'}
                     </p>
                   </div>
-                </div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
 
             {/* Botones de acción */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4">
               <Link href={`/${tenant.slug}/agendar`}>
-                <Button
-                  size="lg"
-                  className={`w-full sm:w-auto text-white shadow-lg hover:shadow-xl transition-all duration-200 ${themeClasses.button}`}
-                  style={{
-                    backgroundColor: themeColor,
-                    borderRadius: theme.layout.borderRadius
-                  }}
-                >
-                  <Phone className="h-5 w-5 mr-2" />
-                  Agendar Cita
-                </Button>
+                <motion.div whileHover={buttonHover} whileTap={buttonTap}>
+                  <Button
+                    size="lg"
+                    className={`w-full sm:w-auto text-white shadow-lg hover:shadow-xl transition-all duration-200 ${themeClasses.button}`}
+                    style={{
+                      backgroundColor: themeColor,
+                      borderRadius: theme.layout.borderRadius
+                    }}
+                  >
+                    <Phone className="h-5 w-5 mr-2" />
+                    Agendar Cita
+                  </Button>
+                </motion.div>
               </Link>
 
               {tenant.publicPhone && (
                 <a href={`tel:${tenant.publicPhone}`}>
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className={`w-full sm:w-auto border-2 transition-all duration-200 ${themeClasses.button}`}
-                    style={{
-                      borderColor: themeColor,
-                      color: themeColor,
-                      borderRadius: theme.layout.borderRadius,
-                      backgroundColor: 'transparent'
-                    }}
-                  >
-                    <Phone className="h-5 w-5 mr-2" />
-                    Llamar Ahora
-                  </Button>
+                  <motion.div whileHover={buttonHover} whileTap={buttonTap}>
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className={`w-full sm:w-auto border-2 transition-all duration-200 ${themeClasses.button}`}
+                      style={{
+                        borderColor: themeColor,
+                        color: themeColor,
+                        borderRadius: theme.layout.borderRadius,
+                        backgroundColor: 'transparent'
+                      }}
+                    >
+                      <Phone className="h-5 w-5 mr-2" />
+                      Llamar Ahora
+                    </Button>
+                  </motion.div>
                 </a>
               )}
-            </div>
-          </div>
+
+              {/* Share button */}
+              <ShareButtons
+                url={typeof window !== 'undefined' ? window.location.href : `https://vetify.app/${tenant.slug}`}
+                title={`${tenant.name} - Clínica Veterinaria`}
+                description={tenant.publicDescription || `Agenda tu cita en ${tenant.name}`}
+                themeColor={themeColor}
+              />
+            </motion.div>
+          </motion.div>
 
           {/* Imagen de la clínica */}
-          <div className="relative">
+          <motion.div
+            className="relative"
+            initial="hidden"
+            animate="visible"
+            variants={fadeInRight}
+          >
             {publicImages?.hero ? (
-              <div className="relative">
+              <motion.div className="relative" variants={imageReveal}>
                 <Image
                   src={publicImages.hero}
                   alt={`${tenant.name} - Clínica Veterinaria`}
                   width={600}
                   height={400}
+                  priority
+                  placeholder="blur"
+                  blurDataURL={PLACEHOLDER_BLUR}
+                  sizes={imageSizes.hero}
                   className="shadow-2xl object-cover"
                   style={{ borderRadius: theme.layout.borderRadius }}
                 />
@@ -211,7 +253,7 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
                   className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"
                   style={{ borderRadius: theme.layout.borderRadius }}
                 />
-              </div>
+              </motion.div>
             ) : (
               <div className="relative">
                 <div
@@ -239,7 +281,7 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
                 />
               </div>
             )}
-          </div>
+          </motion.div>
         </div>
       </div>
       
