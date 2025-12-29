@@ -26,7 +26,6 @@ export function ShareButtons({
 
   const encodedUrl = encodeURIComponent(url);
   const encodedTitle = encodeURIComponent(title);
-  const encodedDescription = encodeURIComponent(description || '');
 
   const shareLinks = {
     facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
@@ -181,8 +180,6 @@ function ShareOption({ icon, label, onClick, color }: ShareOptionProps) {
 export function ShareButtonInline({
   url,
   title,
-  description,
-  themeColor = '#75a99c',
 }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
 
