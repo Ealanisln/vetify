@@ -8,6 +8,7 @@ import type { PublicTenant, GalleryImage, GalleryCategory } from '../../lib/tena
 import { getTheme, getThemeClasses } from '../../lib/themes';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
+import { PLACEHOLDER_BLUR } from '@/lib/image-utils';
 import Lightbox from 'yet-another-react-lightbox';
 import Captions from 'yet-another-react-lightbox/plugins/captions';
 import 'yet-another-react-lightbox/styles.css';
@@ -190,6 +191,9 @@ export function ClinicGallery({ tenant, images }: ClinicGalleryProps) {
                   src={image.url}
                   alt={image.caption || `Galería ${index + 1}`}
                   fill
+                  placeholder="blur"
+                  blurDataURL={PLACEHOLDER_BLUR}
+                  loading={index < 4 ? 'eager' : 'lazy'}
                   className="object-cover transition-transform duration-300 group-hover:scale-105"
                   sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
                 />
