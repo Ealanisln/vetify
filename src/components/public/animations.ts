@@ -183,7 +183,7 @@ export const viewportSettings = {
 };
 
 // Reduced motion check (for accessibility)
-export const getReducedMotionVariants = (variants: Variants): Variants => ({
+export const getReducedMotionVariants = (_variants: Variants): Variants => ({
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.01 } },
 });

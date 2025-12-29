@@ -15,7 +15,6 @@ import {
   fadeInUp,
   fadeInRight,
   staggerContainer,
-  cardVariant,
   imageReveal,
   buttonHover,
   buttonTap,
