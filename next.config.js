@@ -1,4 +1,52 @@
 import { withSentryConfig } from '@sentry/nextjs';
+import withPWAInit from 'next-pwa';
+
+// PWA configuration
+const withPWA = withPWAInit({
+  dest: 'public',
+  disable: process.env.NODE_ENV === 'development',
+  register: true,
+  skipWaiting: true,
+  fallbacks: {
+    document: '/offline',
+  },
+  // Cache strategies
+  runtimeCaching: [
+    {
+      urlPattern: /^https:\/\/fonts\.(?:gstatic|googleapis)\.com\/.*/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'google-fonts',
+        expiration: {
+          maxEntries: 10,
+          maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
+        },
+      },
+    },
+    {
+      urlPattern: /^https:\/\/res\.cloudinary\.com\/.*/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'cloudinary-images',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+        },
+      },
+    },
+    {
+      urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|avif)$/i,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'static-images',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+        },
+      },
+    },
+  ],
+});
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -160,7 +208,10 @@ const sentryWebpackPluginOptions = {
   disableClientWebpackPlugin: !!process.env.VERCEL,
 };
 
+// Apply PWA wrapper first, then Sentry
 // Export with Sentry wrapper disabled on Vercel to prevent CSS issues
+const pwaConfig = withPWA(nextConfig);
+
 export default process.env.VERCEL
-  ? nextConfig  // Use plain config on Vercel to avoid CSS issues
-  : withSentryConfig(nextConfig, sentryWebpackPluginOptions);
+  ? pwaConfig  // Use PWA config on Vercel (no Sentry to avoid CSS issues)
+  : withSentryConfig(pwaConfig, sentryWebpackPluginOptions);
