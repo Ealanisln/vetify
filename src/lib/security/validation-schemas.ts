@@ -6,6 +6,64 @@ import { commonSchemas } from './input-sanitization';
  * These schemas include comprehensive sanitization and security validation
  */
 
+/**
+ * SECURITY FIX: Standard pagination schema with enforced limits
+ *
+ * This prevents DoS attacks via excessive page sizes or resource enumeration
+ * via very high page numbers.
+ */
+export const paginationSchema = z.object({
+  page: z.coerce
+    .number()
+    .int()
+    .min(1, 'Page must be at least 1')
+    .max(10000, 'Page cannot exceed 10000')
+    .default(1),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1, 'Limit must be at least 1')
+    .max(100, 'Maximum limit is 100 items per page')
+    .default(20),
+});
+
+/**
+ * Parse and validate pagination from URL search params
+ *
+ * Usage:
+ * ```typescript
+ * const pagination = parsePagination(searchParams);
+ * // { page: 1, limit: 20 } with validated values
+ * ```
+ */
+export function parsePagination(searchParams: URLSearchParams): { page: number; limit: number } {
+  const rawPage = searchParams.get('page');
+  const rawLimit = searchParams.get('limit');
+
+  const result = paginationSchema.safeParse({
+    page: rawPage || 1,
+    limit: rawLimit || 20,
+  });
+
+  if (!result.success) {
+    // Return safe defaults on validation failure
+    return { page: 1, limit: 20 };
+  }
+
+  return result.data;
+}
+
+/**
+ * Calculate safe pagination offset with overflow protection
+ */
+export function calculateOffset(page: number, limit: number): number {
+  // Prevent integer overflow
+  const maxSafeOffset = Number.MAX_SAFE_INTEGER - limit;
+  const offset = (page - 1) * limit;
+
+  return Math.min(offset, maxSafeOffset);
+}
+
 // Customer validation schemas
 export const customerSchemas = {
   create: z.object({

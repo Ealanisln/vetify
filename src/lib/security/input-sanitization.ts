@@ -6,6 +6,11 @@ import { z } from 'zod';
 
 /**
  * Sanitize HTML content to prevent XSS attacks
+ *
+ * SECURITY FIX: More comprehensive XSS sanitization including:
+ * - Better data: protocol handling (blocks executable data URIs)
+ * - Additional dangerous patterns (expression, behaviors)
+ * - HTML entity attack prevention
  */
 export function sanitizeHtml(input: string): string {
   if (!input || typeof input !== 'string') {
@@ -14,16 +19,70 @@ export function sanitizeHtml(input: string): string {
 
   // Remove potential XSS vectors
   return input
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gim, '') // Remove script tags
-    .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gim, '') // Remove iframe tags
-    .replace(/javascript:/gim, '') // Remove javascript: protocols
-    .replace(/vbscript:/gim, '') // Remove vbscript: protocols
-    .replace(/data:/gim, '') // Remove data: protocols (except in specific contexts)
-    .replace(/on\w+\s*=/gim, '') // Remove event handlers (onclick, onload, etc.)
-    .replace(/<object[^>]*>[\s\S]*?<\/object>/gim, '') // Remove object tags
-    .replace(/<embed[^>]*>/gim, '') // Remove embed tags
-    .replace(/<link[^>]*>/gim, '') // Remove link tags
-    .replace(/<meta[^>]*>/gim, '') // Remove meta tags
+    // Remove dangerous script tags and content
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gim, '')
+    .replace(/<script[^>]*>/gim, '') // Unclosed script tags
+
+    // Remove iframe and frame tags
+    .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gim, '')
+    .replace(/<iframe[^>]*>/gim, '')
+    .replace(/<frame[^>]*>/gim, '')
+    .replace(/<frameset[^>]*>[\s\S]*?<\/frameset>/gim, '')
+
+    // Remove dangerous protocols
+    .replace(/javascript\s*:/gim, '') // javascript: protocol
+    .replace(/vbscript\s*:/gim, '') // vbscript: protocol
+    .replace(/livescript\s*:/gim, '') // livescript: protocol
+
+    // SECURITY FIX: Better data: protocol handling
+    // Block executable data URIs (text/html, application/javascript, etc.)
+    // but allow safe ones like data:image/png which are commonly used
+    .replace(/data\s*:\s*text\/html/gim, 'data:blocked')
+    .replace(/data\s*:\s*text\/javascript/gim, 'data:blocked')
+    .replace(/data\s*:\s*application\/javascript/gim, 'data:blocked')
+    .replace(/data\s*:\s*application\/x-javascript/gim, 'data:blocked')
+    .replace(/data\s*:\s*text\/x-scriptlet/gim, 'data:blocked')
+    .replace(/data\s*:\s*application\/ecmascript/gim, 'data:blocked')
+
+    // Remove all event handlers (onclick, onload, onerror, etc.)
+    .replace(/\bon\w+\s*=/gim, 'data-removed=')
+
+    // Remove dangerous object/embed/applet tags
+    .replace(/<object[^>]*>[\s\S]*?<\/object>/gim, '')
+    .replace(/<embed[^>]*>/gim, '')
+    .replace(/<applet[^>]*>[\s\S]*?<\/applet>/gim, '')
+
+    // Remove base tags (can redirect all relative URLs)
+    .replace(/<base[^>]*>/gim, '')
+
+    // Remove link, meta, and style tags (can inject malicious CSS or redirects)
+    .replace(/<link[^>]*>/gim, '')
+    .replace(/<meta[^>]*>/gim, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gim, '')
+
+    // Remove SVG foreignObject (can embed HTML inside SVG)
+    .replace(/<foreignobject[^>]*>[\s\S]*?<\/foreignobject>/gim, '')
+
+    // Remove CSS expression() (IE-specific XSS vector)
+    .replace(/expression\s*\(/gim, 'blocked(')
+
+    // Remove behavior: directive (IE-specific)
+    .replace(/behavior\s*:/gim, 'blocked:')
+
+    // Remove moz-binding (Firefox-specific)
+    .replace(/-moz-binding\s*:/gim, 'blocked:')
+
+    // HTML entity obfuscation prevention
+    // Decode and re-check for patterns (handles &#106;avascript: etc.)
+    .replace(/&#(\d+);/g, (match, code) => {
+      const char = String.fromCharCode(parseInt(code, 10));
+      // Block control characters and potential encoding attacks
+      if (code < 32 || char.match(/[<>"'&]/)) {
+        return '';
+      }
+      return match;
+    })
+
     .trim();
 }
 

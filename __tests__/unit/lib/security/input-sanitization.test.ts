@@ -100,10 +100,29 @@ describe('Input Sanitization', () => {
         expect(result).not.toContain('vbscript:');
       });
 
-      it('should remove data: protocol', () => {
-        const malicious = '<img src="data:text/html,<script>alert(1)</script>">';
-        const result = sanitizeHtml(malicious);
-        expect(result).not.toContain('data:');
+      it('should block dangerous data: URIs', () => {
+        // SECURITY FIX: Tests updated for new behavior
+        // Dangerous data URIs (text/html, javascript, etc.) are blocked
+        // Safe data URIs (images) are allowed for legitimate use cases
+        const maliciousInputs = [
+          { input: '<img src="data:text/html,<script>alert(1)</script>">', shouldBlock: 'data:text/html' },
+          { input: '<a href="data:text/javascript,alert(1)">Click</a>', shouldBlock: 'data:text/javascript' },
+          { input: '<object data="data:application/javascript,evil()">', shouldBlock: 'data:application/javascript' },
+        ];
+
+        maliciousInputs.forEach(({ input, shouldBlock }) => {
+          const result = sanitizeHtml(input);
+          expect(result).not.toContain(shouldBlock);
+          // Should be replaced with data:blocked
+          expect(result).toContain('data:blocked');
+        });
+      });
+
+      it('should allow safe data: image URIs', () => {
+        // Safe data URIs for images should be allowed
+        const safeImage = '<img src="data:image/png;base64,iVBORw0KGgo=">';
+        const result = sanitizeHtml(safeImage);
+        expect(result).toContain('data:image/png');
       });
 
       it('should remove event handlers', () => {

@@ -112,10 +112,24 @@ export async function POST(request: NextRequest) {
   try {
     const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
 
+    // SECURITY FIX: Require webhook secret in production
+    // Without verification, attackers could forge email status updates
+    if (!webhookSecret) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error('[RESEND_WEBHOOK] RESEND_WEBHOOK_SECRET is required in production');
+        return NextResponse.json(
+          { error: 'Webhook not configured' },
+          { status: 503 }
+        );
+      }
+      // Allow development without secret (with warning)
+      console.warn('[RESEND_WEBHOOK] RESEND_WEBHOOK_SECRET not configured - skipping verification (dev only)');
+    }
+
     // Get the raw body as text for signature verification
     const payload = await request.text();
 
-    // In production, always verify signature
+    // Verify signature when secret is configured
     if (webhookSecret) {
       const signature = request.headers.get('svix-signature');
       const timestamp = request.headers.get('svix-timestamp');
@@ -149,11 +163,6 @@ export async function POST(request: NextRequest) {
           );
         }
       }
-    } else {
-      // Log warning in development if no secret configured
-      console.warn(
-        '[RESEND_WEBHOOK] RESEND_WEBHOOK_SECRET not configured - skipping signature verification'
-      );
     }
 
     // Parse the event
