@@ -68,8 +68,9 @@ const nextConfig = {
     ],
   },
   typescript: {
-    // Skip TypeScript errors only on Vercel to avoid tsconfig.json issues
-    ignoreBuildErrors: process.env.VERCEL ? true : false,
+    // SECURITY FIX: Never ignore TypeScript errors - they can cause runtime failures
+    // Previously ignored on Vercel which allowed type errors to reach production
+    ignoreBuildErrors: false,
   },
   // Configure external packages for serverless environment
   serverExternalPackages: [
@@ -197,21 +198,21 @@ const nextConfig = {
   }),
 };
 
-// Sentry configuration (only applied when not on Vercel)
+// Sentry configuration - ENABLED on all environments including Vercel
+// SECURITY FIX: Previously Sentry was disabled on Vercel, causing production errors to go undetected
 const sentryWebpackPluginOptions = {
   silent: true,
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
-  // Disable Sentry webpack plugin on Vercel to prevent CSS issues
-  disableServerWebpackPlugin: !!process.env.VERCEL,
-  disableClientWebpackPlugin: !!process.env.VERCEL,
+  // Enable source maps upload for better error tracking
+  hideSourceMaps: true,
+  // Widen the upload scope to include all relevant files
+  widenClientFileUpload: true,
 };
 
 // Apply PWA wrapper first, then Sentry
-// Export with Sentry wrapper disabled on Vercel to prevent CSS issues
 const pwaConfig = withPWA(nextConfig);
 
-export default process.env.VERCEL
-  ? pwaConfig  // Use PWA config on Vercel (no Sentry to avoid CSS issues)
-  : withSentryConfig(pwaConfig, sentryWebpackPluginOptions);
+// Always apply Sentry config for proper error tracking in all environments
+export default withSentryConfig(pwaConfig, sentryWebpackPluginOptions);

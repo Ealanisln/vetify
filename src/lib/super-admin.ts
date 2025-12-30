@@ -7,14 +7,11 @@ import { getAuthenticatedUser } from './auth';
 const SUPER_ADMIN_ROLE_KEY = 'SUPER_ADMIN';
 
 /**
- * Verificar si un usuario es super admin (por email o por rol)
+ * Verificar si un usuario es super admin (solo por rol en base de datos)
+ * SECURITY FIX: Removed domain-based check which was vulnerable to domain takeover
+ * Now only checks database-assigned roles for security
  */
-export async function isSuperAdmin(userId?: string, email?: string): Promise<boolean> {
-  // Fallback to domain based check for legacy support
-  if (email && (email.endsWith('@vetify.pro') || email.endsWith('@vetify.com') || email.endsWith('@alanis.dev'))) {
-    return true;
-  }
-
+export async function isSuperAdmin(userId?: string, _email?: string): Promise<boolean> {
   if (!userId) return false;
 
   const userRole = await prisma.userRole.findFirst({
@@ -196,8 +193,9 @@ export async function listSuperAdmins() {
     }
 
     const superAdminRole = await getSuperAdminRole();
-    
-    // Usuarios con rol de super admin
+
+    // SECURITY FIX: Only get users with database-assigned super admin role
+    // Removed domain-based lookup which was a security vulnerability
     const userRoles = superAdminRole ? await prisma.userRole.findMany({
       where: {
         roleId: superAdminRole.id,
@@ -217,33 +215,8 @@ export async function listSuperAdmins() {
       }
     }) : [];
 
-    // Usuarios con email de dominios autorizados
-    const emailSuperAdmins = await prisma.user.findMany({
-      where: {
-        OR: [
-          { email: { endsWith: '@vetify.pro' } },
-          { email: { endsWith: '@vetify.com' } },
-          { email: { endsWith: '@alanis.dev' } },
-        ]
-      },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        firstName: true,
-        lastName: true,
-        createdAt: true,
-        isActive: true,
-      }
-    });
-
-    // Combinar y deduplicar
-    const superAdmins = [
-      ...userRoles.map(ur => ({ ...ur.user, assignedByRole: true })),
-      ...emailSuperAdmins
-        .filter(user => !userRoles.some(ur => ur.user.id === user.id))
-        .map(user => ({ ...user, assignedByRole: false }))
-    ];
+    // Return only database-assigned super admins
+    const superAdmins = userRoles.map(ur => ({ ...ur.user, assignedByRole: true }));
 
     return superAdmins;
 
