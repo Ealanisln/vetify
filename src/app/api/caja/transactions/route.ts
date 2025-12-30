@@ -18,7 +18,8 @@ export async function GET(request: Request) {
   try {
     const { tenant } = await requireAuth();
     const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId') || tenant.id;
+    // SECURITY FIX: Always use authenticated tenant ID - never allow override via query params
+    const tenantId = tenant.id;
     const locationId = searchParams.get('locationId') || undefined;
     const drawerId = searchParams.get('drawerId') || undefined; // Filtrar por caja específica
     const limit = parseInt(searchParams.get('limit') || '20');

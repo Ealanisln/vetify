@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   getSubscriptionStatus,
@@ -18,7 +18,9 @@ export function useSubscriptionStatus() {
   const [status, setStatus] = useState<SubscriptionStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
+  // PERFORMANCE FIX: Use ref instead of state for retry count to avoid infinite loop
+  // Previously retryCount was in useCallback deps, causing callback recreation and infinite re-renders
+  const retryCountRef = useRef(0);
 
   // Fetch subscription status with retry logic
   const fetchStatus = useCallback(async (isRetry = false) => {
@@ -26,21 +28,21 @@ export function useSubscriptionStatus() {
       const data = await getSubscriptionStatus();
       setStatus(data);
       setError(null);
-      setRetryCount(0);
+      retryCountRef.current = 0;
       return data;
     } catch (err) {
       console.error('Error fetching subscription status:', err);
       setError(err as Error);
 
       // Retry once after 2 seconds if first attempt fails
-      if (!isRetry && retryCount < 1) {
-        setRetryCount(prev => prev + 1);
+      if (!isRetry && retryCountRef.current < 1) {
+        retryCountRef.current += 1;
         await new Promise(resolve => setTimeout(resolve, 2000));
         return fetchStatus(true);
       }
       throw err;
     }
-  }, [retryCount]);
+  }, []); // Empty deps - fetchStatus is now stable
 
   // Initial load and auto-refresh on portal return
   useEffect(() => {
