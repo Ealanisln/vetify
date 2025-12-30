@@ -1,16 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN || 'vetify_webhook_verify_2024';
+// SECURITY FIX: Require WHATSAPP_WEBHOOK_VERIFY_TOKEN without default
+// Previously had hardcoded default 'vetify_webhook_verify_2024' which is a security risk
+const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
 
 // GET - Webhook verification (Facebook requirement)
 export async function GET(request: NextRequest) {
   try {
+    // Fail early if token is not configured
+    if (!VERIFY_TOKEN) {
+      console.error('❌ WHATSAPP_WEBHOOK_VERIFY_TOKEN environment variable is not configured');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+
     const searchParams = request.nextUrl.searchParams;
     const mode = searchParams.get('hub.mode');
     const token = searchParams.get('hub.verify_token');
     const challenge = searchParams.get('hub.challenge');
 
-    console.log('🔍 WhatsApp Webhook Verification:', { mode, token, challenge });
+    console.log('🔍 WhatsApp Webhook Verification:', { mode, token: token ? '[REDACTED]' : null, challenge });
 
     // Verify the webhook
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {

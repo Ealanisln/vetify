@@ -52,8 +52,15 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const secret = searchParams.get('secret');
 
-    // Verify cron secret
-    const CRON_SECRET = process.env.CRON_SECRET || 'dev-secret-change-in-prod';
+    // SECURITY FIX: Require CRON_SECRET without default - fail if not configured
+    const CRON_SECRET = process.env.CRON_SECRET;
+    if (!CRON_SECRET) {
+      console.error('[INVENTORY_ALERTS] CRON_SECRET environment variable is not configured');
+      return NextResponse.json(
+        { success: false, error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
     if (secret !== CRON_SECRET) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
