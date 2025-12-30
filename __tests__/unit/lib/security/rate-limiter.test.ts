@@ -208,24 +208,15 @@ describe('Rate Limiter', () => {
     });
 
     describe('IP Address Extraction', () => {
-      it('should extract IP from x-forwarded-for header', () => {
+      // SECURITY FIX: Tests updated to reflect new behavior
+      // IP headers are only trusted when behind a verified proxy (Vercel)
+      // This prevents IP spoofing attacks that could bypass rate limits
+
+      it('should extract IP from x-real-ip header when behind Vercel', () => {
         const mockRequest = {
           headers: {
             get: (name: string) => {
-              if (name === 'x-forwarded-for') return '192.168.1.100, 10.0.0.1';
-              return null;
-            },
-          },
-        } as unknown as Request;
-
-        const identifier = getClientIdentifier(mockRequest);
-        expect(identifier).toBe('ip:192.168.1.100');
-      });
-
-      it('should extract IP from x-real-ip header', () => {
-        const mockRequest = {
-          headers: {
-            get: (name: string) => {
+              if (name === 'x-vercel-id') return 'sfo1::abc123'; // Vercel proxy indicator
               if (name === 'x-real-ip') return '10.0.0.50';
               return null;
             },
@@ -236,10 +227,11 @@ describe('Rate Limiter', () => {
         expect(identifier).toBe('ip:10.0.0.50');
       });
 
-      it('should extract IP from cf-connecting-ip header (Cloudflare)', () => {
+      it('should extract IP from cf-connecting-ip header when behind Vercel', () => {
         const mockRequest = {
           headers: {
             get: (name: string) => {
+              if (name === 'x-vercel-id') return 'sfo1::abc123'; // Vercel proxy indicator
               if (name === 'cf-connecting-ip') return '203.0.113.45';
               return null;
             },
@@ -250,10 +242,27 @@ describe('Rate Limiter', () => {
         expect(identifier).toBe('ip:203.0.113.45');
       });
 
-      it('should prioritize x-forwarded-for over other headers', () => {
+      it('should use last IP from x-forwarded-for chain when behind Vercel', () => {
         const mockRequest = {
           headers: {
             get: (name: string) => {
+              if (name === 'x-vercel-id') return 'sfo1::abc123'; // Vercel proxy indicator
+              if (name === 'x-forwarded-for') return '192.168.1.100, 10.0.0.1';
+              return null;
+            },
+          },
+        } as unknown as Request;
+
+        const identifier = getClientIdentifier(mockRequest);
+        // Takes the LAST IP (closest to trusted proxy)
+        expect(identifier).toBe('ip:10.0.0.1');
+      });
+
+      it('should prioritize x-real-ip over x-forwarded-for when behind Vercel', () => {
+        const mockRequest = {
+          headers: {
+            get: (name: string) => {
+              if (name === 'x-vercel-id') return 'sfo1::abc123';
               if (name === 'x-forwarded-for') return '192.168.1.1';
               if (name === 'x-real-ip') return '10.0.0.1';
               if (name === 'cf-connecting-ip') return '172.16.0.1';
@@ -263,32 +272,61 @@ describe('Rate Limiter', () => {
         } as unknown as Request;
 
         const identifier = getClientIdentifier(mockRequest);
-        expect(identifier).toBe('ip:192.168.1.1');
+        // x-real-ip is checked first when behind Vercel
+        expect(identifier).toBe('ip:10.0.0.1');
       });
 
-      it('should return unknown when no IP headers are present', () => {
-        const mockRequest = {
-          headers: {
-            get: () => null,
-          },
-        } as unknown as Request;
-
-        const identifier = getClientIdentifier(mockRequest);
-        expect(identifier).toBe('ip:unknown');
-      });
-
-      it('should trim whitespace from forwarded IP', () => {
+      it('should return fingerprint when NOT behind Vercel', () => {
+        // SECURITY: Without Vercel headers, we can't trust proxy headers
+        // So we use a browser fingerprint instead
         const mockRequest = {
           headers: {
             get: (name: string) => {
-              if (name === 'x-forwarded-for') return '  192.168.1.1  , 10.0.0.1';
+              // No x-vercel-id or x-vercel-deployment-url
+              if (name === 'x-forwarded-for') return '192.168.1.1';
+              if (name === 'user-agent') return 'Mozilla/5.0';
+              if (name === 'accept-language') return 'en-US';
               return null;
             },
           },
         } as unknown as Request;
 
         const identifier = getClientIdentifier(mockRequest);
-        expect(identifier).toBe('ip:192.168.1.1');
+        // Should be fingerprint, not IP (to prevent spoofing)
+        expect(identifier).toMatch(/^fp:/);
+      });
+
+      it('should return fingerprint when no IP headers are present', () => {
+        const mockRequest = {
+          headers: {
+            get: (name: string) => {
+              if (name === 'user-agent') return 'TestAgent';
+              if (name === 'accept-language') return 'es-MX';
+              return null;
+            },
+          },
+        } as unknown as Request;
+
+        const identifier = getClientIdentifier(mockRequest);
+        expect(identifier).toMatch(/^fp:/);
+      });
+
+      it('should reject invalid IP formats', () => {
+        const mockRequest = {
+          headers: {
+            get: (name: string) => {
+              if (name === 'x-vercel-id') return 'sfo1::abc123';
+              if (name === 'x-real-ip') return 'not-an-ip';
+              if (name === 'user-agent') return 'Test';
+              if (name === 'accept-language') return 'en';
+              return null;
+            },
+          },
+        } as unknown as Request;
+
+        const identifier = getClientIdentifier(mockRequest);
+        // Invalid IP should result in fingerprint fallback
+        expect(identifier).toMatch(/^fp:/);
       });
     });
   });

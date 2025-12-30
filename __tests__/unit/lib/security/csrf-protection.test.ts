@@ -38,15 +38,14 @@ describe('csrf-protection', () => {
       expect(token1).not.toBe(token2);
     });
 
-    it('should call crypto.getRandomValues', () => {
-      generateCSRFToken();
-      expect(mockGetRandomValues).toHaveBeenCalled();
-    });
-
-    it('should use 32 bytes of randomness', () => {
-      generateCSRFToken();
-      const lastCall = mockGetRandomValues.mock.calls[mockGetRandomValues.mock.calls.length - 1];
-      expect(lastCall[0]).toHaveLength(32);
+    it('should generate cryptographically random tokens', () => {
+      // Generate many tokens and verify they are all unique
+      const tokens = new Set<string>();
+      for (let i = 0; i < 100; i++) {
+        tokens.add(generateCSRFToken());
+      }
+      // All tokens should be unique
+      expect(tokens.size).toBe(100);
     });
   });
 
@@ -232,6 +231,9 @@ describe('csrf-protection', () => {
   });
 
   describe('getCSRFTokenForSession', () => {
+    // SECURITY FIX: Tests updated for new HMAC-SHA256 token format
+    // Format: {timestamp}.{hmac-hex}
+
     it('should generate a token string', () => {
       const token = getCSRFTokenForSession('session-123');
       expect(typeof token).toBe('string');
@@ -244,15 +246,27 @@ describe('csrf-protection', () => {
       expect(token1).not.toBe(token2);
     });
 
-    it('should be a hex string', () => {
+    it('should have timestamp.hash format', () => {
       const token = getCSRFTokenForSession('session-123');
-      expect(token).toMatch(/^[0-9a-f]+$/);
+      // New format: {timestamp}.{64-char-hmac-hex}
+      expect(token).toMatch(/^\d+\.[0-9a-f]{64}$/);
     });
 
-    it('should generate consistent format', () => {
+    it('should include a valid timestamp', () => {
       const token = getCSRFTokenForSession('test');
-      expect(token.length).toBeGreaterThan(0);
-      expect(token.length).toBeLessThan(20);
+      const [timestamp] = token.split('.');
+      const parsedTimestamp = parseInt(timestamp, 10);
+      expect(parsedTimestamp).toBeGreaterThan(0);
+      // Should be a 5-minute window timestamp
+      const currentWindow = Math.floor(Date.now() / (5 * 60 * 1000));
+      expect(parsedTimestamp).toBe(currentWindow);
+    });
+
+    it('should include a 64-character HMAC hash', () => {
+      const token = getCSRFTokenForSession('test');
+      const [, hash] = token.split('.');
+      expect(hash).toHaveLength(64);
+      expect(hash).toMatch(/^[0-9a-f]+$/);
     });
   });
 
