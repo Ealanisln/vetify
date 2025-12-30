@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { 
+import {
   createMedicalHistory,
   getRecentMedicalHistories,
   getMedicalHistoryStats,
@@ -9,6 +9,7 @@ import {
 } from '../../../lib/medical-history';
 import { prisma } from '../../../lib/prisma';
 import { MedicalHistoryFormData } from '@/types';
+import { parsePagination } from '../../../lib/security/validation-schemas';
 
 export async function GET(request: Request) {
   try {
@@ -39,11 +40,11 @@ export async function GET(request: Request) {
       return NextResponse.json(stats);
     }
 
+    // SECURITY FIX: Use validated pagination with enforced limits
+    const { page, limit } = parsePagination(searchParams);
+
     // Obtener historia clínica de una mascota específica
     if (petId) {
-      const page = parseInt(searchParams.get('page') || '1');
-      const limit = parseInt(searchParams.get('limit') || '10');
-      
       const result = await getPetMedicalHistory(
         userWithTenant.tenant.id,
         petId,
@@ -55,9 +56,6 @@ export async function GET(request: Request) {
 
     // Buscar en historias médicas
     if (query) {
-      const page = parseInt(searchParams.get('page') || '1');
-      const limit = parseInt(searchParams.get('limit') || '10');
-      
       const result = await searchMedicalHistories(
         userWithTenant.tenant.id,
         query,
@@ -67,9 +65,6 @@ export async function GET(request: Request) {
       );
       return NextResponse.json(result);
     }
-
-    // Obtener historias médicas recientes por defecto
-    const limit = parseInt(searchParams.get('limit') || '10');
     const histories = await getRecentMedicalHistories(userWithTenant.tenant.id, limit);
 
     return NextResponse.json(histories);

@@ -3,6 +3,7 @@ import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import { createSale, getRecentSales, getSalesStats } from '../../../lib/sales';
 import { prisma } from '../../../lib/prisma';
 import { SaleFormData } from '@/types';
+import { parsePagination } from '../../../lib/security/validation-schemas';
 
 export async function GET(request: Request) {
   try {
@@ -40,8 +41,8 @@ export async function GET(request: Request) {
       return NextResponse.json(stats);
     }
 
-    // Obtener ventas recientes por defecto
-    const limit = parseInt(searchParams.get('limit') || '10');
+    // SECURITY FIX: Use validated pagination with enforced limits
+    const { limit } = parsePagination(searchParams);
     const sales = await getRecentSales(userWithTenant.tenant.id, limit, locationId);
 
     return NextResponse.json(sales);
