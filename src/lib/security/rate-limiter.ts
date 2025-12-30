@@ -124,14 +124,15 @@ export async function checkRateLimit(
     };
   } catch (error) {
     console.error('Rate limit check failed:', error);
-    
-    // In case of Redis errors, allow the request but log the error
-    // This prevents service disruption due to rate limiting infrastructure issues
+
+    // SECURITY FIX: On Redis failure, deny the request to prevent bypass attacks
+    // This follows fail-secure principle - if rate limiting infra is down,
+    // we should not allow unlimited traffic which could enable DDoS or brute force
     return {
-      success: true,
+      success: false,
       limit: 0,
       remaining: 0,
-      reset: new Date(),
+      reset: new Date(Date.now() + 60000), // Retry after 1 minute
     };
   }
 }
