@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { 
-  getInventoryItems, 
-  createInventoryItem, 
+import {
+  getInventoryItems,
+  createInventoryItem,
   getInventoryStats,
-  getLowStockItems 
+  getLowStockItems
 } from '../../../lib/inventory';
 import { prisma } from '../../../lib/prisma';
 import { InventoryFormData } from '@/types';
+import { parsePagination } from '../../../lib/security/validation-schemas';
 
 export async function GET(request: Request) {
   try {
@@ -42,9 +43,8 @@ export async function GET(request: Request) {
       return NextResponse.json(items);
     }
 
-    // Obtener lista de productos por defecto
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    // SECURITY FIX: Use validated pagination with enforced limits
+    const { page, limit } = parsePagination(searchParams);
     const category = searchParams.get('category') || undefined;
     const search = searchParams.get('search') || undefined;
     const locationId = searchParams.get('locationId') || undefined;
