@@ -159,20 +159,20 @@ export default withAuth(
     // Allow public access to webhook routes (bypass auth protection but still apply rate limiting)
     if (pathname.startsWith('/api/webhooks/')) {
       const response = NextResponse.next();
-      
-      // Add CORS headers for webhook endpoints
-      response.headers.set('Access-Control-Allow-Origin', '*');
-      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      
+
+      // SECURITY FIX: Remove CORS wildcard - webhooks are server-to-server calls
+      // CORS doesn't apply to server-to-server requests (only browser → server)
+      // Having Access-Control-Allow-Origin: * is unnecessary and potentially confusing
+      // Each webhook endpoint verifies requests via signatures (Stripe, Resend, etc.)
+
       // Add security headers
       Object.entries(securityHeaders).forEach(([key, value]) => {
         response.headers.set(key, value);
       });
-      
+
       // Log webhook access
       await auditMiddleware(req, userId);
-      
+
       return response;
     }
     

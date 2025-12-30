@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireSuperAdmin } from '../../../../lib/super-admin';
 import { getUsers, createUser, getUserStats, UserFilters } from '../../../../lib/admin/users';
+import { parsePagination } from '../../../../lib/security/validation-schemas';
 
 /**
  * GET /api/admin/users
@@ -9,12 +10,11 @@ import { getUsers, createUser, getUserStats, UserFilters } from '../../../../lib
 export async function GET(request: NextRequest) {
   try {
     await requireSuperAdmin();
-    
+
     const { searchParams } = new URL(request.url);
-    
-    // Parse pagination
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+
+    // SECURITY FIX: Use validated pagination with enforced limits
+    const { page, limit } = parsePagination(searchParams);
     
     // Parse filters
     const filters: UserFilters = {};

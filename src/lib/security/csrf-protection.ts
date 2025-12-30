@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import crypto from 'crypto';
 import { createSecureErrorResponse } from './input-sanitization';
 
 /**
@@ -107,31 +108,84 @@ export function createCSRFMiddleware(options: {
 }
 
 /**
- * Generate CSRF token for forms
+ * Generate CSRF token for forms using HMAC-SHA256
+ *
+ * SECURITY FIX: Upgraded from simple hash to HMAC-SHA256 for cryptographic security.
+ * The token includes a timestamp for freshness validation.
  */
 export function getCSRFTokenForSession(sessionId: string): string {
-  // In a real implementation, you would store this in a secure session store
-  // For now, we'll generate based on session ID + secret
-  const secret = process.env.CSRF_SECRET || 'default-csrf-secret';
-  const data = sessionId + secret + Date.now().toString();
-  
-  // Simple hash function (in production, use a proper cryptographic hash)
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
+  const secret = process.env.CSRF_SECRET;
+
+  // SECURITY: Require CSRF_SECRET in production
+  if (!secret && process.env.NODE_ENV === 'production') {
+    console.error('[CSRF] CSRF_SECRET is required in production');
+    throw new Error('CSRF configuration error');
   }
-  
-  return Math.abs(hash).toString(16);
+
+  // Use a default for development only
+  const effectiveSecret = secret || 'dev-csrf-secret-do-not-use-in-production';
+
+  // Create timestamp for token freshness (rounded to 5 minute windows)
+  const timestamp = Math.floor(Date.now() / (5 * 60 * 1000));
+  const data = `${sessionId}:${timestamp}`;
+
+  // Generate HMAC-SHA256 hash
+  const hmac = crypto.createHmac('sha256', effectiveSecret);
+  hmac.update(data);
+  const hash = hmac.digest('hex');
+
+  // Return token with timestamp prefix for validation
+  return `${timestamp}.${hash}`;
 }
 
 /**
  * Validate CSRF token for session
+ *
+ * SECURITY FIX: Validates HMAC-SHA256 token with timestamp freshness check.
+ * Tokens are valid for the current 5-minute window and the previous one
+ * to handle clock skew and tokens generated near window boundaries.
  */
 export function validateCSRFTokenForSession(sessionId: string, token: string): boolean {
-  const expectedToken = getCSRFTokenForSession(sessionId);
-  return constantTimeCompare(token, expectedToken);
+  // Extract timestamp and hash from token
+  const [tokenTimestamp, tokenHash] = token.split('.');
+  if (!tokenTimestamp || !tokenHash) {
+    return false;
+  }
+
+  const submittedTimestamp = parseInt(tokenTimestamp, 10);
+  if (isNaN(submittedTimestamp)) {
+    return false;
+  }
+
+  // Get current timestamp window
+  const currentTimestamp = Math.floor(Date.now() / (5 * 60 * 1000));
+
+  // Allow current window and previous window (10 minute total validity)
+  const validTimestamps = [currentTimestamp, currentTimestamp - 1];
+
+  // Check if token timestamp is in valid range
+  if (!validTimestamps.includes(submittedTimestamp)) {
+    return false;
+  }
+
+  // Regenerate expected hash using the token's timestamp
+  const secret = process.env.CSRF_SECRET;
+
+  // SECURITY: Require CSRF_SECRET in production
+  if (!secret && process.env.NODE_ENV === 'production') {
+    console.error('[CSRF] CSRF_SECRET is required in production');
+    return false;
+  }
+
+  const effectiveSecret = secret || 'dev-csrf-secret-do-not-use-in-production';
+  const data = `${sessionId}:${submittedTimestamp}`;
+
+  const hmac = crypto.createHmac('sha256', effectiveSecret);
+  hmac.update(data);
+  const expectedHash = hmac.digest('hex');
+
+  // Constant-time comparison to prevent timing attacks
+  return constantTimeCompare(tokenHash, expectedHash);
 }
 
 /**
