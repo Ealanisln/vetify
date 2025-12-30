@@ -174,6 +174,21 @@ export const securityHeaders = {
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
   'Cache-Control': 'no-store, no-cache, must-revalidate, private',
+  // SECURITY FIX: Add Content-Security-Policy to prevent XSS and data injection attacks
+  'Content-Security-Policy': [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://analytics.alanis.dev https://connect.facebook.net https://www.facebook.com",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https: http:",
+    "font-src 'self' data:",
+    "connect-src 'self' https://*.supabase.co https://*.stripe.com https://*.sentry.io wss://*.supabase.co https://analytics.alanis.dev",
+    "frame-src 'self' https://*.stripe.com https://www.facebook.com",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "upgrade-insecure-requests",
+  ].join('; '),
 };
 
 /**
