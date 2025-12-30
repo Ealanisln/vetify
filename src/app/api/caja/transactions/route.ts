@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAuth } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
+import { parsePagination } from '../../../../lib/security/validation-schemas';
 
 interface TransactionData {
   id: string;
@@ -22,7 +23,8 @@ export async function GET(request: Request) {
     const tenantId = tenant.id;
     const locationId = searchParams.get('locationId') || undefined;
     const drawerId = searchParams.get('drawerId') || undefined; // Filtrar por caja específica
-    const limit = parseInt(searchParams.get('limit') || '20');
+    // SECURITY FIX: Use validated pagination with enforced limits
+    const { limit } = parsePagination(searchParams);
     const summary = searchParams.get('summary') === 'true';
 
     // Si solo quieren el resumen
