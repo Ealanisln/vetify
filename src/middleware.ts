@@ -12,6 +12,7 @@ import {
   createAuditMiddleware
 } from './lib/security/audit-logger';
 import { securityHeaders } from './lib/security/input-sanitization';
+import { createCSRFMiddleware } from './lib/security/csrf-protection';
 
 /**
  * Protected routes that require trial/subscription access
@@ -90,6 +91,12 @@ export default withAuth(
     // Initialize audit middleware
     const auditMiddleware = createAuditMiddleware();
 
+    // SECURITY FIX: Initialize CSRF middleware for state-changing requests
+    const csrfMiddleware = createCSRFMiddleware({
+      skipForMethods: ['GET', 'HEAD', 'OPTIONS'],
+      skipForPaths: ['/api/webhooks/', '/api/auth/', '/api/public/'],
+    });
+
     // Get user info for authenticated requests (for logging and audit purposes)
     try {
       const { getUser } = getKindeServerSession();
@@ -136,8 +143,19 @@ export default withAuth(
         
         return response;
       }
+
+      // SECURITY FIX: Apply CSRF protection for state-changing API requests
+      // This checks origin headers to prevent cross-site request forgery
+      const csrfResult = await csrfMiddleware(req);
+      if (csrfResult) {
+        await logSecurityEvent(req, 'security_event', userId, {
+          reason: 'CSRF validation failed',
+          endpoint: pathname,
+        });
+        return csrfResult;
+      }
     }
-    
+
     // Allow public access to webhook routes (bypass auth protection but still apply rate limiting)
     if (pathname.startsWith('/api/webhooks/')) {
       const response = NextResponse.next();
@@ -248,12 +266,16 @@ export default withAuth(
         }
       } catch (error) {
         console.error('Middleware error:', error);
-        
+
         // Log the error as a security event
         await logSecurityEvent(req, 'security_event', userId, {
           error: 'Dashboard access error',
           pathname,
         });
+
+        // SECURITY FIX: Return redirect to login on error to prevent unintended access
+        // Previously this catch block didn't return, potentially allowing requests through
+        return NextResponse.redirect(new URL('/api/auth/login', req.url));
       }
     }
 
@@ -287,12 +309,15 @@ export default withAuth(
         return response;
       } catch (error) {
         console.error('Middleware error:', error);
-        
+
         // Log the error as a security event
         await logSecurityEvent(req, 'security_event', userId, {
           error: 'Onboarding access error',
           pathname,
         });
+
+        // SECURITY FIX: Return redirect to login on error to prevent unintended access
+        return NextResponse.redirect(new URL('/api/auth/login', req.url));
       }
     }
 

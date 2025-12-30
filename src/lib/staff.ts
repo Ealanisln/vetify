@@ -176,6 +176,8 @@ export async function getStaffByTenant(tenantId: string, filters: Partial<StaffF
 }
 
 export async function getStaffById(tenantId: string, staffId: string) {
+  // PERFORMANCE FIX: Use select instead of include to avoid N+1 queries
+  // Only fetch the fields we actually need for display
   const staff = await prisma.staff.findFirst({
     where: {
       id: staffId,
@@ -183,26 +185,63 @@ export async function getStaffById(tenantId: string, staffId: string) {
     },
     include: {
       appointments: {
-        include: {
+        select: {
+          id: true,
+          dateTime: true,
+          status: true,
+          reason: true,
           pet: {
-            include: { customer: true }
+            select: {
+              id: true,
+              name: true,
+              species: true,
+              customer: {
+                select: {
+                  id: true,
+                  name: true,
+                  phone: true,
+                }
+              }
+            }
           }
         },
         orderBy: { dateTime: 'desc' },
         take: 10
       },
       medicalHistories: {
-        include: {
+        select: {
+          id: true,
+          createdAt: true,
+          diagnosis: true,
           pet: {
-            include: { customer: true }
+            select: {
+              id: true,
+              name: true,
+              species: true,
+              customer: {
+                select: {
+                  id: true,
+                  name: true,
+                }
+              }
+            }
           }
         },
         orderBy: { createdAt: 'desc' },
         take: 10
       },
       Sale: {
-        include: {
-          customer: true
+        select: {
+          id: true,
+          createdAt: true,
+          total: true,
+          status: true,
+          customer: {
+            select: {
+              id: true,
+              name: true,
+            }
+          }
         },
         orderBy: { createdAt: 'desc' },
         take: 10

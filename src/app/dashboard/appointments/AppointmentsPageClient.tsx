@@ -1,14 +1,34 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FullCalendarView, AppointmentModal, TodayAppointments, AppointmentStats } from '../../../components/appointments';
+import dynamic from 'next/dynamic';
+import { AppointmentModal, TodayAppointments, AppointmentStats } from '../../../components/appointments';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
-import { PlusIcon, Calendar, Clock, Users } from 'lucide-react';
+import { PlusIcon, Calendar, Clock, Users, Loader2 } from 'lucide-react';
 import { useAppointments, AppointmentWithDetails } from '../../../hooks/useAppointments';
 import { DateSelectArg } from '@fullcalendar/core';
 import { formatDate, formatTime } from '../../../lib/utils/date-format';
+
+// PERFORMANCE FIX: Lazy load FullCalendar to reduce initial bundle size
+// FullCalendar with 4 plugins adds significant weight to the JavaScript bundle
+const FullCalendarView = dynamic(
+  () => import('../../../components/appointments/FullCalendarView').then(mod => ({ default: mod.FullCalendarView })),
+  {
+    loading: () => (
+      <Card className="w-full border-gray-200 dark:border-gray-800">
+        <CardContent className="flex items-center justify-center h-[600px]">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-[#75a99c]" />
+            <p className="text-sm text-gray-500">Cargando calendario...</p>
+          </div>
+        </CardContent>
+      </Card>
+    ),
+    ssr: false, // FullCalendar doesn't support SSR
+  }
+);
 
 // Translation mapping for species (English to Spanish)
 const speciesTranslation: Record<string, string> = {
