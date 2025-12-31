@@ -2,23 +2,21 @@
  * Inventory Page
  *
  * PLAN FEATURES:
- * - Plan Básico: Basic inventory management (add/edit items, track stock)
- * - Plan Profesional: Advanced features (rotation analysis, automatic alerts, supplier integration, detailed reports)
- *
- * Advanced features are gated with FeatureGate component:
- *   - Detailed movement reports
- *   - Rotation analysis
- *   - Automated low-stock alerts
- *   - Supplier integration
+ * - Plan Básico: Basic inventory management (CRUD, stock tracking, search/filter)
+ * - Plan Profesional: Advanced features gated with FeatureGate:
+ *   - Rotation analysis with ABC classification
+ *   - Automated low-stock and expiration alerts
+ *   - Detailed movement reports with filters
+ *   - Expiration tracking with FIFO recommendations
  */
 import { Suspense } from 'react';
-import Link from 'next/link';
 import { requireActiveSubscription } from '../../../lib/auth';
 import { InventoryMain } from '../../../components/inventory/InventoryMain';
 import { InventoryStats } from '../../../components/inventory/InventoryStats';
 import { LowStockAlert } from '../../../components/inventory/LowStockAlert';
 import { FeatureGate } from '../../../components/features/FeatureGate';
 import { AdvancedInventoryFeatures } from '../../../components/inventory/AdvancedInventoryFeatures';
+import AdvancedInventoryUpgradePrompt from '../../../components/inventory/AdvancedInventoryUpgradePrompt';
 
 export default async function InventoryPage() {
   const { tenant } = await requireActiveSubscription();
@@ -73,36 +71,7 @@ export default async function InventoryPage() {
       {/* Advanced Inventory Features - Plan Profesional+ only */}
       <FeatureGate
         feature="advancedInventory"
-        fallback={
-          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200 dark:border-purple-700 p-6">
-            <div className="flex items-start gap-4">
-              <div className="flex-shrink-0">
-                <div className="h-10 w-10 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center">
-                  <svg className="h-5 w-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                </div>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-purple-900 dark:text-purple-100">
-                  Funciones Avanzadas de Inventario
-                </h3>
-                <p className="mt-1 text-sm text-purple-700 dark:text-purple-300">
-                  Actualiza a Plan Profesional para acceder a movimientos detallados, análisis de rotación, alertas automatizadas e integración con proveedores.
-                </p>
-                <Link
-                  href="/precios"
-                  className="mt-3 inline-flex items-center text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-800 dark:hover:text-purple-300"
-                >
-                  Ver planes disponibles
-                  <svg className="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </Link>
-              </div>
-            </div>
-          </div>
-        }
+        fallback={<AdvancedInventoryUpgradePrompt />}
       >
         <Suspense fallback={
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
