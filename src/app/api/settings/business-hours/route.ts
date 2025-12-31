@@ -3,22 +3,28 @@ import { requireAuth } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
 
+// Time format regex for HH:MM validation
+const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+
+// Helper for optional time fields that can be null (from Prisma) or undefined
+const optionalTimeField = z.string().regex(timeRegex, 'Formato de hora inválido').nullish();
+
 const businessHoursSchema = z.object({
-  defaultStartTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido'),
-  defaultEndTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido'),
-  defaultLunchStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido').optional(),
-  defaultLunchEnd: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido').optional(),
+  defaultStartTime: z.string().regex(timeRegex, 'Formato de hora inválido'),
+  defaultEndTime: z.string().regex(timeRegex, 'Formato de hora inválido'),
+  defaultLunchStart: optionalTimeField,
+  defaultLunchEnd: optionalTimeField,
   defaultSlotDuration: z.number().min(5).max(120),
   businessHours: z.array(z.object({
     dayOfWeek: z.number().min(0).max(6),
     isWorkingDay: z.boolean(),
-    startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido'),
-    endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido'),
-    lunchStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido').optional(),
-    lunchEnd: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, 'Formato de hora inválido').optional(),
-    slotDuration: z.number().min(5).max(120).optional(),
-  }))
-});
+    startTime: z.string().regex(timeRegex, 'Formato de hora inválido'),
+    endTime: z.string().regex(timeRegex, 'Formato de hora inválido'),
+    lunchStart: optionalTimeField,
+    lunchEnd: optionalTimeField,
+    slotDuration: z.number().min(5).max(120).nullish(),
+  }).passthrough()).optional() // Make the array optional; passthrough allows extra Prisma fields (id, tenantId, etc.)
+}).passthrough(); // Allow extra fields from Prisma (id, tenantId, etc.)
 
 export async function GET() {
   try {
@@ -134,45 +140,64 @@ export async function PUT(request: Request) {
       throw new Error('Failed to create/update tenant settings');
     }
 
-    // Update business hours for each day
-    for (const businessHour of validatedData.businessHours) {
-      // Find existing record (locationId is null for global hours)
-      const existingHour = await prisma.businessHours.findFirst({
-        where: {
-          tenantId: tenant.id,
-          locationId: null,
-          dayOfWeek: businessHour.dayOfWeek
-        }
-      });
+    // Update business hours for each day (only if businessHours array is provided)
+    if (validatedData.businessHours && validatedData.businessHours.length > 0) {
+      for (const businessHour of validatedData.businessHours) {
+        // Cast to access potential id field from passthrough
+        const hourWithId = businessHour as typeof businessHour & { id?: string };
 
-      if (existingHour) {
-        // Update existing record
-        await prisma.businessHours.update({
-          where: { id: existingHour.id },
-          data: {
-            isWorkingDay: businessHour.isWorkingDay,
-            startTime: businessHour.startTime,
-            endTime: businessHour.endTime,
-            lunchStart: businessHour.lunchStart,
-            lunchEnd: businessHour.lunchEnd,
-            slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
+        if (hourWithId.id) {
+          // Update existing record by ID (most reliable)
+          await prisma.businessHours.update({
+            where: { id: hourWithId.id },
+            data: {
+              isWorkingDay: businessHour.isWorkingDay,
+              startTime: businessHour.startTime,
+              endTime: businessHour.endTime,
+              lunchStart: businessHour.lunchStart,
+              lunchEnd: businessHour.lunchEnd,
+              slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
+            }
+          });
+        } else {
+          // Find existing record or create new one
+          const existingHour = await prisma.businessHours.findFirst({
+            where: {
+              tenantId: tenant.id,
+              locationId: null,
+              dayOfWeek: businessHour.dayOfWeek
+            }
+          });
+
+          if (existingHour) {
+            await prisma.businessHours.update({
+              where: { id: existingHour.id },
+              data: {
+                isWorkingDay: businessHour.isWorkingDay,
+                startTime: businessHour.startTime,
+                endTime: businessHour.endTime,
+                lunchStart: businessHour.lunchStart,
+                lunchEnd: businessHour.lunchEnd,
+                slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
+              }
+            });
+          } else {
+            // Create new record
+            await prisma.businessHours.create({
+              data: {
+                tenantId: tenant.id,
+                tenantSettingsId: tenantSettings.id,
+                dayOfWeek: businessHour.dayOfWeek,
+                isWorkingDay: businessHour.isWorkingDay,
+                startTime: businessHour.startTime,
+                endTime: businessHour.endTime,
+                lunchStart: businessHour.lunchStart,
+                lunchEnd: businessHour.lunchEnd,
+                slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
+              }
+            });
           }
-        });
-      } else {
-        // Create new record
-        await prisma.businessHours.create({
-          data: {
-            tenantId: tenant.id,
-            tenantSettingsId: tenantSettings.id,
-            dayOfWeek: businessHour.dayOfWeek,
-            isWorkingDay: businessHour.isWorkingDay,
-            startTime: businessHour.startTime,
-            endTime: businessHour.endTime,
-            lunchStart: businessHour.lunchStart,
-            lunchEnd: businessHour.lunchEnd,
-            slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
-          }
-        });
+        }
       }
     }
 
