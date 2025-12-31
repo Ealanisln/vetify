@@ -47,10 +47,21 @@ export default function AdvancedReportsSection({ reportsData }: AdvancedReportsS
   const handleExport = (type: string) => {
     switch (type) {
       case 'revenue':
-        exportToCSV([
-          ...reportsData.revenue.dailySales,
-          ...reportsData.revenue.monthlySales
-        ], 'revenue-report');
+        // Transform daily sales with rounded values
+        const dailySalesData = reportsData.revenue.dailySales.map(sale => ({
+          date: sale.date,
+          total: Number(sale.total.toFixed(2)),
+          count: sale.count
+        }));
+
+        // Add summary rows with period labels and rounded values
+        const summaryData = [
+          { date: 'Esta Semana', total: Number(reportsData.revenue.weeklySales.toFixed(2)), count: '-' },
+          { date: 'Este Mes', total: Number(reportsData.revenue.monthlySales.reduce((sum, m) => sum + m.total, 0).toFixed(2)), count: '-' },
+          { date: 'Este Año', total: Number(reportsData.revenue.yearlySales.toFixed(2)), count: '-' }
+        ];
+
+        exportToCSV([...dailySalesData, ...summaryData], 'revenue-report');
         break;
       case 'customers':
         exportToCSV(reportsData.customers.topCustomers, 'customers-report');
