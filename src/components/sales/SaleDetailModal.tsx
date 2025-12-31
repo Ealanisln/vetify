@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { XMarkIcon, PrinterIcon, ReceiptPercentIcon, UserIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { formatTaxRateLabel } from '@/lib/tax-utils';
+import { formatTaxRateLabel, calculateTaxBreakdown } from '@/lib/tax-utils';
 
 interface SaleDetailModalProps {
   saleId: string | null;
@@ -221,26 +221,33 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
             </table>
 
             {/* Totals */}
-            <div className="mb-2 pb-2 border-b border-dashed border-black">
-              <div className="flex justify-between">
-                <span>Subtotal (sin IVA):</span>
-                <span>{formatCurrency(sale.subtotal).replace('MX$', '$')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>IVA incluido ({formatTaxRateLabel(Number(sale.tenant.tenantSettings?.taxRate) || 0.16)}):</span>
-                <span>{formatCurrency(sale.tax).replace('MX$', '$')}</span>
-              </div>
-              {parseFloat(sale.discount) > 0 && (
-                <div className="flex justify-between">
-                  <span>Descuento:</span>
-                  <span>-{formatCurrency(sale.discount).replace('MX$', '$')}</span>
+            {(() => {
+              const taxRate = Number(sale.tenant.tenantSettings?.taxRate) || 0.16;
+              const totalAmount = parseFloat(sale.total) + parseFloat(sale.discount);
+              const taxBreakdown = calculateTaxBreakdown(totalAmount, taxRate);
+              return (
+                <div className="mb-2 pb-2 border-b border-dashed border-black">
+                  <div className="flex justify-between">
+                    <span>Subtotal (sin IVA):</span>
+                    <span>{formatCurrency(taxBreakdown.subtotalWithoutTax).replace('MX$', '$')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>IVA incluido ({formatTaxRateLabel(taxRate)}):</span>
+                    <span>{formatCurrency(taxBreakdown.taxAmount).replace('MX$', '$')}</span>
+                  </div>
+                  {parseFloat(sale.discount) > 0 && (
+                    <div className="flex justify-between">
+                      <span>Descuento:</span>
+                      <span>-{formatCurrency(sale.discount).replace('MX$', '$')}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between font-bold text-sm border-t border-black pt-1 mt-1">
+                    <span>TOTAL:</span>
+                    <span>{formatCurrency(sale.total).replace('MX$', '$')}</span>
+                  </div>
                 </div>
-              )}
-              <div className="flex justify-between font-bold text-sm border-t border-black pt-1 mt-1">
-                <span>TOTAL:</span>
-                <span>{formatCurrency(sale.total).replace('MX$', '$')}</span>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Payment */}
             <div className="mb-2 pb-2 border-b border-dashed border-black">
@@ -396,25 +403,32 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
 
                   {/* Totals */}
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-md p-4">
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Subtotal (sin IVA):</span>
-                        <span className="font-medium text-foreground">{formatCurrency(sale.subtotal)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">IVA incluido ({formatTaxRateLabel(Number(sale.tenant.tenantSettings?.taxRate) || 0.16)}):</span>
-                        <span className="font-medium text-foreground">{formatCurrency(sale.tax)}</span>
-                      </div>
-                      {parseFloat(sale.discount) > 0 && (
-                        <div className="flex justify-between text-red-600 dark:text-red-400">
-                          <span>Descuento:</span>
-                          <span>-{formatCurrency(sale.discount)}</span>
+                    {(() => {
+                      const taxRate = Number(sale.tenant.tenantSettings?.taxRate) || 0.16;
+                      const totalAmount = parseFloat(sale.total) + parseFloat(sale.discount);
+                      const taxBreakdown = calculateTaxBreakdown(totalAmount, taxRate);
+                      return (
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Subtotal (sin IVA):</span>
+                            <span className="font-medium text-foreground">{formatCurrency(taxBreakdown.subtotalWithoutTax)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">IVA incluido ({formatTaxRateLabel(taxRate)}):</span>
+                            <span className="font-medium text-foreground">{formatCurrency(taxBreakdown.taxAmount)}</span>
+                          </div>
                         </div>
-                      )}
-                      <div className="pt-2 border-t border-gray-200 dark:border-gray-600 flex justify-between">
-                        <span className="text-lg font-semibold text-foreground">Total:</span>
-                        <span className="text-lg font-bold text-primary">{formatCurrency(sale.total)}</span>
+                      );
+                    })()}
+                    {parseFloat(sale.discount) > 0 && (
+                      <div className="flex justify-between text-red-600 dark:text-red-400 text-sm">
+                        <span>Descuento:</span>
+                        <span>-{formatCurrency(sale.discount)}</span>
                       </div>
+                    )}
+                    <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-600 flex justify-between">
+                      <span className="text-lg font-semibold text-foreground">Total:</span>
+                      <span className="text-lg font-bold text-primary">{formatCurrency(sale.total)}</span>
                     </div>
                   </div>
 

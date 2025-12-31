@@ -466,9 +466,10 @@ export default function SalesPageClient({}: SalesPageClientProps) {
                   <div className="flex items-center space-x-2">
                     <input
                       type="number"
-                      min="1"
+                      min="0.01"
+                      step="0.01"
                       value={item.quantity}
-                      onChange={(e) => updateQuantity(index, parseInt(e.target.value) || 1)}
+                      onChange={(e) => updateQuantity(index, parseFloat(e.target.value) || 1)}
                       className="w-16 px-2 py-1 text-center border border-gray-300 dark:border-gray-600 rounded focus:ring-[#75a99c] focus:border-[#75a99c] dark:bg-gray-700 dark:text-gray-100"
                     />
                     
