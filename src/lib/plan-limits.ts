@@ -1,6 +1,7 @@
 import { prisma } from './prisma';
 import { serializeTenant } from './serializers';
 import { hasActiveSubscription } from './auth';
+import { DEFAULT_PLAN_LIMITS, USAGE_WARNING_THRESHOLD } from './constants';
 
 interface PlanFeatures {
   whatsappMessages?: number;
@@ -80,11 +81,11 @@ export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
   // This will only execute if trial is still valid (checked above)
   if (!tenant?.tenantSubscription?.plan) {
     return {
-      maxPets: 300,
-      maxUsers: 3,
-      maxMonthlyWhatsApp: -1, // ilimitado
-      maxStorageGB: 5,
-      maxCashRegisters: 1,
+      maxPets: DEFAULT_PLAN_LIMITS.maxPets,
+      maxUsers: DEFAULT_PLAN_LIMITS.maxUsers,
+      maxMonthlyWhatsApp: DEFAULT_PLAN_LIMITS.maxMonthlyWhatsApp, // -1 = unlimited
+      maxStorageGB: DEFAULT_PLAN_LIMITS.maxStorageGB,
+      maxCashRegisters: DEFAULT_PLAN_LIMITS.maxCashRegisters,
       canUseAutomations: false, // FUTURE FEATURE
       canUseAdvancedReports: false,
       canUseAdvancedInventory: false,
@@ -417,10 +418,10 @@ export async function getPlanStatus(tenantId: string) {
       storage: Math.round((usage.currentStorageBytes / (limits.maxStorageGB * 1024 * 1024 * 1024)) * 100)
     },
     warnings: {
-      pets: usage.currentPets >= limits.maxPets * 0.8,
-      users: usage.currentUsers >= limits.maxUsers * 0.8,
-      whatsapp: usage.currentMonthlyWhatsApp >= limits.maxMonthlyWhatsApp * 0.8,
-      storage: usage.currentStorageBytes >= (limits.maxStorageGB * 1024 * 1024 * 1024) * 0.8
+      pets: usage.currentPets >= limits.maxPets * USAGE_WARNING_THRESHOLD,
+      users: usage.currentUsers >= limits.maxUsers * USAGE_WARNING_THRESHOLD,
+      whatsapp: usage.currentMonthlyWhatsApp >= limits.maxMonthlyWhatsApp * USAGE_WARNING_THRESHOLD,
+      storage: usage.currentStorageBytes >= (limits.maxStorageGB * 1024 * 1024 * 1024) * USAGE_WARNING_THRESHOLD
     }
   };
 }

@@ -15,6 +15,8 @@ import {
   Zap
 } from 'lucide-react';
 import type { Tenant } from '@prisma/client';
+import { ANIMATION_DURATION_SHORT } from '../../lib/constants';
+import { setWithExpiry, getWithExpiry, getWelcomeBannerKey } from '../../lib/storage/expiring-storage';
 
 interface WelcomeBannerProps {
   tenant: Tenant;
@@ -88,16 +90,16 @@ export function WelcomeBanner({ tenant }: WelcomeBannerProps) {
       return false;
     }
 
-    // Check localStorage to ensure we only show once
-    const storageKey = `welcome-banner-shown-${tenant.id}`;
-    const hasBeenShown = localStorage.getItem(storageKey);
+    // Check localStorage to ensure we only show once (with expiry support)
+    const storageKey = getWelcomeBannerKey(tenant.id);
+    const hasBeenShown = getWithExpiry<boolean>(storageKey);
 
     if (hasBeenShown) {
       return false;
     }
 
-    // Mark as shown in localStorage
-    localStorage.setItem(storageKey, 'true');
+    // Mark as shown in localStorage (no expiry - persists until plan change)
+    setWithExpiry(storageKey, true, Number.MAX_SAFE_INTEGER);
     return true;
   }, [searchParams, tenant.id]);
 
@@ -108,7 +110,7 @@ export function WelcomeBanner({ tenant }: WelcomeBannerProps) {
       // Small delay for smooth entrance animation
       const timer = setTimeout(() => {
         setIsVisible(true);
-      }, 300);
+      }, ANIMATION_DURATION_SHORT);
       return () => clearTimeout(timer);
     }
   }, [checkShouldShow]);
@@ -118,7 +120,7 @@ export function WelcomeBanner({ tenant }: WelcomeBannerProps) {
     // Wait for animation before hiding
     setTimeout(() => {
       setIsVisible(false);
-    }, 300);
+    }, ANIMATION_DURATION_SHORT);
   };
 
   if (!isVisible) {

@@ -23,6 +23,12 @@ import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { calculateTrialDaysRemaining } from '../../lib/trial/utils';
 import { getPlanKeyFromName } from '../../lib/pricing-config';
+import { TRIAL_WARNING_DAYS, STORAGE_TTL_NOTIFICATION_DISMISSAL } from '../../lib/constants';
+import {
+  setWithExpiry,
+  getWithExpiry,
+  getNotificationDismissalKey
+} from '../../lib/storage/expiring-storage';
 
 interface SubscriptionNotificationsProps {
   tenant: Tenant;
@@ -41,19 +47,19 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
     subscriptionEndsAt
   } = useSubscription(tenant);
 
-  // Load dismissed state from localStorage on mount
+  // Load dismissed state from localStorage on mount (with expiry support)
   useEffect(() => {
-    const dismissedKey = `subscription-notification-dismissed-${tenant.id}`;
-    const dismissed = localStorage.getItem(dismissedKey);
+    const dismissedKey = getNotificationDismissalKey(tenant.id, 'subscription');
+    const dismissed = getWithExpiry<boolean>(dismissedKey);
     if (dismissed) {
       setIsDismissed(true);
     }
   }, [tenant.id]);
 
-  // Handle dismiss
+  // Handle dismiss (with 7-day expiry so notification reappears)
   const handleDismiss = () => {
-    const dismissedKey = `subscription-notification-dismissed-${tenant.id}`;
-    localStorage.setItem(dismissedKey, 'true');
+    const dismissedKey = getNotificationDismissalKey(tenant.id, 'subscription');
+    setWithExpiry(dismissedKey, true, STORAGE_TTL_NOTIFICATION_DISMISSAL);
     setIsDismissed(true);
   };
 
@@ -114,7 +120,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
         buttonText: 'Renovar Subscripción',
         link: '/precios'
       };
-    } else if (isInTrial && daysRemaining !== null && daysRemaining <= 3) {
+    } else if (isInTrial && daysRemaining !== null && daysRemaining <= TRIAL_WARNING_DAYS) {
       return {
         type: 'trial-ending' as const,
         icon: Clock,
@@ -127,7 +133,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
         buttonText: 'Ver Planes',
         link: '/precios'
       };
-    } else if (isInTrial && daysRemaining !== null && daysRemaining > 3) {
+    } else if (isInTrial && daysRemaining !== null && daysRemaining > TRIAL_WARNING_DAYS) {
       return {
         type: 'trial-active' as const,
         icon: Gift,
