@@ -14,6 +14,7 @@ export async function getInventoryItems(
 ): Promise<{ items: InventoryItemWithStock[], total: number }> {
   const where = {
     tenantId,
+    status: 'ACTIVE' as const,
     // Include items with the specified location OR items without any location assigned
     ...(locationId && {
       OR: [

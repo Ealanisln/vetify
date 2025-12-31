@@ -14,6 +14,7 @@ import { Badge } from '../ui/badge';
 import { AddProductModal } from './AddProductModal';
 import { EditProductModal } from './EditProductModal';
 import { getInventoryCategories } from '../../lib/inventory';
+import { INVENTORY_UPDATED_EVENT } from './LowStockAlert';
 import { ResponsiveTable } from '../ui/ResponsiveTable';
 import { themeColors, responsive } from '../../utils/theme-colors';
 import { useLocation } from '@/components/providers/LocationProvider';
@@ -107,6 +108,8 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
 
       if (response.ok) {
         fetchItems(currentPage, searchQuery, selectedCategory, selectedLocationId);
+        // Notify LowStockAlert to refresh
+        window.dispatchEvent(new CustomEvent(INVENTORY_UPDATED_EVENT));
       }
     } catch (error) {
       console.error('Error deleting item:', error);
@@ -405,6 +408,8 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
         onSuccess={() => {
           setShowAddModal(false);
           fetchItems(currentPage, searchQuery, selectedCategory, selectedLocationId);
+          // Notify LowStockAlert to refresh
+          window.dispatchEvent(new CustomEvent(INVENTORY_UPDATED_EVENT));
         }}
         tenantId={tenantId}
       />
@@ -420,6 +425,8 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
             setShowEditModal(false);
             setSelectedItem(null);
             fetchItems(currentPage, searchQuery, selectedCategory, selectedLocationId);
+            // Notify LowStockAlert to refresh
+            window.dispatchEvent(new CustomEvent(INVENTORY_UPDATED_EVENT));
           }}
           item={selectedItem}
           tenantId={tenantId}

@@ -85,11 +85,11 @@ export async function GET(request: Request): Promise<NextResponse<MovementReport
 
     // Build where clause
     const whereClause: Record<string, unknown> = {
-      inventoryItem: { tenantId }
+      item: { tenantId }
     };
 
     if (itemId) {
-      whereClause.inventoryItemId = itemId;
+      whereClause.itemId = itemId;
     }
 
     if (type && Object.values(MovementType).includes(type)) {
@@ -97,8 +97,8 @@ export async function GET(request: Request): Promise<NextResponse<MovementReport
     }
 
     if (category) {
-      whereClause.inventoryItem = {
-        ...whereClause.inventoryItem as object,
+      whereClause.item = {
+        ...whereClause.item as object,
         category
       };
     }
@@ -122,7 +122,7 @@ export async function GET(request: Request): Promise<NextResponse<MovementReport
       prisma.inventoryMovement.findMany({
         where: whereClause,
         include: {
-          inventoryItem: {
+          item: {
             select: { id: true, name: true, category: true }
           },
           staff: {
@@ -156,8 +156,8 @@ export async function GET(request: Request): Promise<NextResponse<MovementReport
     // Format response
     const formattedMovements: MovementRecord[] = movements.map(m => ({
       id: m.id,
-      itemId: m.inventoryItemId,
-      itemName: m.inventoryItem.name,
+      itemId: m.itemId,
+      itemName: m.item.name,
       type: m.type,
       quantity: Number(m.quantity),
       date: m.date,
