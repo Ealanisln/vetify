@@ -6,6 +6,7 @@ import {
   getInventoryTransfers,
 } from '@/lib/locations';
 import { createSecureResponse, createSecureErrorResponse } from '@/lib/security/input-sanitization';
+import { checkFeatureAccess } from '@/lib/plan-limits';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -17,6 +18,15 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const { tenant } = await requireAuth();
+
+    // Feature gate: Multi-location transfers require advanced plan
+    const hasMultiLocation = await checkFeatureAccess(tenant.id, 'multiLocation');
+    if (!hasMultiLocation) {
+      return createSecureErrorResponse(
+        'Las transferencias entre ubicaciones requieren Plan Profesional o superior',
+        403
+      );
+    }
 
     // Parse query parameters for filtering
     const { searchParams } = new URL(request.url);
@@ -57,6 +67,15 @@ const createTransferSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const { user, tenant } = await requireAuth();
+
+    // Feature gate: Multi-location transfers require advanced plan
+    const hasMultiLocation = await checkFeatureAccess(tenant.id, 'multiLocation');
+    if (!hasMultiLocation) {
+      return createSecureErrorResponse(
+        'Las transferencias entre ubicaciones requieren Plan Profesional o superior',
+        403
+      );
+    }
 
     // Parse and validate request body
     const body = await request.json();

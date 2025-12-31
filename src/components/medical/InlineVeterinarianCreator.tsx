@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { mapPositionToEnum, POSITION_SELECT_OPTIONS } from '../../lib/staff-positions';
 
 interface StaffMember {
   id: string;
@@ -17,25 +18,9 @@ interface InlineVeterinarianCreatorProps {
   buttonClassName?: string;
 }
 
-// Map Spanish position names to API enum values
-const mapPositionToEnum = (spanishPosition: string): string => {
-  const positionMap: Record<string, string> = {
-    'Veterinario': 'VETERINARIAN',
-    'Veterinario Especialista': 'VETERINARIAN',
-    'Cirujano Veterinario': 'VETERINARIAN',
-    'Asistente Veterinario': 'ASSISTANT',
-    'Técnico Veterinario': 'VETERINARY_TECHNICIAN',
-    'Recepcionista': 'RECEPTIONIST',
-    'Gerente': 'MANAGER',
-    'Peluquero': 'GROOMER',
-    'Otro': 'OTHER'
-  };
-
-  return positionMap[spanishPosition] || 'VETERINARIAN';
-};
-
-// Theme color mappings
-const themeColors = {
+// Local theme color mappings for component-specific styling
+// Uses the shared themeColors for consistency where applicable
+const componentThemeColors = {
   blue: {
     bg: 'bg-blue-600',
     hover: 'hover:bg-blue-700',
@@ -72,7 +57,7 @@ export function InlineVeterinarianCreator({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const colors = themeColors[theme];
+  const colors = componentThemeColors[theme];
 
   const handleAddStaff = async () => {
     if (!newStaffData.name.trim()) {
@@ -183,15 +168,11 @@ export function InlineVeterinarianCreator({
                   className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg focus:ring-2 ${colors.ring} ${colors.border}`}
                   disabled={isSubmitting}
                 >
-                  <option value="Veterinario">Veterinario</option>
-                  <option value="Veterinario Especialista">Veterinario Especialista</option>
-                  <option value="Cirujano Veterinario">Cirujano Veterinario</option>
-                  <option value="Asistente Veterinario">Asistente Veterinario</option>
-                  <option value="Técnico Veterinario">Técnico Veterinario</option>
-                  <option value="Recepcionista">Recepcionista</option>
-                  <option value="Gerente">Gerente</option>
-                  <option value="Peluquero">Peluquero</option>
-                  <option value="Otro">Otro</option>
+                  {POSITION_SELECT_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 

@@ -1,5 +1,6 @@
 import { differenceInDays } from 'date-fns';
 import type { Tenant } from '@prisma/client';
+import { TRIAL_WARNING_DAYS } from '../constants';
 
 export interface TrialStatus {
   status: 'active' | 'ending_soon' | 'expired' | 'grace_period' | 'converted';
@@ -63,8 +64,8 @@ export function calculateTrialStatus(tenant: Tenant): TrialStatus {
     };
   }
 
-  // Ending soon (3 days or less)
-  if (daysRemaining <= 3) {
+  // Ending soon (TRIAL_WARNING_DAYS days or less)
+  if (daysRemaining <= TRIAL_WARNING_DAYS) {
     return {
       status: 'ending_soon',
       daysRemaining,
@@ -116,7 +117,7 @@ export function getTrialMessage(daysRemaining: number): string {
     return 'Tu prueba gratuita termina mañana';
   }
   
-  if (daysRemaining <= 3) {
+  if (daysRemaining <= TRIAL_WARNING_DAYS) {
     return `Tu prueba gratuita termina en ${daysRemaining} días`;
   }
   
