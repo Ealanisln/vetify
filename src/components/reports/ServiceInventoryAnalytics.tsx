@@ -270,7 +270,7 @@ export default function ServiceInventoryAnalytics({ serviceData, inventoryData }
                       <div>
                         <h4 className="font-medium text-sm">{service.name}</h4>
                         <p className="text-xs text-gray-500">
-                          {service.count} servicios • {formatCurrency(service.averagePrice)} promedio
+                          {service.count} {service.count === 1 ? 'servicio' : 'servicios'} • {formatCurrency(service.averagePrice)} promedio
                         </p>
                       </div>
                     </div>
@@ -308,7 +308,7 @@ export default function ServiceInventoryAnalytics({ serviceData, inventoryData }
                       <div>
                         <h4 className="font-medium text-sm">{product.name}</h4>
                         <p className="text-xs text-gray-500">
-                          {product.quantitySold} unidades • {formatCurrency(product.profit)} ganancia
+                          {product.quantitySold} {product.quantitySold === 1 ? 'unidad' : 'unidades'} • {formatCurrency(product.profit)} ganancia
                         </p>
                       </div>
                     </div>
