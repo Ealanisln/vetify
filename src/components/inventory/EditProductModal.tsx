@@ -296,6 +296,7 @@ export function EditProductModal({ isOpen, onClose, onSuccess, item, tenantId }:
                   value={formData.quantity}
                   onChange={handleInputChange}
                   min="0"
+                  step="0.01"
                   required
                   className="form-input"
                 />
@@ -311,6 +312,7 @@ export function EditProductModal({ isOpen, onClose, onSuccess, item, tenantId }:
                   value={formData.minStock}
                   onChange={handleInputChange}
                   min="0"
+                  step="0.01"
                   required
                   className="form-input"
                 />

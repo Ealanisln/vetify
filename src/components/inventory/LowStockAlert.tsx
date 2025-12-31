@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { InventoryItemWithStock } from '@/types';
 
+// Custom event name for inventory updates
+export const INVENTORY_UPDATED_EVENT = 'inventory-updated';
 
 interface LowStockAlertProps {
   tenantId: string;
@@ -14,23 +16,34 @@ export function LowStockAlert({ tenantId }: LowStockAlertProps) {
   const [loading, setLoading] = useState(true);
   const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    const fetchLowStockItems = async () => {
-      try {
-        const response = await fetch(`/api/inventory?tenantId=${tenantId}&action=low-stock`);
-        if (response.ok) {
-          const data = await response.json();
-          setLowStockItems(data);
-        }
-      } catch (error) {
-        console.error('Error fetching low stock items:', error);
-      } finally {
-        setLoading(false);
+  const fetchLowStockItems = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/inventory?tenantId=${tenantId}&action=low-stock`);
+      if (response.ok) {
+        const data = await response.json();
+        setLowStockItems(data);
       }
+    } catch (error) {
+      console.error('Error fetching low stock items:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [tenantId]);
+
+  useEffect(() => {
+    fetchLowStockItems();
+
+    // Listen for inventory updates from InventoryMain
+    const handleInventoryUpdate = () => {
+      setDismissed(false); // Re-show alert if it was dismissed
+      fetchLowStockItems();
     };
 
-    fetchLowStockItems();
-  }, [tenantId]);
+    window.addEventListener(INVENTORY_UPDATED_EVENT, handleInventoryUpdate);
+    return () => {
+      window.removeEventListener(INVENTORY_UPDATED_EVENT, handleInventoryUpdate);
+    };
+  }, [fetchLowStockItems]);
 
   if (loading || lowStockItems.length === 0 || dismissed) {
     return null;
