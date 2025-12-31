@@ -126,7 +126,7 @@ export async function GET(request: Request): Promise<NextResponse<MovementReport
             select: { id: true, name: true, category: true }
           },
           staff: {
-            select: { firstName: true, lastName: true }
+            select: { name: true }
           }
         },
         orderBy: { date: 'desc' },
@@ -161,9 +161,7 @@ export async function GET(request: Request): Promise<NextResponse<MovementReport
       type: m.type,
       quantity: Number(m.quantity),
       date: m.date,
-      staffName: m.staff
-        ? `${m.staff.firstName} ${m.staff.lastName}`
-        : null,
+      staffName: m.staff?.name ?? null,
       notes: m.notes,
       relatedRecordType: m.relatedRecordType
     }));
