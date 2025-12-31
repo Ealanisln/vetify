@@ -192,7 +192,7 @@ export default function CustomerAnalytics({ data }: CustomerAnalyticsProps) {
                       <div>
                         <h4 className="font-medium">{customer.name}</h4>
                         <p className="text-sm text-gray-500">
-                          {customer.visitCount} visitas
+                          {customer.visitCount} {customer.visitCount === 1 ? 'visita' : 'visitas'}
                         </p>
                       </div>
                     </div>
