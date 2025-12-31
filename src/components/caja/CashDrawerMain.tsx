@@ -9,8 +9,9 @@ import {
   LockClosedIcon,
   LockOpenIcon
 } from '@heroicons/react/24/outline';
-import { format } from 'date-fns';
+import { format, isToday } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 import { useLocation } from '@/components/providers/LocationProvider';
 import { CashDrawerSelector } from './CashDrawerSelector';
 
@@ -233,6 +234,10 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
   const drawerStatus = currentDrawer?.status || 'CLOSED';
   const isOpen = drawerStatus === 'OPEN';
 
+  // Check if open drawer is from a previous day
+  const drawerOpenedAt = currentDrawer?.openedAt ? new Date(currentDrawer.openedAt) : null;
+  const isDrawerFromPreviousDay = isOpen && drawerOpenedAt && !isToday(drawerOpenedAt);
+
   return (
     <div className="space-y-6">
       {/* Estado actual de la caja */}
@@ -272,6 +277,22 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Warning: Drawer from previous day */}
+          {isDrawerFromPreviousDay && (
+            <div className="mb-4 p-3 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3">
+              <ExclamationTriangleIcon className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-medium text-amber-800 dark:text-amber-200">
+                  Caja de un día anterior
+                </p>
+                <p className="text-sm text-amber-700 dark:text-amber-300">
+                  Esta caja fue abierta el {format(drawerOpenedAt!, "d 'de' MMMM", { locale: es })}.
+                  Para procesar ventas en efectivo hoy, cierre esta caja y abra una nueva.
+                </p>
+              </div>
+            </div>
+          )}
+
           {currentDrawer ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -280,9 +301,11 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
                   <p className="font-medium text-foreground">{currentDrawer.openedBy.name}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Hora de apertura</p>
+                  <p className="text-sm text-muted-foreground">Fecha y hora de apertura</p>
                   <p className="font-medium text-foreground">
-                    {format(new Date(currentDrawer.openedAt), 'HH:mm', { locale: es })}
+                    {isToday(new Date(currentDrawer.openedAt))
+                      ? format(new Date(currentDrawer.openedAt), 'HH:mm', { locale: es })
+                      : format(new Date(currentDrawer.openedAt), "d MMM yyyy, HH:mm", { locale: es })}
                   </p>
                 </div>
                 <div>
