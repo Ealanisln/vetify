@@ -1,0 +1,5 @@
+-- AlterEnum
+-- Add missing email template types for appointment-related notifications
+ALTER TYPE "EmailTemplate" ADD VALUE IF NOT EXISTS 'APPOINTMENT_CANCELLATION';
+ALTER TYPE "EmailTemplate" ADD VALUE IF NOT EXISTS 'APPOINTMENT_RESCHEDULED';
+ALTER TYPE "EmailTemplate" ADD VALUE IF NOT EXISTS 'APPOINTMENT_STAFF_NOTIFICATION';
