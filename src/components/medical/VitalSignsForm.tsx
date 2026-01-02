@@ -36,6 +36,10 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
   const heartRate = watch('heart_rate');
   const respiratoryRate = watch('respiratory_rate');
 
+  // Helper to check if a value is a valid number (not NaN)
+  const isValidNumber = (value: unknown): value is number =>
+    typeof value === 'number' && !isNaN(value);
+
   // Helper functions for vital signs assessment
   const getWeightStatus = (weight: number) => {
     if (weight < 1) return { status: 'low', color: 'text-red-600', message: 'Peso muy bajo' };
@@ -149,7 +153,7 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
                 <span className={`${getThemeClasses('text.tertiary')} text-sm`}>kg</span>
               </div>
             </div>
-            {weight && (
+            {isValidNumber(weight) && (
               <p className={`mt-1 text-xs ${getWeightStatus(weight).color}`}>
                 {getWeightStatus(weight).message}
               </p>
@@ -179,7 +183,7 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
                 <span className="text-gray-500 text-sm">°C</span>
               </div>
             </div>
-            {temperature && (
+            {isValidNumber(temperature) && (
               <p className={`mt-1 text-xs ${getTemperatureStatus(temperature).color}`}>
                 {getTemperatureStatus(temperature).message}
               </p>
@@ -208,7 +212,7 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
                 <span className="text-gray-500 text-sm">lpm</span>
               </div>
             </div>
-            {heartRate && (
+            {isValidNumber(heartRate) && (
               <p className={`mt-1 text-xs ${getHeartRateStatus(heartRate).color}`}>
                 {getHeartRateStatus(heartRate).message}
               </p>
@@ -237,7 +241,7 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
                 <span className="text-gray-500 text-sm">rpm</span>
               </div>
             </div>
-            {respiratoryRate && (
+            {isValidNumber(respiratoryRate) && (
               <p className={`mt-1 text-xs ${getRespiratoryRateStatus(respiratoryRate).color}`}>
                 {getRespiratoryRateStatus(respiratoryRate).message}
               </p>
@@ -299,29 +303,29 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
       </div>
 
       {/* Vital Signs Summary */}
-      {(weight || temperature || heartRate || respiratoryRate) && (
+      {(isValidNumber(weight) || isValidNumber(temperature) || isValidNumber(heartRate) || isValidNumber(respiratoryRate)) && (
         <div className="bg-gray-50 rounded-lg p-4">
           <h4 className="text-sm font-medium text-gray-900 mb-3">Resumen de Signos Vitales</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            {weight && (
+            {isValidNumber(weight) && (
               <div className="text-center">
                 <p className="font-medium text-gray-900">{weight} kg</p>
                 <p className={getWeightStatus(weight).color}>Peso</p>
               </div>
             )}
-            {temperature && (
+            {isValidNumber(temperature) && (
               <div className="text-center">
                 <p className="font-medium text-gray-900">{temperature}°C</p>
                 <p className={getTemperatureStatus(temperature).color}>Temperatura</p>
               </div>
             )}
-            {heartRate && (
+            {isValidNumber(heartRate) && (
               <div className="text-center">
                 <p className="font-medium text-gray-900">{heartRate} lpm</p>
                 <p className={getHeartRateStatus(heartRate).color}>Cardíaca</p>
               </div>
             )}
-            {respiratoryRate && (
+            {isValidNumber(respiratoryRate) && (
               <div className="text-center">
                 <p className="font-medium text-gray-900">{respiratoryRate} rpm</p>
                 <p className={getRespiratoryRateStatus(respiratoryRate).color}>Respiratoria</p>
