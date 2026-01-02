@@ -178,7 +178,7 @@ export async function updateInventoryItem(
         ...(data.brand !== undefined && { brand: data.brand }),
         ...(data.minStock !== undefined && { minStock: data.minStock }),
         ...(data.storageLocation !== undefined && { storageLocation: data.storageLocation }),
-        ...(data.locationId !== undefined && { locationId: data.locationId }),
+        ...(data.locationId !== undefined && { locationId: data.locationId || null }),
         ...(data.expirationDate && { expirationDate: new Date(data.expirationDate) }),
         ...(data.cost !== undefined && { cost: data.cost }),
         ...(data.price !== undefined && { price: data.price }),
