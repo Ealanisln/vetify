@@ -233,8 +233,8 @@ export async function PUT(
     if (validatedData.reason) updateData.reason = validatedData.reason;
     if (validatedData.status) updateData.status = validatedData.status;
     if (validatedData.notes !== undefined) updateData.notes = validatedData.notes;
-    if (validatedData.staffId !== undefined) updateData.staffId = validatedData.staffId;
-    if (validatedData.locationId !== undefined) updateData.locationId = validatedData.locationId;
+    if (validatedData.staffId !== undefined) updateData.staffId = validatedData.staffId || null;
+    if (validatedData.locationId !== undefined) updateData.locationId = validatedData.locationId || null;
 
     const appointment = await prisma.appointment.update({
       where: { id: appointmentId },
