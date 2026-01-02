@@ -121,7 +121,7 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
+      <form id="medical-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4 md:space-y-6">
         {/* Treatment Type */}
         <div className={`card p-4 md:p-6 ${getThemeClasses('background.card', 'border.card')}`}>
           <label htmlFor="treatment_type" className={`block text-sm font-medium ${getThemeClasses('text.secondary')} mb-2`}>

@@ -91,7 +91,7 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
+    <form id="medical-form" onSubmit={handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
       {/* Fecha de Registro */}
       <div className={`card p-4 md:p-6 space-y-4 ${getThemeClasses('background.card', 'border.card')}`}>
         <h3 className={`text-base md:text-lg font-semibold ${getThemeClasses('text.primary')} flex items-center`}>
