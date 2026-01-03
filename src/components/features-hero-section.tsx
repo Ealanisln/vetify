@@ -2,9 +2,13 @@ import { Button } from "@/components/ui/button"
 import { Layers, Building2, Calendar } from "lucide-react"
 import Link from "next/link"
 
-export function FeaturesHeroSection() {
+interface FeaturesHeroSectionProps {
+  hasPromoBanner?: boolean
+}
+
+export function FeaturesHeroSection({ hasPromoBanner = false }: FeaturesHeroSectionProps) {
   return (
-    <section className="relative overflow-hidden pt-32 pb-20">
+    <section className={`relative overflow-hidden ${hasPromoBanner ? 'pt-8' : 'pt-32'} pb-20`}>
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="text-balance text-5xl font-bold leading-tight tracking-tight text-foreground md:text-6xl lg:text-7xl">
