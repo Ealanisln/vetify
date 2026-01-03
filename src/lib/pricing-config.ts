@@ -401,14 +401,128 @@ export function getPlanKeyFromName(planName: string | null | undefined): string 
 }
 
 /**
- * Verifica si la promoción de lanzamiento está activa
+ * Verifica si la promoción de lanzamiento está activa (versión estática/legacy)
+ * @deprecated Use getActivePromotionFromDB() for database-backed promotions
  */
 export function isLaunchPromotionActive(): boolean {
   const promo = PRICING_CONFIG.LAUNCH_PROMOTION;
   if (!promo.enabled) return false;
-  
+
   const now = new Date();
   return now <= promo.endDate;
+}
+
+/**
+ * Active promotion type from database
+ */
+export interface ActivePromotion {
+  id: string;
+  name: string;
+  code: string;
+  discountPercent: number;
+  durationMonths: number;
+  stripeCouponId: string | null;
+  badgeText: string;
+  description: string;
+  applicablePlans: string[];
+  startDate: Date;
+  endDate: Date;
+}
+
+// Cache for active promotion (server-side)
+let cachedPromotion: ActivePromotion | null | undefined = undefined;
+let cacheTimestamp = 0;
+const CACHE_TTL_MS = 60 * 1000; // 1 minute cache
+
+/**
+ * Get active promotion from database (async, for server components)
+ * Returns cached result for 1 minute to reduce database queries
+ */
+export async function getActivePromotionFromDB(): Promise<ActivePromotion | null> {
+  const now = Date.now();
+
+  // Return cached value if still valid
+  if (cachedPromotion !== undefined && (now - cacheTimestamp) < CACHE_TTL_MS) {
+    return cachedPromotion;
+  }
+
+  try {
+    // Dynamic import to avoid bundling prisma in client code
+    const { getActivePromotion } = await import('@/lib/promotions/queries');
+    const promo = await getActivePromotion();
+
+    cachedPromotion = promo;
+    cacheTimestamp = now;
+
+    return promo;
+  } catch (error) {
+    console.error('Error fetching active promotion from DB:', error);
+    // Return null on error (no promo active)
+    return null;
+  }
+}
+
+/**
+ * Clear the promotion cache (call after admin updates)
+ */
+export function clearPromotionCache(): void {
+  cachedPromotion = undefined;
+  cacheTimestamp = 0;
+}
+
+/**
+ * Check if any promotion is active (async, database-backed)
+ * For server components use
+ */
+export async function isPromotionActiveAsync(): Promise<boolean> {
+  const promo = await getActivePromotionFromDB();
+  return promo !== null;
+}
+
+/**
+ * Get discounted price using database promotion (async)
+ */
+export async function getDiscountedPriceAsync(originalPrice: number): Promise<number> {
+  const promo = await getActivePromotionFromDB();
+  if (!promo) return originalPrice;
+
+  const discount = promo.discountPercent / 100;
+  return Math.round(originalPrice * (1 - discount));
+}
+
+/**
+ * Get promotion details from database (async)
+ */
+export async function getPromotionDetailsAsync(planKey: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO') {
+  const promo = await getActivePromotionFromDB();
+  const plan = PRICING_CONFIG.PLANS[planKey];
+
+  if (!promo) {
+    return null;
+  }
+
+  // Check if this plan is applicable
+  if (promo.applicablePlans.length > 0 && !promo.applicablePlans.includes(planKey)) {
+    return null;
+  }
+
+  const discountedMonthly = Math.round(plan.monthly * (1 - promo.discountPercent / 100));
+  const monthlySavings = plan.monthly - discountedMonthly;
+  const totalSavings = monthlySavings * promo.durationMonths;
+
+  return {
+    id: promo.id,
+    code: promo.code,
+    originalPrice: plan.monthly,
+    discountedPrice: discountedMonthly,
+    monthlySavings,
+    totalSavings,
+    durationMonths: promo.durationMonths,
+    discountPercent: promo.discountPercent,
+    badgeText: promo.badgeText,
+    description: promo.description,
+    stripeCouponId: promo.stripeCouponId
+  };
 }
 
 /**
