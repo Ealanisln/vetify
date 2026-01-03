@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Check, Sparkles, ArrowRight } from "lucide-react"
 import { EarlyAdopterBanner } from "@/components/marketing/EarlyAdopterBanner"
+import { isLaunchPromotionActive } from "@/lib/pricing-config"
 import Link from "next/link"
 
 const plans = [
@@ -54,13 +55,17 @@ const plans = [
 ]
 
 export function PricingSection() {
+  const promoActive = isLaunchPromotionActive()
+
   return (
     <section id="precios" className="py-12 sm:py-24 bg-secondary/30">
       <div className="container mx-auto px-4 sm:px-6">
-        {/* Early Adopter Banner */}
-        <div className="flex justify-center mb-6 sm:mb-8">
-          <EarlyAdopterBanner variant="hero" />
-        </div>
+        {/* Early Adopter Banner - only shows when promo is active */}
+        {promoActive && (
+          <div className="flex justify-center mb-6 sm:mb-8">
+            <EarlyAdopterBanner variant="hero" />
+          </div>
+        )}
 
         <div className="mx-auto max-w-3xl text-center mb-3 sm:mb-4">
           <h2 className="text-balance text-2xl sm:text-4xl font-bold tracking-tight text-foreground md:text-5xl">
@@ -93,14 +98,15 @@ export function PricingSection() {
               <CardHeader className="p-4 sm:p-8 pb-4 sm:pb-6">
                 <div className="mb-1 sm:mb-2 text-xs sm:text-sm font-medium text-muted-foreground">{plan.name}</div>
 
-                {/* Early Adopter Pricing */}
+                {/* Pricing Display */}
                 <div className="mb-2">
                   {plan.isEnterprise ? (
                     <div className="mb-1 sm:mb-2 flex items-baseline gap-2">
                       <span className="text-3xl sm:text-5xl font-bold text-foreground">Cotización</span>
                     </div>
-                  ) : (
+                  ) : promoActive ? (
                     <>
+                      {/* Promotional Pricing */}
                       <div className="flex items-center gap-2 mb-1">
                         <Sparkles className="h-4 w-4 text-orange-500" />
                         <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs">
@@ -116,6 +122,14 @@ export function PricingSection() {
                         <span className="text-orange-500 font-medium">Ahorras {plan.savings}/mes</span>
                       </div>
                       <p className="text-xs text-orange-600 mt-1">Por 6 meses • Luego {plan.price}/mes</p>
+                    </>
+                  ) : (
+                    <>
+                      {/* Regular Pricing */}
+                      <div className="mb-1 sm:mb-2 flex items-baseline gap-2">
+                        <span className="text-3xl sm:text-5xl font-bold text-foreground">{plan.price}</span>
+                        <span className="text-sm sm:text-base text-muted-foreground">{plan.period}</span>
+                      </div>
                     </>
                   )}
                 </div>

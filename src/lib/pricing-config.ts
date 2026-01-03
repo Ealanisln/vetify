@@ -95,7 +95,7 @@ export const PRICING_CONFIG = {
 
   // Promoción de lanzamiento - Early Adopter Discount
   LAUNCH_PROMOTION: {
-    enabled: true,
+    enabled: false,
     discountPercent: 25,
     durationMonths: 6,
     endDate: new Date('2025-12-31'), // Fecha límite para nuevos clientes
