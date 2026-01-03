@@ -2,21 +2,26 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Check, Calendar, Syringe, ClipboardList } from "lucide-react"
 import { EarlyAdopterBanner } from "@/components/marketing/EarlyAdopterBanner"
-import { isLaunchPromotionActive } from "@/lib/pricing-config"
+import { getActivePromotionFromDB } from "@/lib/pricing-config"
 import Link from "next/link"
 import Image from "next/image"
 
-export function HeroSection() {
-  const promoActive = isLaunchPromotionActive()
+export async function HeroSection() {
+  const promotion = await getActivePromotionFromDB()
+  const promoActive = promotion !== null
 
   return (
     <section className="relative overflow-hidden pt-24 pb-12 sm:pt-32 sm:pb-20">
       <div className="container mx-auto px-4 sm:px-6">
         <div className="mx-auto max-w-4xl text-center">
           {/* Early Adopter Banner - only shows when promo is active */}
-          {promoActive && (
+          {promoActive && promotion && (
             <div className="flex justify-center mb-6 sm:mb-8">
-              <EarlyAdopterBanner variant="hero" />
+              <EarlyAdopterBanner
+                variant="hero"
+                badgeText={promotion.badgeText}
+                description={promotion.description}
+              />
             </div>
           )}
 

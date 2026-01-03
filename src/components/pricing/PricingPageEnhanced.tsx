@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useSubscription } from '../../hooks/useSubscription';
-import { COMPLETE_PLANS, formatPrice, isLaunchPromotionActive } from '../../lib/pricing-config';
+import { COMPLETE_PLANS, formatPrice } from '../../lib/pricing-config';
 import { Check, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import type { Tenant } from '@prisma/client';
@@ -38,6 +38,18 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   const [pricingPlans, setPricingPlans] = useState<PricingPlan[]>([]);
   const [pricingLoading, setPricingLoading] = useState(true);
   const [pricingError, setPricingError] = useState<string | null>(null);
+
+  // Estado para promoción activa desde la base de datos
+  const [activePromotion, setActivePromotion] = useState<{
+    code: string;
+    discountPercent: number;
+    durationMonths: number;
+    badgeText: string;
+    description: string;
+    applicablePlans: string[];
+    stripeCouponId: string | null;
+  } | null>(null);
+  const [promotionLoading, setPromotionLoading] = useState(true);
 
   // Mantenemos planName por compatibilidad pero no lo usamos directamente
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -152,6 +164,31 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
     checkAuth();
   }, [loadSubscriptionData]);
+
+  // Cargar promoción activa desde la API pública
+  useEffect(() => {
+    const loadActivePromotion = async () => {
+      try {
+        setPromotionLoading(true);
+        const response = await fetch('/api/public/promotion');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.active && data.promotion) {
+            setActivePromotion(data.promotion);
+          } else {
+            setActivePromotion(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading promotion:', error);
+        setActivePromotion(null);
+      } finally {
+        setPromotionLoading(false);
+      }
+    };
+
+    loadActivePromotion();
+  }, []);
 
   // Map Stripe plan name to local plan key
   const mapPlanNameToKey = (planName: string): string => {
@@ -673,49 +710,61 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                             Precio personalizado según tus necesidades
                           </p>
                         </div>
-                      ) : isLaunchPromotionActive() ? (
+                      ) : activePromotion && !promotionLoading ? (
                         <>
-                          {/* Early Adopter Badge with 25% OFF */}
-                          <div className="flex items-center gap-2 mb-2">
-                            <Sparkles className="h-4 w-4 text-orange-500" />
-                            <Badge className="bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20 text-xs font-semibold">
-                              25% OFF
-                            </Badge>
-                          </div>
+                          {/* Promotional Pricing - Dynamic from DB */}
+                          {(() => {
+                            const originalPriceCents = isYearly ? price.unitAmount / 12 : price.unitAmount
+                            const discountedPriceCents = Math.round(originalPriceCents * (1 - activePromotion.discountPercent / 100))
+                            const savingsPerMonth = Math.round((originalPriceCents - discountedPriceCents) / 100)
+                            const originalPriceMonthly = product.id === 'basico' ? 599 : 1199
 
-                          {/* Discounted Price */}
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-4xl font-bold text-foreground">
-                              {formatPriceFromCents(applyEarlyAdopterDiscount(isYearly ? price.unitAmount / 12 : price.unitAmount))}
-                            </span>
-                            <span className="text-muted-foreground">/mes</span>
-                          </div>
+                            return (
+                              <>
+                                {/* Early Adopter Badge with dynamic discount */}
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Sparkles className="h-4 w-4 text-orange-500" />
+                                  <Badge className="bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20 text-xs font-semibold">
+                                    {activePromotion.discountPercent}% OFF
+                                  </Badge>
+                                </div>
 
-                          {/* Original Price with Strikethrough */}
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="text-muted-foreground line-through">
-                              {formatPrice(product.id === 'basico' ? 599 : 1199)}/mes
-                            </span>
-                            <span className="text-orange-500 dark:text-orange-400 font-medium">
-                              Ahorras {formatPrice(product.id === 'basico' ? 150 : 300)}/mes
-                            </span>
-                          </div>
+                                {/* Discounted Price */}
+                                <div className="flex items-baseline gap-1">
+                                  <span className="text-4xl font-bold text-foreground">
+                                    {formatPriceFromCents(discountedPriceCents)}
+                                  </span>
+                                  <span className="text-muted-foreground">/mes</span>
+                                </div>
 
-                          {/* Promotion Duration Notice */}
-                          <p className="text-xs text-orange-600 dark:text-orange-400">
-                            Por 6 meses • Luego {formatPrice(product.id === 'basico' ? 599 : 1199)}/mes
-                          </p>
+                                {/* Original Price with Strikethrough */}
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="text-muted-foreground line-through">
+                                    {formatPrice(originalPriceMonthly)}/mes
+                                  </span>
+                                  <span className="text-orange-500 dark:text-orange-400 font-medium">
+                                    Ahorras {formatPrice(savingsPerMonth)}/mes
+                                  </span>
+                                </div>
 
-                          {isYearly && (
-                            <div className="space-y-1 mt-2 pt-2 border-t border-border">
-                              <p className="text-sm text-muted-foreground">
-                                Facturado anualmente: {formatPriceFromCents(price.unitAmount)}
-                              </p>
-                              <p className="text-sm font-medium text-green-600 dark:text-green-400">
-                                Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
-                              </p>
-                            </div>
-                          )}
+                                {/* Promotion Duration Notice */}
+                                <p className="text-xs text-orange-600 dark:text-orange-400">
+                                  Por {activePromotion.durationMonths} meses • Luego {formatPrice(originalPriceMonthly)}/mes
+                                </p>
+
+                                {isYearly && (
+                                  <div className="space-y-1 mt-2 pt-2 border-t border-border">
+                                    <p className="text-sm text-muted-foreground">
+                                      Facturado anualmente: {formatPriceFromCents(price.unitAmount)}
+                                    </p>
+                                    <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                                      Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
+                                    </p>
+                                  </div>
+                                )}
+                              </>
+                            )
+                          })()}
                         </>
                       ) : (
                         <>
