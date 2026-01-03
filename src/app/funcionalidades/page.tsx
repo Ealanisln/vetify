@@ -6,6 +6,8 @@ import { SecondaryFeaturesSection } from "@/components/secondary-features-sectio
 import { StepsSection } from "@/components/steps-section"
 import { CTASection } from "@/components/cta-section"
 import { Footer } from "@/components/footer"
+import { EarlyAdopterBanner } from "@/components/marketing/EarlyAdopterBanner"
+import { getActivePromotionFromDB } from "@/lib/pricing-config"
 import { generateMetadata as generateSEOMetadata, createPageSEO } from '@/lib/seo';
 import { PAGE_METADATA } from '@/lib/seo/config';
 import { createBreadcrumbsFromPath } from '@/lib/seo/breadcrumbs';
@@ -55,8 +57,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return generateSEOMetadata(seoConfig, lang);
 }
 
-export default function FunctionalitiesPage() {
+export default async function FunctionalitiesPage() {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://vetify.pro';
+
+  // Fetch active promotion from database
+  const promotion = await getActivePromotionFromDB()
+  const promoActive = promotion !== null
 
   // Generate breadcrumb structured data
   const breadcrumbSchema = createBreadcrumbsFromPath(
@@ -83,8 +89,18 @@ export default function FunctionalitiesPage() {
       <StructuredData data={[breadcrumbSchema, faqSchema, ...serviceSchemas]} />
       <div className="min-h-screen">
         <Navigation />
-        <main>
-          <FeaturesHeroSection />
+        {/* Promotional Banner - only shows when promo is active */}
+        {promoActive && promotion && (
+          <div className="flex justify-center pt-24 sm:pt-28 pb-2">
+            <EarlyAdopterBanner
+              variant="hero"
+              badgeText={promotion.badgeText}
+              description={promotion.description}
+            />
+          </div>
+        )}
+        <main className={promoActive ? "pt-4" : ""}>
+          <FeaturesHeroSection hasPromoBanner={promoActive} />
           <MainFeaturesSection />
           <DetailedFunctionalitiesSection />
           <SecondaryFeaturesSection />

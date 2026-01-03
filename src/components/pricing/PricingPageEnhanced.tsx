@@ -565,10 +565,20 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-20">
           <div className="text-center space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium">
-              <Sparkles className="h-4 w-4" />
-              <span>Planes profesionales para veterinarias</span>
-            </div>
+            {/* Promotional Banner - Only shows when promotion is active */}
+            {activePromotion && !promotionLoading ? (
+              <div className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-orange-500/10 to-pink-500/10 px-4 py-2 border border-orange-500/20">
+                <Sparkles className="h-4 w-4 text-orange-500" />
+                <span className="text-sm font-medium text-foreground">
+                  {activePromotion.badgeText}: <span className="text-orange-500 font-bold">{activePromotion.description}</span>
+                </span>
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-medium">
+                <Sparkles className="h-4 w-4" />
+                <span>Planes profesionales para veterinarias</span>
+              </div>
+            )}
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground">
               {showUpgradeInfo && isAuthenticated ? 'Actualiza tu Plan' : 'Precios simples y'} <span className="text-primary">{showUpgradeInfo && isAuthenticated ? '' : 'transparentes'}</span>
