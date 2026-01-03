@@ -386,15 +386,19 @@ export const config = {
   matcher: [
     /*
      * Match all request paths within the /dashboard route and onboarding.
-     * Webhooks (/api/webhooks/*) are intentionally excluded to remain public.
+     * Webhooks (/api/webhooks/*) and public API routes (/api/public/*) are excluded
+     * to remain publicly accessible.
      * Add any other routes that should be protected here.
-     * 
+     *
      * IMPORTANT: /api/:path* is included to enable rate limiting on all API routes.
      * The middleware handles public routes (webhooks, etc.) internally with proper bypass logic.
+     *
+     * NOTE: /api/public/* is excluded from the matcher to allow unauthenticated access
+     * to public endpoints like /api/public/promotion
      */
     '/dashboard/:path*',
     '/onboarding',
     '/admin/:path*',
-    '/api/:path*',
+    '/api/((?!public/).*)',
   ],
 };
