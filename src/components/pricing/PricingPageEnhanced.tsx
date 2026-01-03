@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useSubscription } from '../../hooks/useSubscription';
-import { COMPLETE_PLANS, formatPrice } from '../../lib/pricing-config';
+import { COMPLETE_PLANS, formatPrice, isLaunchPromotionActive } from '../../lib/pricing-config';
 import { Check, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import type { Tenant } from '@prisma/client';
@@ -673,7 +673,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                             Precio personalizado según tus necesidades
                           </p>
                         </div>
-                      ) : (
+                      ) : isLaunchPromotionActive() ? (
                         <>
                           {/* Early Adopter Badge with 25% OFF */}
                           <div className="flex items-center gap-2 mb-2">
@@ -705,6 +705,27 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                           <p className="text-xs text-orange-600 dark:text-orange-400">
                             Por 6 meses • Luego {formatPrice(product.id === 'basico' ? 599 : 1199)}/mes
                           </p>
+
+                          {isYearly && (
+                            <div className="space-y-1 mt-2 pt-2 border-t border-border">
+                              <p className="text-sm text-muted-foreground">
+                                Facturado anualmente: {formatPriceFromCents(price.unitAmount)}
+                              </p>
+                              <p className="text-sm font-medium text-green-600 dark:text-green-400">
+                                Ahorra {calculateAnnualDiscount(product.id)}% vs mensual
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {/* Regular Pricing */}
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-4xl font-bold text-foreground">
+                              {formatPriceFromCents(isYearly ? price.unitAmount / 12 : price.unitAmount)}
+                            </span>
+                            <span className="text-muted-foreground">/mes</span>
+                          </div>
 
                           {isYearly && (
                             <div className="space-y-1 mt-2 pt-2 border-t border-border">

@@ -2,18 +2,23 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Check, Calendar, Syringe, ClipboardList } from "lucide-react"
 import { EarlyAdopterBanner } from "@/components/marketing/EarlyAdopterBanner"
+import { isLaunchPromotionActive } from "@/lib/pricing-config"
 import Link from "next/link"
 import Image from "next/image"
 
 export function HeroSection() {
+  const promoActive = isLaunchPromotionActive()
+
   return (
     <section className="relative overflow-hidden pt-24 pb-12 sm:pt-32 sm:pb-20">
       <div className="container mx-auto px-4 sm:px-6">
         <div className="mx-auto max-w-4xl text-center">
-          {/* Early Adopter Banner */}
-          <div className="flex justify-center mb-6 sm:mb-8">
-            <EarlyAdopterBanner variant="hero" />
-          </div>
+          {/* Early Adopter Banner - only shows when promo is active */}
+          {promoActive && (
+            <div className="flex justify-center mb-6 sm:mb-8">
+              <EarlyAdopterBanner variant="hero" />
+            </div>
+          )}
 
           <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
             Software veterinario completo con <span className="text-primary">30 días gratis</span>
