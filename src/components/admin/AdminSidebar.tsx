@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  HomeIcon, 
-  BuildingOfficeIcon, 
-  UserGroupIcon, 
+import {
+  HomeIcon,
+  BuildingOfficeIcon,
+  UserGroupIcon,
   CreditCardIcon,
   ChartBarIcon,
   Cog6ToothIcon,
-  ShieldCheckIcon
+  ShieldCheckIcon,
+  TagIcon
 } from '@heroicons/react/24/outline';
 import { clsx } from 'clsx';
 
@@ -18,6 +19,7 @@ const navigation = [
   { name: 'Clínicas', href: '/admin/tenants', icon: BuildingOfficeIcon },
   { name: 'Usuarios', href: '/admin/users', icon: UserGroupIcon },
   { name: 'Facturación', href: '/admin/billing', icon: CreditCardIcon },
+  { name: 'Promociones', href: '/admin/promotions', icon: TagIcon },
   { name: 'Reportes', href: '/admin/reports', icon: ChartBarIcon },
   { name: 'Sistema', href: '/admin/system', icon: ShieldCheckIcon },
   { name: 'Configuración', href: '/admin/settings', icon: Cog6ToothIcon },

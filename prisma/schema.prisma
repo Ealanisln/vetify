@@ -1323,3 +1323,28 @@ enum EmailStatus {
   BOUNCED
   FAILED
 }
+
+// ============================================================================
+// SYSTEM PROMOTIONS
+// ============================================================================
+
+model SystemPromotion {
+  id              String   @id @default(uuid())
+  name            String // Internal name for admin reference
+  code            String   @unique // e.g., "LAUNCH_2025", "BLACKFRIDAY"
+  isActive        Boolean  @default(false)
+  discountPercent Int // 0-100
+  durationMonths  Int // How long the discount applies to new subscribers
+  startDate       DateTime
+  endDate         DateTime
+  stripeCouponId  String? // Stripe coupon ID (manually entered)
+  badgeText       String // Display text like "🎉 Oferta de Lanzamiento"
+  description     String   @db.Text // Full description shown to users
+  applicablePlans String[] // ['BASICO', 'PROFESIONAL'] or empty for all
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  createdBy       String? // Admin user ID who created/modified
+
+  @@index([isActive, endDate])
+  @@index([code])
+}
