@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Check, Sparkles, ArrowRight } from "lucide-react"
 import { EarlyAdopterBanner } from "@/components/marketing/EarlyAdopterBanner"
-import { isLaunchPromotionActive } from "@/lib/pricing-config"
+import { getActivePromotionFromDB } from "@/lib/pricing-config"
 import Link from "next/link"
 
 const plans = [
@@ -54,16 +54,21 @@ const plans = [
   },
 ]
 
-export function PricingSection() {
-  const promoActive = isLaunchPromotionActive()
+export async function PricingSection() {
+  const promotion = await getActivePromotionFromDB()
+  const promoActive = promotion !== null
 
   return (
     <section id="precios" className="py-12 sm:py-24 bg-secondary/30">
       <div className="container mx-auto px-4 sm:px-6">
         {/* Early Adopter Banner - only shows when promo is active */}
-        {promoActive && (
+        {promoActive && promotion && (
           <div className="flex justify-center mb-6 sm:mb-8">
-            <EarlyAdopterBanner variant="hero" />
+            <EarlyAdopterBanner
+              variant="hero"
+              badgeText={promotion.badgeText}
+              description={promotion.description}
+            />
           </div>
         )}
 
@@ -104,24 +109,33 @@ export function PricingSection() {
                     <div className="mb-1 sm:mb-2 flex items-baseline gap-2">
                       <span className="text-3xl sm:text-5xl font-bold text-foreground">Cotización</span>
                     </div>
-                  ) : promoActive ? (
+                  ) : promoActive && promotion ? (
                     <>
-                      {/* Promotional Pricing */}
-                      <div className="flex items-center gap-2 mb-1">
-                        <Sparkles className="h-4 w-4 text-orange-500" />
-                        <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs">
-                          25% OFF
-                        </Badge>
-                      </div>
-                      <div className="mb-1 sm:mb-2 flex items-baseline gap-2">
-                        <span className="text-3xl sm:text-5xl font-bold text-foreground">{plan.discountedPrice}</span>
-                        <span className="text-sm sm:text-base text-muted-foreground">{plan.period}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs sm:text-sm">
-                        <span className="text-muted-foreground line-through">{plan.price}/mes</span>
-                        <span className="text-orange-500 font-medium">Ahorras {plan.savings}/mes</span>
-                      </div>
-                      <p className="text-xs text-orange-600 mt-1">Por 6 meses • Luego {plan.price}/mes</p>
+                      {/* Promotional Pricing - Dynamic from DB */}
+                      {(() => {
+                        const originalPrice = parseInt(plan.price.replace(/[^0-9]/g, ''))
+                        const discountedPrice = Math.round(originalPrice * (1 - promotion.discountPercent / 100))
+                        const savings = originalPrice - discountedPrice
+                        return (
+                          <>
+                            <div className="flex items-center gap-2 mb-1">
+                              <Sparkles className="h-4 w-4 text-orange-500" />
+                              <Badge variant="secondary" className="bg-orange-500/10 text-orange-600 border-orange-500/20 text-xs">
+                                {promotion.discountPercent}% OFF
+                              </Badge>
+                            </div>
+                            <div className="mb-1 sm:mb-2 flex items-baseline gap-2">
+                              <span className="text-3xl sm:text-5xl font-bold text-foreground">${discountedPrice.toLocaleString()}</span>
+                              <span className="text-sm sm:text-base text-muted-foreground">{plan.period}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs sm:text-sm">
+                              <span className="text-muted-foreground line-through">{plan.price}/mes</span>
+                              <span className="text-orange-500 font-medium">Ahorras ${savings.toLocaleString()}/mes</span>
+                            </div>
+                            <p className="text-xs text-orange-600 mt-1">Por {promotion.durationMonths} meses • Luego {plan.price}/mes</p>
+                          </>
+                        )
+                      })()}
                     </>
                   ) : (
                     <>
