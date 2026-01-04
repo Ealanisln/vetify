@@ -96,10 +96,25 @@ export async function POST(request: Request) {
       );
     }
 
+    // Sanitize empty strings to undefined for optional fields
+    // Empty string "" as foreign key causes Prisma to fail
+    const sanitizedData: InventoryFormData = {
+      ...itemData,
+      locationId: itemData.locationId || undefined,
+      description: itemData.description || undefined,
+      activeCompound: itemData.activeCompound || undefined,
+      presentation: itemData.presentation || undefined,
+      measure: itemData.measure || undefined,
+      brand: itemData.brand || undefined,
+      storageLocation: itemData.storageLocation || undefined,
+      batchNumber: itemData.batchNumber || undefined,
+      specialNotes: itemData.specialNotes || undefined,
+    };
+
     // Crear el producto
     const item = await createInventoryItem(
       userWithTenant.tenant.id,
-      itemData
+      sanitizedData
     );
 
     return NextResponse.json(item, { status: 201 });
