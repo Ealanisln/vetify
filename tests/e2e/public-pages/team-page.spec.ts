@@ -13,12 +13,17 @@ import { test, expect } from '@playwright/test';
  *
  * NOTE: These tests require a running development server with test data.
  * Set TEST_CLINIC_SLUG env var to use a specific test clinic.
+ *
+ * SKIPPED IN CI: These tests require a database with real clinic/team data
+ * which is not available in the CI environment.
  */
 
 const testClinicSlug = process.env.TEST_CLINIC_SLUG || 'demo-clinic';
 const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3000';
 
+// Skip entire suite in CI - requires real database with demo-clinic data
 test.describe('Public Team Page', () => {
+  test.skip(!!process.env.CI, 'Skipped in CI - requires real database with team data');
   test.describe('Team Page Display', () => {
     test('should display team page header', async ({ page }) => {
       await page.goto(`${baseUrl}/${testClinicSlug}/equipo`);
