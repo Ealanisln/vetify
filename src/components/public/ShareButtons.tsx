@@ -10,6 +10,7 @@ interface ShareButtonsProps {
   title: string;
   description?: string;
   themeColor?: string;
+  size?: 'sm' | 'default' | 'lg';
 }
 
 /**
@@ -20,6 +21,7 @@ export function ShareButtons({
   title,
   description,
   themeColor = '#75a99c',
+  size = 'sm',
 }: ShareButtonsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -71,19 +73,20 @@ export function ShareButtons({
   return (
     <div className="relative inline-block">
       {/* Share trigger button */}
-      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
         <Button
           variant="outline"
-          size="sm"
+          size={size}
           onClick={handleNativeShare}
-          className="flex items-center gap-2 border-2 transition-all"
+          className="flex items-center gap-2 border-2 transition-all duration-200"
           style={{
             borderColor: themeColor,
             color: themeColor,
+            backgroundColor: 'transparent',
           }}
         >
-          <Share2 className="w-4 h-4" />
-          <span className="hidden sm:inline">Compartir</span>
+          <Share2 className={size === 'lg' ? 'h-5 w-5' : 'w-4 h-4'} />
+          Compartir
         </Button>
       </motion.div>
 
