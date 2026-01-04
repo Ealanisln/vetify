@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 export type AspectRatio = '1:1' | '16:9' | 'free';
-export type ImageType = 'logo' | 'hero' | 'pet-profile';
+export type ImageType = 'logo' | 'hero' | 'pet-profile' | 'staff-profile';
 
 interface ImageUploaderProps {
   imageType: ImageType;

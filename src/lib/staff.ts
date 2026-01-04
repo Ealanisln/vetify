@@ -55,6 +55,11 @@ export const createStaffSchema = z.object({
   phone: z.string().optional(),
   licenseNumber: z.string().optional(),
   isActive: z.boolean().optional().default(true),
+  // Public profile fields
+  publicBio: z.string().max(500, 'La biografía no puede exceder 500 caracteres').optional(),
+  publicPhoto: z.string().url().optional().nullable(),
+  specialties: z.array(z.string()).optional().default([]),
+  showOnPublicPage: z.boolean().optional().default(false),
 });
 
 export const updateStaffSchema = createStaffSchema.partial();
