@@ -15,7 +15,6 @@ import {
   CreditCardIcon,
   DocumentTextIcon,
   CurrencyDollarIcon,
-  UsersIcon,
   MapPinIcon
 } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
@@ -47,7 +46,6 @@ const navigation: NavigationItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
   { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon },
   { name: 'Mascotas', href: '/dashboard/pets', icon: UserGroupIcon },
-  { name: 'Personal', href: '/dashboard/staff', icon: UsersIcon },
   { name: 'Ubicaciones', href: '/dashboard/locations', icon: MapPinIcon },
   { name: 'Punto de Venta', href: '/dashboard/sales', icon: CreditCardIcon },
   { name: 'Caja', href: '/dashboard/caja', icon: CurrencyDollarIcon, isPro: true, proTooltip: 'Múltiples cajas en Plan Profesional' },

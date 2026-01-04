@@ -224,6 +224,7 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
                 title={`${tenant.name} - Clínica Veterinaria`}
                 description={tenant.publicDescription || `Agenda tu cita en ${tenant.name}`}
                 themeColor={themeColor}
+                size="lg"
               />
             </motion.div>
           </motion.div>

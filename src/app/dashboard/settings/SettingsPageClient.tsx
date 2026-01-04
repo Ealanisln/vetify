@@ -20,6 +20,7 @@ import {
   Globe
 } from 'lucide-react';
 import { PublicPageSettings } from '../../../components/settings/PublicPageSettings';
+import StaffList from '../../../components/staff/StaffList';
 
 const settingsSections = [
   {
@@ -60,10 +61,9 @@ const settingsSections = [
   {
     id: 'staff',
     title: 'Personal',
-    description: 'Gestione roles y permisos del personal',
+    description: 'Gestione el equipo de su clínica',
     icon: Users,
-    component: 'staff',
-    comingSoon: true
+    component: 'staff'
   },
   {
     id: 'security',
@@ -102,6 +102,8 @@ export function SettingsPageClient({ tenant }: SettingsPageClientProps) {
         return <SubscriptionManager tenant={tenant} />;
       case 'notifications':
         return <NotificationSettings tenantId={tenant.id} />;
+      case 'staff':
+        return <StaffList initialStaff={[]} pagination={{ total: 0, page: 1, limit: 20, totalPages: 0 }} />;
       default:
         return (
           <div className="text-center py-12">
