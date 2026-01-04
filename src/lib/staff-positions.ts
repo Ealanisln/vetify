@@ -136,3 +136,44 @@ export function canCreateMedicalRecords(position: StaffPositionType): boolean {
 export function requiresLicense(position: StaffPositionType): boolean {
   return LICENSE_REQUIRED_POSITIONS.includes(position);
 }
+
+// =============================================================================
+// VETERINARY SPECIALTIES
+// =============================================================================
+
+/**
+ * Veterinary specialties for public profiles
+ */
+export const VETERINARY_SPECIALTIES = [
+  'Cirugía',
+  'Dermatología',
+  'Cardiología',
+  'Odontología',
+  'Oftalmología',
+  'Oncología',
+  'Traumatología',
+  'Neurología',
+  'Nutrición',
+  'Medicina Interna',
+  'Urgencias',
+  'Animales Exóticos',
+  'Reproducción',
+  'Geriatría',
+] as const;
+
+export type VeterinarySpecialty = (typeof VETERINARY_SPECIALTIES)[number];
+
+/**
+ * Specialty options for select components
+ */
+export const SPECIALTY_SELECT_OPTIONS = VETERINARY_SPECIALTIES.map((specialty) => ({
+  value: specialty,
+  label: specialty,
+}));
+
+/**
+ * Get specialty options for a multi-select component
+ */
+export function getSpecialtyOptions(): typeof SPECIALTY_SELECT_OPTIONS {
+  return SPECIALTY_SELECT_OPTIONS;
+}

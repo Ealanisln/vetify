@@ -434,6 +434,13 @@ model Staff {
   isActive           Boolean             @default(true)
   createdAt          DateTime            @default(now())
   updatedAt          DateTime            @updatedAt
+
+  // Public profile fields
+  publicBio          String?             @db.Text
+  publicPhoto        String?
+  specialties        String[]
+  showOnPublicPage   Boolean             @default(false)
+
   appointments       Appointment[]
   inventoryMovements InventoryMovement[]
   medicalHistories   MedicalHistory[]
