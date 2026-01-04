@@ -366,7 +366,7 @@ export function GalleryManager({ gallery, onUpdate }: GalleryManagerProps) {
         </div>
       </div>
 
-      {/* Category filter */}
+      {/* Category filter - also sets upload category */}
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
@@ -382,7 +382,10 @@ export function GalleryManager({ gallery, onUpdate }: GalleryManagerProps) {
             type="button"
             variant={filterCategory === cat.value ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setFilterCategory(cat.value)}
+            onClick={() => {
+              setFilterCategory(cat.value);
+              setUploadCategory(cat.value);
+            }}
             className="gap-1"
           >
             {CATEGORY_ICONS[cat.value]}
@@ -391,27 +394,16 @@ export function GalleryManager({ gallery, onUpdate }: GalleryManagerProps) {
         ))}
       </div>
 
+      {/* Upload category indicator */}
+      {gallery.length < MAX_GALLERY_IMAGES && filterCategory !== 'all' && (
+        <p className="text-sm text-muted-foreground">
+          Las nuevas imágenes se agregarán a: <span className="font-medium text-foreground">{CATEGORY_OPTIONS.find(c => c.value === uploadCategory)?.label}</span>
+        </p>
+      )}
+
       {/* Upload zone */}
       {gallery.length < MAX_GALLERY_IMAGES && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <label className="text-sm text-gray-600 dark:text-gray-400">
-              Categoría para nuevas imágenes:
-            </label>
-            <select
-              value={uploadCategory}
-              onChange={(e) => setUploadCategory(e.target.value as GalleryCategory)}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-700 dark:border-gray-600"
-            >
-              {CATEGORY_OPTIONS.map((cat) => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div
+        <div
             className={cn(
               'border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer',
               isDragging
@@ -449,7 +441,6 @@ export function GalleryManager({ gallery, onUpdate }: GalleryManagerProps) {
               </>
             )}
           </div>
-        </div>
       )}
 
       {/* Gallery grid with drag and drop */}

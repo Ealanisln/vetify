@@ -172,7 +172,7 @@ describe('Sidebar', () => {
       expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('Clientes').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('Mascotas').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Personal').length).toBeGreaterThanOrEqual(1);
+      // Note: "Personal" was moved from sidebar to Settings page
       expect(screen.getAllByText('Ubicaciones').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('Punto de Venta').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('Caja').length).toBeGreaterThanOrEqual(1);
