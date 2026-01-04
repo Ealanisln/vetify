@@ -466,4 +466,58 @@ export async function getFeaturedServices(tenantId: string): Promise<FeaturedSer
     ...service,
     price: Number(service.price)
   }));
-} 
+}
+
+/**
+ * Public staff member type for team page (serializable)
+ */
+export interface PublicStaffMember {
+  id: string;
+  name: string;
+  position: string;
+  publicBio: string | null;
+  publicPhoto: string | null;
+  specialties: string[];
+}
+
+/**
+ * Get public team members for a tenant's team page
+ * Only returns staff with showOnPublicPage = true
+ */
+export async function getPublicTeam(tenantId: string): Promise<PublicStaffMember[]> {
+  const staff = await prisma.staff.findMany({
+    where: {
+      tenantId,
+      isActive: true,
+      showOnPublicPage: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      position: true,
+      publicBio: true,
+      publicPhoto: true,
+      specialties: true,
+    },
+    orderBy: {
+      name: 'asc',
+    },
+  });
+
+  return staff;
+}
+
+/**
+ * Check if a tenant has any public team members
+ */
+export async function hasPublicTeam(tenantId: string): Promise<boolean> {
+  const count = await prisma.staff.count({
+    where: {
+      tenantId,
+      isActive: true,
+      showOnPublicPage: true,
+    },
+  });
+
+  return count > 0;
+}

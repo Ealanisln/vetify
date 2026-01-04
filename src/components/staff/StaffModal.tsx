@@ -7,6 +7,8 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { StaffPhotoUploader } from './StaffPhotoUploader';
+import { VETERINARY_SPECIALTIES } from '@/lib/staff-positions';
 
 interface StaffMember {
   id: string;
@@ -18,6 +20,11 @@ interface StaffMember {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  // Public profile fields
+  publicBio?: string | null;
+  publicPhoto?: string | null;
+  specialties?: string[];
+  showOnPublicPage?: boolean;
   _count?: {
     appointments: number;
     medicalHistories: number;
@@ -41,6 +48,11 @@ interface FormData {
   phone: string;
   licenseNumber: string;
   isActive: boolean;
+  // Public profile fields
+  publicBio: string;
+  publicPhoto: string;
+  specialties: string[];
+  showOnPublicPage: boolean;
 }
 
 const initialFormData: FormData = {
@@ -50,6 +62,11 @@ const initialFormData: FormData = {
   phone: '',
   licenseNumber: '',
   isActive: true,
+  // Public profile fields
+  publicBio: '',
+  publicPhoto: '',
+  specialties: [],
+  showOnPublicPage: false,
 };
 
 export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved }: StaffModalProps) {
@@ -66,6 +83,11 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
         phone: staff.phone || '',
         licenseNumber: staff.licenseNumber || '',
         isActive: staff.isActive,
+        // Public profile fields
+        publicBio: staff.publicBio || '',
+        publicPhoto: staff.publicPhoto || '',
+        specialties: staff.specialties || [],
+        showOnPublicPage: staff.showOnPublicPage || false,
       });
     } else if (isOpen && mode === 'create') {
       setFormData(initialFormData);
@@ -110,6 +132,11 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
         email: formData.email.trim() || undefined,
         phone: formData.phone.trim() || undefined,
         licenseNumber: formData.licenseNumber.trim() || undefined,
+        // Public profile fields
+        publicBio: formData.publicBio.trim() || undefined,
+        publicPhoto: formData.publicPhoto || undefined,
+        specialties: formData.specialties,
+        showOnPublicPage: formData.showOnPublicPage,
       };
 
       const url = mode === 'create' ? '/api/staff' : `/api/staff/${staff?.id}`;
@@ -139,7 +166,7 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
     }
   };
 
-  const handleInputChange = (field: keyof FormData, value: string | boolean) => {
+  const handleInputChange = (field: keyof FormData, value: string | boolean | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -357,6 +384,95 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
                     <option value="true">Activo</option>
                     <option value="false">Inactivo</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Public Profile Section */}
+              <div className="border-t border-border pt-6 mt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-foreground">Perfil Público</h3>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.showOnPublicPage}
+                      onChange={(e) => handleInputChange('showOnPublicPage', e.target.checked)}
+                      className="form-checkbox h-4 w-4 rounded border-gray-300 dark:border-gray-600"
+                    />
+                    <span className="text-sm text-muted-foreground">Mostrar en página pública</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Photo Upload */}
+                  {mode === 'edit' && staff && (
+                    <div className="md:col-span-1">
+                      <StaffPhotoUploader
+                        staffId={staff.id}
+                        currentImage={formData.publicPhoto || null}
+                        staffName={formData.name || 'Personal'}
+                        onUpdate={(url) => handleInputChange('publicPhoto', url || '')}
+                      />
+                    </div>
+                  )}
+
+                  {/* Biography */}
+                  <div className={mode === 'edit' && staff ? 'md:col-span-1' : 'md:col-span-2'}>
+                    <label className="form-label">
+                      Biografía
+                    </label>
+                    <textarea
+                      value={formData.publicBio}
+                      onChange={(e) => handleInputChange('publicBio', e.target.value)}
+                      className="form-input min-h-[120px] resize-none"
+                      placeholder="Breve descripción profesional para la página pública..."
+                      maxLength={500}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formData.publicBio.length}/500 caracteres
+                    </p>
+                  </div>
+
+                  {/* Specialties */}
+                  <div className="md:col-span-2">
+                    <label className="form-label">
+                      Especialidades
+                    </label>
+                    <div className="flex flex-wrap gap-2 p-3 bg-background border border-gray-200 dark:border-gray-700 rounded-lg">
+                      {VETERINARY_SPECIALTIES.map((specialty) => (
+                        <label
+                          key={specialty}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm cursor-pointer transition-colors ${
+                            formData.specialties.includes(specialty)
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-gray-100 dark:bg-gray-800 text-muted-foreground hover:bg-gray-200 dark:hover:bg-gray-700'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={formData.specialties.includes(specialty)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  specialties: [...prev.specialties, specialty]
+                                }));
+                              } else {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  specialties: prev.specialties.filter(s => s !== specialty)
+                                }));
+                              }
+                            }}
+                            className="sr-only"
+                          />
+                          {specialty}
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Selecciona las especialidades del profesional
+                    </p>
+                  </div>
                 </div>
               </div>
 

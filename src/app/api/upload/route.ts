@@ -16,7 +16,7 @@ const MAX_GALLERY_IMAGES = 10;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
 const uploadSchema = z.object({
-  imageType: z.enum(['logo', 'hero', 'pet-profile', 'gallery']),
+  imageType: z.enum(['logo', 'hero', 'pet-profile', 'gallery', 'staff-profile']),
   entityId: z.string().uuid().optional(),
   category: z.enum(['instalaciones', 'equipo', 'pacientes']).optional(),
   caption: z.string().max(200).optional(),
@@ -77,6 +77,16 @@ export async function POST(request: NextRequest) {
       });
       if (!pet) {
         return NextResponse.json({ error: 'Mascota no encontrada' }, { status: 404 });
+      }
+    }
+
+    // Validate entity ownership for staff images
+    if (imageType === 'staff-profile' && entityId) {
+      const staff = await prisma.staff.findFirst({
+        where: { id: entityId, tenantId: tenant.id },
+      });
+      if (!staff) {
+        return NextResponse.json({ error: 'Personal no encontrado' }, { status: 404 });
       }
     }
 
@@ -238,6 +248,14 @@ async function updateDatabaseWithImage(
         });
       }
       break;
+    case 'staff-profile':
+      if (entityId) {
+        await prisma.staff.update({
+          where: { id: entityId, tenantId },
+          data: { publicPhoto: url },
+        });
+      }
+      break;
   }
 }
 
@@ -261,6 +279,12 @@ async function getCurrentImageUrl(
       if (entityId) {
         const pet = await prisma.pet.findUnique({ where: { id: entityId } });
         return pet?.profileImage || null;
+      }
+      return null;
+    case 'staff-profile':
+      if (entityId) {
+        const staff = await prisma.staff.findUnique({ where: { id: entityId } });
+        return staff?.publicPhoto || null;
       }
       return null;
     default:
@@ -296,6 +320,14 @@ async function clearImageFromDatabase(
         await prisma.pet.update({
           where: { id: entityId },
           data: { profileImage: null },
+        });
+      }
+      break;
+    case 'staff-profile':
+      if (entityId) {
+        await prisma.staff.update({
+          where: { id: entityId },
+          data: { publicPhoto: null },
         });
       }
       break;

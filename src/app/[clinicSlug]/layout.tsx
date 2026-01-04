@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getTenantBySlug } from '../../lib/tenant';
+import { getTenantBySlug, hasPublicTeam } from '../../lib/tenant';
 import { PublicNavbar } from '../../components/public/PublicNavbar';
 import { PublicFooter } from '../../components/public/PublicFooter';
 import { DynamicPublicTheme } from '../../components/public/DynamicPublicTheme';
@@ -48,6 +48,7 @@ export default async function PublicLayout({
   }
 
   const hasGallery = (tenant.publicImages?.gallery?.length ?? 0) > 0;
+  const hasTeam = await hasPublicTeam(tenant.id);
 
   // Get theme colors for the tenant
   const theme = getTheme(tenant.publicTheme);
@@ -56,7 +57,7 @@ export default async function PublicLayout({
   return (
     <DynamicPublicTheme primaryColor={primaryColor} themeColors={theme.colors}>
       <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-        <PublicNavbar tenant={{ ...tenant, hasGallery }} />
+        <PublicNavbar tenant={{ ...tenant, hasGallery, hasTeam }} />
         <main className="flex-1">
           {children}
         </main>

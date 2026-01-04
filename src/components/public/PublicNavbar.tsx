@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '../ui/button';
-import { Phone, MapPin, Menu, X, ImageIcon, Sun, Moon } from 'lucide-react';
+import { Phone, MapPin, Menu, X, ImageIcon, Sun, Moon, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 
@@ -17,6 +17,7 @@ interface PublicNavbarProps {
     publicAddress?: string | null;
     publicThemeColor?: string | null;
     hasGallery?: boolean;
+    hasTeam?: boolean;
   };
 }
 
@@ -92,6 +93,14 @@ export function PublicNavbar({ tenant }: PublicNavbarProps) {
                 <Button variant="ghost" className="gap-1 dark:text-gray-300 dark:hover:bg-gray-800">
                   <ImageIcon className="h-4 w-4" />
                   Galería
+                </Button>
+              </Link>
+            )}
+            {tenant.hasTeam && (
+              <Link href={`/${tenant.slug}/equipo`}>
+                <Button variant="ghost" className="gap-1 dark:text-gray-300 dark:hover:bg-gray-800">
+                  <Users className="h-4 w-4" />
+                  Equipo
                 </Button>
               </Link>
             )}
@@ -178,6 +187,18 @@ export function PublicNavbar({ tenant }: PublicNavbarProps) {
                     >
                       <ImageIcon className="h-4 w-4" />
                       Galería
+                    </Button>
+                  </Link>
+                )}
+                {tenant.hasTeam && (
+                  <Link href={`/${tenant.slug}/equipo`}>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start gap-2 dark:text-gray-300 dark:hover:bg-gray-800"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <Users className="h-4 w-4" />
+                      Equipo
                     </Button>
                   </Link>
                 )}
