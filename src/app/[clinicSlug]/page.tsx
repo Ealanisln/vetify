@@ -5,10 +5,12 @@ import { ClinicHero } from '../../components/public/ClinicHero';
 import { ClinicServices } from '../../components/public/ClinicServices';
 import { ClinicInfo } from '../../components/public/ClinicInfo';
 import { QuickBooking } from '../../components/public/QuickBooking';
+import { TestimonialsSection } from '../../components/public/TestimonialsSection';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { generateLocalBusinessSchema } from '@/lib/seo/structured-data';
 import { createBreadcrumbsFromPath } from '@/lib/seo/breadcrumbs';
 import { getBaseUrl } from '@/lib/seo/config';
+import { getApprovedTestimonials, getPublicTestimonialStats } from '@/lib/testimonials';
 
 /**
  * Generate dynamic metadata for individual clinic pages
@@ -86,8 +88,12 @@ export default async function ClinicPage({
     notFound();
   }
 
-  // Fetch featured services from the Service table
-  const featuredServices = await getFeaturedServices(tenant.id);
+  // Fetch featured services and testimonials in parallel
+  const [featuredServices, testimonials, testimonialStats] = await Promise.all([
+    getFeaturedServices(tenant.id),
+    getApprovedTestimonials(tenant.id, { featuredOnly: false, limit: 10 }),
+    getPublicTestimonialStats(tenant.id),
+  ]);
 
   const baseUrl = getBaseUrl();
   const clinicUrl = `${baseUrl}/${tenant.slug}`;
@@ -130,6 +136,11 @@ export default async function ClinicPage({
       <ClinicHero tenant={tenant} />
       <QuickBooking tenant={tenant} />
       <ClinicServices tenant={tenant} featuredServices={featuredServices} />
+      <TestimonialsSection
+        tenant={tenant}
+        testimonials={testimonials}
+        stats={testimonialStats}
+      />
       <ClinicInfo tenant={tenant} />
     </>
   );

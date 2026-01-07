@@ -494,6 +494,29 @@ export const createMockTreatmentReminderResult = (overrides = {}) => ({
   ...overrides,
 });
 
+// Testimonial factory
+export const createTestTestimonial = (overrides = {}) => ({
+  id: 'testimonial-1',
+  tenantId: 'tenant-1',
+  customerId: null,
+  appointmentId: null,
+  reviewerName: 'Maria Garcia',
+  reviewerEmail: 'maria@example.com',
+  rating: 5,
+  text: 'Excelente servicio, muy profesionales y amables con mi mascota.',
+  status: 'PENDING' as const,
+  isFeatured: false,
+  displayOrder: null,
+  source: 'PUBLIC_FORM' as const,
+  submittedAt: new Date('2024-01-15'),
+  moderatedAt: null,
+  moderatedById: null,
+  moderationNote: null,
+  createdAt: new Date('2024-01-15'),
+  updatedAt: new Date('2024-01-15'),
+  ...overrides,
+});
+
 // Helper functions
 export const waitForLoadingToFinish = () =>
   new Promise((resolve) => setTimeout(resolve, 0));

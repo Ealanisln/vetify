@@ -13,7 +13,8 @@ export type EmailTemplate =
   | 'low-stock-alert'
   | 'treatment-reminder'
   | 'new-user-registration'
-  | 'new-subscription-payment';
+  | 'new-subscription-payment'
+  | 'testimonial-request';
 
 export type EmailStatus =
   | 'PENDING'
@@ -227,6 +228,23 @@ export interface AppointmentStaffNotificationData extends BaseEmailData {
 }
 
 /**
+ * Testimonial Request Email Data
+ */
+export interface TestimonialRequestData extends BaseEmailData {
+  template: 'testimonial-request';
+  data: {
+    appointmentId: string;
+    ownerName: string;
+    petName: string;
+    serviceName: string;
+    appointmentDate: Date;
+    clinicName: string;
+    clinicSlug: string;
+    baseUrl: string;
+  };
+}
+
+/**
  * Union type for all email data types
  */
 export type EmailData =
@@ -238,7 +256,8 @@ export type EmailData =
   | LowStockAlertData
   | TreatmentReminderData
   | NewUserRegistrationData
-  | NewSubscriptionPaymentData;
+  | NewSubscriptionPaymentData
+  | TestimonialRequestData;
 
 /**
  * Email send result
