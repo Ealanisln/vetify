@@ -228,7 +228,7 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
       <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {totalServices > 0 ? (
           <div className="space-y-16">
-            {orderedCategories.map((category, categoryIndex) => {
+            {orderedCategories.map((category) => {
               const categoryInfo = categoryConfig[category];
               const categoryServices = servicesByCategory[category];
               const CategoryIcon = categoryInfo.icon;
