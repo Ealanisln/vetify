@@ -469,6 +469,53 @@ export async function getFeaturedServices(tenantId: string): Promise<FeaturedSer
 }
 
 /**
+ * Public service type for services page (serializable)
+ */
+export interface PublicService {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  price: number;
+  duration: number | null;
+  publicIcon: string | null;
+  publicPriceLabel: string | null;
+}
+
+/**
+ * Get all public services for a tenant's services page
+ * Returns all active services grouped by category
+ */
+export async function getAllPublicServices(tenantId: string): Promise<PublicService[]> {
+  const services = await prisma.service.findMany({
+    where: {
+      tenantId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      category: true,
+      price: true,
+      duration: true,
+      publicIcon: true,
+      publicPriceLabel: true,
+    },
+    orderBy: [
+      { category: 'asc' },
+      { name: 'asc' },
+    ],
+  });
+
+  // Convert Decimal to number for client component serialization
+  return services.map(service => ({
+    ...service,
+    price: Number(service.price)
+  }));
+}
+
+/**
  * Public staff member type for team page (serializable)
  */
 export interface PublicStaffMember {
