@@ -5,7 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-12-17
+## [Unreleased] - 2026-01-06
+
+### Added
+- Public Services Page for clinic websites (VETIF-new)
+  - Dynamic `/[clinicSlug]/servicios` route displaying all active services
+  - Services grouped by category with Spanish translations
+  - Responsive grid layout with Framer Motion animations
+  - Theme-aware styling with dark mode support
+  - SEO metadata and breadcrumb structured data
+- Public Team Page for clinic websites
+  - Dynamic `/[clinicSlug]/equipo` route showing staff members
+  - Staff photos uploaded via Cloudinary
+  - Configurable staff visibility (showOnPublicPage flag)
+  - Professional bio and specialties display
+- Complete Testimonials System
+  - Customer testimonial submission form
+  - Admin dashboard for testimonial management (approve/reject/feature)
+  - Public testimonials section on clinic pages
+  - Star rating system (1-5 stars)
+  - Email template for requesting testimonials
+- Staff photo management
+  - Cloudinary integration for staff profile photos
+  - Photo upload in staff modal settings
+
+### Fixed
+- Share button not full width on mobile in hero section
+- Staff menu position in public navbar
+
+### Security
+- Updated jspdf to fix critical vulnerability (CVE-2024-XXXXX)
+
+---
+
+## [Previous] - 2025-12-17
 
 ### Added
 - API v1 authentication system (VETIF-36)

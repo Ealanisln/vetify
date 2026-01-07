@@ -11,6 +11,7 @@ interface ShareButtonsProps {
   description?: string;
   themeColor?: string;
   size?: 'sm' | 'default' | 'lg';
+  fullWidthMobile?: boolean;
 }
 
 /**
@@ -22,6 +23,7 @@ export function ShareButtons({
   description,
   themeColor = '#75a99c',
   size = 'sm',
+  fullWidthMobile = false,
 }: ShareButtonsProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -71,14 +73,14 @@ export function ShareButtons({
   };
 
   return (
-    <div className="relative inline-block">
+    <div className={`relative ${fullWidthMobile ? 'w-full sm:w-auto' : 'inline-block'}`}>
       {/* Share trigger button */}
       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
         <Button
           variant="outline"
           size={size}
           onClick={handleNativeShare}
-          className="flex items-center gap-2 border-2 transition-all duration-200"
+          className={`flex items-center justify-center gap-2 border-2 transition-all duration-200 ${fullWidthMobile ? 'w-full sm:w-auto' : ''}`}
           style={{
             borderColor: themeColor,
             color: themeColor,
