@@ -80,6 +80,7 @@ model Tenant {
   trialAccessLogs     TrialAccessLog[]
   emailLogs           EmailLog[]
   inventoryTransfers  InventoryTransfer[]
+  testimonials        Testimonial[]
 
   @@index([status])
   @@index([slug])
@@ -231,6 +232,7 @@ model Customer {
   appointmentRequests AppointmentRequest[]
   reminders           Reminder[]
   sales               Sale[]
+  testimonials        Testimonial[]
   user                User?                @relation(fields: [userId], references: [id])
   userId              String?
 
@@ -372,12 +374,13 @@ model Appointment {
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 
-  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  location Location? @relation(fields: [locationId], references: [id], onDelete: Restrict)
-  pet      Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
-  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
-  staff    Staff?    @relation(fields: [staffId], references: [id])
-  user     User?     @relation(fields: [userId], references: [id])
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location     Location?     @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  pet          Pet           @relation(fields: [petId], references: [id], onDelete: Cascade)
+  customer     Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  staff        Staff?        @relation(fields: [staffId], references: [id])
+  user         User?         @relation(fields: [userId], references: [id])
+  testimonials Testimonial[]
 
   @@index([tenantId])
   @@index([locationId])
@@ -441,19 +444,20 @@ model Staff {
   specialties        String[]
   showOnPublicPage   Boolean             @default(false)
 
-  appointments       Appointment[]
-  inventoryMovements InventoryMovement[]
-  medicalHistories   MedicalHistory[]
-  medicalOrders      MedicalOrder[]
-  Sale               Sale[]
-  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  location           Location?           @relation(fields: [locationId], references: [id], onDelete: Restrict)
-  treatmentRecords   TreatmentRecord[]
-  inventoryTransfers InventoryTransfer[]
-  staffLocations     StaffLocation[]
-  createdApiKeys     TenantApiKey[]      @relation("ApiKeyCreatedBy")
-  cashShifts         CashShift[]         @relation("CashShift_cashier")
-  handedOffShifts    CashShift[]         @relation("CashShift_handedOffTo")
+  appointments            Appointment[]
+  inventoryMovements      InventoryMovement[]
+  medicalHistories        MedicalHistory[]
+  medicalOrders           MedicalOrder[]
+  Sale                    Sale[]
+  tenant                  Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  location                Location?           @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  treatmentRecords        TreatmentRecord[]
+  inventoryTransfers      InventoryTransfer[]
+  staffLocations          StaffLocation[]
+  createdApiKeys          TenantApiKey[]      @relation("ApiKeyCreatedBy")
+  cashShifts              CashShift[]         @relation("CashShift_cashier")
+  handedOffShifts         CashShift[]         @relation("CashShift_handedOffTo")
+  moderatedTestimonials   Testimonial[]       @relation("ModeratedTestimonials")
 
   @@index([tenantId])
   @@index([locationId])
@@ -1321,6 +1325,7 @@ enum EmailTemplate {
   TREATMENT_REMINDER
   NEW_USER_REGISTRATION
   NEW_SUBSCRIPTION_PAYMENT
+  TESTIMONIAL_REQUEST
 }
 
 enum EmailStatus {
@@ -1329,6 +1334,62 @@ enum EmailStatus {
   DELIVERED
   BOUNCED
   FAILED
+}
+
+// ============================================================================
+// TESTIMONIALS
+// ============================================================================
+
+model Testimonial {
+  id            String            @id @default(uuid())
+  tenantId      String
+  customerId    String?
+  appointmentId String?
+
+  // Reviewer information
+  reviewerName  String
+  reviewerEmail String?
+
+  // Review content
+  rating        Int               // 1-5 stars
+  text          String            @db.Text
+
+  // Moderation
+  status        TestimonialStatus @default(PENDING)
+  isFeatured    Boolean           @default(false)
+  displayOrder  Int?
+
+  // Submission tracking
+  source        String            @default("MANUAL") // MANUAL, POST_APPOINTMENT, PUBLIC_FORM
+  submittedAt   DateTime          @default(now())
+
+  // Moderation audit
+  moderatedAt   DateTime?
+  moderatedById String?
+  moderationNote String?          @db.Text
+
+  // Timestamps
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  // Relations
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer      Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  appointment   Appointment?      @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  moderatedBy   Staff?            @relation("ModeratedTestimonials", fields: [moderatedById], references: [id], onDelete: SetNull)
+
+  @@index([tenantId])
+  @@index([tenantId, status])
+  @@index([tenantId, isFeatured])
+  @@index([customerId])
+  @@index([appointmentId])
+}
+
+enum TestimonialStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ARCHIVED
 }
 
 // ============================================================================

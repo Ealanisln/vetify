@@ -19,6 +19,7 @@ import type {
   AppointmentStaffNotificationData,
   LowStockAlertData,
   TreatmentReminderData,
+  TestimonialRequestData,
 } from './types';
 import { logEmailSend } from '../notifications/notification-logger';
 import {
@@ -31,6 +32,7 @@ import {
   TreatmentReminderEmail,
   NewUserRegistrationEmail,
   NewSubscriptionPaymentEmail,
+  TestimonialRequestEmail,
 } from './templates';
 import { formatDateLong, formatDateTimeLong, formatDate, formatCurrency } from '../utils/date-format';
 
@@ -194,6 +196,15 @@ export async function sendAppointmentRescheduled(
  */
 export async function sendAppointmentStaffNotification(
   data: AppointmentStaffNotificationData
+): Promise<EmailSendResult> {
+  return sendEmail(data);
+}
+
+/**
+ * Send testimonial request email
+ */
+export async function sendTestimonialRequest(
+  data: TestimonialRequestData
 ): Promise<EmailSendResult> {
   return sendEmail(data);
 }
@@ -367,6 +378,22 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
           paymentDate: paymentDateStr,
           stripeCustomerId: d.stripeCustomerId,
           stripeSubscriptionId: d.stripeSubscriptionId,
+        })
+      );
+    }
+
+    case 'testimonial-request': {
+      const d = emailData.data;
+      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      return await render(
+        TestimonialRequestEmail({
+          ownerName: d.ownerName,
+          petName: d.petName,
+          serviceName: d.serviceName,
+          appointmentDate: appointmentDateStr,
+          clinicName: d.clinicName,
+          clinicSlug: d.clinicSlug,
+          baseUrl: d.baseUrl,
         })
       );
     }
