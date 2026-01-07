@@ -15,7 +15,8 @@ import {
   CreditCardIcon,
   DocumentTextIcon,
   CurrencyDollarIcon,
-  MapPinIcon
+  MapPinIcon,
+  StarIcon
 } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
 import { LocationSwitcher } from '@/components/locations/LocationSwitcher';
@@ -52,6 +53,7 @@ const navigation: NavigationItem[] = [
   { name: 'Inventario', href: '/dashboard/inventory', icon: CubeIcon, isPro: true, proTooltip: 'Análisis avanzado en Plan Profesional' },
   { name: 'Historia Clínica', href: '/dashboard/medical-history', icon: DocumentTextIcon },
   { name: 'Citas', href: '/dashboard/appointments', icon: CalendarIcon },
+  { name: 'Testimonios', href: '/dashboard/testimonials', icon: StarIcon },
   { name: 'Reportes', href: '/dashboard/reports', icon: ChartBarIcon, isPro: true, proTooltip: 'Analytics avanzados en Plan Profesional' },
   { name: 'Configuración', href: '/dashboard/settings', icon: CogIcon },
 ];

@@ -50,6 +50,7 @@ jest.mock('@heroicons/react/24/outline', () => ({
   CurrencyDollarIcon: () => <svg data-testid="currency-icon" />,
   UsersIcon: () => <svg data-testid="users-icon" />,
   MapPinIcon: () => <svg data-testid="map-pin-icon" />,
+  StarIcon: () => <svg data-testid="star-icon" />,
 }));
 
 import { usePathname } from 'next/navigation';
