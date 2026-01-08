@@ -1,6 +1,7 @@
 import { createSecureResponse } from '../../../lib/security/input-sanitization';
 import { prisma } from '../../../lib/prisma';
 import * as Sentry from '@sentry/nextjs';
+import { APP_VERSION } from '@/lib/version';
 
 /**
  * Health check endpoint for monitoring system status
@@ -13,7 +14,7 @@ export async function GET() {
     const health = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      version: '1.0.0',
+      version: APP_VERSION,
       environment: process.env.NODE_ENV,
       uptime: process.uptime(),
       checks: {
