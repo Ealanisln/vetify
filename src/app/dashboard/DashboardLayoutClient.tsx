@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Sidebar, DashboardHeader } from '../../components/dashboard';
 import { LocationProvider } from '@/components/providers/LocationProvider';
+import { BugReportButton } from '@/components/bug-report';
 import type { UserWithTenant, TenantWithPlan } from '@/types';
 
 interface DashboardLayoutClientProps {
@@ -35,6 +36,7 @@ export function DashboardLayoutClient({ children, user, tenant }: DashboardLayou
             </div>
           </main>
         </div>
+        <BugReportButton />
       </div>
     </LocationProvider>
   );

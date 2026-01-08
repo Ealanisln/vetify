@@ -1,98 +1,98 @@
-# Changelog
+# Registro de Cambios
 
-All notable changes to this project will be documented in this file.
+Todos los cambios notables en este proyecto se documentarán en este archivo.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
+y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [1.0.0] - 2026-01-06
 
-### Added
-- Public Services Page for clinic websites (VETIF-new)
-  - Dynamic `/[clinicSlug]/servicios` route displaying all active services
-  - Services grouped by category with Spanish translations
-  - Responsive grid layout with Framer Motion animations
-  - Theme-aware styling with dark mode support
-  - SEO metadata and breadcrumb structured data
-- Public Team Page for clinic websites
-  - Dynamic `/[clinicSlug]/equipo` route showing staff members
-  - Staff photos uploaded via Cloudinary
-  - Configurable staff visibility (showOnPublicPage flag)
-  - Professional bio and specialties display
-- Complete Testimonials System
-  - Customer testimonial submission form
-  - Admin dashboard for testimonial management (approve/reject/feature)
-  - Public testimonials section on clinic pages
-  - Star rating system (1-5 stars)
-  - Email template for requesting testimonials
-- Staff photo management
-  - Cloudinary integration for staff profile photos
-  - Photo upload in staff modal settings
+### Agregado
+- Página Pública de Servicios para sitios web de clínicas
+  - Ruta dinámica `/[clinicSlug]/servicios` mostrando todos los servicios activos
+  - Servicios agrupados por categoría con traducciones en español
+  - Diseño de cuadrícula responsive con animaciones Framer Motion
+  - Estilos adaptables al tema con soporte para modo oscuro
+  - Metadatos SEO y datos estructurados de breadcrumb
+- Página Pública de Equipo para sitios web de clínicas
+  - Ruta dinámica `/[clinicSlug]/equipo` mostrando los miembros del staff
+  - Fotos del personal subidas vía Cloudinary
+  - Visibilidad configurable del staff (bandera showOnPublicPage)
+  - Visualización de biografía profesional y especialidades
+- Sistema Completo de Testimonios
+  - Formulario de envío de testimonios de clientes
+  - Panel de administración para gestión de testimonios (aprobar/rechazar/destacar)
+  - Sección pública de testimonios en páginas de clínicas
+  - Sistema de calificación con estrellas (1-5 estrellas)
+  - Plantilla de email para solicitar testimonios
+- Gestión de fotos del personal
+  - Integración con Cloudinary para fotos de perfil del staff
+  - Carga de fotos en el modal de configuración del staff
 
-### Fixed
-- Share button not full width on mobile in hero section
-- Staff menu position in public navbar
+### Corregido
+- Botón de compartir no ocupaba todo el ancho en móvil en la sección hero
+- Posición del menú del staff en la barra de navegación pública
 
-### Security
-- Updated jspdf to fix critical vulnerability (CVE-2024-XXXXX)
+### Seguridad
+- Actualizado jspdf para corregir vulnerabilidad crítica (CVE-2024-XXXXX)
 
 ---
 
-## [Previous] - 2025-12-17
+## [Anterior] - 2025-12-17
 
-### Added
-- API v1 authentication system (VETIF-36)
-  - API key authentication with SHA-256 hashed keys
-  - Location-scoped API keys for multi-branch access control
-  - Granular permission scopes (read:pets, write:appointments, etc.)
-  - Configurable rate limiting per API key (default 1000 req/hour)
-  - API key management utilities with secure key generation
-- Per-location sales tracking (VETIF-95)
-  - Added locationId to Sale model for branch-specific reporting
-  - Location-based filtering in sales queries
-  - Performance indexes for location-scoped sales queries
-- Comprehensive testing infrastructure with GitHub Actions CI
-  - Unit tests with Jest (49 suites, 1600+ tests)
-  - Integration tests for API routes (40+ suites, 600+ tests)
-  - E2E tests with Playwright (490 tests across Chrome, Firefox, Safari)
-  - Coverage reporting with configurable thresholds
-  - Pre-commit hooks for lint-staged and unit tests
-- Extended integration test coverage (Phase 2 testing initiative)
-  - Admin Billing & Pricing API tests (VETIF-94)
-  - Stripe checkout and webhook integration tests (VETIF-93)
-  - Subscription API tests including upgrades/downgrades (VETIF-92)
-  - Settings & Onboarding API tests (VETIF-61)
-  - Hook unit tests for useErrorHandler and useThemeAware (VETIF-60)
-- Email notification system for appointments
-  - Configurable notification templates
-  - Support for appointment reminders and confirmations
-  - New email template types in database enum
-- Dark mode support for tenant public pages
-  - Theme-aware styling for customer-facing pages
-  - Consistent dark mode experience across all views
-- Notification preferences in settings
-  - User-configurable email and push notification settings
-  - Per-notification-type toggle controls
-- Location support in inventory management
-  - Branch location assignment for inventory items
-  - Storage location field for precise item placement
-  - Location-based filtering in inventory views
+### Agregado
+- Sistema de autenticación API v1 (VETIF-36)
+  - Autenticación con API key usando claves hasheadas SHA-256
+  - API keys con alcance por ubicación para control de acceso multi-sucursal
+  - Permisos granulares (read:pets, write:appointments, etc.)
+  - Límite de tasa configurable por API key (predeterminado 1000 req/hora)
+  - Utilidades de gestión de API keys con generación segura de claves
+- Seguimiento de ventas por ubicación (VETIF-95)
+  - Agregado locationId al modelo Sale para reportes por sucursal
+  - Filtrado basado en ubicación en consultas de ventas
+  - Índices de rendimiento para consultas de ventas por ubicación
+- Infraestructura de testing completa con GitHub Actions CI
+  - Pruebas unitarias con Jest (49 suites, 1600+ pruebas)
+  - Pruebas de integración para rutas API (40+ suites, 600+ pruebas)
+  - Pruebas E2E con Playwright (490 pruebas en Chrome, Firefox, Safari)
+  - Reportes de cobertura con umbrales configurables
+  - Hooks pre-commit para lint-staged y pruebas unitarias
+- Cobertura extendida de pruebas de integración (Fase 2 de iniciativa de testing)
+  - Pruebas de API de Facturación y Precios Admin (VETIF-94)
+  - Pruebas de integración de checkout y webhook de Stripe (VETIF-93)
+  - Pruebas de API de Suscripción incluyendo upgrades/downgrades (VETIF-92)
+  - Pruebas de API de Configuración y Onboarding (VETIF-61)
+  - Pruebas unitarias de hooks para useErrorHandler y useThemeAware (VETIF-60)
+- Sistema de notificaciones por email para citas
+  - Plantillas de notificación configurables
+  - Soporte para recordatorios y confirmaciones de citas
+  - Nuevos tipos de plantillas de email en enum de base de datos
+- Soporte de modo oscuro para páginas públicas de tenants
+  - Estilos adaptables al tema para páginas de cara al cliente
+  - Experiencia consistente de modo oscuro en todas las vistas
+- Preferencias de notificación en configuración
+  - Configuración de notificaciones por email y push personalizable por usuario
+  - Controles de toggle por tipo de notificación
+- Soporte de ubicación en gestión de inventario
+  - Asignación de ubicación de sucursal para artículos de inventario
+  - Campo de ubicación de almacenamiento para colocación precisa de artículos
+  - Filtrado basado en ubicación en vistas de inventario
 
-### Fixed
-- Dark mode border inconsistencies across dashboard components
-- Business hours save failing with null locationId
-- Inventory modal styling and proper location field support
-- Stats cards alignment in inventory dashboard
-- Inventory table overflow handling for proper layout
+### Corregido
+- Inconsistencias de bordes en modo oscuro en componentes del dashboard
+- Fallo al guardar horarios de atención con locationId nulo
+- Estilos del modal de inventario y soporte correcto del campo de ubicación
+- Alineación de tarjetas de estadísticas en el dashboard de inventario
+- Manejo de desbordamiento de tabla de inventario para diseño correcto
 
-### Changed
-- Coverage threshold reduced to 5% (establishing initial baseline)
-- Pre-commit hooks now run unit tests on changed files only
-- Performance indexes added to frequently queried tables
+### Modificado
+- Umbral de cobertura reducido a 5% (estableciendo línea base inicial)
+- Hooks pre-commit ahora ejecutan pruebas unitarias solo en archivos modificados
+- Índices de rendimiento agregados a tablas consultadas frecuentemente
 
-### Security
-- Added Email Log model for audit trail of sent notifications
-- Performance indexes improve query response times
-- Replaced xlsx package with exceljs to fix high-severity vulnerabilities
-  - Resolved GHSA-4r6h-8v6p-xvw6: Prototype Pollution
-  - Resolved GHSA-5pgg-2g8v-p4x9: ReDoS
+### Seguridad
+- Agregado modelo Email Log para registro de auditoría de notificaciones enviadas
+- Índices de rendimiento mejoran tiempos de respuesta de consultas
+- Reemplazado paquete xlsx con exceljs para corregir vulnerabilidades de alta severidad
+  - Resuelto GHSA-4r6h-8v6p-xvw6: Prototype Pollution
+  - Resuelto GHSA-5pgg-2g8v-p4x9: ReDoS
