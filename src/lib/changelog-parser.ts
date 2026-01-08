@@ -50,20 +50,28 @@ export function parseChangelog(content: string): ChangelogEntry[] {
       categories: {},
     };
 
-    // Parse each category
-    const categories = ['Added', 'Fixed', 'Changed', 'Security'] as const;
+    // Parse each category (supports both English and Spanish headers)
+    const categoryMappings: { key: keyof typeof entry.categories; patterns: string[] }[] = [
+      { key: 'added', patterns: ['Added', 'Agregado'] },
+      { key: 'fixed', patterns: ['Fixed', 'Corregido'] },
+      { key: 'changed', patterns: ['Changed', 'Modificado'] },
+      { key: 'security', patterns: ['Security', 'Seguridad'] },
+    ];
 
-    for (const category of categories) {
-      const categoryRegex = new RegExp(
-        `### ${category}\\n([\\s\\S]*?)(?=### |## |$)`,
-        'i'
-      );
-      const categoryMatch = sectionContent.match(categoryRegex);
+    for (const { key, patterns } of categoryMappings) {
+      for (const pattern of patterns) {
+        const categoryRegex = new RegExp(
+          `### ${pattern}\\n([\\s\\S]*?)(?=### |## |$)`,
+          'i'
+        );
+        const categoryMatch = sectionContent.match(categoryRegex);
 
-      if (categoryMatch) {
-        const items = parseCategoryItems(categoryMatch[1]);
-        if (items.length > 0) {
-          entry.categories[category.toLowerCase() as keyof typeof entry.categories] = items;
+        if (categoryMatch) {
+          const items = parseCategoryItems(categoryMatch[1]);
+          if (items.length > 0) {
+            entry.categories[key] = items;
+            break; // Found this category, move to next
+          }
         }
       }
     }
@@ -147,54 +155,54 @@ export function getChangelogContent(): string {
 }
 
 // Hardcoded changelog content - updated manually or via build script
-const CHANGELOG_CONTENT = `# Changelog
+const CHANGELOG_CONTENT = `# Registro de Cambios
 
-All notable changes to this project will be documented in this file.
+Todos los cambios notables en este proyecto se documentarán en este archivo.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
+y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
-## [Unreleased] - 2026-01-06
+## [Sin Publicar] - 2026-01-06
 
-### Added
-- Public Services Page for clinic websites (VETIF-new)
-- Public Team Page for clinic websites
-- Complete Testimonials System
-- Staff photo management with Cloudinary integration
+### Agregado
+- Página Pública de Servicios para sitios web de clínicas
+- Página Pública de Equipo para sitios web de clínicas
+- Sistema Completo de Testimonios
+- Gestión de fotos del personal con integración Cloudinary
 
-### Fixed
-- Share button not full width on mobile in hero section
-- Staff menu position in public navbar
+### Corregido
+- Botón de compartir no ocupaba todo el ancho en móvil en la sección hero
+- Posición del menú del staff en la barra de navegación pública
 
-### Security
-- Updated jspdf to fix critical vulnerability
+### Seguridad
+- Actualizado jspdf para corregir vulnerabilidad crítica
 
 ---
 
-## [Previous] - 2025-12-17
+## [Anterior] - 2025-12-17
 
-### Added
-- API v1 authentication system (VETIF-36)
-- Per-location sales tracking (VETIF-95)
-- Comprehensive testing infrastructure with GitHub Actions CI
-- Email notification system for appointments
-- Dark mode support for tenant public pages
-- Notification preferences in settings
-- Location support in inventory management
+### Agregado
+- Sistema de autenticación API v1 (VETIF-36)
+- Seguimiento de ventas por ubicación (VETIF-95)
+- Infraestructura de testing completa con GitHub Actions CI
+- Sistema de notificaciones por email para citas
+- Soporte de modo oscuro para páginas públicas de tenants
+- Preferencias de notificación en configuración
+- Soporte de ubicación en gestión de inventario
 
-### Fixed
-- Dark mode border inconsistencies across dashboard components
-- Business hours save failing with null locationId
-- Inventory modal styling and proper location field support
-- Stats cards alignment in inventory dashboard
-- Inventory table overflow handling for proper layout
+### Corregido
+- Inconsistencias de bordes en modo oscuro en componentes del dashboard
+- Fallo al guardar horarios de atención con locationId nulo
+- Estilos del modal de inventario y soporte correcto del campo de ubicación
+- Alineación de tarjetas de estadísticas en el dashboard de inventario
+- Manejo de desbordamiento de tabla de inventario para diseño correcto
 
-### Changed
-- Coverage threshold reduced to 5% (establishing initial baseline)
-- Pre-commit hooks now run unit tests on changed files only
-- Performance indexes added to frequently queried tables
+### Modificado
+- Umbral de cobertura reducido a 5% (estableciendo línea base inicial)
+- Hooks pre-commit ahora ejecutan pruebas unitarias solo en archivos modificados
+- Índices de rendimiento agregados a tablas consultadas frecuentemente
 
-### Security
-- Added Email Log model for audit trail of sent notifications
-- Replaced xlsx package with exceljs to fix high-severity vulnerabilities
+### Seguridad
+- Agregado modelo Email Log para registro de auditoría de notificaciones enviadas
+- Reemplazado paquete xlsx con exceljs para corregir vulnerabilidades de alta severidad
 `;

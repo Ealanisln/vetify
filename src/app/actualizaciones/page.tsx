@@ -89,7 +89,7 @@ function VersionSection({ entry, isFirst }: VersionSectionProps) {
           <div className="flex items-center gap-2">
             <Tag className="h-4 w-4 text-primary" />
             <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              {entry.version === "Unreleased" ? "En desarrollo" : `v${entry.version}`}
+              {entry.version === "Unreleased" || entry.version === "Sin Publicar" ? "En desarrollo" : `v${entry.version}`}
             </span>
           </div>
           {entry.date && (
