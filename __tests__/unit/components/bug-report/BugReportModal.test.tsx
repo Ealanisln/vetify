@@ -246,7 +246,12 @@ describe('BugReportModal', () => {
       const submitButton = screen.getByRole('button', { name: /enviar reporte/i });
       fireEvent.click(submitButton);
 
-      // Try to close
+      // Wait for submitting state to be active (button shows "Enviando...")
+      await waitFor(() => {
+        expect(screen.getByText(/enviando/i)).toBeInTheDocument();
+      });
+
+      // Try to close while submitting
       const closeButton = screen.getByRole('button', { name: /cerrar/i });
       fireEvent.click(closeButton);
 
