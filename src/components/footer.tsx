@@ -1,6 +1,8 @@
 import Link from "next/link"
+import packageJson from "../../package.json"
 
 export function Footer() {
+  const version = packageJson.version;
   return (
     <footer className="border-t border-border bg-secondary/30 py-12">
       <div className="container mx-auto px-4">
@@ -28,6 +30,11 @@ export function Footer() {
               <li>
                 <Link href="/precios" className="text-muted-foreground transition-colors hover:text-foreground">
                   Precios
+                </Link>
+              </li>
+              <li>
+                <Link href="/actualizaciones" className="text-muted-foreground transition-colors hover:text-foreground">
+                  Actualizaciones
                 </Link>
               </li>
             </ul>
@@ -62,7 +69,8 @@ export function Footer() {
         </div>
 
         <div className="mt-12 border-t border-border pt-8 text-center text-sm text-muted-foreground">
-          <p>© 2025 Vetify. Todos los derechos reservados.</p>
+          <p>© {new Date().getFullYear()} Vetify. Todos los derechos reservados.</p>
+          <p className="mt-2 text-xs">v{version}</p>
         </div>
       </div>
     </footer>
