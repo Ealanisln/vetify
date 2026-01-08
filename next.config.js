@@ -1,5 +1,13 @@
 import { withSentryConfig } from '@sentry/nextjs';
 import withPWAInit from 'next-pwa';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Read package.json for version info
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageJson = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'));
 
 // PWA configuration
 const withPWA = withPWAInit({
@@ -51,6 +59,13 @@ const withPWA = withPWAInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Instrumentation is now enabled by default in Next.js 15+
+
+  // Expose version information at build time
+  env: {
+    NEXT_PUBLIC_APP_VERSION: packageJson.version,
+    NEXT_PUBLIC_BUILD_TIME: new Date().toISOString(),
+  },
+
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',

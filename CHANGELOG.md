@@ -5,7 +5,7 @@ Todos los cambios notables en este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
-## [Sin Publicar] - 2026-01-06
+## [1.0.0] - 2026-01-06
 
 ### Agregado
 - Página Pública de Servicios para sitios web de clínicas

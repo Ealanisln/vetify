@@ -136,6 +136,8 @@ src/
 │   ├── api/                   # API route handlers
 │   │   ├── webhooks/          # Stripe/external webhooks (public)
 │   │   ├── trial/             # Trial management endpoints
+│   │   ├── version/           # Version info endpoint (public)
+│   │   ├── health/            # Health check endpoint (public)
 │   │   └── admin/             # Super admin endpoints
 │   ├── dashboard/             # Main tenant dashboard (protected)
 │   ├── admin/                 # Super admin interface
@@ -154,6 +156,7 @@ src/
 │   ├── prisma.ts              # Shared Prisma client instance
 │   ├── auth.ts                # Authentication utilities
 │   ├── tenant.ts              # Tenant management
+│   ├── version.ts             # Version utilities and constants
 │   ├── security/              # Security utilities
 │   │   ├── rate-limiter.ts    # Upstash rate limiting
 │   │   ├── audit-logger.ts    # Security event logging
@@ -233,6 +236,53 @@ import { FeatureGate } from '@/components/features/FeatureGate';
   <InventoryManagement />
 </FeatureGate>
 ```
+
+### Versioning System
+
+The application uses semantic versioning (SemVer) with version information exposed at build time.
+
+#### Key Files
+- **`src/lib/version.ts`** - Version utility library
+- **`src/app/api/version/route.ts`** - Public API endpoint
+- **`CHANGELOG.md`** - Release notes following [Keep a Changelog](https://keepachangelog.com/) format
+
+#### How It Works
+1. Version is defined in `package.json` (`"version": "1.0.0"`)
+2. At build time, `next.config.js` reads `package.json` and injects:
+   - `NEXT_PUBLIC_APP_VERSION` - The version string
+   - `NEXT_PUBLIC_BUILD_TIME` - ISO timestamp of the build
+3. The version utility (`src/lib/version.ts`) provides helper functions
+
+#### Available Functions
+```typescript
+import {
+  APP_VERSION,           // "1.0.0"
+  BUILD_TIME,            // "2026-01-08T..."
+  getVersionString,      // () => "v1.0.0"
+  parseVersion,          // () => { major: 1, minor: 0, patch: 0 }
+  getVersionInfo,        // () => { version, versionString, major, minor, patch, buildTime }
+  isPrerelease,          // () => false
+  compareVersion         // ("0.9.0") => 1 (current is greater)
+} from '@/lib/version';
+```
+
+#### Version Display
+- **Footer**: Shows version subtly next to copyright (e.g., "© 2026 Vetify. v1.0.0")
+- **API Endpoint**: `GET /api/version` returns JSON with full version info
+- **Health Check**: `GET /api/health` includes version in response
+
+#### Updating the Version
+When releasing a new version:
+1. Update `version` in `package.json`
+2. Update `CHANGELOG.md` with release notes
+3. The version will be automatically reflected in the app after rebuild
+
+#### Version Format
+Follow [Semantic Versioning](https://semver.org/):
+- **MAJOR**: Breaking changes
+- **MINOR**: New features (backward compatible)
+- **PATCH**: Bug fixes (backward compatible)
+- **Prerelease**: Add suffix like `-beta.1`, `-rc.1`
 
 ### Testing Philosophy
 
