@@ -162,7 +162,24 @@ Todos los cambios notables en este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
-## [Sin Publicar] - 2026-01-06
+## [Sin Publicar]
+
+### Agregado
+- Página de Actualizaciones (/actualizaciones)
+  - Vista de timeline con historial de versiones
+  - Categorías con código de colores (Agregado, Corregido, Modificado, Seguridad)
+  - Parser de CHANGELOG con soporte para español e inglés
+- Botón Flotante de Reporte de Errores
+  - Modal de formulario con campos: descripción, pasos, comportamiento esperado
+  - Soporte para captura de pantallas (hasta 3 imágenes)
+  - Integración con Resend para envío de emails
+- Sistema de Control de Versiones
+  - Versión mostrada en el footer del sitio
+  - Endpoint API /api/version para consultar versión
+
+---
+
+## [1.0.0] - 2026-01-06
 
 ### Agregado
 - Página Pública de Servicios para sitios web de clínicas
