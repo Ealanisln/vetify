@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Facebook, Instagram, Twitter } from 'lucide-react';
+import { getVersionString } from '@/lib/version';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -128,6 +129,9 @@ export default function Footer() {
           <div className="flex flex-col md:flex-row justify-between">
             <p className="text-xs text-vetify-primary-400 dark:text-vetify-surface-light">
               &copy; {currentYear} Vetify. Todos los derechos reservados.
+              <span className="ml-2 text-vetify-primary-300 dark:text-vetify-slate-500">
+                {getVersionString()}
+              </span>
             </p>
             <div className="mt-4 md:mt-0 flex space-x-6">
               <Link href="/privacidad" className="text-xs text-vetify-primary-400 dark:text-vetify-surface-light hover:text-vetify-accent-600 dark:hover:text-vetify-accent-300 transition-colors">
