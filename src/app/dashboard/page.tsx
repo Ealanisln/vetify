@@ -47,7 +47,7 @@ export default async function DashboardPage() {
         />
         <StatsCard
           title="Plan Actual"
-          value={0}
+          value={tenant.tenantSubscription?.plan?.name || 'Sin plan'}
           icon="⭐"
         />
         {/* FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented */}
