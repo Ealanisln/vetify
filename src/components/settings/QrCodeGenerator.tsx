@@ -1,12 +1,11 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { jsPDF } from 'jspdf';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
-import { Switch } from '../ui/switch';
 import {
   Loader2,
   QrCode,
@@ -22,7 +21,6 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import Image from 'next/image';
 import {
   getClinicPageUrl,
   QR_SIZE_OPTIONS,
@@ -34,36 +32,8 @@ import {
 interface TenantQrData {
   slug: string;
   name: string;
-  logo: string | null;
   publicThemeColor: string | null;
   publicPageEnabled: boolean;
-}
-
-// Convert external image URL to base64 to avoid CORS issues with canvas
-async function imageUrlToBase64(url: string): Promise<string | null> {
-  try {
-    const response = await fetch(url, { mode: 'cors' });
-    if (!response.ok) return null;
-    const blob = await response.blob();
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
-
-// Preload an image to ensure it's cached and ready for canvas rendering
-function preloadImage(src: string): Promise<boolean> {
-  return new Promise((resolve) => {
-    const img = new window.Image();
-    img.onload = () => resolve(true);
-    img.onerror = () => resolve(false);
-    img.src = src;
-  });
 }
 
 interface QrCodeGeneratorProps {
@@ -77,40 +47,16 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [logoBase64, setLogoBase64] = useState<string | null>(null);
-  const [logoLoading, setLogoLoading] = useState(false);
-  const [logoReady, setLogoReady] = useState(false);
 
   // QR Configuration
   const [targetPage, setTargetPage] = useState<QrTargetPage>('landing');
   const [size, setSize] = useState<QrSize>(256);
   const [fgColor, setFgColor] = useState('#000000');
   const [bgColor, setBgColor] = useState('#FFFFFF');
-  const [logoEnabled, setLogoEnabled] = useState(false);
 
   // Refs for download
   const qrCanvasRef = useRef<HTMLDivElement>(null);
   const qrSvgRef = useRef<HTMLDivElement>(null);
-
-  // Convert logo to base64 and preload to avoid CORS issues
-  const loadLogoAsBase64 = useCallback(async (logoUrl: string) => {
-    setLogoLoading(true);
-    setLogoReady(false);
-    try {
-      const base64 = await imageUrlToBase64(logoUrl);
-      if (base64) {
-        // Preload the image so it's ready for canvas rendering
-        const loaded = await preloadImage(base64);
-        setLogoBase64(base64);
-        setLogoReady(loaded);
-      } else {
-        setLogoBase64(null);
-        setLogoReady(false);
-      }
-    } finally {
-      setLogoLoading(false);
-    }
-  }, []);
 
   // Fetch tenant data
   useEffect(() => {
@@ -125,20 +71,12 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
           throw new Error(result.error || 'Error al cargar datos');
         }
 
-        const data = {
+        setTenantData({
           slug: result.data.slug,
           name: result.data.name || 'Tu Clínica',
-          logo: result.data.logo,
           publicThemeColor: result.data.publicThemeColor,
           publicPageEnabled: result.data.publicPageEnabled,
-        };
-
-        setTenantData(data);
-
-        // Pre-load logo as base64 to avoid CORS issues with canvas export
-        if (data.logo) {
-          loadLogoAsBase64(data.logo);
-        }
+        });
 
         // Set default color from tenant theme if available
         if (result.data.publicThemeColor) {
@@ -154,7 +92,7 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
     };
 
     fetchData();
-  }, [loadLogoAsBase64]);
+  }, []);
 
   // Get the current QR URL
   const qrUrl = tenantData ? getClinicPageUrl(tenantData.slug, targetPage) : '';
@@ -175,33 +113,16 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
   const downloadPNG = async () => {
     if (!qrCanvasRef.current || !tenantData) return;
 
-    // Wait for logo to finish loading if enabled
-    if (logoEnabled && logoLoading) {
-      toast.info('Esperando a que cargue el logo...');
-      return;
-    }
-
-    // Check if logo should be included but isn't ready
-    if (logoEnabled && logoBase64 && !logoReady) {
-      toast.info('Preparando el logo, intenta de nuevo en un momento...');
-      return;
-    }
-
     setDownloading(true);
     try {
-      // Wait for canvas to fully render with the logo (give extra time for image drawing)
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Small delay to ensure canvas is rendered
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = qrCanvasRef.current.querySelector('canvas');
       if (!canvas) throw new Error('Canvas not found');
 
-      // Check if canvas has content
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Could not get canvas context');
-
       const dataUrl = canvas.toDataURL('image/png');
 
-      // Verify the data URL is valid
       if (!dataUrl || dataUrl === 'data:,') {
         throw new Error('Canvas is empty');
       }
@@ -216,7 +137,7 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
       toast.success('QR descargado como PNG');
     } catch (err) {
       console.error('Error downloading PNG:', err);
-      toast.error('Error al descargar el QR. Intenta desactivar el logo si está activado.');
+      toast.error('Error al descargar el QR');
     } finally {
       setDownloading(false);
     }
@@ -257,29 +178,16 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
   const downloadPDF = async () => {
     if (!qrCanvasRef.current || !tenantData) return;
 
-    // Wait for logo to finish loading if enabled
-    if (logoEnabled && logoLoading) {
-      toast.info('Esperando a que cargue el logo...');
-      return;
-    }
-
-    // Check if logo should be included but isn't ready
-    if (logoEnabled && logoBase64 && !logoReady) {
-      toast.info('Preparando el logo, intenta de nuevo en un momento...');
-      return;
-    }
-
     setDownloading(true);
     try {
-      // Wait for canvas to fully render with the logo (give extra time for image drawing)
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Small delay to ensure canvas is rendered
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       const canvas = qrCanvasRef.current.querySelector('canvas');
       if (!canvas) throw new Error('Canvas not found');
 
       const imgData = canvas.toDataURL('image/png');
 
-      // Verify the data URL is valid
       if (!imgData || imgData === 'data:,') {
         throw new Error('Canvas is empty');
       }
@@ -318,7 +226,7 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
       toast.success('QR descargado como PDF');
     } catch (err) {
       console.error('Error downloading PDF:', err);
-      toast.error('Error al descargar el QR. Intenta desactivar el logo si está activado.');
+      toast.error('Error al descargar el QR');
     } finally {
       setDownloading(false);
     }
@@ -410,20 +318,10 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
                 bgColor={bgColor}
                 level="H"
                 includeMargin={true}
-                imageSettings={
-                  logoEnabled && tenantData.logo
-                    ? {
-                        src: tenantData.logo,
-                        height: Math.min(size, 256) * 0.2,
-                        width: Math.min(size, 256) * 0.2,
-                        excavate: true,
-                      }
-                    : undefined
-                }
               />
             </div>
 
-            {/* Canvas for downloads - use visibility:hidden to ensure it renders */}
+            {/* Hidden canvas for downloads */}
             <div
               ref={qrCanvasRef}
               style={{
@@ -435,23 +333,12 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
               aria-hidden="true"
             >
               <QRCodeCanvas
-                key={`qr-canvas-${logoEnabled}-${logoReady ? 'logo-ready' : 'no-logo'}-${size}-${fgColor}-${bgColor}`}
                 value={qrUrl}
                 size={size}
                 fgColor={fgColor}
                 bgColor={bgColor}
                 level="H"
                 includeMargin={true}
-                imageSettings={
-                  logoEnabled && logoBase64 && logoReady
-                    ? {
-                        src: logoBase64,
-                        height: size * 0.2,
-                        width: size * 0.2,
-                        excavate: true,
-                      }
-                    : undefined
-                }
               />
             </div>
 
@@ -695,49 +582,6 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
               </div>
             </div>
 
-            {/* Logo Toggle */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="logo-toggle" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Incluir logo
-                </Label>
-                <Switch
-                  id="logo-toggle"
-                  checked={logoEnabled}
-                  onCheckedChange={setLogoEnabled}
-                  disabled={!tenantData.logo}
-                  data-testid="logo-toggle"
-                />
-              </div>
-              {!tenantData.logo && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Sube un logo en la sección &quot;Página Pública&quot; para poder incluirlo en el QR.
-                </p>
-              )}
-              {logoEnabled && tenantData.logo && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700" data-testid="logo-options">
-                  <Image
-                    src={tenantData.logo}
-                    alt="Logo de la clínica"
-                    width={40}
-                    height={40}
-                    className="rounded object-contain bg-white"
-                    unoptimized
-                  />
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      El logo se mostrará en el centro del código QR.
-                    </p>
-                    {logoEnabled && tenantData.logo && !logoBase64 && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                        Nota: El logo solo aparecerá en la vista previa, no en las descargas.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Reset to defaults */}
             <Button
               variant="outline"
@@ -746,7 +590,6 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
                 setSize(256);
                 setFgColor(tenantData.publicThemeColor || '#000000');
                 setBgColor('#FFFFFF');
-                setLogoEnabled(false);
               }}
               className="w-full border-gray-300 dark:border-gray-600"
             >
