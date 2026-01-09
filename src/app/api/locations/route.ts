@@ -6,6 +6,7 @@ import {
   type CreateLocationInput,
 } from '@/lib/locations';
 import { checkLocationLimit } from '@/lib/plan-limits';
+import { parsePaginationParams, createPaginatedResponse } from '@/lib/pagination';
 
 // Force dynamic rendering to prevent static generation issues with Kinde Auth
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,8 @@ export const dynamic = 'force-dynamic';
  * Optional query params:
  * - isActive: boolean (filter by active status)
  * - search: string (search in name, address, phone)
+ * - page: number (page number, default 1)
+ * - limit: number (items per page, default 50, max 100)
  */
 export async function GET(request: Request) {
   try {
@@ -27,10 +30,16 @@ export async function GET(request: Request) {
     const isActiveParam = searchParams.get('isActive');
     const search = searchParams.get('search');
 
+    // Parse pagination params
+    const paginationParams = parsePaginationParams(searchParams);
+
     const options: {
       isActive?: boolean;
       search?: string;
-    } = {};
+      pagination: typeof paginationParams;
+    } = {
+      pagination: paginationParams,
+    };
 
     if (isActiveParam !== null) {
       options.isActive = isActiveParam === 'true';
@@ -41,11 +50,21 @@ export async function GET(request: Request) {
     }
 
     // Get locations
-    const locations = await getLocationsByTenant(tenant.id, options);
+    const result = await getLocationsByTenant(tenant.id, options);
 
+    // Handle paginated response
+    if ('locations' in result && 'total' in result) {
+      const response = createPaginatedResponse(result.locations, result.total, paginationParams);
+      return NextResponse.json({
+        success: true,
+        ...response,
+      });
+    }
+
+    // Backwards compatible response (shouldn't happen with pagination)
     return NextResponse.json({
       success: true,
-      data: locations,
+      data: result,
     });
   } catch (error) {
     console.error('Error fetching locations:', error);

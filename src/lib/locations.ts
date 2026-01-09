@@ -2,6 +2,7 @@ import 'server-only';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { checkLocationLimit } from './plan-limits';
+import { type PaginationParams } from './pagination';
 
 // Import schemas for internal use
 import {
@@ -52,21 +53,19 @@ export {
 /**
  * Get all locations for a tenant with optional filters
  * @param tenantId - The tenant ID
- * @param options - Optional filters (isActive, search)
- * @returns Array of locations with staff count
+ * @param options - Optional filters (isActive, search, pagination)
+ * @returns Array of locations with staff count (and total if paginated)
  */
 export async function getLocationsByTenant(
   tenantId: string,
   options?: {
     isActive?: boolean;
     search?: string;
+    pagination?: PaginationParams;
   }
 ) {
-  const where: {
-    tenantId: string;
-    isActive?: boolean;
-    name?: { contains: string; mode: 'insensitive' };
-  } = { tenantId };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const where: any = { tenantId };
 
   if (options?.isActive !== undefined) {
     where.isActive = options.isActive;
@@ -80,19 +79,43 @@ export async function getLocationsByTenant(
     ];
   }
 
-  const locations = await prisma.location.findMany({
-    where,
-    include: {
-      _count: {
-        select: {
-          staff: true,
-          pets: true,
-          appointments: true,
-          inventoryItems: true,
-        },
+  const includeOptions = {
+    _count: {
+      select: {
+        staff: true,
+        pets: true,
+        appointments: true,
+        inventoryItems: true,
       },
     },
-    orderBy: [{ isPrimary: 'desc' }, { name: 'asc' }],
+  };
+
+  const orderByOptions: Prisma.LocationOrderByWithRelationInput[] = [
+    { isPrimary: 'desc' },
+    { name: 'asc' },
+  ];
+
+  // If pagination is provided, return paginated results with total count
+  if (options?.pagination) {
+    const [total, locations] = await Promise.all([
+      prisma.location.count({ where }),
+      prisma.location.findMany({
+        where,
+        include: includeOptions,
+        orderBy: orderByOptions,
+        skip: options.pagination.skip,
+        take: options.pagination.limit,
+      })
+    ]);
+
+    return { locations, total };
+  }
+
+  // Without pagination, return all locations (backwards compatible)
+  const locations = await prisma.location.findMany({
+    where,
+    include: includeOptions,
+    orderBy: orderByOptions,
   });
 
   return locations;
