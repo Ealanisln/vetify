@@ -11,6 +11,7 @@ import { generateLocalBusinessSchema } from '@/lib/seo/structured-data';
 import { createBreadcrumbsFromPath } from '@/lib/seo/breadcrumbs';
 import { getBaseUrl } from '@/lib/seo/config';
 import { getApprovedTestimonials, getPublicTestimonialStats } from '@/lib/testimonials';
+import { AnalyticsTracker } from '@/components/analytics/AnalyticsTracker';
 
 /**
  * Generate dynamic metadata for individual clinic pages
@@ -130,6 +131,9 @@ export default async function ClinicPage({
 
   return (
     <>
+      {/* Analytics tracking */}
+      <AnalyticsTracker tenantSlug={tenant.slug} pageSlug="landing" />
+
       {/* Structured data for SEO */}
       <StructuredData data={[localBusinessSchema, breadcrumbSchema]} />
 

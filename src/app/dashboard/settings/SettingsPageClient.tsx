@@ -18,10 +18,12 @@ import {
   Building2,
   CreditCard,
   Globe,
-  QrCode
+  QrCode,
+  BarChart3
 } from 'lucide-react';
 import { PublicPageSettings } from '../../../components/settings/PublicPageSettings';
 import { QrCodeGenerator } from '../../../components/settings/QrCodeGenerator';
+import { LandingAnalyticsSection } from '../../../components/analytics/LandingAnalyticsSection';
 import StaffList from '../../../components/staff/StaffList';
 
 const settingsSections = [
@@ -38,6 +40,13 @@ const settingsSections = [
     description: 'Genera códigos QR para tu página pública',
     icon: QrCode,
     component: 'qr-codes'
+  },
+  {
+    id: 'analytics',
+    title: 'Estadísticas',
+    description: 'Analiza las visitas y conversiones de tu página pública',
+    icon: BarChart3,
+    component: 'analytics'
   },
   {
     id: 'business-hours',
@@ -105,6 +114,8 @@ export function SettingsPageClient({ tenant }: SettingsPageClientProps) {
         return <PublicPageSettings tenantId={tenant.id} />;
       case 'qr-codes':
         return <QrCodeGenerator tenantId={tenant.id} />;
+      case 'analytics':
+        return <LandingAnalyticsSection publicPageEnabled={tenant.publicPageEnabled ?? false} />;
       case 'business-hours':
         return <BusinessHoursSettings tenantId={tenant.id} />;
       case 'services':
