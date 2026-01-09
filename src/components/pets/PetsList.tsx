@@ -68,18 +68,19 @@ export function PetsList({ pets, maxPets }: PetsListProps) {
           placeholder="Buscar por nombre, raza o dueño..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg 
-                     leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 
+          className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg
+                     leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
                      placeholder-gray-500 dark:placeholder-gray-400
                      focus:outline-none focus:ring-2 focus:ring-vetify-green-500 focus:border-transparent
                      transition-colors duration-200"
           aria-label="Buscar mascotas"
+          data-testid="pets-search-input"
         />
       </div>
 
       {/* Results counter */}
       <div className="flex justify-between items-center text-sm">
-        <p className="text-gray-500 dark:text-gray-400">
+        <p className="text-gray-500 dark:text-gray-400" data-testid="pets-limit-indicator">
           {searchQuery ? (
             <>
               Mostrando <span className="font-semibold text-gray-900 dark:text-gray-100">{filteredPets.length}</span> de{' '}
@@ -95,9 +96,10 @@ export function PetsList({ pets, maxPets }: PetsListProps) {
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="text-vetify-green-600 hover:text-vetify-green-700 dark:text-vetify-green-400 
+            className="text-vetify-green-600 hover:text-vetify-green-700 dark:text-vetify-green-400
                        dark:hover:text-vetify-green-300 font-medium transition-colors"
             aria-label="Limpiar búsqueda"
+            data-testid="clear-search"
           >
             Limpiar
           </button>
@@ -122,22 +124,22 @@ export function PetsList({ pets, maxPets }: PetsListProps) {
         <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md border border-gray-200 dark:border-gray-700">
           <ul className="divide-y divide-gray-200 dark:divide-gray-700" role="list">
             {filteredPets.map((pet: PetWithOwner) => (
-              <li key={pet.id}>
-                <Link 
-                  href={`/dashboard/pets/${pet.id}`} 
+              <li key={pet.id} data-testid="pet-card">
+                <Link
+                  href={`/dashboard/pets/${pet.id}`}
                   className="block hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-vetify-green-500"
                   aria-label={`Ver detalles de ${pet.name}`}
                 >
                   <div className="px-4 py-4 flex items-center justify-between">
                     <div className="flex items-center min-w-0 flex-1">
-                      <div className="text-2xl mr-3 flex-shrink-0" aria-hidden="true">
-                        {pet.species === 'dog' ? '🐕' : 
-                         pet.species === 'cat' ? '🐱' : 
-                         pet.species === 'bird' ? '🐦' : 
+                      <div className="text-2xl mr-3 flex-shrink-0" aria-hidden="true" data-testid="pet-species">
+                        {pet.species === 'dog' ? '🐕' :
+                         pet.species === 'cat' ? '🐱' :
+                         pet.species === 'bird' ? '🐦' :
                          pet.species === 'rabbit' ? '🐰' : '🐾'}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate" data-testid="pet-name">
                           {pet.name}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
