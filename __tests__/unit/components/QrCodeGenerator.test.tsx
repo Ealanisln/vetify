@@ -60,7 +60,6 @@ describe('QrCodeGenerator Component', () => {
     name: 'Mi Clínica Veterinaria',
     publicPageEnabled: true,
     publicThemeColor: '#75a99c',
-    logo: null,
   };
 
   beforeEach(() => {
@@ -298,86 +297,6 @@ describe('QrCodeGenerator Component', () => {
     });
   });
 
-  describe('Logo Toggle', () => {
-    it('should have logo toggle switch', async () => {
-      render(<QrCodeGenerator tenantId={mockTenantId} />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('qr-preview')).toBeInTheDocument();
-      });
-
-      // Use role selector for switch component
-      const logoToggle = screen.getByRole('switch');
-      expect(logoToggle).toBeInTheDocument();
-    });
-
-    it('should display Incluir logo label', async () => {
-      render(<QrCodeGenerator tenantId={mockTenantId} />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('qr-preview')).toBeInTheDocument();
-      });
-
-      expect(screen.getByText('Incluir logo')).toBeInTheDocument();
-    });
-
-    it('should disable logo toggle when no logo is available', async () => {
-      render(<QrCodeGenerator tenantId={mockTenantId} />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('qr-preview')).toBeInTheDocument();
-      });
-
-      const logoToggle = screen.getByRole('switch');
-      expect(logoToggle).toBeDisabled();
-    });
-
-    it('should enable logo toggle when logo is available', async () => {
-      global.fetch = jest.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              data: { ...mockTenantData, logo: 'https://example.com/logo.png' },
-            }),
-        })
-      ) as jest.Mock;
-
-      render(<QrCodeGenerator tenantId={mockTenantId} />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('qr-preview')).toBeInTheDocument();
-      });
-
-      const logoToggle = screen.getByRole('switch');
-      expect(logoToggle).not.toBeDisabled();
-    });
-
-    it('should show logo options when toggle is enabled and logo exists', async () => {
-      global.fetch = jest.fn(() =>
-        Promise.resolve({
-          ok: true,
-          json: () =>
-            Promise.resolve({
-              data: { ...mockTenantData, logo: 'https://example.com/logo.png' },
-            }),
-        })
-      ) as jest.Mock;
-
-      render(<QrCodeGenerator tenantId={mockTenantId} />);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('qr-preview')).toBeInTheDocument();
-      });
-
-      const logoToggle = screen.getByRole('switch');
-      fireEvent.click(logoToggle);
-
-      await waitFor(() => {
-        expect(screen.getByTestId('logo-options')).toBeInTheDocument();
-      });
-    });
-  });
 
   describe('Error Handling', () => {
     it('should show error message on fetch failure', async () => {
