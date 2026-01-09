@@ -9,6 +9,7 @@ import { getTheme, getThemeClasses } from '../../lib/themes';
 import { formatDate } from '../../lib/utils/date-format';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
+import { getSessionId, trackFormStart, trackConversion } from '@/lib/analytics/landing-tracker';
 
 interface Pet {
   id: string;
@@ -277,11 +278,14 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
     const finalService = formData.service === 'otro' ? formData.customService : formData.service;
 
     try {
+      const sessionId = getSessionId();
+
       const response = await fetch('/api/public/appointments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenantSlug: tenant.slug,
+          sessionId, // Include session ID for analytics tracking
           ...formData,
           service: finalService,
           petId: formData.petId || undefined // Include pet ID if selected
@@ -290,6 +294,11 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
 
       const result = await response.json();
       setSubmissionResult(result);
+
+      // Track conversion on success
+      if (result.success && result.data?.appointmentRequest?.id) {
+        trackConversion(tenant.slug, result.data.appointmentRequest.id);
+      }
     } catch (error) {
       console.error('Error submitting appointment:', error);
       setSubmissionResult({
