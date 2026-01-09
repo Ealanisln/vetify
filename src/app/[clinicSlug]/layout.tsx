@@ -5,6 +5,7 @@ import { PublicFooter } from '../../components/public/PublicFooter';
 import { DynamicPublicTheme } from '../../components/public/DynamicPublicTheme';
 import { WhatsAppButton } from '../../components/public/WhatsAppButton';
 import { getTheme } from '../../lib/themes';
+import { getBaseUrl } from '@/lib/seo/config';
 import type { Metadata } from 'next';
 
 export async function generateMetadata({ 
@@ -28,7 +29,7 @@ export async function generateMetadata({
       title: tenant.name,
       description: tenant.publicDescription || `Agenda tu cita en ${tenant.name}`,
       type: 'website',
-      url: `https://vetify.app/${tenant.slug}`,
+      url: `${getBaseUrl()}/${tenant.slug}`,
     }
   };
 }
