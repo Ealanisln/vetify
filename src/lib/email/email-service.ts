@@ -54,7 +54,7 @@ const DEFAULT_CONFIG: EmailServiceConfig = {
   apiKey: process.env.RESEND_API_KEY || '',
   fromEmail: process.env.RESEND_FROM_EMAIL || 'notifications@vetify.pro',
   fromName: process.env.RESEND_FROM_NAME || 'Vetify',
-  replyToEmail: process.env.RESEND_REPLY_TO || 'support@vetify.pro',
+  replyToEmail: process.env.RESEND_REPLY_TO || 'soporte@vetify.pro',
   enableLogging: true,
   dryRun: process.env.NODE_ENV === 'test',
 };

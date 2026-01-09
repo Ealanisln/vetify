@@ -112,7 +112,7 @@ Usar templates consistentes para diferentes tipos de documentación:
 
 - **Issues**: Crear issue en GitHub
 - **Slack**: Canal #documentation
-- **Email**: docs@vetify.pro
+- **Email**: contacto@vetify.pro
 
 ---
 

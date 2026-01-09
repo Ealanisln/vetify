@@ -15,7 +15,7 @@ Before testing, ensure you have:
 RESEND_API_KEY=re_xxxxxxxxxxxxx           # Your Resend API key
 RESEND_FROM_EMAIL=notifications@vetify.pro # Your verified sending email
 RESEND_FROM_NAME=Vetify                    # Sender name
-RESEND_REPLY_TO=support@vetify.pro         # Reply-to address
+RESEND_REPLY_TO=soporte@vetify.pro         # Reply-to address
 
 # Cron Job Security (for automated tests only)
 CRON_SECRET=your-secret-token-here
@@ -510,4 +510,4 @@ If you encounter issues during testing:
 2. Review Resend dashboard for API errors
 3. Check Prisma Studio EmailLog for error details
 4. Create GitHub issue with error logs
-5. Email: support@vetify.pro
+5. Email: soporte@vetify.pro
