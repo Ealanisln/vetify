@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 import { jsPDF } from 'jspdf';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -39,6 +39,23 @@ interface TenantQrData {
   publicPageEnabled: boolean;
 }
 
+// Convert external image URL to base64 to avoid CORS issues with canvas
+async function imageUrlToBase64(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 interface QrCodeGeneratorProps {
   tenantId: string;
 }
@@ -50,6 +67,7 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
   const [error, setError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [logoBase64, setLogoBase64] = useState<string | null>(null);
 
   // QR Configuration
   const [targetPage, setTargetPage] = useState<QrTargetPage>('landing');
@@ -61,6 +79,12 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
   // Refs for download
   const qrCanvasRef = useRef<HTMLDivElement>(null);
   const qrSvgRef = useRef<HTMLDivElement>(null);
+
+  // Convert logo to base64 to avoid CORS issues
+  const loadLogoAsBase64 = useCallback(async (logoUrl: string) => {
+    const base64 = await imageUrlToBase64(logoUrl);
+    setLogoBase64(base64);
+  }, []);
 
   // Fetch tenant data
   useEffect(() => {
@@ -75,13 +99,20 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
           throw new Error(result.error || 'Error al cargar datos');
         }
 
-        setTenantData({
+        const data = {
           slug: result.data.slug,
           name: result.data.name || 'Tu Clínica',
           logo: result.data.logo,
           publicThemeColor: result.data.publicThemeColor,
           publicPageEnabled: result.data.publicPageEnabled,
-        });
+        };
+
+        setTenantData(data);
+
+        // Pre-load logo as base64 to avoid CORS issues with canvas export
+        if (data.logo) {
+          loadLogoAsBase64(data.logo);
+        }
 
         // Set default color from tenant theme if available
         if (result.data.publicThemeColor) {
@@ -97,7 +128,7 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
     };
 
     fetchData();
-  }, []);
+  }, [loadLogoAsBase64]);
 
   // Get the current QR URL
   const qrUrl = tenantData ? getClinicPageUrl(tenantData.slug, targetPage) : '';
@@ -120,10 +151,23 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
 
     setDownloading(true);
     try {
+      // Wait a bit to ensure canvas is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 150));
+
       const canvas = qrCanvasRef.current.querySelector('canvas');
       if (!canvas) throw new Error('Canvas not found');
 
+      // Check if canvas has content
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Could not get canvas context');
+
       const dataUrl = canvas.toDataURL('image/png');
+
+      // Verify the data URL is valid
+      if (!dataUrl || dataUrl === 'data:,') {
+        throw new Error('Canvas is empty');
+      }
+
       const link = document.createElement('a');
       link.download = `qr-${tenantData.slug}-${targetPage}.png`;
       link.href = dataUrl;
@@ -134,7 +178,7 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
       toast.success('QR descargado como PNG');
     } catch (err) {
       console.error('Error downloading PNG:', err);
-      toast.error('Error al descargar el QR');
+      toast.error('Error al descargar el QR. Intenta desactivar el logo si está activado.');
     } finally {
       setDownloading(false);
     }
@@ -177,10 +221,19 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
 
     setDownloading(true);
     try {
+      // Wait a bit to ensure canvas is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 150));
+
       const canvas = qrCanvasRef.current.querySelector('canvas');
       if (!canvas) throw new Error('Canvas not found');
 
       const imgData = canvas.toDataURL('image/png');
+
+      // Verify the data URL is valid
+      if (!imgData || imgData === 'data:,') {
+        throw new Error('Canvas is empty');
+      }
+
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -215,7 +268,7 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
       toast.success('QR descargado como PDF');
     } catch (err) {
       console.error('Error downloading PDF:', err);
-      toast.error('Error al descargar el QR');
+      toast.error('Error al descargar el QR. Intenta desactivar el logo si está activado.');
     } finally {
       setDownloading(false);
     }
@@ -320,8 +373,17 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
               />
             </div>
 
-            {/* Hidden canvas for downloads */}
-            <div ref={qrCanvasRef} className="hidden">
+            {/* Canvas for downloads - use visibility:hidden to ensure it renders */}
+            <div
+              ref={qrCanvasRef}
+              style={{
+                position: 'absolute',
+                visibility: 'hidden',
+                pointerEvents: 'none',
+                left: '-9999px',
+              }}
+              aria-hidden="true"
+            >
               <QRCodeCanvas
                 value={qrUrl}
                 size={size}
@@ -330,9 +392,9 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
                 level="H"
                 includeMargin={true}
                 imageSettings={
-                  logoEnabled && tenantData.logo
+                  logoEnabled && logoBase64
                     ? {
-                        src: tenantData.logo,
+                        src: logoBase64,
                         height: size * 0.2,
                         width: size * 0.2,
                         excavate: true,
@@ -611,9 +673,16 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
                     className="rounded object-contain bg-white"
                     unoptimized
                   />
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    El logo se mostrará en el centro del código QR.
-                  </p>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      El logo se mostrará en el centro del código QR.
+                    </p>
+                    {logoEnabled && tenantData.logo && !logoBase64 && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                        Nota: El logo solo aparecerá en la vista previa, no en las descargas.
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
