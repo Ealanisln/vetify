@@ -9,7 +9,7 @@ import { getTheme, getThemeClasses } from '../../lib/themes';
 import { formatDate } from '../../lib/utils/date-format';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
-import { getSessionId, trackFormStart, trackConversion } from '@/lib/analytics/landing-tracker';
+import { getSessionId, trackConversion } from '@/lib/analytics/landing-tracker';
 
 interface Pet {
   id: string;

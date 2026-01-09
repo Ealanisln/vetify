@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
-import { es } from 'date-fns/locale';
 import { Calendar, Download, RefreshCw, AlertCircle, BarChart3 } from 'lucide-react';
 import { AnalyticsOverviewCards } from './AnalyticsOverviewCards';
 import { VisitsConversionsChart } from './VisitsConversionsChart';
