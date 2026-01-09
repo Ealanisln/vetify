@@ -4,10 +4,12 @@ import { findOrCreateCustomer, createPublicAppointmentRequest } from '../../../.
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
 import { addMinutes } from 'date-fns';
+import type { AnalyticsEventType } from '@prisma/client';
 
 const appointmentRequestSchema = z.object({
   tenantSlug: z.string(),
   customerName: z.string().min(1),
+  sessionId: z.string().uuid().optional(), // For analytics tracking
   customerPhone: z.string().min(1),
   customerEmail: z.string().email().optional().or(z.literal('')),
   petId: z.string().optional(), // ID de mascota existente seleccionada
@@ -154,6 +156,23 @@ export async function POST(request: NextRequest) {
     //   customer: identificationResult.customer,
     //   identificationStatus: identificationResult.status
     // });
+
+    // 📈 TRACK CONVERSION (non-blocking)
+    if (validatedData.sessionId) {
+      prisma.landingPageAnalytics.create({
+        data: {
+          tenantId: tenant.id,
+          eventType: 'CONVERSION' as AnalyticsEventType,
+          eventName: 'appointment_booked',
+          pageSlug: 'agendar',
+          sessionId: validatedData.sessionId,
+          conversionId: appointmentRequest.id,
+        },
+      }).catch((err) => {
+        // Don't fail the request if analytics fails
+        console.error('[Analytics] Failed to track conversion:', err);
+      });
+    }
 
     // 📊 RESPUESTA CON INFORMACIÓN DE IDENTIFICACIÓN
     return NextResponse.json({

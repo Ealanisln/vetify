@@ -7,6 +7,7 @@ import { ArrowLeft } from 'lucide-react';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { createBreadcrumbsFromPath } from '@/lib/seo/breadcrumbs';
 import { getBaseUrl } from '@/lib/seo/config';
+import { AnalyticsTracker } from '@/components/analytics/AnalyticsTracker';
 
 /**
  * Generate dynamic metadata for clinic booking pages
@@ -91,6 +92,9 @@ export default async function AgendarPage({
 
   return (
     <>
+      {/* Analytics tracking */}
+      <AnalyticsTracker tenantSlug={tenant.slug} pageSlug="agendar" />
+
       {/* Structured data for SEO */}
       <StructuredData data={breadcrumbSchema} />
 
