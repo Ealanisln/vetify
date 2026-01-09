@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { sendAppointmentConfirmation, sendAppointmentStaffNotification } from '@/lib/email/email-service';
 import type { AppointmentConfirmationData, AppointmentStaffNotificationData } from '@/lib/email/types';
 import { shouldSendNotification } from '@/lib/enhanced-settings';
+import { parsePaginationParams, createPaginatedResponse } from '@/lib/pagination';
 
 // Helper to transform empty strings to undefined
 const emptyStringToUndefined = z.string().transform(val => val === '' ? undefined : val).optional();
@@ -34,6 +35,9 @@ export async function GET(request: Request) {
     const status = searchParams.get('status');
     const locationId = searchParams.get('locationId') || undefined;
 
+    // Parse pagination params
+    const paginationParams = parsePaginationParams(searchParams);
+
     // Construir filtros
     const where: Record<string, unknown> = {
       tenantId: tenant.id,
@@ -53,52 +57,59 @@ export async function GET(request: Request) {
     if (status) {
       where.status = status;
     }
-    
-    // Obtener citas con información relacionada
-    const appointments = await prisma.appointment.findMany({
-      where,
-      include: {
-        customer: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
+
+    // Get total count and appointments in parallel
+    const [total, appointments] = await Promise.all([
+      prisma.appointment.count({ where }),
+      prisma.appointment.findMany({
+        where,
+        include: {
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            }
+          },
+          pet: {
+            select: {
+              id: true,
+              name: true,
+              species: true,
+              breed: true,
+            }
+          },
+          staff: {
+            select: {
+              id: true,
+              name: true,
+              position: true,
+            }
+          },
+          location: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            }
           }
         },
-        pet: {
-          select: {
-            id: true,
-            name: true,
-            species: true,
-            breed: true,
-          }
-        },
-        staff: {
-          select: {
-            id: true,
-            name: true,
-            position: true,
-          }
-        },
-        location: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          }
-        }
-      },
-      orderBy: [
-        { dateTime: 'asc' }
-      ]
-    });
-    
+        orderBy: [
+          { dateTime: 'asc' }
+        ],
+        skip: paginationParams.skip,
+        take: paginationParams.limit,
+      })
+    ]);
+
+    const response = createPaginatedResponse(appointments, total, paginationParams);
+
     return NextResponse.json({
       success: true,
-      data: appointments
+      ...response
     });
-    
+
   } catch (error) {
     console.error('Error fetching appointments:', error);
     return NextResponse.json(

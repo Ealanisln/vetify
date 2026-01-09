@@ -1,6 +1,7 @@
 import { prisma } from './prisma';
 import { z } from 'zod';
 import { serializeCustomer, serializeCustomers } from './serializers';
+import { type PaginationParams } from './pagination';
 
 export const createCustomerSchema = z.object({
   name: z.string().min(1, 'Nombre es requerido'),
@@ -59,19 +60,56 @@ export async function createCustomer(
   return serializeCustomer(customer);
 }
 
-export async function getCustomersByTenant(tenantId: string, locationId?: string) {
+export async function getCustomersByTenant(
+  tenantId: string,
+  locationId?: string,
+  pagination?: PaginationParams
+) {
+  const where = {
+    tenantId,
+    isActive: true,
+    // Include customers with the specified location OR customers without any location assigned
+    ...(locationId && {
+      OR: [
+        { locationId },
+        { locationId: null }
+      ]
+    }),
+  };
+
+  // If pagination is provided, return paginated results with total count
+  if (pagination) {
+    const [total, customers] = await Promise.all([
+      prisma.customer.count({ where }),
+      prisma.customer.findMany({
+        where,
+        include: {
+          pets: {
+            select: {
+              id: true,
+              name: true,
+              species: true,
+            }
+          },
+          _count: {
+            select: {
+              pets: true,
+              appointments: true,
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: pagination.skip,
+        take: pagination.limit,
+      })
+    ]);
+
+    return { customers: serializeCustomers(customers), total };
+  }
+
+  // Without pagination, return all customers (backwards compatible)
   const customers = await prisma.customer.findMany({
-    where: {
-      tenantId,
-      isActive: true,
-      // Include customers with the specified location OR customers without any location assigned
-      ...(locationId && {
-        OR: [
-          { locationId },
-          { locationId: null }
-        ]
-      }),
-    },
+    where,
     include: {
       pets: {
         select: {

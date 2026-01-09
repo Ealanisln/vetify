@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '../../../lib/auth';
 import { createCustomer, createCustomerSchema, getCustomersByTenant } from '../../../lib/customers';
+import { parsePaginationParams, createPaginatedResponse } from '@/lib/pagination';
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,9 +36,22 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const locationId = searchParams.get('locationId') || undefined;
 
-    const customers = await getCustomersByTenant(tenant.id as string, locationId);
+    // Parse pagination params
+    const paginationParams = parsePaginationParams(searchParams);
 
-    return NextResponse.json(customers);
+    const result = await getCustomersByTenant(tenant.id as string, locationId, paginationParams);
+
+    // Handle paginated response
+    if ('customers' in result && 'total' in result) {
+      const response = createPaginatedResponse(result.customers, result.total, paginationParams);
+      return NextResponse.json({
+        success: true,
+        ...response
+      });
+    }
+
+    // Backwards compatible response (shouldn't happen with pagination)
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching customers:', error);
     return NextResponse.json(
