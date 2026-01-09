@@ -20,7 +20,7 @@ export function PetInfoCard({ pet }: PetInfoCardProps) {
   ];
 
   return (
-    <div className={`card p-4 md:p-6 ${getThemeClasses('background.card', 'border.card')}`}>
+    <div className={`card p-4 md:p-6 ${getThemeClasses('background.card', 'border.card')}`} data-testid="pet-info-card">
       <h3 className={`text-base md:text-lg font-medium ${getThemeClasses('text.primary')} mb-4`}>
         Información General
       </h3>

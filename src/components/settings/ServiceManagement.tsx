@@ -166,6 +166,7 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              data-testid="service-search-input"
             />
           </div>
         </div>
@@ -189,6 +190,7 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
           <button
             onClick={handleAddService}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            data-testid="add-service-button"
           >
             <PlusIcon className="h-4 w-4 mr-2" />
             Nuevo Servicio
@@ -202,6 +204,7 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
           <div
             key={service.id}
             className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
+            data-testid="service-card"
           >
             <div className="flex justify-between items-start mb-2">
               <div className="flex-1">
@@ -218,6 +221,7 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
                   onClick={() => handleEditService(service)}
                   className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                   title="Editar"
+                  data-testid="edit-service-button"
                 >
                   <PencilIcon className="h-4 w-4" />
                 </button>
@@ -225,6 +229,7 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
                   onClick={() => handleDeleteService(service.id)}
                   className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                   title="Eliminar"
+                  data-testid="delete-service-button"
                 >
                   <TrashIcon className="h-4 w-4" />
                 </button>

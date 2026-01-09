@@ -116,12 +116,13 @@ export function AppointmentModal({
   if (!open || !mounted) return null;
 
   const modalContent = (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-8 p-4 z-[9999]">
-      <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden border-0">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center pt-8 p-4 z-[9999]" data-testid="modal-backdrop">
+      <div className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden border-0" data-testid="appointment-modal">
         <div className="relative max-h-[90vh] h-auto overflow-y-auto">
           <button
             onClick={handleCancel}
             className="absolute top-4 right-4 z-20 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
+            data-testid="close-modal-button"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -17,7 +17,7 @@ export function MedicalHistoryCard({ pet }: MedicalHistoryCardProps) {
   const histories = pet.medicalHistories || [];
 
   return (
-    <div className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700" data-testid="medical-history-card">
       <div className="px-4 py-5 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
@@ -26,6 +26,7 @@ export function MedicalHistoryCard({ pet }: MedicalHistoryCardProps) {
           <Link
             href={`/dashboard/pets/${pet.id}/consultation/new`}
             className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 transition-colors"
+            data-testid="new-consultation-button"
           >
             ➕ Nueva Consulta
           </Link>

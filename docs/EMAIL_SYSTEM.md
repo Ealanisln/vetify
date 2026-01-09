@@ -80,7 +80,7 @@ Add these to your `.env` file:
 RESEND_API_KEY=re_xxxxxxxxxxxxx
 RESEND_FROM_EMAIL=notifications@vetify.pro
 RESEND_FROM_NAME=Vetify
-RESEND_REPLY_TO=support@vetify.pro
+RESEND_REPLY_TO=soporte@vetify.pro
 
 # Cron Job Security
 CRON_SECRET=your-secret-token-here
@@ -374,7 +374,7 @@ For production, consider Resend Pro.
 
 For issues or questions:
 - Create issue in GitHub repository
-- Email: support@vetify.pro
+- Email: soporte@vetify.pro
 - Documentation: https://docs.vetify.pro
 
 ## License

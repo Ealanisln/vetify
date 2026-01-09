@@ -10,7 +10,7 @@ function getResendClient(): Resend {
   return new Resend(apiKey);
 }
 
-const FROM_EMAIL = process.env.SETUP_FROM_EMAIL || 'support@vetify.pro';
+const FROM_EMAIL = process.env.SETUP_FROM_EMAIL || 'soporte@vetify.pro';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export async function sendSetupVerificationEmail(email: string) {

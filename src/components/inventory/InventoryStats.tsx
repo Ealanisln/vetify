@@ -97,9 +97,9 @@ export function InventoryStats({ tenantId }: InventoryStatsProps) {
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 items-stretch">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 items-stretch" data-testid="inventory-stats-grid">
       {statsCards.map((stat) => (
-        <div key={stat.title} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 flex items-center">
+        <div key={stat.title} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 flex items-center" data-testid="inventory-stat-card">
           <div className={`flex-shrink-0 p-3 rounded-lg ${stat.bgColor}`}>
             <stat.icon className={`h-6 w-6 ${stat.color}`} />
           </div>

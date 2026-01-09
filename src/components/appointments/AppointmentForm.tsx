@@ -160,6 +160,7 @@ export function AppointmentForm({
               <select
                 {...field}
                 className="form-select"
+                data-testid="appointment-customer-select"
                 onChange={(e) => {
                   field.onChange(e.target.value);
                   handleCustomerChange(e.target.value);
@@ -188,6 +189,7 @@ export function AppointmentForm({
               <select
                 {...field}
                 className="form-select"
+                data-testid="appointment-pet-select"
                 disabled={!selectedCustomer}
               >
                 <option value="">
@@ -379,6 +381,7 @@ export function AppointmentForm({
             max={300}
             step={5}
             className="form-input"
+            data-testid="appointment-duration-input"
             {...register('duration', { valueAsNumber: true })}
           />
           {errors.duration && (
@@ -395,6 +398,7 @@ export function AppointmentForm({
               <select
                 {...field}
                 className="form-select"
+                data-testid="appointment-staff-select"
                 value={field.value || ''}
               >
                 <option value="">Seleccionar veterinario (opcional)</option>
@@ -422,6 +426,7 @@ export function AppointmentForm({
         <input
           type="text"
           className="form-input"
+          data-testid="appointment-reason-input"
           placeholder="Ej: Consulta general, vacunación, revisión..."
           {...register('reason')}
         />
@@ -434,6 +439,7 @@ export function AppointmentForm({
         <label className="form-label" htmlFor="notes">Notas adicionales</label>
         <textarea
           className="form-input"
+          data-testid="appointment-notes-input"
           placeholder="Información adicional sobre la cita..."
           rows={3}
           {...register('notes')}
@@ -450,12 +456,14 @@ export function AppointmentForm({
           variant="outline"
           onClick={onCancel}
           disabled={isSubmitting || loading}
+          data-testid="cancel-appointment-button"
         >
           Cancelar
         </Button>
         <Button
           type="submit"
           disabled={isSubmitting || loading || !watch('dateTime')}
+          data-testid="submit-appointment-button"
         >
           {(isSubmitting || loading) && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
           {initialData ? 'Actualizar Cita' : 'Crear Cita'}

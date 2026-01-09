@@ -48,9 +48,9 @@ export function CustomerStats({ customers }: CustomerStatsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" data-testid="customer-stats-grid">
       {stats.map((stat) => (
-        <div key={stat.name} className={`${getThemeClasses('background.card')} overflow-hidden shadow rounded-lg border ${getThemeClasses('border.primary')}`}>
+        <div key={stat.name} className={`${getThemeClasses('background.card')} overflow-hidden shadow rounded-lg border ${getThemeClasses('border.primary')}`} data-testid="customer-stat-card">
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">

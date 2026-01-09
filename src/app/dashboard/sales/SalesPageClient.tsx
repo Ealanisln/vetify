@@ -329,6 +329,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
               onChange={(e) => setCustomerQuery(e.target.value)}
               onFocus={() => setShowCustomerSearch(true)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-[#75a99c] focus:border-[#75a99c] dark:bg-gray-700 dark:text-gray-100"
+              data-testid="sale-customer-search"
             />
             
             {/* Resultados de búsqueda de clientes */}
@@ -400,6 +401,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
               onChange={(e) => setProductQuery(e.target.value)}
               onFocus={() => setShowProductSearch(true)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-[#75a99c] focus:border-[#75a99c] dark:bg-gray-700 dark:text-gray-100"
+              data-testid="sale-product-search"
             />
             
             {/* Resultados de búsqueda de productos */}
@@ -453,7 +455,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
           ) : (
             <div className="space-y-3">
               {cartItems.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-md">
+                <div key={index} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-600 rounded-md" data-testid="cart-item">
                   <div className="flex-1">
                     <div className="font-medium text-gray-900 dark:text-gray-100">
                       {item.description}
@@ -480,6 +482,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
                     <button
                       onClick={() => removeFromCart(index)}
                       className="text-red-500 hover:text-red-700"
+                      data-testid="remove-cart-item"
                     >
                       <TrashIcon className="h-4 w-4" />
                     </button>
@@ -518,6 +521,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
               onClick={processSale}
               disabled={(!selectedCustomer && !isGeneralSale) || cartItems.length === 0 || isProcessing}
               className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-[#75a99c] hover:bg-[#5b9788] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="process-sale-button"
             >
               <CreditCardIcon className="h-4 w-4 mr-2" />
               {isProcessing ? 'Procesando...' : 'Procesar Venta'}
@@ -528,6 +532,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
               disabled={!lastProcessedSale}
               className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] disabled:opacity-50 disabled:cursor-not-allowed"
               title={!lastProcessedSale ? 'Procesa una venta primero' : `Ver ticket #${lastProcessedSale.saleNumber}`}
+              data-testid="print-ticket-button"
             >
               <PrinterIcon className="h-4 w-4 mr-2" />
               {lastProcessedSale ? `Imprimir Ticket #${lastProcessedSale.saleNumber}` : 'Imprimir Ticket'}

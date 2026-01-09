@@ -53,7 +53,7 @@ export function LowStockAlert({ tenantId }: LowStockAlertProps) {
   const lowItems = lowStockItems.filter(item => Number(item.quantity) > 0);
 
   return (
-    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4" data-testid="low-stock-alert">
       <div className="flex">
         <div className="flex-shrink-0">
           <ExclamationTriangleIcon className="h-5 w-5 text-yellow-400" />
@@ -103,6 +103,7 @@ export function LowStockAlert({ tenantId }: LowStockAlertProps) {
                   inventorySection.scrollIntoView({ behavior: 'smooth' });
                 }
               }}
+              data-testid="view-inventory-button"
             >
               Ver Inventario
             </button>
@@ -114,6 +115,7 @@ export function LowStockAlert({ tenantId }: LowStockAlertProps) {
               type="button"
               onClick={() => setDismissed(true)}
               className="inline-flex rounded-md p-1.5 text-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-800 focus:outline-none focus:ring-2 focus:ring-yellow-600 focus:ring-offset-2 focus:ring-offset-yellow-50"
+              data-testid="dismiss-alert-button"
             >
               <XMarkIcon className="h-5 w-5" />
             </button>

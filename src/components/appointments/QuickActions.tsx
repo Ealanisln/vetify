@@ -111,6 +111,7 @@ export function QuickActions({
             size={size}
             className="h-8 w-8 p-0"
             disabled={loading !== null}
+            data-testid="quick-actions-menu"
           >
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -145,6 +146,7 @@ export function QuickActions({
                             'flex w-full items-center px-4 py-2 text-sm',
                             active ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
                           )}
+                          data-testid={`quick-action-${actionConfig.action}`}
                         >
                           <Icon className="h-4 w-4 mr-2" />
                           {actionConfig.label}
@@ -165,6 +167,7 @@ export function QuickActions({
                           'flex w-full items-center px-4 py-2 text-sm text-red-600',
                           active ? 'bg-gray-100 dark:bg-gray-700' : ''
                         )}
+                        data-testid="quick-action-cancel"
                       >
                         <XCircle className="h-4 w-4 mr-2" />
                         Cancelar

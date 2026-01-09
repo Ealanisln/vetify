@@ -109,11 +109,12 @@ export function PetsPageClient({ maxPets }: PetsPageClientProps) {
           <Link
             href="/dashboard/pets/new"
             className="btn-primary flex items-center gap-2"
+            data-testid="add-pet-button"
           >
             + Agregar Mascota
           </Link>
         ) : (
-          <div className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="text-sm text-gray-500 dark:text-gray-400" data-testid="pets-limit-reached">
             Límite alcanzado -{' '}
             <Link
               href="/dashboard/settings/billing"
@@ -135,7 +136,7 @@ export function PetsPageClient({ maxPets }: PetsPageClientProps) {
 
       {/* Pets list with search functionality */}
       {pets.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-12" data-testid="empty-pets-state">
           <span className="text-6xl">🐕</span>
           <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
             No hay mascotas registradas
@@ -147,6 +148,7 @@ export function PetsPageClient({ maxPets }: PetsPageClientProps) {
             <Link
               href="/dashboard/pets/new"
               className="mt-4 btn-primary inline-flex items-center"
+              data-testid="add-first-pet-button"
             >
               Agregar Primera Mascota
             </Link>

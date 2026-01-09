@@ -1,6 +1,6 @@
 interface StatsCardProps {
   title: string;
-  value: number;
+  value: number | string;
   limit?: number;
   icon: string;
   trend?: {
@@ -11,7 +11,8 @@ interface StatsCardProps {
 }
 
 export function StatsCard({ title, value, limit, icon, trend, className = "" }: StatsCardProps) {
-  const percentage = limit ? (value / limit) * 100 : 0;
+  const isNumeric = typeof value === 'number';
+  const percentage = limit && isNumeric ? (value / limit) * 100 : 0;
   const isNearLimit = percentage > 80;
 
   return (
@@ -28,8 +29,8 @@ export function StatsCard({ title, value, limit, icon, trend, className = "" }: 
               </dt>
               <dd className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-0 mt-1">
                 <div className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                  {value.toLocaleString()}
-                  {limit && (
+                  {isNumeric ? value.toLocaleString() : value}
+                  {limit && isNumeric && (
                     <span className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 ml-1">
                       / {limit.toLocaleString()}
                     </span>
@@ -47,7 +48,7 @@ export function StatsCard({ title, value, limit, icon, trend, className = "" }: 
                 )}
               </dd>
             </dl>
-            {limit && (
+            {limit && isNumeric && (
               <div className="mt-2 sm:mt-3">
                 <div className="bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                   <div
