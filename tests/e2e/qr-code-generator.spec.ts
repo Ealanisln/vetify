@@ -114,29 +114,40 @@ test.describe('QR Code Generator', () => {
 
   test.describe('Color Configuration', () => {
     test('should have foreground color picker', async ({ page }) => {
-      await expect(page.locator('[data-testid="fg-color-input"]')).toBeVisible();
+      await expect(page.locator('[data-testid="fg-color-input"]')).toBeAttached();
     });
 
     test('should have background color picker', async ({ page }) => {
       // Find background color input
-      const bgColorInput = page.locator('input[type="color"]').nth(1);
-      await expect(bgColorInput).toBeVisible();
+      const bgColorInput = page.locator('input[type="color"]#bgColor');
+      await expect(bgColorInput).toBeAttached();
     });
 
-    test('should update foreground color when changed', async ({ page }) => {
+    test('should have preset color buttons for QR color', async ({ page }) => {
+      // Should have preset color buttons
+      const colorButtons = page.locator('button[aria-label^="Seleccionar"]');
+      await expect(colorButtons.first()).toBeVisible();
+      // Should have at least 6 preset colors for QR
+      expect(await colorButtons.count()).toBeGreaterThanOrEqual(6);
+    });
+
+    test('should update color when preset is clicked', async ({ page }) => {
+      // Click on the black color preset (first one)
+      await page.click('button[aria-label="Seleccionar Negro"]');
+
+      // The color input should have updated
+      const colorInput = page.locator('[data-testid="fg-color-input"]');
+      await expect(colorInput).toHaveValue('#000000');
+    });
+
+    test('should update foreground color when custom picker used', async ({ page }) => {
       const colorInput = page.locator('[data-testid="fg-color-input"]');
 
-      // Change color
+      // Change color using the hidden input
       await colorInput.fill('#ff0000');
 
       // Verify value changed
       await expect(colorInput).toHaveValue('#ff0000');
-    });
-
-    test('should have text input for hex color', async ({ page }) => {
-      // There should be text inputs for entering hex values
-      const hexInputs = page.locator('input[type="text"]').filter({ has: page.locator('[class*="font-mono"]') });
-      await expect(hexInputs.first()).toBeVisible();
     });
   });
 

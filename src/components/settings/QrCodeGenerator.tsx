@@ -479,47 +479,104 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
               <Label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Colores
               </Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fgColor" className="text-xs text-gray-500 dark:text-gray-400" aria-label="color del código QR">
-                    Color QR
-                  </Label>
-                  <div className="flex items-center gap-2">
+
+              {/* QR Color */}
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-500 dark:text-gray-400">
+                  Color del QR
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {/* Preset Colors */}
+                  {[
+                    { color: '#000000', name: 'Negro' },
+                    { color: '#75a99c', name: 'Verde Vetify' },
+                    { color: '#1e40af', name: 'Azul' },
+                    { color: '#7c3aed', name: 'Violeta' },
+                    { color: '#dc2626', name: 'Rojo' },
+                    { color: '#ea580c', name: 'Naranja' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.color}
+                      type="button"
+                      onClick={() => setFgColor(preset.color)}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                        fgColor === preset.color
+                          ? 'border-[#75a99c] ring-2 ring-[#75a99c] ring-offset-2 dark:ring-offset-gray-800'
+                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                      }`}
+                      style={{ backgroundColor: preset.color }}
+                      title={preset.name}
+                      aria-label={`Seleccionar ${preset.name}`}
+                    />
+                  ))}
+                  {/* Custom Color Picker */}
+                  <div className="relative">
                     <input
                       type="color"
                       id="fgColor"
                       value={fgColor}
                       onChange={(e) => setFgColor(e.target.value)}
-                      className="w-10 h-10 rounded border border-gray-300 dark:border-gray-600 cursor-pointer"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       data-testid="fg-color-input"
                       aria-label="color"
                     />
-                    <input
-                      type="text"
-                      value={fgColor}
-                      onChange={(e) => setFgColor(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#75a99c]"
-                    />
+                    <div
+                      className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer hover:border-gray-400"
+                      style={{ backgroundColor: fgColor }}
+                      title="Color personalizado"
+                    >
+                      <span className="text-xs text-white drop-shadow-md">+</span>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="bgColor" className="text-xs text-gray-500 dark:text-gray-400">
-                    Fondo
-                  </Label>
-                  <div className="flex items-center gap-2">
+              </div>
+
+              {/* Background Color */}
+              <div className="space-y-2">
+                <Label className="text-xs text-gray-500 dark:text-gray-400">
+                  Color de fondo
+                </Label>
+                <div className="flex flex-wrap gap-2">
+                  {/* Preset Background Colors */}
+                  {[
+                    { color: '#FFFFFF', name: 'Blanco' },
+                    { color: '#f3f4f6', name: 'Gris claro' },
+                    { color: '#fef3c7', name: 'Amarillo suave' },
+                    { color: '#dbeafe', name: 'Azul suave' },
+                    { color: '#d1fae5', name: 'Verde suave' },
+                    { color: '#000000', name: 'Negro' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.color}
+                      type="button"
+                      onClick={() => setBgColor(preset.color)}
+                      className={`w-8 h-8 rounded-full border-2 transition-all ${
+                        bgColor === preset.color
+                          ? 'border-[#75a99c] ring-2 ring-[#75a99c] ring-offset-2 dark:ring-offset-gray-800'
+                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
+                      }`}
+                      style={{ backgroundColor: preset.color }}
+                      title={preset.name}
+                      aria-label={`Seleccionar ${preset.name}`}
+                    />
+                  ))}
+                  {/* Custom Color Picker */}
+                  <div className="relative">
                     <input
                       type="color"
                       id="bgColor"
                       value={bgColor}
                       onChange={(e) => setBgColor(e.target.value)}
-                      className="w-10 h-10 rounded border border-gray-300 dark:border-gray-600 cursor-pointer"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      aria-label="color de fondo personalizado"
                     />
-                    <input
-                      type="text"
-                      value={bgColor}
-                      onChange={(e) => setBgColor(e.target.value)}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#75a99c]"
-                    />
+                    <div
+                      className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer hover:border-gray-400"
+                      style={{ backgroundColor: bgColor }}
+                      title="Color personalizado"
+                    >
+                      <span className="text-xs text-gray-500 drop-shadow-sm">+</span>
+                    </div>
                   </div>
                 </div>
               </div>
