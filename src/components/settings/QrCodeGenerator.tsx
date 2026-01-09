@@ -56,6 +56,16 @@ async function imageUrlToBase64(url: string): Promise<string | null> {
   }
 }
 
+// Preload an image to ensure it's cached and ready for canvas rendering
+function preloadImage(src: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => resolve(true);
+    img.onerror = () => resolve(false);
+    img.src = src;
+  });
+}
+
 interface QrCodeGeneratorProps {
   tenantId: string;
 }
@@ -68,6 +78,8 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
   const [downloading, setDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [logoBase64, setLogoBase64] = useState<string | null>(null);
+  const [logoLoading, setLogoLoading] = useState(false);
+  const [logoReady, setLogoReady] = useState(false);
 
   // QR Configuration
   const [targetPage, setTargetPage] = useState<QrTargetPage>('landing');
@@ -80,10 +92,24 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
   const qrCanvasRef = useRef<HTMLDivElement>(null);
   const qrSvgRef = useRef<HTMLDivElement>(null);
 
-  // Convert logo to base64 to avoid CORS issues
+  // Convert logo to base64 and preload to avoid CORS issues
   const loadLogoAsBase64 = useCallback(async (logoUrl: string) => {
-    const base64 = await imageUrlToBase64(logoUrl);
-    setLogoBase64(base64);
+    setLogoLoading(true);
+    setLogoReady(false);
+    try {
+      const base64 = await imageUrlToBase64(logoUrl);
+      if (base64) {
+        // Preload the image so it's ready for canvas rendering
+        const loaded = await preloadImage(base64);
+        setLogoBase64(base64);
+        setLogoReady(loaded);
+      } else {
+        setLogoBase64(null);
+        setLogoReady(false);
+      }
+    } finally {
+      setLogoLoading(false);
+    }
   }, []);
 
   // Fetch tenant data
@@ -149,10 +175,22 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
   const downloadPNG = async () => {
     if (!qrCanvasRef.current || !tenantData) return;
 
+    // Wait for logo to finish loading if enabled
+    if (logoEnabled && logoLoading) {
+      toast.info('Esperando a que cargue el logo...');
+      return;
+    }
+
+    // Check if logo should be included but isn't ready
+    if (logoEnabled && logoBase64 && !logoReady) {
+      toast.info('Preparando el logo, intenta de nuevo en un momento...');
+      return;
+    }
+
     setDownloading(true);
     try {
-      // Wait a bit to ensure canvas is fully rendered
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Wait for canvas to fully render with the logo (give extra time for image drawing)
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const canvas = qrCanvasRef.current.querySelector('canvas');
       if (!canvas) throw new Error('Canvas not found');
@@ -219,10 +257,22 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
   const downloadPDF = async () => {
     if (!qrCanvasRef.current || !tenantData) return;
 
+    // Wait for logo to finish loading if enabled
+    if (logoEnabled && logoLoading) {
+      toast.info('Esperando a que cargue el logo...');
+      return;
+    }
+
+    // Check if logo should be included but isn't ready
+    if (logoEnabled && logoBase64 && !logoReady) {
+      toast.info('Preparando el logo, intenta de nuevo en un momento...');
+      return;
+    }
+
     setDownloading(true);
     try {
-      // Wait a bit to ensure canvas is fully rendered
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Wait for canvas to fully render with the logo (give extra time for image drawing)
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       const canvas = qrCanvasRef.current.querySelector('canvas');
       if (!canvas) throw new Error('Canvas not found');
@@ -385,6 +435,7 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
               aria-hidden="true"
             >
               <QRCodeCanvas
+                key={`qr-canvas-${logoEnabled}-${logoReady ? 'logo-ready' : 'no-logo'}-${size}-${fgColor}-${bgColor}`}
                 value={qrUrl}
                 size={size}
                 fgColor={fgColor}
@@ -392,7 +443,7 @@ export function QrCodeGenerator({ }: QrCodeGeneratorProps) {
                 level="H"
                 includeMargin={true}
                 imageSettings={
-                  logoEnabled && logoBase64
+                  logoEnabled && logoBase64 && logoReady
                     ? {
                         src: logoBase64,
                         height: size * 0.2,
