@@ -25,6 +25,30 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   - Endpoint API `/api/version` para consultar versión
   - Utilidades de parsing y comparación de versiones
   - Versión inyectada en tiempo de build via next.config.js
+- Sistema de Analíticas para Landing Page (VETIF-71)
+  - Tracking de visitas y eventos en páginas públicas
+  - Dashboard de métricas de conversión
+- Generador de Códigos QR para Páginas Públicas (VETIF-72)
+  - Generación de QR en configuración del tenant
+  - Exportación a PNG, SVG y PDF
+  - Personalización de colores y tamaño
+- Paginación en Endpoints de API (VETIF-168)
+  - Paginación para citas, clientes y ubicaciones
+  - Mejora de rendimiento en listados grandes
+- Tests E2E para Dashboard (VETIF-187)
+  - Atributos data-testid en todos los componentes del dashboard
+  - Tests automatizados para flujos críticos
+
+### Corregido
+- Widget "Plan Actual" mostraba '0' en lugar del nombre del plan (VETIF-169)
+- Problemas de CORS y renderizado en exportación de QR a PNG/PDF
+- Timing de animaciones en tests de página de equipo
+- URLs hardcodeadas en layout de clínica (ahora usa getBaseUrl())
+- Imports no usados en componentes de analíticas
+
+### Modificado
+- Unificación de correos electrónicos del sistema a español (soporte@, contacto@vetify.pro)
+- Generador QR simplificado removiendo opción de logo
 
 ---
 
