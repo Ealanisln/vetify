@@ -152,7 +152,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
   if (!isOpen) return null;
 
   return (
-    <div className={`fixed inset-0 ${themeColors.modal.backdrop} overflow-y-auto h-full w-full z-50`}>
+    <div className={`fixed inset-0 ${themeColors.modal.backdrop} overflow-y-auto h-full w-full z-50`} data-testid="add-product-modal">
       <div className={`relative top-4 sm:top-20 mx-auto p-4 sm:p-5 border ${responsive.modal} shadow-lg rounded-md ${themeColors.modal.content}`}>
         <div className={`flex items-center justify-between pb-3 border-b ${themeColors.modal.header}`}>
           <h3 className={`text-lg font-medium ${themeColors.text.primary}`}>
@@ -192,6 +192,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
                 onChange={handleInputChange}
                 required
                 className="form-input"
+                data-testid="product-name-input"
               />
             </div>
 
@@ -205,6 +206,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
                 onChange={handleInputChange}
                 required
                 className="form-select"
+                data-testid="product-category-select"
               >
                 <option value="">Seleccionar categoría</option>
                 {categories.map((category) => (
@@ -439,6 +441,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
               type="button"
               onClick={onClose}
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c]"
+              data-testid="cancel-add-product-button"
             >
               Cancelar
             </button>
@@ -446,6 +449,7 @@ export function AddProductModal({ isOpen, onClose, onSuccess, tenantId }: AddPro
               type="submit"
               disabled={loading}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#75a99c] hover:bg-[#5b9788] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="submit-product-button"
             >
               {loading ? 'Guardando...' : 'Agregar Producto'}
             </button>

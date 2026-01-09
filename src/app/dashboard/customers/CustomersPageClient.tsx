@@ -117,7 +117,7 @@ export function CustomersPageClient() {
           <p className="text-gray-500 dark:text-gray-400">Gestiona tus clientes y dueños de mascotas</p>
         </div>
         <Link href="/dashboard/customers/new">
-          <Button className="inline-flex items-center">
+          <Button className="inline-flex items-center" data-testid="add-customer-button">
             <PlusIcon className="h-4 w-4 mr-2" />
             Nuevo Cliente
           </Button>

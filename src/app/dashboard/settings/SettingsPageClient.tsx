@@ -171,6 +171,7 @@ export function SettingsPageClient({ tenant }: SettingsPageClientProps) {
                           : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50'
                       } ${section.comingSoon ? 'opacity-60' : ''}`}
                       disabled={section.comingSoon}
+                      data-testid={`settings-tab-${section.id}`}
                     >
                       <Icon className="h-4 w-4 flex-shrink-0" />
                       <div className="flex-1 min-w-0">

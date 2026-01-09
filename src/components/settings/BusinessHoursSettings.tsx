@@ -302,6 +302,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
               onClick={applyDefaultsToAll}
               variant="outline"
               size="sm"
+              data-testid="apply-defaults-button"
             >
               Aplicar a Todos los Días
             </Button>
@@ -337,6 +338,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                     onClick={() => handleDayToggle(day.dayOfWeek)}
                     variant={day.isWorkingDay ? 'destructive' : 'default'}
                     size="sm"
+                    data-testid={`day-toggle-${day.dayOfWeek}`}
                   >
                     {day.isWorkingDay ? 'Cerrar' : 'Abrir'}
                   </Button>
@@ -429,6 +431,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
               variant="outline"
               size="sm"
               disabled={saving}
+              data-testid="reset-hours-button"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               Descartar
@@ -437,6 +440,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
               onClick={handleSave}
               size="sm"
               disabled={saving}
+              data-testid="save-hours-button"
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

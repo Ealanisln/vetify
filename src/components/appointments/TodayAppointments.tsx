@@ -76,7 +76,7 @@ export function TodayAppointments({
   }
 
   return (
-    <Card className="h-fit">
+    <Card className="h-fit" data-testid="today-appointments">
       {/* Header */}
       <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
@@ -102,7 +102,7 @@ export function TodayAppointments({
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : sortedAppointments.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-2xl">
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-2xl" data-testid="no-today-appointments">
             <div className="text-4xl mb-4">📅</div>
             <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
               Sin citas programadas
@@ -117,6 +117,7 @@ export function TodayAppointments({
             <div
               key={appointment.id}
               className="bg-stone-50 dark:bg-gray-800/50 rounded-2xl p-5 transition-all duration-200 hover:shadow-lg border border-stone-100 dark:border-gray-700"
+              data-testid="today-appointment-card"
             >
               {/* Top section: Time, Status, Duration, Vet */}
               <div className="flex items-start justify-between mb-4">
@@ -129,7 +130,7 @@ export function TodayAppointments({
                   <div>
                     <div className="flex items-center gap-3">
                       {/* Time */}
-                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums">
+                      <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums" data-testid="appointment-time">
                         {format(appointment.dateTime, 'HH:mm')}
                       </span>
 
@@ -191,7 +192,7 @@ export function TodayAppointments({
                   <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
                     Mascota
                   </p>
-                  <p className="text-gray-900 dark:text-gray-100 font-medium flex items-center gap-1.5">
+                  <p className="text-gray-900 dark:text-gray-100 font-medium flex items-center gap-1.5" data-testid="appointment-pet-name">
                     <span>🐾</span>
                     {appointment.pet.name}
                     {appointment.pet.breed && (

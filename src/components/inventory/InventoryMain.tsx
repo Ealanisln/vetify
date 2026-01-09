@@ -253,6 +253,7 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
             onClick={() => handleEdit(item)}
             className={`${themeColors.text.accent} hover:opacity-75 p-1 rounded transition-opacity`}
             title="Editar"
+            data-testid="edit-product-button"
           >
             <PencilIcon className="h-4 w-4" />
           </button>
@@ -260,6 +261,7 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
             onClick={() => handleDelete(item)}
             className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1 rounded transition-colors"
             title="Eliminar"
+            data-testid="delete-product-button"
           >
             <TrashIcon className="h-4 w-4" />
           </button>
@@ -285,6 +287,7 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
             <button
               onClick={() => setShowAddModal(true)}
               className="btn-primary"
+              data-testid="add-product-button"
             >
               <PlusIcon className="h-5 w-5 mr-2" />
               <span className="hidden sm:inline">Agregar Producto</span>
@@ -305,6 +308,7 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
               value={searchQuery}
               onChange={handleSearch}
               className="form-input pl-10"
+              data-testid="product-search-input"
             />
           </div>
           <button

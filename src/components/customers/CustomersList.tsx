@@ -94,13 +94,14 @@ export function CustomersList({ customers }: CustomersListProps) {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`${getThemeClasses('input.base')} block w-full pl-10 pr-3 py-2 border rounded-md leading-5 placeholder-opacity-75 focus:outline-none focus:ring-1 ${getThemeClasses('input.focus')}`}
+              data-testid="customer-search-input"
             />
           </div>
         </div>
 
         {/* Customers Table */}
         {filteredCustomers.length === 0 ? (
-          <div className="text-center py-8">
+          <div className="text-center py-8" data-testid="empty-customers-state">
             <div className="text-4xl mb-3">👥</div>
             <h3 className={`text-sm font-medium ${getThemeClasses('text.primary')} mb-1`}>
               {searchTerm ? 'No se encontraron clientes' : 'Sin clientes registrados'}
@@ -120,7 +121,7 @@ export function CustomersList({ customers }: CustomersListProps) {
         ) : (
           <div className="overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" data-testid="customers-table">
                 <thead className={`${getThemeClasses('table.header')}`}>
                   <tr>
                     <th className={`px-6 py-3 text-left text-xs font-medium ${getThemeClasses('text.secondary')} uppercase tracking-wider`}>
@@ -145,7 +146,7 @@ export function CustomersList({ customers }: CustomersListProps) {
                 </thead>
                 <tbody className={`${getThemeClasses('background.card')} divide-y ${getThemeClasses('border.primary')}`}>
                   {filteredCustomers.map((customer) => (
-                    <tr key={customer.id} className={`${getThemeClasses('hover.card')}`}>
+                    <tr key={customer.id} className={`${getThemeClasses('hover.card')}`} data-testid="customer-row">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className={`text-sm font-medium ${getThemeClasses('text.primary')}`}>
@@ -200,12 +201,12 @@ export function CustomersList({ customers }: CustomersListProps) {
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex space-x-2 justify-end">
                           <Link href={`/dashboard/customers/${customer.id}`}>
-                            <Button variant="ghost" size="sm" title="Ver cliente">
+                            <Button variant="ghost" size="sm" title="Ver cliente" data-testid="view-customer-button">
                               <EyeIcon className="h-4 w-4" />
                             </Button>
                           </Link>
                           <Link href={`/dashboard/customers/${customer.id}?edit=true`}>
-                            <Button variant="ghost" size="sm" title="Editar cliente">
+                            <Button variant="ghost" size="sm" title="Editar cliente" data-testid="edit-customer-button">
                               <PencilIcon className="h-4 w-4" />
                             </Button>
                           </Link>
@@ -215,6 +216,7 @@ export function CustomersList({ customers }: CustomersListProps) {
                             title="Archivar cliente"
                             onClick={() => setCustomerToArchive(customer)}
                             className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                            data-testid="archive-customer-button"
                           >
                             <ArchiveBoxIcon className="h-4 w-4" />
                           </Button>

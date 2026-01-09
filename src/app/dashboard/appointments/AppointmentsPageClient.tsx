@@ -164,7 +164,7 @@ export function AppointmentsPageClient({
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Calendario de Citas</h1>
           <p className="text-gray-500 dark:text-gray-400">Gestiona las citas y horarios de tu clínica</p>
         </div>
-        <Button onClick={handleNewAppointment} className="inline-flex items-center">
+        <Button onClick={handleNewAppointment} className="inline-flex items-center" data-testid="new-appointment-button">
           <PlusIcon className="h-4 w-4 mr-2" />
           Nueva Cita
         </Button>
@@ -213,7 +213,9 @@ export function AppointmentsPageClient({
       </div>
 
       {/* Appointment Stats */}
-      <AppointmentStats />
+      <div data-testid="appointment-stats">
+        <AppointmentStats />
+      </div>
 
       {/* Today's Appointments */}
       <TodayAppointments
@@ -222,16 +224,18 @@ export function AppointmentsPageClient({
       />
 
       {/* Calendar */}
-      <FullCalendarView
-        onEventClick={handleEventClick}
-        onEventEdit={handleEventEdit}
-        onDateSelect={handleDateSelect}
-        defaultView="timeGridWeek"
-        editable={true}
-        selectable={true}
-        className="mobile-calendar"
-        refreshTrigger={calendarRefreshTrigger}
-      />
+      <div data-testid="appointments-calendar">
+        <FullCalendarView
+          onEventClick={handleEventClick}
+          onEventEdit={handleEventEdit}
+          onDateSelect={handleDateSelect}
+          defaultView="timeGridWeek"
+          editable={true}
+          selectable={true}
+          className="mobile-calendar"
+          refreshTrigger={calendarRefreshTrigger}
+        />
+      </div>
 
       {/* Data Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

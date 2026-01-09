@@ -274,7 +274,7 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
         <div className="flex min-h-full items-center justify-center p-4 print:hidden">
           <div className="fixed inset-0 bg-black/50" onClick={onClose} />
 
-          <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+          <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden" data-testid="sale-detail-modal">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2">
@@ -293,6 +293,7 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
                   <button
                     onClick={handlePrint}
                     className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md transition-colors"
+                    data-testid="print-sale-button"
                   >
                     <PrinterIcon className="h-4 w-4" />
                     Imprimir
@@ -301,6 +302,7 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
                 <button
                   onClick={onClose}
                   className="p-1 text-muted-foreground hover:text-foreground rounded-md"
+                  data-testid="close-sale-modal"
                 >
                   <XMarkIcon className="h-5 w-5" />
                 </button>
