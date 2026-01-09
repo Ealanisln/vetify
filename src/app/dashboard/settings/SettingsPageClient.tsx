@@ -17,9 +17,11 @@ import {
   Shield,
   Building2,
   CreditCard,
-  Globe
+  Globe,
+  QrCode
 } from 'lucide-react';
 import { PublicPageSettings } from '../../../components/settings/PublicPageSettings';
+import { QrCodeGenerator } from '../../../components/settings/QrCodeGenerator';
 import StaffList from '../../../components/staff/StaffList';
 
 const settingsSections = [
@@ -29,6 +31,13 @@ const settingsSections = [
     description: 'Configura la landing page de tu clínica',
     icon: Globe,
     component: 'public-page'
+  },
+  {
+    id: 'qr-codes',
+    title: 'Códigos QR',
+    description: 'Genera códigos QR para tu página pública',
+    icon: QrCode,
+    component: 'qr-codes'
   },
   {
     id: 'business-hours',
@@ -94,6 +103,8 @@ export function SettingsPageClient({ tenant }: SettingsPageClientProps) {
     switch (activeSection) {
       case 'public-page':
         return <PublicPageSettings tenantId={tenant.id} />;
+      case 'qr-codes':
+        return <QrCodeGenerator tenantId={tenant.id} />;
       case 'business-hours':
         return <BusinessHoursSettings tenantId={tenant.id} />;
       case 'services':
