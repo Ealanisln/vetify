@@ -81,6 +81,7 @@ model Tenant {
   emailLogs           EmailLog[]
   inventoryTransfers  InventoryTransfer[]
   testimonials        Testimonial[]
+  landingPageAnalytics LandingPageAnalytics[]
 
   @@index([status])
   @@index([slug])
@@ -1415,4 +1416,56 @@ model SystemPromotion {
 
   @@index([isActive, endDate])
   @@index([code])
+}
+
+// ============================================================================
+// LANDING PAGE ANALYTICS
+// ============================================================================
+
+model LandingPageAnalytics {
+  id        String             @id @default(uuid())
+  tenantId  String
+
+  // Event information
+  eventType AnalyticsEventType
+  eventName String? // e.g., "book_button_click", "contact_view"
+
+  // Page information
+  pageSlug  String // "landing", "agendar", "testimonios", "servicios"
+  referrer  String? // Referrer URL (external source)
+  utmSource String? // UTM tracking parameters
+  utmMedium String?
+  utmCampaign String?
+
+  // Session (anonymous - no PII)
+  sessionId String // UUID generated client-side per session
+
+  // Anonymized metadata
+  device  String? // "mobile", "desktop", "tablet"
+  browser String? // "Chrome", "Safari", "Firefox", etc.
+  country String? // Derived from IP geolocation, not stored
+
+  // Conversion tracking
+  conversionId String? // Links to AppointmentRequest.id if conversion
+
+  // Timestamp
+  createdAt DateTime @default(now())
+
+  // Relations
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, createdAt])
+  @@index([tenantId, eventType])
+  @@index([tenantId, pageSlug, createdAt])
+  @@index([sessionId])
+  @@index([conversionId])
+}
+
+enum AnalyticsEventType {
+  PAGE_VIEW // User viewed a page
+  FORM_START // User started filling booking form
+  FORM_SUBMIT // User submitted booking form
+  CONVERSION // Appointment request created
+  BUTTON_CLICK // User clicked a CTA button
+  SCROLL_DEPTH // User scrolled to a certain point
 }

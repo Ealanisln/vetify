@@ -17,9 +17,11 @@ import {
   Shield,
   Building2,
   CreditCard,
-  Globe
+  Globe,
+  BarChart3
 } from 'lucide-react';
 import { PublicPageSettings } from '../../../components/settings/PublicPageSettings';
+import { LandingAnalyticsSection } from '../../../components/analytics/LandingAnalyticsSection';
 import StaffList from '../../../components/staff/StaffList';
 
 const settingsSections = [
@@ -29,6 +31,13 @@ const settingsSections = [
     description: 'Configura la landing page de tu clínica',
     icon: Globe,
     component: 'public-page'
+  },
+  {
+    id: 'analytics',
+    title: 'Estadísticas',
+    description: 'Analiza las visitas y conversiones de tu página pública',
+    icon: BarChart3,
+    component: 'analytics'
   },
   {
     id: 'business-hours',
@@ -94,6 +103,8 @@ export function SettingsPageClient({ tenant }: SettingsPageClientProps) {
     switch (activeSection) {
       case 'public-page':
         return <PublicPageSettings tenantId={tenant.id} />;
+      case 'analytics':
+        return <LandingAnalyticsSection publicPageEnabled={tenant.publicPageEnabled ?? false} />;
       case 'business-hours':
         return <BusinessHoursSettings tenantId={tenant.id} />;
       case 'services':
