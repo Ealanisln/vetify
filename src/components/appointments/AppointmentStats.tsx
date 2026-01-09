@@ -61,9 +61,9 @@ export function AppointmentStats() {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-testid="appointment-stats-grid">
       {/* Citas de Hoy */}
-      <Card className="border-gray-200 dark:border-gray-800">
+      <Card className="border-gray-200 dark:border-gray-800" data-testid="stat-today">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Citas Hoy</CardTitle>
           <CalendarCheck className="h-4 w-4 text-blue-600" />
@@ -77,7 +77,7 @@ export function AppointmentStats() {
       </Card>
 
       {/* Esta Semana */}
-      <Card className="border-gray-200 dark:border-gray-800">
+      <Card className="border-gray-200 dark:border-gray-800" data-testid="stat-week">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Esta Semana</CardTitle>
           <Clock className="h-4 w-4 text-orange-600" />
@@ -91,7 +91,7 @@ export function AppointmentStats() {
       </Card>
 
       {/* Tasa de Completitud */}
-      <Card className="border-gray-200 dark:border-gray-800">
+      <Card className="border-gray-200 dark:border-gray-800" data-testid="stat-completion">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Completitud</CardTitle>
           <TrendingUp className="h-4 w-4 text-green-600" />
@@ -105,7 +105,7 @@ export function AppointmentStats() {
       </Card>
 
       {/* Este Mes */}
-      <Card className="border-gray-200 dark:border-gray-800">
+      <Card className="border-gray-200 dark:border-gray-800" data-testid="stat-month">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Este Mes</CardTitle>
           <Users className="h-4 w-4 text-purple-600" />

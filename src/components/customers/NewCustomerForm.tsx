@@ -196,6 +196,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
               value={formData.name}
               onChange={(e) => updateCustomer({ name: e.target.value })}
               className="form-input mt-1"
+              data-testid="customer-name-input"
             />
           </div>
 
@@ -208,6 +209,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
               value={formData.email}
               onChange={(e) => updateCustomer({ email: e.target.value })}
               className="form-input mt-1"
+              data-testid="customer-email-input"
             />
           </div>
 
@@ -220,6 +222,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
               value={formData.phone}
               onChange={(e) => updateCustomer({ phone: e.target.value })}
               className="form-input mt-1"
+              data-testid="customer-phone-input"
             />
           </div>
 
@@ -283,6 +286,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
             onClick={addPet}
             variant="outline"
             className="inline-flex items-center"
+            data-testid="add-pet-button"
           >
             <PlusIcon className="h-4 w-4 mr-2" />
             <span className="hidden sm:inline">Agregar Mascota</span>
@@ -451,6 +455,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
           onClick={() => router.back()}
           disabled={isLoading}
           className="order-2 sm:order-1"
+          data-testid="cancel-customer-button"
         >
           Cancelar
         </Button>
@@ -458,6 +463,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
           type="submit"
           disabled={isLoading}
           className="order-1 sm:order-2"
+          data-testid="submit-customer-button"
         >
           {isLoading ? 'Guardando...' : 'Crear Cliente'}
         </Button>

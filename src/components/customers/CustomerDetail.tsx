@@ -178,7 +178,7 @@ export function CustomerDetail({ customer, onUpdate, onArchive, initialEditMode 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="customer-detail">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -196,6 +196,7 @@ export function CustomerDetail({ customer, onUpdate, onArchive, initialEditMode 
                 onClick={() => setIsEditing(true)}
                 variant="outline"
                 className="inline-flex items-center"
+                data-testid="edit-customer-button"
               >
                 <PencilIcon className="h-4 w-4 mr-2" />
                 Editar
@@ -205,6 +206,7 @@ export function CustomerDetail({ customer, onUpdate, onArchive, initialEditMode 
                 variant="outline"
                 disabled={isLoading}
                 className="inline-flex items-center text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                data-testid="archive-customer-button"
               >
                 <ArchiveBoxIcon className="h-4 w-4 mr-2" />
                 Archivar
@@ -216,6 +218,7 @@ export function CustomerDetail({ customer, onUpdate, onArchive, initialEditMode 
                 onClick={handleSave}
                 disabled={isLoading}
                 className="inline-flex items-center"
+                data-testid="save-customer-button"
               >
                 <CheckIcon className="h-4 w-4 mr-2" />
                 Guardar
@@ -225,6 +228,7 @@ export function CustomerDetail({ customer, onUpdate, onArchive, initialEditMode 
                 variant="outline"
                 disabled={isLoading}
                 className="inline-flex items-center"
+                data-testid="cancel-edit-button"
               >
                 <XMarkIcon className="h-4 w-4 mr-2" />
                 Cancelar
@@ -424,7 +428,7 @@ export function CustomerDetail({ customer, onUpdate, onArchive, initialEditMode 
               </p>
             )}
             <Link href={`/dashboard/pets/new?customerId=${customer.id}`}>
-              <Button variant="outline" className="w-full mt-4">
+              <Button variant="outline" className="w-full mt-4" data-testid="add-pet-to-customer-button">
                 Agregar Mascota
               </Button>
             </Link>

@@ -164,7 +164,7 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
           &#8203;
         </span>
 
-        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full" data-testid="service-modal">
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
               <div className="flex justify-between items-center mb-4">
@@ -191,6 +191,7 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                     {...form.register('name')}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
                     placeholder="Ej: Consulta General, Radiografía, Cirugía..."
+                    data-testid="service-name-input"
                   />
                   {form.formState.errors.name && (
                     <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -207,6 +208,7 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                   <select
                     {...form.register('category')}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                    data-testid="service-category-select"
                   >
                     {serviceCategories.map(category => (
                       <option key={category.value} value={category.value}>
@@ -235,6 +237,7 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                       {...form.register('price', { valueAsNumber: true })}
                       className="w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
                       placeholder="0.00"
+                      data-testid="service-price-input"
                     />
                   </div>
                   {form.formState.errors.price && (
@@ -360,6 +363,7 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                 type="submit"
                 disabled={isSubmitting}
                 className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="submit-service-button"
               >
                 {isSubmitting ? 'Guardando...' : isEditing ? 'Actualizar' : 'Crear Servicio'}
               </button>
@@ -368,6 +372,7 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                 onClick={onClose}
                 disabled={isSubmitting}
                 className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-600 dark:text-gray-200 dark:border-gray-500 dark:hover:bg-gray-500"
+                data-testid="cancel-service-button"
               >
                 Cancelar
               </button>
