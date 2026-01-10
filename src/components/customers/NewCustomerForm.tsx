@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 import { PlusIcon, TrashIcon, CheckCircleIcon, CalendarIcon, UserGroupIcon, XMarkIcon } from '@heroicons/react/24/outline';
@@ -41,6 +41,7 @@ interface CustomerFormData {
 export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const isSubmittingRef = useRef(false); // Prevent double submit
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [createdCustomerId, setCreatedCustomerId] = useState<string | null>(null);
   const [createdPets, setCreatedPets] = useState<Array<{ id: string; name: string }>>([]);
@@ -99,6 +100,12 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Prevent double submit
+    if (isSubmittingRef.current) {
+      return;
+    }
+    isSubmittingRef.current = true;
     setIsLoading(true);
 
     try {
@@ -162,6 +169,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
       toast.error(errorMessage);
     } finally {
       setIsLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
