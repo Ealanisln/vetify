@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 import { UserWithTenant, TenantWithPlan } from '@/types';
 
@@ -6,6 +6,30 @@ import { UserWithTenant, TenantWithPlan } from '@/types';
 jest.mock('next/navigation', () => ({
   usePathname: jest.fn(() => '/dashboard'),
 }));
+
+// Mock useStaffPermissions hook
+const mockCanAccess = jest.fn();
+const mockUseStaffPermissions = {
+  canAccess: mockCanAccess,
+  isLoading: false,
+  staff: null,
+  position: 'MANAGER' as const,
+  error: null,
+  accessibleFeatures: [],
+  isAdmin: true,
+  isVeterinarian: false,
+  isReceptionist: false,
+  isAssistant: false,
+  isTechnician: false,
+  refresh: jest.fn(),
+};
+
+jest.mock('@/hooks/useStaffPermissions', () => ({
+  useStaffPermissions: jest.fn(() => mockUseStaffPermissions),
+}));
+
+import { useStaffPermissions } from '@/hooks/useStaffPermissions';
+const mockUseStaffPermissionsHook = useStaffPermissions as jest.MockedFunction<typeof useStaffPermissions>;
 
 // Mock next/link
 jest.mock('next/link', () => ({
@@ -86,6 +110,13 @@ describe('Sidebar', () => {
     mockUsePathname.mockReturnValue('/dashboard');
     // Reset body overflow
     document.body.style.overflow = '';
+    // Reset permissions mock - default to admin with full access
+    mockCanAccess.mockReturnValue(true);
+    mockUseStaffPermissionsHook.mockReturnValue({
+      ...mockUseStaffPermissions,
+      isLoading: false,
+      canAccess: mockCanAccess,
+    });
   });
 
   describe('Desktop Sidebar Rendering', () => {
@@ -378,6 +409,190 @@ describe('Sidebar', () => {
       expect(screen.getAllByTestId('home-icon').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByTestId('calendar-icon').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByTestId('cog-icon').length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('Loading State (Skeleton)', () => {
+    it('should show skeleton when permissions are loading', () => {
+      mockUseStaffPermissionsHook.mockReturnValue({
+        ...mockUseStaffPermissions,
+        isLoading: true,
+        canAccess: mockCanAccess,
+      });
+
+      render(<Sidebar {...defaultProps} />);
+
+      // Should show skeleton elements (animated placeholder divs)
+      const skeletonElements = document.querySelectorAll('.animate-pulse');
+      expect(skeletonElements.length).toBeGreaterThan(0);
+
+      // Should NOT show navigation items while loading
+      expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+      expect(screen.queryByText('Clientes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Mascotas')).not.toBeInTheDocument();
+    });
+
+    it('should NOT show all navigation items during loading (prevents flash)', () => {
+      mockUseStaffPermissionsHook.mockReturnValue({
+        ...mockUseStaffPermissions,
+        isLoading: true,
+        canAccess: mockCanAccess,
+      });
+
+      render(<Sidebar {...defaultProps} />);
+
+      // This is the key test - we should NOT see full navigation during loading
+      // Previously, all items were shown during loading causing a "flash"
+      const allNavItems = ['Dashboard', 'Clientes', 'Mascotas', 'Ubicaciones',
+        'Punto de Venta', 'Caja', 'Inventario', 'Historia Clínica', 'Citas',
+        'Testimonios', 'Reportes', 'Equipo', 'Configuración'];
+
+      allNavItems.forEach(item => {
+        expect(screen.queryByText(item)).not.toBeInTheDocument();
+      });
+    });
+
+    it('should show navigation items after loading completes', () => {
+      mockUseStaffPermissionsHook.mockReturnValue({
+        ...mockUseStaffPermissions,
+        isLoading: false,
+        canAccess: mockCanAccess,
+      });
+
+      render(<Sidebar {...defaultProps} />);
+
+      // Should NOT show skeleton
+      const skeletonElements = document.querySelectorAll('.animate-pulse');
+      expect(skeletonElements.length).toBe(0);
+
+      // Should show navigation items
+      expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should render 5 skeleton items during loading', () => {
+      mockUseStaffPermissionsHook.mockReturnValue({
+        ...mockUseStaffPermissions,
+        isLoading: true,
+        canAccess: mockCanAccess,
+      });
+
+      render(<Sidebar {...defaultProps} />);
+
+      // Desktop sidebar shows 5 skeleton items, mobile shows 5 when open
+      const skeletonContainers = document.querySelectorAll('.animate-pulse');
+      // At least 5 for desktop sidebar
+      expect(skeletonContainers.length).toBeGreaterThanOrEqual(5);
+    });
+  });
+
+  describe('Permission-Based Navigation Filtering', () => {
+    it('should filter navigation based on user permissions', () => {
+      // Mock limited permissions - only dashboard, pets, and appointments
+      mockCanAccess.mockImplementation((feature: string) => {
+        return ['dashboard', 'pets', 'appointments'].includes(feature);
+      });
+
+      mockUseStaffPermissionsHook.mockReturnValue({
+        ...mockUseStaffPermissions,
+        isLoading: false,
+        canAccess: mockCanAccess,
+      });
+
+      render(<Sidebar {...defaultProps} />);
+
+      // Should show permitted items
+      expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Mascotas').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Citas').length).toBeGreaterThanOrEqual(1);
+
+      // Should NOT show restricted items
+      expect(screen.queryByText('Clientes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Inventario')).not.toBeInTheDocument();
+      expect(screen.queryByText('Reportes')).not.toBeInTheDocument();
+    });
+
+    it('should show all navigation items for admin users', () => {
+      // Mock admin with full access
+      mockCanAccess.mockReturnValue(true);
+
+      mockUseStaffPermissionsHook.mockReturnValue({
+        ...mockUseStaffPermissions,
+        isLoading: false,
+        canAccess: mockCanAccess,
+        isAdmin: true,
+      });
+
+      render(<Sidebar {...defaultProps} />);
+
+      // Should show all navigation items
+      expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Clientes').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Mascotas').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Inventario').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Reportes').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Configuración').length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should show fallback navigation if no items are accessible', () => {
+      // Mock no permissions (edge case - shouldn't happen for valid users)
+      mockCanAccess.mockReturnValue(false);
+
+      // Spy on console.warn to verify fallback warning
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      mockUseStaffPermissionsHook.mockReturnValue({
+        ...mockUseStaffPermissions,
+        isLoading: false,
+        canAccess: mockCanAccess,
+      });
+
+      render(<Sidebar {...defaultProps} />);
+
+      // Fallback: should show all items and log a warning
+      expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[Sidebar] No accessible navigation items - showing all items as fallback'
+      );
+
+      consoleSpy.mockRestore();
+    });
+
+    it('should transition from skeleton to filtered items without flash', async () => {
+      // Start with loading
+      mockUseStaffPermissionsHook.mockReturnValue({
+        ...mockUseStaffPermissions,
+        isLoading: true,
+        canAccess: mockCanAccess,
+      });
+
+      const { rerender } = render(<Sidebar {...defaultProps} />);
+
+      // During loading - skeleton shown, no nav items
+      expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
+      expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+
+      // Complete loading with limited permissions
+      mockCanAccess.mockImplementation((feature: string) => {
+        return ['dashboard', 'pets', 'appointments'].includes(feature);
+      });
+
+      mockUseStaffPermissionsHook.mockReturnValue({
+        ...mockUseStaffPermissions,
+        isLoading: false,
+        canAccess: mockCanAccess,
+      });
+
+      rerender(<Sidebar {...defaultProps} />);
+
+      // After loading - should show only permitted items, no skeleton
+      expect(document.querySelectorAll('.animate-pulse').length).toBe(0);
+      expect(screen.getAllByText('Dashboard').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Mascotas').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getAllByText('Citas').length).toBeGreaterThanOrEqual(1);
+
+      // Should NOT have shown all items at any point (no flash)
+      expect(screen.queryByText('Inventario')).not.toBeInTheDocument();
+      expect(screen.queryByText('Reportes')).not.toBeInTheDocument();
     });
   });
 });

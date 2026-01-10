@@ -47,6 +47,20 @@ interface NavigationItem {
 // - Inventario: Basic inventory for all, advanced features require Plan Profesional
 // - Reportes: Basic reports for all, advanced analytics require Plan Profesional
 // - Caja: Basic single cash drawer for all, multiple drawers require Plan Profesional
+// Skeleton component for loading state
+const NavigationSkeleton = () => (
+  <ul role="list" className="-mx-2 space-y-1">
+    {[1, 2, 3, 4, 5].map((i) => (
+      <li key={i}>
+        <div className="flex gap-x-3 rounded-md p-2 animate-pulse">
+          <div className="h-6 w-6 shrink-0 rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="h-5 w-24 rounded bg-gray-200 dark:bg-gray-700" />
+        </div>
+      </li>
+    ))}
+  </ul>
+);
+
 const navigation: NavigationItem[] = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, feature: 'dashboard' },
   { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon, feature: 'customers' },
@@ -69,8 +83,8 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
 
   // Filter navigation based on staff permissions
   const filteredNavigation = useMemo(() => {
-    // While loading permissions, show all items (prevents flashing)
-    if (permissionsLoading) return navigation;
+    // While loading permissions, return empty array to show skeleton
+    if (permissionsLoading) return [];
 
     const filtered = navigation.filter((item) => canAccess(item.feature, 'read'));
 
@@ -159,38 +173,42 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
               <nav className="flex flex-1 flex-col" aria-label="Navegación principal">
                 <ul role="list" className="flex flex-1 flex-col gap-y-7">
                   <li>
-                    <ul role="list" className="-mx-2 space-y-1">
-                      {filteredNavigation.map((item) => {
-                        const isActive = pathname === item.href;
-                        return (
-                          <li key={item.name}>
-                            <Link
-                              href={item.href}
-                              onClick={() => setSidebarOpen(false)}
-                              className={`group flex gap-x-3 rounded-md p-3 text-sm leading-6 font-semibold transition-all duration-200 ${
-                                isActive
-                                  ? 'bg-[#75a99c] text-white shadow-sm'
-                                  : 'text-gray-700 hover:text-[#5b9788] hover:bg-[#e5f1ee] hover:scale-[1.02] dark:text-gray-300 dark:hover:text-[#75a99c] dark:hover:bg-[#2a3630]/30'
-                              }`}
-                            >
-                              <item.icon className={`h-6 w-6 shrink-0 transition-colors ${
-                                isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#5b9788] dark:text-gray-500 dark:group-hover:text-[#75a99c]'
-                              }`} />
-                              <span className="flex items-center gap-2">
-                                {item.name}
-                                {item.isPro && item.proTooltip && (
-                                  <Tooltip content={item.proTooltip} position="top">
-                                    <Badge variant="pro" className="text-[10px] px-1.5 py-0 leading-tight">
-                                      PRO
-                                    </Badge>
-                                  </Tooltip>
-                                )}
-                              </span>
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
+                    {permissionsLoading ? (
+                      <NavigationSkeleton />
+                    ) : (
+                      <ul role="list" className="-mx-2 space-y-1">
+                        {filteredNavigation.map((item) => {
+                          const isActive = pathname === item.href;
+                          return (
+                            <li key={item.name}>
+                              <Link
+                                href={item.href}
+                                onClick={() => setSidebarOpen(false)}
+                                className={`group flex gap-x-3 rounded-md p-3 text-sm leading-6 font-semibold transition-all duration-200 ${
+                                  isActive
+                                    ? 'bg-[#75a99c] text-white shadow-sm'
+                                    : 'text-gray-700 hover:text-[#5b9788] hover:bg-[#e5f1ee] hover:scale-[1.02] dark:text-gray-300 dark:hover:text-[#75a99c] dark:hover:bg-[#2a3630]/30'
+                                }`}
+                              >
+                                <item.icon className={`h-6 w-6 shrink-0 transition-colors ${
+                                  isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#5b9788] dark:text-gray-500 dark:group-hover:text-[#75a99c]'
+                                }`} />
+                                <span className="flex items-center gap-2">
+                                  {item.name}
+                                  {item.isPro && item.proTooltip && (
+                                    <Tooltip content={item.proTooltip} position="top">
+                                      <Badge variant="pro" className="text-[10px] px-1.5 py-0 leading-tight">
+                                        PRO
+                                      </Badge>
+                                    </Tooltip>
+                                  )}
+                                </span>
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
                   </li>
 
                   {/* User info section */}
@@ -238,37 +256,41 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
           <nav className="flex flex-1 flex-col" aria-label="Navegación principal">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
-                <ul role="list" className="-mx-2 space-y-1">
-                  {filteredNavigation.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                      <li key={item.name}>
-                        <Link
-                          href={item.href}
-                          className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-all duration-200 ${
-                            isActive
-                              ? 'bg-[#75a99c] text-white shadow-sm'
-                              : 'text-gray-700 hover:text-[#5b9788] hover:bg-[#e5f1ee] hover:scale-[1.02] dark:text-gray-300 dark:hover:text-[#75a99c] dark:hover:bg-[#2a3630]/30'
-                          }`}
-                        >
-                          <item.icon className={`h-6 w-6 shrink-0 transition-colors ${
-                            isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#5b9788] dark:text-gray-500 dark:group-hover:text-[#75a99c]'
-                          }`} />
-                          <span className="flex items-center gap-2">
-                            {item.name}
-                            {item.isPro && item.proTooltip && (
-                              <Tooltip content={item.proTooltip} position="top">
-                                <Badge variant="pro" className="text-[10px] px-1.5 py-0 leading-tight">
-                                  PRO
-                                </Badge>
-                              </Tooltip>
-                            )}
-                          </span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
+                {permissionsLoading ? (
+                  <NavigationSkeleton />
+                ) : (
+                  <ul role="list" className="-mx-2 space-y-1">
+                    {filteredNavigation.map((item) => {
+                      const isActive = pathname === item.href;
+                      return (
+                        <li key={item.name}>
+                          <Link
+                            href={item.href}
+                            className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-all duration-200 ${
+                              isActive
+                                ? 'bg-[#75a99c] text-white shadow-sm'
+                                : 'text-gray-700 hover:text-[#5b9788] hover:bg-[#e5f1ee] hover:scale-[1.02] dark:text-gray-300 dark:hover:text-[#75a99c] dark:hover:bg-[#2a3630]/30'
+                            }`}
+                          >
+                            <item.icon className={`h-6 w-6 shrink-0 transition-colors ${
+                              isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#5b9788] dark:text-gray-500 dark:group-hover:text-[#75a99c]'
+                            }`} />
+                            <span className="flex items-center gap-2">
+                              {item.name}
+                              {item.isPro && item.proTooltip && (
+                                <Tooltip content={item.proTooltip} position="top">
+                                  <Badge variant="pro" className="text-[10px] px-1.5 py-0 leading-tight">
+                                    PRO
+                                  </Badge>
+                                </Tooltip>
+                              )}
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
 
               {/* User info section */}
