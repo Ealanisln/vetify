@@ -6,6 +6,8 @@ const config: Config = {
   setupFilesAfterEnv: ['<rootDir>/jest.integration.setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
+    // Mock nanoid ESM-only module
+    '^nanoid$': '<rootDir>/__tests__/mocks/nanoid.ts',
   },
   testMatch: [
     '**/__tests__/integration/**/*.test.ts',

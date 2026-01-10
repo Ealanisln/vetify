@@ -12,6 +12,7 @@ import {
   StarIcon,
   TrashIcon,
   EyeIcon,
+  LockClosedIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { format } from 'date-fns';
@@ -19,6 +20,7 @@ import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { TestimonialStatus } from '@prisma/client';
 import TestimonialModal from './TestimonialModal';
+import { useStaffPermissions } from '@/hooks/useStaffPermissions';
 
 interface Customer {
   id: string;
@@ -97,6 +99,11 @@ export default function TestimonialsList({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTestimonial, setSelectedTestimonial] = useState<Testimonial | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
+
+  const { canAccess, isLoading: permissionsLoading } = useStaffPermissions();
+
+  // Check if user can manage testimonials (create, moderate, delete)
+  const canManageTestimonials = canAccess('testimonials', 'write');
 
   const fetchTestimonials = useCallback(async (page = 1) => {
     setLoading(true);
@@ -244,6 +251,19 @@ export default function TestimonialsList({
 
   return (
     <div className="space-y-6">
+      {/* Read-only alert for users without write permission */}
+      {!permissionsLoading && !canManageTestimonials && (
+        <div className="flex items-start gap-3 p-4 border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 rounded-lg">
+          <LockClosedIcon className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-amber-800 dark:text-amber-200">Modo de solo lectura</h4>
+            <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+              Tu rol actual no tiene permisos para gestionar testimonios. Solo puedes ver la información.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -252,7 +272,12 @@ export default function TestimonialsList({
             Gestiona los testimonios de tus clientes
           </p>
         </div>
-        <Button onClick={() => openModal('create')} className="bg-[#75a99c] hover:bg-[#5b9788]">
+        <Button
+          onClick={() => openModal('create')}
+          className="bg-[#75a99c] hover:bg-[#5b9788]"
+          disabled={!canManageTestimonials}
+          title={!canManageTestimonials ? 'No tienes permisos para crear testimonios' : undefined}
+        >
           <PlusIcon className="h-5 w-5 mr-2" />
           Nuevo Testimonio
         </Button>
@@ -400,13 +425,14 @@ export default function TestimonialsList({
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {testimonial.status === 'PENDING' && (
+                      {canManageTestimonials && testimonial.status === 'PENDING' && (
                         <>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleModerate(testimonial.id, 'approve')}
                             className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
+                            title="Aprobar testimonio"
                           >
                             <CheckIcon className="h-4 w-4" />
                           </Button>
@@ -415,17 +441,19 @@ export default function TestimonialsList({
                             size="sm"
                             onClick={() => handleModerate(testimonial.id, 'reject')}
                             className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            title="Rechazar testimonio"
                           >
                             <XMarkIcon className="h-4 w-4" />
                           </Button>
                         </>
                       )}
-                      {testimonial.status === 'APPROVED' && (
+                      {canManageTestimonials && testimonial.status === 'APPROVED' && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleToggleFeatured(testimonial.id, testimonial.isFeatured)}
                           className={testimonial.isFeatured ? 'text-yellow-600' : 'text-gray-400'}
+                          title={testimonial.isFeatured ? 'Quitar de destacados' : 'Marcar como destacado'}
                         >
                           <StarIcon className="h-4 w-4" />
                         </Button>
@@ -434,17 +462,21 @@ export default function TestimonialsList({
                         variant="outline"
                         size="sm"
                         onClick={() => openModal('view', testimonial)}
+                        title="Ver detalles"
                       >
                         <EyeIcon className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(testimonial.id)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </Button>
+                      {canManageTestimonials && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(testimonial.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          title="Eliminar testimonio"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>

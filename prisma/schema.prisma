@@ -459,6 +459,7 @@ model Staff {
   cashShifts              CashShift[]         @relation("CashShift_cashier")
   handedOffShifts         CashShift[]         @relation("CashShift_handedOffTo")
   moderatedTestimonials   Testimonial[]       @relation("ModeratedTestimonials")
+  invitation              TenantInvitation?   // Pending invitation for this staff
 
   @@index([tenantId])
   @@index([locationId])
@@ -790,17 +791,21 @@ model Service {
 model TenantInvitation {
   id        String       @id @default(uuid())
   tenantId  String
+  staffId   String?      @unique // Link to specific staff member
   email     String
-  roleKey   String
+  roleKey   String       // Staff position (VETERINARIAN, MANAGER, etc.)
   token     String       @unique
   status    InviteStatus @default(PENDING)
   expiresAt DateTime
   createdAt DateTime     @default(now())
+
   tenant    Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  staff     Staff?       @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([tenantId])
   @@index([token])
   @@index([status, email])
+  @@index([staffId])
 }
 
 model TenantSettings {
@@ -1327,6 +1332,7 @@ enum EmailTemplate {
   NEW_USER_REGISTRATION
   NEW_SUBSCRIPTION_PAYMENT
   TESTIMONIAL_REQUEST
+  STAFF_INVITATION
 }
 
 enum EmailStatus {

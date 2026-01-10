@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  PlusIcon, 
-  PencilIcon, 
+import {
+  PlusIcon,
+  PencilIcon,
   TrashIcon,
   MagnifyingGlassIcon,
-  FunnelIcon
+  FunnelIcon,
+  GlobeAltIcon,
+  BuildingStorefrontIcon
 } from '@heroicons/react/24/outline';
 import { ServiceCategory } from '@prisma/client';
 import { ServiceModal } from './ServiceModal';
@@ -253,14 +255,26 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
               )}
             </div>
             
-            <div className="mt-2 flex justify-between items-center">
+            <div className="mt-2 flex flex-wrap gap-2 items-center">
               <span className={`text-xs px-2 py-1 rounded-full ${
-                service.isActive 
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
+                service.isActive
+                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                   : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
               }`}>
                 {service.isActive ? 'Activo' : 'Inactivo'}
               </span>
+              {/* Badge de ubicación */}
+              {service.locationId ? (
+                <span className="inline-flex items-center text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                  <BuildingStorefrontIcon className="h-3 w-3 mr-1" />
+                  {service.location?.name || 'Ubicación'}
+                </span>
+              ) : (
+                <span className="inline-flex items-center text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                  <GlobeAltIcon className="h-3 w-3 mr-1" />
+                  Global
+                </span>
+              )}
             </div>
           </div>
         ))}

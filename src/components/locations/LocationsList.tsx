@@ -10,9 +10,11 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   UserGroupIcon,
+  LockClosedIcon,
 } from '@heroicons/react/24/outline';
 import { MapPinIcon } from '@heroicons/react/24/solid';
 import { LocationStaffModal } from './LocationStaffModal';
+import { useStaffPermissions } from '@/hooks/useStaffPermissions';
 
 interface Location {
   id: string;
@@ -43,6 +45,11 @@ export default function LocationsList({
   const [isLoading, setIsLoading] = useState<string | null>(null);
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+
+  const { canAccess, isLoading: permissionsLoading } = useStaffPermissions();
+
+  // Check if user can manage locations
+  const canManageLocations = canAccess('locations', 'write');
 
   // Filter locations based on search term
   const filteredLocations = useMemo(() => {
@@ -139,21 +146,37 @@ export default function LocationsList({
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           Comienza creando tu primera ubicación
         </p>
-        <div className="mt-6">
-          <Link
-            href="/dashboard/locations/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#75a99c] hover:bg-[#639688]"
-          >
-            <MapPinIcon className="-ml-1 mr-2 h-5 w-5" />
-            Nueva Ubicación
-          </Link>
-        </div>
+        {canManageLocations && (
+          <div className="mt-6">
+            <Link
+              href="/dashboard/locations/new"
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#75a99c] hover:bg-[#639688]"
+            >
+              <MapPinIcon className="-ml-1 mr-2 h-5 w-5" />
+              Nueva Ubicación
+            </Link>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div className="space-y-4">
+      {/* Read-only alert for users without write permission */}
+      {!permissionsLoading && !canManageLocations && (
+        <div className="flex items-start gap-3 p-4 border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 rounded-lg">
+          <LockClosedIcon className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-amber-800 dark:text-amber-200">Modo de solo lectura</h4>
+            <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+              Tu rol actual no tiene permisos para gestionar ubicaciones. Solo puedes ver la información.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
       {/* Search */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="relative">
@@ -261,7 +284,7 @@ export default function LocationsList({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end gap-2">
-                      {!location.isPrimary && (
+                      {canManageLocations && !location.isPrimary && (
                         <button
                           onClick={() => handleSetPrimary(location.id)}
                           disabled={isLoading === location.id}
@@ -271,24 +294,28 @@ export default function LocationsList({
                           <MapPinIcon className="w-5 h-5" />
                         </button>
                       )}
-                      <button
-                        onClick={() => {
-                          setSelectedLocation(location);
-                          setShowStaffModal(true);
-                        }}
-                        className="text-[#75a99c] hover:text-[#639688]"
-                        title="Gestionar Personal"
-                      >
-                        <UserGroupIcon className="w-5 h-5" />
-                      </button>
-                      <Link
-                        href={`/dashboard/locations/${location.id}`}
-                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                        title="Editar"
-                      >
-                        <PencilIcon className="w-5 h-5" />
-                      </Link>
-                      {!location.isPrimary && (
+                      {canManageLocations && (
+                        <button
+                          onClick={() => {
+                            setSelectedLocation(location);
+                            setShowStaffModal(true);
+                          }}
+                          className="text-[#75a99c] hover:text-[#639688]"
+                          title="Gestionar Personal"
+                        >
+                          <UserGroupIcon className="w-5 h-5" />
+                        </button>
+                      )}
+                      {canManageLocations && (
+                        <Link
+                          href={`/dashboard/locations/${location.id}`}
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                          title="Editar"
+                        >
+                          <PencilIcon className="w-5 h-5" />
+                        </Link>
+                      )}
+                      {canManageLocations && !location.isPrimary && (
                         <button
                           onClick={() =>
                             handleDelete(location.id, location.name)
@@ -307,6 +334,7 @@ export default function LocationsList({
             )}
           </tbody>
         </table>
+      </div>
       </div>
 
       {/* Staff Management Modal */}

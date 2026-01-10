@@ -1,4 +1,5 @@
-import { requireActiveSubscription } from '@/lib/auth';
+import { requireActiveSubscription, getStaffForUser } from '@/lib/auth';
+import { canAccess } from '@/lib/staff-permissions';
 import {
   getLocationsByTenant,
   getLocationStats,
@@ -13,7 +14,14 @@ import { PlusIcon } from '@heroicons/react/24/outline';
 export const dynamic = 'force-dynamic';
 
 export default async function LocationsPage() {
-  const { tenant } = await requireActiveSubscription();
+  const { tenant, user } = await requireActiveSubscription();
+
+  // Get staff record to check permissions
+  const staff = await getStaffForUser(user.id);
+
+  // Check if user has permission to manage locations
+  // If no staff record, user is tenant owner (has admin access)
+  const canManageLocations = !staff || canAccess(staff.position, 'locations', 'write');
 
   // Fetch locations and stats
   const [locations, stats] = await Promise.all([
@@ -34,19 +42,21 @@ export default async function LocationsPage() {
               Administra las ubicaciones de tu clínica veterinaria
             </p>
           </div>
-          <FeatureGate
-            feature="multiLocation"
-            upgradeMessage="El Plan Básico solo permite 1 ubicación. Actualiza a Plan Profesional para gestión multi-sucursal."
-            upgradeButtonText="Ver Planes"
-          >
-            <Link
-              href="/dashboard/locations/new"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#75a99c] text-white rounded-lg hover:bg-[#639688] transition-colors"
+          {canManageLocations && (
+            <FeatureGate
+              feature="multiLocation"
+              upgradeMessage="El Plan Básico solo permite 1 ubicación. Actualiza a Plan Profesional para gestión multi-sucursal."
+              upgradeButtonText="Ver Planes"
             >
-              <PlusIcon className="w-5 h-5" />
-              <span>Nueva Ubicación</span>
-            </Link>
-          </FeatureGate>
+              <Link
+                href="/dashboard/locations/new"
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#75a99c] text-white rounded-lg hover:bg-[#639688] transition-colors"
+              >
+                <PlusIcon className="w-5 h-5" />
+                <span>Nueva Ubicación</span>
+              </Link>
+            </FeatureGate>
+          )}
         </div>
       </div>
 

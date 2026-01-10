@@ -88,15 +88,26 @@ export async function searchProducts(
     take: 5
   });
 
-  // Buscar servicios
+  // Buscar servicios (incluye servicios globales con locationId null)
   const services = await prisma.service.findMany({
     where: {
       tenantId,
       isActive: true,
-      ...(locationId && { locationId }),
-      OR: [
-        { name: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } }
+      AND: [
+        // Filtro de ubicación: incluye servicios de la ubicación específica O servicios globales
+        ...(locationId ? [{
+          OR: [
+            { locationId },
+            { locationId: null }
+          ]
+        }] : []),
+        // Filtro de búsqueda por nombre o descripción
+        {
+          OR: [
+            { name: { contains: query, mode: 'insensitive' } },
+            { description: { contains: query, mode: 'insensitive' } }
+          ]
+        }
       ]
     },
     take: 5

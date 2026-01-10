@@ -7,7 +7,8 @@ import { TransactionHistory } from './TransactionHistory';
 import { MultiCashDrawerManager } from './MultiCashDrawerManager';
 import { ShiftManagement } from './ShiftManagement';
 import { CajaReportsMain } from './reports/CajaReportsMain';
-import { CurrencyDollarIcon, Cog6ToothIcon, ClockIcon, ChartBarIcon } from '@heroicons/react/24/outline';
+import { CurrencyDollarIcon, Cog6ToothIcon, ClockIcon, ChartBarIcon, LockClosedIcon } from '@heroicons/react/24/outline';
+import { useStaffPermissions } from '@/hooks/useStaffPermissions';
 
 interface CajaPageClientProps {
   tenantId: string;
@@ -15,9 +16,26 @@ interface CajaPageClientProps {
 
 export function CajaPageClient({ tenantId }: CajaPageClientProps) {
   const [view, setView] = useState<'operation' | 'management' | 'shifts' | 'reports'>('operation');
+  const { canAccess, isLoading: permissionsLoading } = useStaffPermissions();
+
+  // Check if user can write to sales (operate cash register)
+  const canOperateCaja = canAccess('sales', 'write');
 
   return (
     <div className="space-y-6">
+      {/* Read-only alert for users without write permission */}
+      {!permissionsLoading && !canOperateCaja && (
+        <div className="flex items-start gap-3 p-4 border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 rounded-lg">
+          <LockClosedIcon className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-amber-800 dark:text-amber-200">Modo de solo lectura</h4>
+            <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+              Tu rol actual no tiene permisos para operar la caja. Solo puedes ver la información de ventas y reportes.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header con tabs */}
       <div className="border-b border-border pb-4">
         <div className="flex items-center justify-between">
@@ -85,7 +103,7 @@ export function CajaPageClient({ tenantId }: CajaPageClientProps) {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Panel principal de caja */}
             <div className="lg:col-span-2">
-              <CashDrawerMain tenantId={tenantId} />
+              <CashDrawerMain tenantId={tenantId} canOperate={canOperateCaja} />
             </div>
 
             {/* Historial de transacciones */}
@@ -97,11 +115,11 @@ export function CajaPageClient({ tenantId }: CajaPageClientProps) {
       )}
 
       {view === 'management' && (
-        <MultiCashDrawerManager tenantId={tenantId} />
+        <MultiCashDrawerManager tenantId={tenantId} canOperate={canOperateCaja} />
       )}
 
       {view === 'shifts' && (
-        <ShiftManagement tenantId={tenantId} />
+        <ShiftManagement tenantId={tenantId} canOperate={canOperateCaja} />
       )}
 
       {view === 'reports' && (

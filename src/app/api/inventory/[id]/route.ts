@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
-import { 
-  getInventoryItemById, 
-  updateInventoryItem, 
-  deleteInventoryItem 
+import {
+  getInventoryItemById,
+  updateInventoryItem,
+  deleteInventoryItem
 } from '../../../../lib/inventory';
 import { prisma } from '../../../../lib/prisma';
 import { InventoryFormData } from '@/types';
+import { requirePermission } from '@/lib/auth';
 
 export async function GET(
   request: Request,
@@ -52,21 +53,9 @@ export async function PUT(
 ) {
   try {
     const params = await props.params;
-    const { getUser } = getKindeServerSession();
-    const user = await getUser();
 
-    if (!user?.id) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
-    const userWithTenant = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: { tenant: true }
-    });
-    
-    if (!userWithTenant?.tenant) {
-      return NextResponse.json({ error: 'Tenant no encontrado' }, { status: 404 });
-    }
+    // Check permission - only MANAGER and ADMINISTRATOR can edit inventory
+    const { tenant } = await requirePermission('inventory', 'write');
 
     const updateData: Partial<InventoryFormData> = await request.json();
 
@@ -79,7 +68,7 @@ export async function PUT(
     }
 
     const updatedItem = await updateInventoryItem(
-      userWithTenant.tenant.id,
+      tenant.id,
       params.id,
       updateData
     );
@@ -87,11 +76,18 @@ export async function PUT(
     return NextResponse.json(updatedItem);
   } catch (error) {
     console.error('Error en PUT /api/inventory/[id]:', error);
-    
+
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { error: 'No tienes permiso para editar inventario' },
+        { status: 403 }
+      );
+    }
+
     if (error instanceof Error && error.message.includes('not found')) {
       return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
     }
-    
+
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -105,32 +101,27 @@ export async function DELETE(
 ) {
   try {
     const params = await props.params;
-    const { getUser } = getKindeServerSession();
-    const user = await getUser();
 
-    if (!user?.id) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    // Check permission - only MANAGER and ADMINISTRATOR can delete inventory
+    const { tenant } = await requirePermission('inventory', 'delete');
 
-    const userWithTenant = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: { tenant: true }
-    });
-    
-    if (!userWithTenant?.tenant) {
-      return NextResponse.json({ error: 'Tenant no encontrado' }, { status: 404 });
-    }
-
-    await deleteInventoryItem(userWithTenant.tenant.id, params.id);
+    await deleteInventoryItem(tenant.id, params.id);
 
     return NextResponse.json({ message: 'Producto eliminado correctamente' });
   } catch (error) {
     console.error('Error en DELETE /api/inventory/[id]:', error);
-    
+
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { error: 'No tienes permiso para eliminar inventario' },
+        { status: 403 }
+      );
+    }
+
     if (error instanceof Error && error.message.includes('not found')) {
       return NextResponse.json({ error: 'Producto no encontrado' }, { status: 404 });
     }
-    
+
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

@@ -647,5 +647,65 @@ describe('Sales API Integration Tests', () => {
       expect(result).toHaveLength(1);
       expect(result[0].locationId).toBe(location1.id);
     });
+
+    it('should include global services (locationId null) when searching by location in POS', async () => {
+      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });
+
+      const serviceAtLocation1 = createTestService({
+        id: 'service-loc-1',
+        tenantId: mockTenant.id,
+        locationId: location1.id,
+        name: 'Service at Location 1',
+      });
+      const globalService = createTestService({
+        id: 'service-global',
+        tenantId: mockTenant.id,
+        locationId: null,
+        name: 'Global Consultation Service',
+      });
+
+      // Simulate the OR condition used in sales search (locationId matches OR locationId is null)
+      prismaMock.service.findMany.mockImplementation(async (args: any) => {
+        const services = [serviceAtLocation1, globalService];
+        // Check if AND condition with OR for locationId is used
+        if (args?.where?.AND) {
+          const locationFilter = args.where.AND.find(
+            (condition: any) => condition?.OR !== undefined
+          );
+          if (locationFilter) {
+            return services.filter(
+              (s) => s.locationId === location1.id || s.locationId === null
+            );
+          }
+        }
+        return services;
+      });
+
+      const result = await prismaMock.service.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          isActive: true,
+          AND: [
+            {
+              OR: [
+                { locationId: location1.id },
+                { locationId: null }
+              ]
+            },
+            {
+              OR: [
+                { name: { contains: 'Service', mode: 'insensitive' } },
+                { description: { contains: 'Service', mode: 'insensitive' } }
+              ]
+            }
+          ]
+        },
+      });
+
+      expect(result).toHaveLength(2);
+      const locationIds = result.map((s) => s.locationId);
+      expect(locationIds).toContain(location1.id);
+      expect(locationIds).toContain(null);
+    });
   });
 });

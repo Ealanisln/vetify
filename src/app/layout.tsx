@@ -19,6 +19,7 @@ import {
   generateWebSiteSchema,
 } from '@/lib/seo';
 import { StructuredData } from '@/components/seo/StructuredData';
+import { UmamiAnalytics } from '@/components/analytics/UmamiAnalytics';
 
 
 const inter = Inter({
@@ -104,12 +105,8 @@ export default function RootLayout({
           </AuthProvider>
         </ErrorBoundary>
 
-        {/* Umami Analytics */}
-        <Script
-          src="https://analytics.alanis.dev/script.js"
-          data-website-id="a8982b40-5dc3-4a51-a17f-1cf53a2aecc4"
-          strategy="afterInteractive"
-        />
+        {/* Umami Analytics - excluded on /invite to prevent JSON-LD processing conflicts */}
+        <UmamiAnalytics />
 
         {/* Meta (Facebook) Pixel */}
         {process.env.NEXT_PUBLIC_META_PIXEL_ID && (

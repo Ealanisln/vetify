@@ -10,16 +10,26 @@ import {
   PencilIcon,
   TrashIcon,
   EyeIcon,
-  MapPinIcon
+  MapPinIcon,
+  EnvelopeIcon,
+  CheckCircleIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import StaffModal from './StaffModal';
 import { toast } from 'sonner';
+import { StaffPosition, POSITION_LABELS_ES, type StaffPositionType } from '@/lib/staff-positions';
 
 interface Location {
   id: string;
   name: string;
+}
+
+interface StaffInvitation {
+  id: string;
+  status: 'PENDING' | 'ACCEPTED' | 'EXPIRED' | 'REVOKED';
+  expiresAt: string;
 }
 
 interface StaffMember {
@@ -30,6 +40,8 @@ interface StaffMember {
   phone?: string;
   licenseNumber?: string;
   isActive: boolean;
+  userId?: string | null;
+  invitation?: StaffInvitation | null;
   createdAt: Date;
   updatedAt: Date;
   _count: {
@@ -48,9 +60,10 @@ interface StaffListProps {
     limit: number;
     totalPages: number;
   };
+  canWrite?: boolean;
 }
 
-export default function StaffList({ initialStaff, pagination: initialPagination }: StaffListProps) {
+export default function StaffList({ initialStaff, pagination: initialPagination, canWrite = true }: StaffListProps) {
   const [staff, setStaff] = useState<StaffMember[]>(initialStaff);
   const [pagination, setPagination] = useState(initialPagination);
   const [loading, setLoading] = useState(false);
@@ -62,6 +75,7 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create');
+  const [sendingInvitation, setSendingInvitation] = useState<string | null>(null);
 
   // Fetch locations on mount
   useEffect(() => {
@@ -142,6 +156,36 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
     }
   };
 
+  // Handle sending invitation
+  const handleSendInvitation = async (staffId: string, staffName: string, isResend: boolean = false) => {
+    setSendingInvitation(staffId);
+    try {
+      const response = await fetch('/api/invitations/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ staffId }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(
+          isResend
+            ? `Invitación reenviada a ${staffName}`
+            : `Invitación enviada a ${staffName}`
+        );
+        // Refresh staff list to get updated invitation status
+        fetchStaff(pagination.page);
+      } else {
+        toast.error(data.error || 'Error al enviar invitación');
+      }
+    } catch (error) {
+      console.error('Error sending invitation:', error);
+      toast.error('Error de conexión');
+    } finally {
+      setSendingInvitation(null);
+    }
+  };
+
   // Handle search and filters
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -181,7 +225,91 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
     );
   };
 
-  const positions = [...new Set(staff.map(s => s.position))];
+  // Render access status (linked, pending invitation, or needs invitation)
+  const renderAccessStatus = (staffMember: StaffMember) => {
+    const isSending = sendingInvitation === staffMember.id;
+    const invitation = staffMember.invitation;
+
+    // Staff already has linked account
+    if (staffMember.userId) {
+      return (
+        <Badge
+          variant="default"
+          className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 dark:border-green-700 flex items-center gap-1"
+        >
+          <CheckCircleIcon className="h-3 w-3" />
+          Acceso activo
+        </Badge>
+      );
+    }
+
+    // No email configured
+    if (!staffMember.email) {
+      return (
+        <span className="text-xs text-gray-400 dark:text-gray-500">
+          Sin email
+        </span>
+      );
+    }
+
+    // Has pending invitation
+    if (invitation?.status === 'PENDING') {
+      return (
+        <div className="flex items-center gap-2">
+          <Badge
+            variant="secondary"
+            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700 flex items-center gap-1"
+          >
+            <ClockIcon className="h-3 w-3" />
+            Invitación pendiente
+          </Badge>
+          {canWrite && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleSendInvitation(staffMember.id, staffMember.name, true)}
+              disabled={isSending}
+              className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              {isSending ? (
+                <span className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
+              ) : (
+                'Reenviar'
+              )}
+            </Button>
+          )}
+        </div>
+      );
+    }
+
+    // No invitation yet - show send button only if canWrite
+    if (!canWrite) {
+      return (
+        <span className="text-xs text-gray-400 dark:text-gray-500">
+          Sin acceso
+        </span>
+      );
+    }
+
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => handleSendInvitation(staffMember.id, staffMember.name, false)}
+        disabled={isSending}
+        className="h-7 flex items-center gap-1 text-xs dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+      >
+        {isSending ? (
+          <span className="animate-spin h-3 w-3 border-2 border-current border-t-transparent rounded-full" />
+        ) : (
+          <>
+            <EnvelopeIcon className="h-3 w-3" />
+            Enviar invitación
+          </>
+        )}
+      </Button>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -190,13 +318,15 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Gestión de Personal</h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Administra el equipo de tu veterinaria
+            {canWrite ? 'Administra el equipo de tu veterinaria' : 'Directorio del equipo de tu veterinaria'}
           </p>
         </div>
-        <Button onClick={() => openModal('create')} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700">
-          <UserPlusIcon className="h-4 w-4" />
-          Agregar Personal
-        </Button>
+        {canWrite && (
+          <Button onClick={() => openModal('create')} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700">
+            <UserPlusIcon className="h-4 w-4" />
+            Agregar Personal
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -234,8 +364,8 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-600 focus:border-transparent"
             >
               <option value="">Todas las posiciones</option>
-              {positions.map(position => (
-                <option key={position} value={position}>{position}</option>
+              {Object.entries(StaffPosition).map(([key, value]) => (
+                <option key={key} value={value}>{POSITION_LABELS_ES[value]}</option>
               ))}
             </select>
 
@@ -274,11 +404,15 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
                 No hay personal registrado
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Comienza agregando miembros a tu equipo de trabajo.
+                {canWrite
+                  ? 'Comienza agregando miembros a tu equipo de trabajo.'
+                  : 'Aún no hay miembros registrados en el equipo.'}
               </p>
-              <Button onClick={() => openModal('create')} className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700">
-                Agregar primer miembro
-              </Button>
+              {canWrite && (
+                <Button onClick={() => openModal('create')} className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700">
+                  Agregar primer miembro
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -296,7 +430,7 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-600 dark:text-gray-400">
                         <div>
-                          <span className="font-medium">Posición:</span> {staffMember.position}
+                          <span className="font-medium">Posición:</span> {POSITION_LABELS_ES[staffMember.position as StaffPositionType] || staffMember.position}
                         </div>
                         {staffMember.email && (
                           <div className="truncate">
@@ -318,6 +452,11 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
                         <span>{staffMember._count.medicalHistories} historiales</span>
                         <span>{staffMember._count.Sale} ventas</span>
                       </div>
+
+                      {/* Access Status */}
+                      <div className="mt-3">
+                        {renderAccessStatus(staffMember)}
+                      </div>
                     </div>
 
                     {/* Desktop buttons */}
@@ -331,24 +470,28 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
                         <EyeIcon className="h-4 w-4" />
                         Ver
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openModal('edit', staffMember)}
-                        className="flex items-center gap-1 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                        Editar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(staffMember.id, staffMember.name)}
-                        className="flex items-center gap-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 dark:border-red-600/50 dark:hover:bg-red-900/20"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                        Eliminar
-                      </Button>
+                      {canWrite && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openModal('edit', staffMember)}
+                            className="flex items-center gap-1 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(staffMember.id, staffMember.name)}
+                            className="flex items-center gap-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 dark:border-red-600/50 dark:hover:bg-red-900/20"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                            Eliminar
+                          </Button>
+                        </>
+                      )}
                     </div>
 
                     {/* Mobile buttons */}
@@ -362,24 +505,28 @@ export default function StaffList({ initialStaff, pagination: initialPagination 
                         <EyeIcon className="h-4 w-4" />
                         Ver
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openModal('edit', staffMember)}
-                        className="flex-1 flex items-center justify-center gap-1 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                      >
-                        <PencilIcon className="h-4 w-4" />
-                        Editar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(staffMember.id, staffMember.name)}
-                        className="flex-1 flex items-center justify-center gap-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 dark:border-red-600/50 dark:hover:bg-red-900/20"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                        Eliminar
-                      </Button>
+                      {canWrite && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => openModal('edit', staffMember)}
+                            className="flex-1 flex items-center justify-center gap-1 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(staffMember.id, staffMember.name)}
+                            className="flex-1 flex items-center justify-center gap-1 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 dark:border-red-600/50 dark:hover:bg-red-900/20"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                            Eliminar
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

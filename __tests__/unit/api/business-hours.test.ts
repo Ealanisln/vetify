@@ -6,11 +6,12 @@ import { GET, PUT } from '@/app/api/settings/business-hours/route';
 // Mock the auth module
 jest.mock('@/lib/auth', () => ({
   requireAuth: jest.fn(),
+  requirePermission: jest.fn(),
 }));
 
-import { requireAuth } from '@/lib/auth';
+import { requirePermission } from '@/lib/auth';
 
-const mockRequireAuth = requireAuth as jest.Mock;
+const mockRequirePermission = requirePermission as jest.Mock;
 
 // Helper to create a mock Request for PUT
 function createMockPutRequest(body: Record<string, unknown>): Request {
@@ -78,7 +79,7 @@ describe('Business Hours API', () => {
 
   describe('GET /api/settings/business-hours', () => {
     it('should return existing business hours for authenticated user', async () => {
-      mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+      mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
       prismaMock.tenantSettings.findUnique.mockResolvedValue({
         ...mockTenantSettings,
         businessHours: mockBusinessHours,
@@ -96,7 +97,7 @@ describe('Business Hours API', () => {
     });
 
     it('should create default settings when none exist', async () => {
-      mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+      mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
       // First call returns null (no settings exist)
       prismaMock.tenantSettings.findUnique.mockResolvedValueOnce(null);
@@ -125,7 +126,7 @@ describe('Business Hours API', () => {
     });
 
     it('should create default business hours when settings exist but hours are empty', async () => {
-      mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+      mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
       // First call returns settings without business hours
       prismaMock.tenantSettings.findUnique.mockResolvedValueOnce({
@@ -151,7 +152,7 @@ describe('Business Hours API', () => {
     });
 
     it('should return 500 for unauthenticated request', async () => {
-      mockRequireAuth.mockRejectedValue(new Error('Unauthorized'));
+      mockRequirePermission.mockRejectedValue(new Error('Unauthorized'));
 
       const response = await GET();
       const data = await response.json();
@@ -165,7 +166,7 @@ describe('Business Hours API', () => {
   describe('PUT /api/settings/business-hours', () => {
     describe('Validation', () => {
       it('should reject invalid time format', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         const request = createMockPutRequest({
           defaultStartTime: '25:00', // Invalid hour
@@ -182,7 +183,7 @@ describe('Business Hours API', () => {
       });
 
       it('should reject slot duration out of range', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         const request = createMockPutRequest({
           defaultStartTime: '08:00',
@@ -198,7 +199,7 @@ describe('Business Hours API', () => {
       });
 
       it('should accept valid single-digit hour format (e.g., 8:00)', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         prismaMock.tenantSettings.upsert.mockResolvedValue({
           ...mockTenantSettings,
@@ -225,7 +226,7 @@ describe('Business Hours API', () => {
 
     describe('Null value handling (VETIF-160 fix)', () => {
       it('should accept null for optional time fields (lunchStart, lunchEnd)', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         prismaMock.tenantSettings.upsert.mockResolvedValue({
           ...mockTenantSettings,
@@ -255,7 +256,7 @@ describe('Business Hours API', () => {
       });
 
       it('should accept undefined for optional time fields', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
         prismaMock.tenantSettings.findUnique.mockResolvedValue({
@@ -278,7 +279,7 @@ describe('Business Hours API', () => {
       });
 
       it('should accept null slotDuration in business hours array', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
         prismaMock.tenantSettings.findUnique.mockResolvedValue({
@@ -313,7 +314,7 @@ describe('Business Hours API', () => {
 
     describe('Passthrough fields (VETIF-160 fix)', () => {
       it('should accept extra Prisma fields like id, tenantId, tenantSettingsId', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
         prismaMock.tenantSettings.findUnique.mockResolvedValue({
@@ -361,7 +362,7 @@ describe('Business Hours API', () => {
 
     describe('Update by ID (VETIF-160 fix)', () => {
       it('should update business hours by ID when id is provided', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
         prismaMock.tenantSettings.findUnique.mockResolvedValue({
@@ -406,7 +407,7 @@ describe('Business Hours API', () => {
       });
 
       it('should find and update by composite key when id is not provided', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
         prismaMock.tenantSettings.findUnique.mockResolvedValue({
@@ -464,7 +465,7 @@ describe('Business Hours API', () => {
       });
 
       it('should create new business hours when none exist for day', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
         prismaMock.tenantSettings.findUnique.mockResolvedValue({
@@ -519,7 +520,7 @@ describe('Business Hours API', () => {
 
     describe('Update without businessHours array', () => {
       it('should update only default settings when businessHours array is not provided', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         prismaMock.tenantSettings.upsert.mockResolvedValue({
           ...mockTenantSettings,
@@ -551,7 +552,7 @@ describe('Business Hours API', () => {
       });
 
       it('should update only default settings when businessHours array is empty', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         prismaMock.tenantSettings.upsert.mockResolvedValue({
           ...mockTenantSettings,
@@ -584,7 +585,7 @@ describe('Business Hours API', () => {
 
     describe('Full workflow simulation (real-world scenario)', () => {
       it('should handle the complete GET-then-PUT workflow that caused VETIF-160', async () => {
-        mockRequireAuth.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
 
         // Step 1: GET returns full data with all Prisma fields
         const getResponse = {
@@ -642,7 +643,7 @@ describe('Business Hours API', () => {
     });
 
     it('should return 500 for unauthenticated request', async () => {
-      mockRequireAuth.mockRejectedValue(new Error('Unauthorized'));
+      mockRequirePermission.mockRejectedValue(new Error('Unauthorized'));
 
       const request = createMockPutRequest({
         defaultStartTime: '08:00',
