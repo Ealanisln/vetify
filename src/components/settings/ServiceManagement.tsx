@@ -158,28 +158,28 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
   return (
     <div className="p-6">
       {/* Header con búsqueda y filtros */}
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex-1">
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar servicios..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
-              data-testid="service-search-input"
-            />
-          </div>
+      <div className="space-y-3 mb-6">
+        {/* Búsqueda */}
+        <div className="relative">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Buscar servicios..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+            data-testid="service-search-input"
+          />
         </div>
-        
-        <div className="flex gap-2">
-          <div className="relative">
+
+        {/* Filtro y botón */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1 sm:flex-none">
             <FunnelIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value as ServiceCategory | 'ALL')}
-              className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100 appearance-none"
+              className="w-full sm:w-auto pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100 appearance-none"
             >
               {serviceCategories.map(category => (
                 <option key={category.value} value={category.value}>
@@ -188,10 +188,10 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
               ))}
             </select>
           </div>
-          
+
           <button
             onClick={handleAddService}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+            className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
             data-testid="add-service-button"
           >
             <PlusIcon className="h-4 w-4 mr-2" />

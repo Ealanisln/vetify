@@ -1,7 +1,11 @@
 import { prisma } from './prisma';
 import { z } from 'zod';
 import { serializeCustomer, serializeCustomers } from './serializers';
-import { type PaginationParams } from './pagination';
+import type { PaginationParams, SortParams } from './pagination';
+
+// Allowed sort fields for customers (whitelist for security)
+export const CUSTOMERS_ALLOWED_SORT_FIELDS = ['name', 'email', 'createdAt'] as const;
+export type CustomersSortField = typeof CUSTOMERS_ALLOWED_SORT_FIELDS[number];
 
 export const createCustomerSchema = z.object({
   name: z.string().min(1, 'Nombre es requerido'),
@@ -63,7 +67,8 @@ export async function createCustomer(
 export async function getCustomersByTenant(
   tenantId: string,
   locationId?: string,
-  pagination?: PaginationParams
+  pagination?: PaginationParams,
+  sort?: SortParams
 ) {
   const where = {
     tenantId,
@@ -77,28 +82,35 @@ export async function getCustomersByTenant(
     }),
   };
 
+  // Build orderBy - default to createdAt desc
+  const orderBy = sort?.sortBy
+    ? { [sort.sortBy]: sort.sortOrder || 'desc' }
+    : { createdAt: 'desc' as const };
+
+  const include = {
+    pets: {
+      select: {
+        id: true,
+        name: true,
+        species: true,
+      }
+    },
+    _count: {
+      select: {
+        pets: true,
+        appointments: true,
+      }
+    }
+  };
+
   // If pagination is provided, return paginated results with total count
   if (pagination) {
     const [total, customers] = await Promise.all([
       prisma.customer.count({ where }),
       prisma.customer.findMany({
         where,
-        include: {
-          pets: {
-            select: {
-              id: true,
-              name: true,
-              species: true,
-            }
-          },
-          _count: {
-            select: {
-              pets: true,
-              appointments: true,
-            }
-          }
-        },
-        orderBy: { createdAt: 'desc' },
+        include,
+        orderBy,
         skip: pagination.skip,
         take: pagination.limit,
       })
@@ -110,22 +122,8 @@ export async function getCustomersByTenant(
   // Without pagination, return all customers (backwards compatible)
   const customers = await prisma.customer.findMany({
     where,
-    include: {
-      pets: {
-        select: {
-          id: true,
-          name: true,
-          species: true,
-        }
-      },
-      _count: {
-        select: {
-          pets: true,
-          appointments: true,
-        }
-      }
-    },
-    orderBy: { createdAt: 'desc' }
+    include,
+    orderBy
   });
 
   return serializeCustomers(customers);

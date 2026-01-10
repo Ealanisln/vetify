@@ -1,15 +1,20 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { ChevronUpIcon, ChevronDownIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
 import { themeColors, responsiveTable } from '../../utils/theme-colors';
 
-interface Column<T> {
+export interface Column<T> {
   key: keyof T | string;
   header: string;
   render?: (item: T) => ReactNode;
   className?: string;
   mobileLabel?: string; // Custom label for mobile view
+  sortable?: boolean; // Whether this column can be sorted
+  sortKey?: string; // Key to use for sorting (may differ from display key)
 }
+
+export type SortOrder = 'asc' | 'desc';
 
 interface ResponsiveTableProps<T> {
   data: T[];
@@ -18,6 +23,10 @@ interface ResponsiveTableProps<T> {
   emptyMessage?: string;
   onRowClick?: (item: T) => void;
   className?: string;
+  // Sorting props
+  sortBy?: string;
+  sortOrder?: SortOrder;
+  onSort?: (sortBy: string, sortOrder: SortOrder) => void;
 }
 
 export function ResponsiveTable<T extends Record<string, unknown>>({
@@ -27,7 +36,36 @@ export function ResponsiveTable<T extends Record<string, unknown>>({
   emptyMessage = "No hay datos disponibles",
   onRowClick,
   className = "",
+  sortBy,
+  sortOrder,
+  onSort,
 }: ResponsiveTableProps<T>) {
+  // Handle column header click for sorting
+  const handleSort = (column: Column<T>) => {
+    if (!column.sortable || !onSort) return;
+
+    const sortKey = column.sortKey || String(column.key);
+    const newOrder: SortOrder =
+      sortBy === sortKey && sortOrder === 'asc' ? 'desc' : 'asc';
+
+    onSort(sortKey, newOrder);
+  };
+
+  // Get sort indicator for a column
+  const getSortIndicator = (column: Column<T>) => {
+    if (!column.sortable) return null;
+
+    const sortKey = column.sortKey || String(column.key);
+    const isActive = sortBy === sortKey;
+
+    if (!isActive) {
+      return <ChevronUpDownIcon className="w-4 h-4 ml-1 text-gray-400" />;
+    }
+
+    return sortOrder === 'asc'
+      ? <ChevronUpIcon className="w-4 h-4 ml-1 text-[#75a99c]" />
+      : <ChevronDownIcon className="w-4 h-4 ml-1 text-[#75a99c]" />;
+  };
   if (loading) {
     return (
       <div className={`${themeColors.background.card} rounded-lg border ${themeColors.border.primary} p-8`}>
@@ -63,9 +101,13 @@ export function ResponsiveTable<T extends Record<string, unknown>>({
                     index === 0
                       ? 'sticky left-0 z-10 bg-gray-50 dark:bg-gray-800 after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-gray-200 dark:after:bg-gray-700'
                       : ''
-                  } ${column.className || ''}`}
+                  } ${column.sortable ? 'cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-700' : ''} ${column.className || ''}`}
+                  onClick={() => handleSort(column)}
                 >
-                  {column.header}
+                  <div className="flex items-center">
+                    {column.header}
+                    {getSortIndicator(column)}
+                  </div>
                 </th>
               ))}
             </tr>

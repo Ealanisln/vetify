@@ -185,6 +185,11 @@ describe('Staff Permissions', () => {
         expect(canAccess(StaffPosition.RECEPTIONIST, 'locations', 'write')).toBe(false);
         expect(canAccess(StaffPosition.RECEPTIONIST, 'locations', 'delete')).toBe(false);
       });
+
+      it('should have read-only access to staff list (for cash drawer)', () => {
+        expect(canAccess(StaffPosition.RECEPTIONIST, 'staff', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.RECEPTIONIST, 'staff', 'write')).toBe(false);
+      });
     });
 
     describe('ASSISTANT', () => {
@@ -212,6 +217,11 @@ describe('Staff Permissions', () => {
         expect(canAccess(StaffPosition.ASSISTANT, 'locations', 'read')).toBe(true);
         expect(canAccess(StaffPosition.ASSISTANT, 'locations', 'write')).toBe(false);
         expect(canAccess(StaffPosition.ASSISTANT, 'locations', 'delete')).toBe(false);
+      });
+
+      it('should have read-only access to staff list (for cash drawer)', () => {
+        expect(canAccess(StaffPosition.ASSISTANT, 'staff', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.ASSISTANT, 'staff', 'write')).toBe(false);
       });
     });
 
@@ -327,6 +337,7 @@ describe('Staff Permissions', () => {
       expect(features).toContain('dashboard');
       expect(features).toContain('appointments');
       expect(features).toContain('sales');
+      expect(features).toContain('staff'); // Has read-only access for cash drawer
       expect(features).not.toContain('medical');
       expect(features).not.toContain('reports');
     });
@@ -496,6 +507,10 @@ describe('Staff Permissions', () => {
       // Cannot access medical records
       expect(canAccess(receptionistPosition, 'medical', 'read')).toBe(false);
 
+      // Can view staff list (for cash drawer operations) but cannot manage
+      expect(canAccess(receptionistPosition, 'staff', 'read')).toBe(true);
+      expect(canAccess(receptionistPosition, 'staff', 'write')).toBe(false);
+
       // Can view locations but cannot manage
       expect(canAccess(receptionistPosition, 'locations', 'read')).toBe(true);
       expect(canAccess(receptionistPosition, 'locations', 'write')).toBe(false);
@@ -515,6 +530,10 @@ describe('Staff Permissions', () => {
 
       // Can process sales
       expect(canAccess(assistantPosition, 'sales', 'write')).toBe(true);
+
+      // Can view staff list (for cash drawer operations) but cannot manage
+      expect(canAccess(assistantPosition, 'staff', 'read')).toBe(true);
+      expect(canAccess(assistantPosition, 'staff', 'write')).toBe(false);
 
       // Can view locations but cannot manage
       expect(canAccess(assistantPosition, 'locations', 'read')).toBe(true);

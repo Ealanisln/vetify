@@ -14,6 +14,7 @@ import { es } from 'date-fns/locale';
 import { ExclamationTriangleIcon } from '@heroicons/react/24/solid';
 import { useLocation } from '@/components/providers/LocationProvider';
 import { CashDrawerSelector } from './CashDrawerSelector';
+import { getPositionLabel, type StaffPositionType } from '@/lib/staff-positions';
 
 interface CashDrawerMainProps {
   tenantId: string;
@@ -401,7 +402,7 @@ export function CashDrawerMain({ tenantId, canOperate = true }: CashDrawerMainPr
                         ) : (
                           staffList.map((staff) => (
                             <option key={staff.id} value={staff.id}>
-                              {staff.name} - {staff.position}
+                              {staff.name} - {getPositionLabel(staff.position as StaffPositionType)}
                             </option>
                           ))
                         )}

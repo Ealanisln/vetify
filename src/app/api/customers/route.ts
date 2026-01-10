@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '../../../lib/auth';
-import { createCustomer, createCustomerSchema, getCustomersByTenant } from '../../../lib/customers';
-import { parsePaginationParams, createPaginatedResponse } from '@/lib/pagination';
+import { createCustomer, createCustomerSchema, getCustomersByTenant, CUSTOMERS_ALLOWED_SORT_FIELDS } from '../../../lib/customers';
+import { parsePaginationParams, parseSortParams, createPaginatedResponse } from '@/lib/pagination';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,10 +36,16 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const locationId = searchParams.get('locationId') || undefined;
 
-    // Parse pagination params
+    // Parse pagination and sort params
     const paginationParams = parsePaginationParams(searchParams);
+    const sortParams = parseSortParams(searchParams, CUSTOMERS_ALLOWED_SORT_FIELDS);
 
-    const result = await getCustomersByTenant(tenant.id as string, locationId, paginationParams);
+    const result = await getCustomersByTenant(
+      tenant.id as string,
+      locationId,
+      paginationParams,
+      sortParams
+    );
 
     // Handle paginated response
     if ('customers' in result && 'total' in result) {

@@ -84,6 +84,7 @@ export const POSITION_PERMISSIONS: Record<StaffPositionType, string[]> = {
     'medical:read',
     'inventory:read',
     'sales',
+    'staff:read',
     'locations:read',
   ],
 
@@ -94,6 +95,7 @@ export const POSITION_PERMISSIONS: Record<StaffPositionType, string[]> = {
     'customers',
     'pets:read',
     'sales',
+    'staff:read',
     'testimonials:read',
     'locations:read',
   ],

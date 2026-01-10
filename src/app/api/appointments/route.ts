@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '../../../lib/auth';
+import { requireAuth, requirePermission } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
 import { sendAppointmentConfirmation, sendAppointmentStaffNotification } from '@/lib/email/email-service';
@@ -121,7 +121,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { tenant } = await requireAuth();
+    // Require write permission for appointments
+    const { tenant } = await requirePermission('appointments', 'write');
     const body = await request.json();
     
     // Validar datos
@@ -367,7 +368,15 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
-    
+
+    // Handle permission denied errors
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { success: false, error: 'No tienes permiso para crear citas' },
+        { status: 403 }
+      );
+    }
+
     console.error('Error creating appointment:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },

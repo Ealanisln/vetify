@@ -3,10 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CustomersList } from '../../../components/customers/CustomersList';
 import { CustomerStats } from '../../../components/customers/CustomerStats';
+import { PaginationControls } from '../../../components/ui/PaginationControls';
 import { Button } from '../../../components/ui/button';
 import { PlusIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { useLocation } from '@/components/providers/LocationProvider';
+import type { SortOrder } from '@/components/ui/ResponsiveTable';
 
 interface Customer {
   id: string;
@@ -29,14 +31,35 @@ interface Customer {
   };
 }
 
+interface PaginationState {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+const ITEMS_PER_PAGE = 10;
+
 export function CustomersPageClient() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination state
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 1,
+    limit: ITEMS_PER_PAGE,
+    total: 0,
+    totalPages: 0,
+  });
+
+  // Sorting state - default to alphabetical order by name
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+
   const { currentLocation, isAllLocations } = useLocation();
 
-  const fetchCustomers = useCallback(async () => {
+  const fetchCustomers = useCallback(async (page: number = 1) => {
     setIsLoading(true);
     setError(null);
 
@@ -46,7 +69,15 @@ export function CustomersPageClient() {
         params.set('locationId', currentLocation.id);
       }
 
-      const url = `/api/customers${params.toString() ? `?${params.toString()}` : ''}`;
+      // Add pagination params
+      params.set('page', String(page));
+      params.set('limit', String(ITEMS_PER_PAGE));
+
+      // Add sorting params
+      params.set('sortBy', sortBy);
+      params.set('sortOrder', sortOrder);
+
+      const url = `/api/customers?${params.toString()}`;
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -54,20 +85,55 @@ export function CustomersPageClient() {
       }
 
       const data = await response.json();
-      setCustomers(data);
+
+      // Handle paginated response
+      if (data.success && data.data && data.pagination) {
+        setCustomers(data.data);
+        setPagination({
+          page: data.pagination.page,
+          limit: data.pagination.limit,
+          total: data.pagination.total,
+          totalPages: data.pagination.totalPages,
+        });
+      } else {
+        // Fallback for legacy response format
+        const customersArray = Array.isArray(data) ? data : (data.data || []);
+        setCustomers(customersArray);
+        setPagination({
+          page: 1,
+          limit: ITEMS_PER_PAGE,
+          total: customersArray.length,
+          totalPages: 1,
+        });
+      }
     } catch (err) {
       console.error('Error fetching customers:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setIsLoading(false);
     }
-  }, [currentLocation?.id, isAllLocations]);
+  }, [currentLocation?.id, isAllLocations, sortBy, sortOrder]);
 
   useEffect(() => {
-    fetchCustomers();
-  }, [fetchCustomers]);
+    fetchCustomers(1); // Reset to page 1 when filters change
+  }, [currentLocation?.id, isAllLocations, sortBy, sortOrder]);
 
-  if (isLoading) {
+  // Separate effect for initial load
+  useEffect(() => {
+    fetchCustomers(pagination.page);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handlePageChange = (newPage: number) => {
+    fetchCustomers(newPage);
+  };
+
+  const handleSort = (newSortBy: string, newSortOrder: SortOrder) => {
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
+    // fetchCustomers will be called automatically due to useEffect dependency
+  };
+
+  if (isLoading && customers.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -100,7 +166,7 @@ export function CustomersPageClient() {
         </div>
         <div className="text-center py-12">
           <p className="text-red-500">{error}</p>
-          <Button onClick={fetchCustomers} className="mt-4">
+          <Button onClick={() => fetchCustomers(pagination.page)} className="mt-4">
             Reintentar
           </Button>
         </div>
@@ -124,11 +190,27 @@ export function CustomersPageClient() {
         </Link>
       </div>
 
-      {/* Stats */}
-      <CustomerStats customers={customers} />
+      {/* Stats - use total from pagination for accuracy */}
+      <CustomerStats customers={customers} totalCustomers={pagination.total} />
 
-      {/* Customers List */}
-      <CustomersList customers={customers} />
+      {/* Customers List with sorting */}
+      <CustomersList
+        customers={customers}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        onSort={handleSort}
+        isLoading={isLoading}
+      />
+
+      {/* Pagination Controls */}
+      <PaginationControls
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.total}
+        itemsPerPage={pagination.limit}
+        onPageChange={handlePageChange}
+        itemLabel="clientes"
+      />
     </div>
   );
 }

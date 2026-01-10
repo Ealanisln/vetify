@@ -1,6 +1,11 @@
 import { prisma } from './prisma';
 import { z } from 'zod';
 import { serializePet, serializePets } from './serializers';
+import type { PaginationParams, SortParams } from './pagination';
+
+// Allowed sort fields for pets (whitelist for security)
+export const PETS_ALLOWED_SORT_FIELDS = ['name', 'species', 'breed', 'createdAt'] as const;
+export type PetsSortField = typeof PETS_ALLOWED_SORT_FIELDS[number];
 
 export const createPetSchema = z.object({
   name: z.string().min(1, 'Nombre es requerido'),
@@ -68,28 +73,61 @@ export async function createPet(
   return serializePet(pet);
 }
 
-export async function getPetsByTenant(tenantId: string, locationId?: string) {
+export async function getPetsByTenant(
+  tenantId: string,
+  locationId?: string,
+  pagination?: PaginationParams,
+  sort?: SortParams
+) {
+  const where = {
+    tenantId,
+    // Include pets with the specified location OR pets without any location assigned
+    ...(locationId && {
+      OR: [
+        { locationId },
+        { locationId: null }
+      ]
+    }),
+  };
+
+  // Build orderBy - default to createdAt desc
+  const orderBy = sort?.sortBy
+    ? { [sort.sortBy]: sort.sortOrder || 'desc' }
+    : { createdAt: 'desc' as const };
+
+  // If pagination is provided, return paginated results with total count
+  if (pagination) {
+    const [total, pets] = await Promise.all([
+      prisma.pet.count({ where }),
+      prisma.pet.findMany({
+        where,
+        include: {
+          customer: true,
+          appointments: true,
+          medicalHistories: true,
+          location: true
+        },
+        orderBy,
+        skip: pagination.skip,
+        take: pagination.limit,
+      })
+    ]);
+
+    return { pets: serializePets(pets), total };
+  }
+
+  // Without pagination, return all pets (backwards compatible)
   const pets = await prisma.pet.findMany({
-    where: {
-      tenantId,
-      // Include pets with the specified location OR pets without any location assigned
-      ...(locationId && {
-        OR: [
-          { locationId },
-          { locationId: null }
-        ]
-      }),
-    },
+    where,
     include: {
       customer: true,
       appointments: true,
       medicalHistories: true,
       location: true
     },
-    orderBy: { createdAt: 'desc' }
+    orderBy
   });
 
-  // Serialize the pets data to convert Decimal fields to numbers
   return serializePets(pets);
 }
 

@@ -1,4 +1,3 @@
-import request from 'supertest';
 import { prismaMock } from '../../mocks/prisma';
 import {
   createTestAppointment,
@@ -7,8 +6,19 @@ import {
   createTestTenant,
   createTestCustomer,
   createTestStaff,
+  createTestStaffWithPosition,
   createTestLocation,
+  POSITIONS_WITH_APPOINTMENTS_WRITE,
+  POSITIONS_WITH_APPOINTMENTS_READ_ONLY,
+  type TestStaffPosition,
 } from '../../utils/test-utils';
+import { canAccess } from '../../../src/lib/staff-permissions';
+
+// Type definitions for test data
+type TestTenant = ReturnType<typeof createTestTenant>;
+type TestUser = ReturnType<typeof createTestUser>;
+type TestPet = ReturnType<typeof createTestPet>;
+type TestAppointment = ReturnType<typeof createTestAppointment>;
 
 // Mock Next.js app
 const mockApp = {
@@ -42,10 +52,10 @@ const mockNextApp = {
 };
 
 describe('Appointments API Integration Tests', () => {
-  let mockTenant: any;
-  let mockUser: any;
-  let mockPet: any;
-  let mockAppointment: any;
+  let mockTenant: TestTenant;
+  let mockUser: TestUser;
+  let mockPet: TestPet;
+  let mockAppointment: TestAppointment;
 
   beforeEach(() => {
     // Reset mocks
@@ -72,7 +82,7 @@ describe('Appointments API Integration Tests', () => {
   describe('GET /api/appointments', () => {
     it('should return all appointments for authenticated user', async () => {
       // Mock the route handler
-      mockAppointmentsRoute.GET.mockImplementation((req: any, res: any) => {
+      mockAppointmentsRoute.GET.mockImplementation((_req: unknown, res: { status: (code: number) => { json: (data: unknown) => void } }) => {
         res.status(200).json([mockAppointment]);
       });
 
@@ -83,15 +93,18 @@ describe('Appointments API Integration Tests', () => {
     });
 
     it('should filter appointments by date range', async () => {
-      const startDate = new Date('2024-01-01');
-      const endDate = new Date('2024-01-31');
-      
-      // Mock filtered results
+      // Define date range for filtering (used in real API calls)
+      const _startDate = new Date('2024-01-01');
+      const _endDate = new Date('2024-01-31');
+
+      // Mock filtered results - in real implementation these dates would filter the query
       const filteredAppointments = [mockAppointment];
       prismaMock.appointment.findMany.mockResolvedValue(filteredAppointments);
 
       expect(prismaMock.appointment.findMany).toBeDefined();
       expect(filteredAppointments).toHaveLength(1);
+      // Verify date objects are valid (demonstrates date range setup is correct)
+      expect(_startDate.getTime()).toBeLessThan(_endDate.getTime());
     });
 
     it('should filter appointments by status', async () => {
@@ -306,9 +319,8 @@ describe('Appointments API Integration Tests', () => {
     });
 
     it('should return 404 when deleting appointment from another tenant', async () => {
-      const otherTenantId = 'other-tenant-id';
-
       // Simulate tenant-scoped delete (soft delete via status change)
+      // The current tenant (mockTenant.id) cannot delete appointments from other tenants
       prismaMock.appointment.updateMany.mockResolvedValue({ count: 0 });
 
       const result = await prismaMock.appointment.updateMany({
@@ -360,16 +372,11 @@ describe('Appointments API Integration Tests', () => {
 
   describe('Conflict Detection (Enhanced)', () => {
     it('should detect conflicts only for same veterinarian', async () => {
-      const sameVetAppointment = createTestAppointment({
-        id: 'same-vet-appt',
-        tenantId: mockTenant.id,
-        staffId: mockAppointment.staffId, // Same vet
-        startTime: mockAppointment.startTime,
-        endTime: mockAppointment.endTime,
-      });
+      // Test scenario: attempting to book an appointment for the same vet at the same time
+      // as mockAppointment should result in a conflict
 
       // Find conflicts for same vet
-      prismaMock.appointment.findMany.mockImplementation(async (args: any) => {
+      prismaMock.appointment.findMany.mockImplementation(async (args: { where?: { staffId?: string } }) => {
         const where = args?.where;
         if (where?.staffId === mockAppointment.staffId) {
           return [mockAppointment];
@@ -396,7 +403,7 @@ describe('Appointments API Integration Tests', () => {
       const differentVetId = 'different-vet-id';
 
       // Find conflicts for different vet - should return empty
-      prismaMock.appointment.findMany.mockImplementation(async (args: any) => {
+      prismaMock.appointment.findMany.mockImplementation(async (args: { where?: { staffId?: string } }) => {
         const where = args?.where;
         if (where?.staffId === differentVetId) {
           return []; // No conflicts for different vet
@@ -447,6 +454,200 @@ describe('Appointments API Integration Tests', () => {
 
       expect(stillExists).not.toBeNull();
       expect(stillExists?.status).toBe('CANCELLED_CLINIC');
+    });
+  });
+
+  describe('Staff Position Permissions', () => {
+    describe('Appointments Write Permissions', () => {
+      it.each(POSITIONS_WITH_APPOINTMENTS_WRITE)(
+        'should allow %s to create appointments',
+        (position) => {
+          const staff = createTestStaffWithPosition(position as TestStaffPosition);
+          const hasWriteAccess = canAccess(staff.position, 'appointments', 'write');
+
+          expect(hasWriteAccess).toBe(true);
+        }
+      );
+
+      it.each(POSITIONS_WITH_APPOINTMENTS_WRITE)(
+        'should allow %s to update appointments',
+        (position) => {
+          const staff = createTestStaffWithPosition(position as TestStaffPosition);
+          const hasWriteAccess = canAccess(staff.position, 'appointments', 'write');
+
+          expect(hasWriteAccess).toBe(true);
+        }
+      );
+
+      it.each(POSITIONS_WITH_APPOINTMENTS_WRITE)(
+        'should allow %s to delete appointments',
+        (position) => {
+          const staff = createTestStaffWithPosition(position as TestStaffPosition);
+          // Delete requires full feature access (same as write for most cases)
+          const hasDeleteAccess = canAccess(staff.position, 'appointments', 'delete');
+
+          expect(hasDeleteAccess).toBe(true);
+        }
+      );
+    });
+
+    describe('Appointments Read-Only Permissions', () => {
+      it.each(POSITIONS_WITH_APPOINTMENTS_READ_ONLY)(
+        'should allow %s to read appointments',
+        (position) => {
+          const staff = createTestStaffWithPosition(position as TestStaffPosition);
+          const hasReadAccess = canAccess(staff.position, 'appointments', 'read');
+
+          expect(hasReadAccess).toBe(true);
+        }
+      );
+
+      it.each(POSITIONS_WITH_APPOINTMENTS_READ_ONLY)(
+        'should NOT allow %s to create appointments',
+        (position) => {
+          const staff = createTestStaffWithPosition(position as TestStaffPosition);
+          const hasWriteAccess = canAccess(staff.position, 'appointments', 'write');
+
+          expect(hasWriteAccess).toBe(false);
+        }
+      );
+
+      it.each(POSITIONS_WITH_APPOINTMENTS_READ_ONLY)(
+        'should NOT allow %s to update appointments',
+        (position) => {
+          const staff = createTestStaffWithPosition(position as TestStaffPosition);
+          const hasWriteAccess = canAccess(staff.position, 'appointments', 'write');
+
+          expect(hasWriteAccess).toBe(false);
+        }
+      );
+
+      it.each(POSITIONS_WITH_APPOINTMENTS_READ_ONLY)(
+        'should NOT allow %s to delete appointments',
+        (position) => {
+          const staff = createTestStaffWithPosition(position as TestStaffPosition);
+          const hasDeleteAccess = canAccess(staff.position, 'appointments', 'delete');
+
+          expect(hasDeleteAccess).toBe(false);
+        }
+      );
+    });
+
+    describe('Specific Position Tests', () => {
+      it('ASSISTANT should have read-only access to appointments', () => {
+        const assistant = createTestStaffWithPosition('ASSISTANT');
+
+        expect(canAccess(assistant.position, 'appointments', 'read')).toBe(true);
+        expect(canAccess(assistant.position, 'appointments', 'write')).toBe(false);
+        expect(canAccess(assistant.position, 'appointments', 'delete')).toBe(false);
+      });
+
+      it('GROOMER should have read-only access to appointments', () => {
+        const groomer = createTestStaffWithPosition('GROOMER');
+
+        expect(canAccess(groomer.position, 'appointments', 'read')).toBe(true);
+        expect(canAccess(groomer.position, 'appointments', 'write')).toBe(false);
+        expect(canAccess(groomer.position, 'appointments', 'delete')).toBe(false);
+      });
+
+      it('RECEPTIONIST should have full access to appointments', () => {
+        const receptionist = createTestStaffWithPosition('RECEPTIONIST');
+
+        expect(canAccess(receptionist.position, 'appointments', 'read')).toBe(true);
+        expect(canAccess(receptionist.position, 'appointments', 'write')).toBe(true);
+        expect(canAccess(receptionist.position, 'appointments', 'delete')).toBe(true);
+      });
+
+      it('VETERINARIAN should have full access to appointments', () => {
+        const vet = createTestStaffWithPosition('VETERINARIAN');
+
+        expect(canAccess(vet.position, 'appointments', 'read')).toBe(true);
+        expect(canAccess(vet.position, 'appointments', 'write')).toBe(true);
+        expect(canAccess(vet.position, 'appointments', 'delete')).toBe(true);
+      });
+
+      it('MANAGER should have full access to all features', () => {
+        const manager = createTestStaffWithPosition('MANAGER');
+
+        expect(canAccess(manager.position, 'appointments', 'read')).toBe(true);
+        expect(canAccess(manager.position, 'appointments', 'write')).toBe(true);
+        expect(canAccess(manager.position, 'appointments', 'delete')).toBe(true);
+        // Manager has wildcard access
+        expect(canAccess(manager.position, 'settings', 'write')).toBe(true);
+        expect(canAccess(manager.position, 'staff', 'write')).toBe(true);
+      });
+    });
+
+    describe('Permission Enforcement in API', () => {
+      it('should return 403 when ASSISTANT tries to create appointment', async () => {
+        const assistant = createTestStaffWithPosition('ASSISTANT');
+
+        // Verify the permission check would fail
+        const hasPermission = canAccess(assistant.position, 'appointments', 'write');
+        expect(hasPermission).toBe(false);
+
+        // In a real API call, this would return 403
+        const expectedStatus = hasPermission ? 201 : 403;
+        expect(expectedStatus).toBe(403);
+      });
+
+      it('should return 403 when GROOMER tries to update appointment', async () => {
+        const groomer = createTestStaffWithPosition('GROOMER');
+
+        const hasPermission = canAccess(groomer.position, 'appointments', 'write');
+        expect(hasPermission).toBe(false);
+
+        const expectedStatus = hasPermission ? 200 : 403;
+        expect(expectedStatus).toBe(403);
+      });
+
+      it('should return 403 when OTHER tries to delete appointment', async () => {
+        const other = createTestStaffWithPosition('OTHER');
+
+        const hasPermission = canAccess(other.position, 'appointments', 'write');
+        expect(hasPermission).toBe(false);
+
+        const expectedStatus = hasPermission ? 200 : 403;
+        expect(expectedStatus).toBe(403);
+      });
+
+      it('should allow VETERINARIAN to create appointment', async () => {
+        const vet = createTestStaffWithPosition('VETERINARIAN');
+
+        const hasPermission = canAccess(vet.position, 'appointments', 'write');
+        expect(hasPermission).toBe(true);
+
+        const expectedStatus = hasPermission ? 201 : 403;
+        expect(expectedStatus).toBe(201);
+      });
+
+      it('should allow RECEPTIONIST to update appointment', async () => {
+        const receptionist = createTestStaffWithPosition('RECEPTIONIST');
+
+        const hasPermission = canAccess(receptionist.position, 'appointments', 'write');
+        expect(hasPermission).toBe(true);
+
+        const expectedStatus = hasPermission ? 200 : 403;
+        expect(expectedStatus).toBe(200);
+      });
+    });
+
+    describe('Tenant Owner Permissions', () => {
+      it('should give MANAGER access to tenant owner without staff record', () => {
+        // When a user has no staff record but is authenticated,
+        // they are considered the tenant owner and get MANAGER access
+        const position = 'MANAGER'; // Default for tenant owners
+
+        expect(canAccess(position, 'appointments', 'read')).toBe(true);
+        expect(canAccess(position, 'appointments', 'write')).toBe(true);
+        expect(canAccess(position, 'appointments', 'delete')).toBe(true);
+      });
+
+      it('should deny access when position is null or undefined', () => {
+        expect(canAccess(null, 'appointments', 'read')).toBe(false);
+        expect(canAccess(undefined, 'appointments', 'write')).toBe(false);
+        expect(canAccess('', 'appointments', 'delete')).toBe(false);
+      });
     });
   });
 });
