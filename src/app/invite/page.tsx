@@ -22,7 +22,7 @@ interface InvitationData {
   } | null;
 }
 
-type PageState = 'loading' | 'valid' | 'invalid' | 'accepting' | 'success' | 'error';
+type PageState = 'loading' | 'valid' | 'invalid' | 'accepting' | 'success' | 'error' | 'already_accepted';
 
 export default function InvitePage() {
   const searchParams = useSearchParams();
@@ -48,6 +48,13 @@ export default function InvitePage() {
         const data = await res.json();
 
         if (!res.ok || !data.valid) {
+          // Special handling for already-accepted invitations
+          // This happens when autoAcceptPendingInvitation accepted it during registration
+          if (data.error === 'Esta invitación ya fue aceptada') {
+            setState('already_accepted');
+            setError(data.error);
+            return;
+          }
           setState('invalid');
           setError(data.error || 'Invitación inválida');
           return;
@@ -101,7 +108,7 @@ export default function InvitePage() {
 
   // Check authentication status and handle already-accepted invitations
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = async (retryCount = 0) => {
       try {
         const res = await fetch('/api/auth/me');
         const data = await res.json();
@@ -113,23 +120,43 @@ export default function InvitePage() {
         // If authenticated and invitation is valid, try to accept automatically
         if (authenticated && state === 'valid' && invitation) {
           handleAcceptInvitation();
+          return;
         }
 
-        // If authenticated but invitation was invalid (already accepted),
-        // check if user is already linked and redirect to dashboard
-        if (authenticated && state === 'invalid' && error === 'Esta invitación ya fue aceptada') {
+        // If authenticated and invitation was already accepted (auto-accepted during registration),
+        // redirect to dashboard directly - this is the successful flow!
+        if (authenticated && state === 'already_accepted') {
           setState('success');
           setTimeout(() => {
             router.push('/dashboard');
           }, 2000);
+          return;
         }
-      } catch (error) {
-        console.error('Error checking auth status:', error);
+
+        // If not authenticated but invitation was already accepted,
+        // the session might not be ready yet after registration redirect.
+        // Retry a few times with increasing delays.
+        if (!authenticated && state === 'already_accepted' && retryCount < 5) {
+          console.log(`[Invite] Auth not ready, retrying... (attempt ${retryCount + 1}/5)`);
+          setTimeout(() => checkAuth(retryCount + 1), 800 * (retryCount + 1));
+          return;
+        }
+
+        // After all retries, if still not authenticated, show error
+        if (!authenticated && state === 'already_accepted' && retryCount >= 5) {
+          setState('invalid');
+          // Keep the same error message
+        }
+      } catch (err) {
+        console.error('Error checking auth status:', err);
         setIsAuthenticated(false);
       }
     };
 
-    if (state === 'valid' || (state === 'invalid' && error === 'Esta invitación ya fue aceptada')) {
+    // Run auth check when:
+    // 1. Invitation is valid (to auto-accept if authenticated)
+    // 2. Invitation was already accepted (to redirect if authenticated - handles race condition)
+    if (state === 'valid' || state === 'already_accepted') {
       checkAuth();
     }
   }, [state, invitation, handleAcceptInvitation, error, router]);
@@ -141,6 +168,19 @@ export default function InvitePage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#75a99c] mx-auto"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">Validando invitación...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Already accepted state - waiting for auth to be ready after registration
+  // This handles the race condition where autoAcceptPendingInvitation accepted the invite
+  if (state === 'already_accepted') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#75a99c] mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Verificando tu cuenta...</p>
         </div>
       </div>
     );

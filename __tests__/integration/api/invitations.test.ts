@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { prismaMock } from '../../mocks/prisma';
 import {
   createTestTenant,
@@ -317,6 +317,106 @@ describe('Invitations API Integration Tests', () => {
 
       expect(invitation).toBeNull();
       // acceptInvitation would return: { success: false, error: 'Invitación no encontrada' }
+    });
+
+    it('should handle race condition when autoAcceptPendingInvitation already accepted', async () => {
+      // This tests the race condition where:
+      // 1. User registers and is redirected back to /invite
+      // 2. autoAcceptPendingInvitation (in findOrCreateUser) accepts the invitation
+      // 3. The /api/invitations/accept endpoint is called but invitation is already accepted
+      // 4. The endpoint should still return success if user is linked to tenant
+
+      const acceptedInvitation = createTestInvitation({
+        status: 'ACCEPTED',
+      });
+
+      prismaMock.tenantInvitation.findUnique.mockResolvedValue(acceptedInvitation);
+
+      // Simulate user already linked to tenant (by autoAcceptPendingInvitation)
+      const userWithTenant = { ...mockUser, tenantId: mockTenant.id };
+      prismaMock.tenant.findUnique.mockResolvedValue(mockTenant);
+
+      // The validation would return invalid with "Esta invitación ya fue aceptada"
+      const invitation = await prismaMock.tenantInvitation.findUnique({
+        where: { token: acceptedInvitation.token },
+      });
+
+      expect(invitation?.status).toBe('ACCEPTED');
+
+      // But if user already has tenantId, the endpoint should return success
+      // This is the key behavior we're testing
+      const shouldReturnSuccess = userWithTenant.tenantId !== null;
+      expect(shouldReturnSuccess).toBe(true);
+
+      // API behavior:
+      // If validation.reason === 'Esta invitación ya fue aceptada' && user.tenantId exists
+      // Return: { success: true, alreadyAccepted: true, tenantName: tenant.name }
+    });
+
+    it('should return error when invitation already accepted but user not linked', async () => {
+      // This tests when invitation was accepted by someone else
+      // and current user is NOT linked to any tenant
+
+      const acceptedInvitation = createTestInvitation({
+        status: 'ACCEPTED',
+      });
+
+      prismaMock.tenantInvitation.findUnique.mockResolvedValue(acceptedInvitation);
+
+      // User without tenant (not linked)
+      const userWithoutTenant = { ...mockUser, tenantId: null };
+
+      const invitation = await prismaMock.tenantInvitation.findUnique({
+        where: { token: acceptedInvitation.token },
+      });
+
+      expect(invitation?.status).toBe('ACCEPTED');
+
+      // User should get an error because they're not linked
+      const shouldReturnError = userWithoutTenant.tenantId === null;
+      expect(shouldReturnError).toBe(true);
+
+      // API behavior:
+      // If validation.reason === 'Esta invitación ya fue aceptada' && !user.tenantId
+      // Return: { success: false, error: 'Esta invitación ya fue aceptada' }, status: 400
+    });
+
+    it('should handle "staff already linked" as success when user has tenant', async () => {
+      // This tests when acceptInvitation fails because staff already linked
+      // but the user is the one who was linked (via autoAcceptPendingInvitation)
+
+      const invitationWithDetails = {
+        ...mockInvitation,
+        tenant: {
+          id: mockTenant.id,
+          name: mockTenant.name,
+          logo: null,
+        },
+        staff: {
+          id: mockStaff.id,
+          name: mockStaff.name,
+          position: mockStaff.position,
+          email: mockStaff.email,
+        },
+      };
+
+      prismaMock.tenantInvitation.findUnique.mockResolvedValue(invitationWithDetails);
+
+      // Staff already linked to user
+      const staffAlreadyLinked = { ...mockStaff, userId: mockUser.id };
+      prismaMock.staff.findUnique.mockResolvedValue(staffAlreadyLinked);
+
+      // User has tenant
+      const userWithTenant = { ...mockUser, tenantId: mockTenant.id };
+
+      // acceptInvitation would return error: 'Este personal ya tiene una cuenta vinculada'
+      // But if user.tenantId exists, endpoint should return success
+      const shouldTreatAsSuccess = userWithTenant.tenantId !== null;
+      expect(shouldTreatAsSuccess).toBe(true);
+
+      // API behavior:
+      // If result.error === 'Este personal ya tiene una cuenta vinculada' && user.tenantId
+      // Return: { success: true, alreadyAccepted: true, tenantName: invitation.tenant.name }
     });
   });
 

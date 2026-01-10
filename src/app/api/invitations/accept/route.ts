@@ -3,12 +3,18 @@
  *
  * Accept an invitation and link the authenticated user to the staff record.
  * Requires authentication.
+ *
+ * Note: This endpoint handles the race condition where autoAcceptPendingInvitation
+ * (in findOrCreateUser) may have already accepted the invitation during the
+ * getAuthenticatedUser() call. In that case, we check if the user is already
+ * linked and return success instead of an error.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { acceptInvitation, validateInvitation } from '@/lib/invitations/invitation-token';
+import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +25,8 @@ const bodySchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Get authenticated user
+    // NOTE: This call may trigger autoAcceptPendingInvitation which could
+    // accept the invitation before we get to the manual acceptance below
     const user = await getAuthenticatedUser();
 
     if (!user?.id) {
@@ -34,6 +42,33 @@ export async function POST(request: NextRequest) {
 
     // First validate the token
     const validation = await validateInvitation(token);
+
+    // Handle already-accepted invitation
+    // This can happen due to race condition with autoAcceptPendingInvitation
+    if (!validation.valid && validation.reason === 'Esta invitación ya fue aceptada') {
+      // Check if the current user is already linked to a tenant
+      // If so, the invitation was successfully processed (just by autoAccept instead of manually)
+      if (user.tenantId) {
+        // Get the tenant name for the success message
+        const tenant = await prisma.tenant.findUnique({
+          where: { id: user.tenantId },
+          select: { name: true },
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: '¡Invitación aceptada! Ahora tienes acceso al sistema.',
+          tenantName: tenant?.name || 'la clínica',
+          alreadyAccepted: true, // Flag to indicate this was auto-accepted
+        });
+      }
+
+      // User is not linked, so this is a genuine error
+      return NextResponse.json(
+        { success: false, error: validation.reason },
+        { status: 400 }
+      );
+    }
 
     if (!validation.valid) {
       return NextResponse.json(
@@ -58,6 +93,16 @@ export async function POST(request: NextRequest) {
     const result = await acceptInvitation(token, user.id);
 
     if (!result.success) {
+      // One more check: if it failed because "already linked", and user has tenant, treat as success
+      if (result.error === 'Este personal ya tiene una cuenta vinculada' && user.tenantId) {
+        return NextResponse.json({
+          success: true,
+          message: '¡Invitación aceptada! Ahora tienes acceso al sistema.',
+          tenantName: invitation.tenant.name,
+          alreadyAccepted: true,
+        });
+      }
+
       return NextResponse.json(
         { success: false, error: result.error },
         { status: 400 }
