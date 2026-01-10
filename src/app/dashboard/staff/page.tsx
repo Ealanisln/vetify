@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation';
 import { requireActiveSubscription } from '../../../lib/auth';
-import { getStaffByTenant } from '../../../lib/staff';
+import { getStaffByTenant, getStaffByUserId } from '../../../lib/staff';
 import StaffList from '../../../components/staff/StaffList';
+import { canAccess } from '../../../lib/staff-permissions';
 
 interface SearchParams {
   page?: string;
@@ -31,6 +32,10 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
                    params.isActive === 'false' ? false : undefined;
 
   try {
+    // Get current user's staff record to check permissions
+    const currentStaff = await getStaffByUserId(user.id);
+    const canWriteStaff = canAccess(currentStaff?.position, 'staff', 'write');
+
     // Fetch staff with statistics
     const result = await getStaffByTenant(tenant.id, {
       page,
@@ -42,10 +47,11 @@ export default async function StaffPage({ searchParams }: StaffPageProps) {
 
     return (
       <div className="container mx-auto px-4 py-6">
-        <StaffList 
+        <StaffList
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           initialStaff={result.staff as any}
           pagination={result.pagination}
+          canWrite={canWriteStaff}
         />
       </div>
     );

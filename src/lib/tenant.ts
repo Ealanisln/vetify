@@ -223,6 +223,12 @@ export async function createTenantWithDefaults(data: {
       }
     });
 
+    // Get user info for Staff record creation
+    const userInfo = await tx.user.findUnique({
+      where: { id: data.userId },
+      select: { name: true, email: true, firstName: true, lastName: true }
+    });
+
     // Update user with tenant and contact info
     const updatedUser = await tx.user.update({
       where: { id: data.userId },
@@ -247,6 +253,24 @@ export async function createTenantWithDefaults(data: {
       data: {
         userId: data.userId,
         roleId: adminRole.id,
+      }
+    });
+
+    // Create Staff record for the founding user with Administrator position
+    // This ensures the clinic owner has full access to all features
+    const staffName = userInfo?.name ||
+      `${userInfo?.firstName || ''} ${userInfo?.lastName || ''}`.trim() ||
+      'Administrador';
+
+    await tx.staff.create({
+      data: {
+        tenantId: tenant.id,
+        userId: data.userId,
+        name: staffName,
+        position: 'Administrador',
+        email: userInfo?.email,
+        phone: data.phone,
+        isActive: true,
       }
     });
 

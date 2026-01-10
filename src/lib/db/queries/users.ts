@@ -1,6 +1,74 @@
 import { prisma, setRLSTenantId } from '../../prisma';
 import { serializeUser } from '../../serializers';
 import { UserWithTenant } from "@/types";
+import { getPendingInvitationByEmail } from '@/lib/invitations/invitation-token';
+
+/**
+ * Auto-accept a pending invitation for a user.
+ * This links the user to the staff record and tenant.
+ *
+ * @param userId - The user ID to link
+ * @param email - The user's email to find matching invitations
+ * @returns Updated user with tenant or null if no invitation found
+ */
+async function autoAcceptPendingInvitation(userId: string, email: string) {
+  try {
+    const invitation = await getPendingInvitationByEmail(email);
+
+    if (!invitation || !invitation.staff) {
+      return null;
+    }
+
+    // Check if staff is already linked to a user
+    const existingStaff = await prisma.staff.findUnique({
+      where: { id: invitation.staff.id },
+      select: { userId: true },
+    });
+
+    if (existingStaff?.userId) {
+      console.log(`[AutoAccept] Staff ${invitation.staff.id} already linked to user ${existingStaff.userId}`);
+      return null;
+    }
+
+    // Perform auto-accept in a transaction
+    const updatedUser = await prisma.$transaction(async (tx) => {
+      // 1. Update User with tenant ID
+      const user = await tx.user.update({
+        where: { id: userId },
+        data: { tenantId: invitation.tenantId },
+        include: {
+          tenant: {
+            include: {
+              tenantSubscription: {
+                include: { plan: true }
+              }
+            }
+          }
+        }
+      });
+
+      // 2. Link Staff to User
+      await tx.staff.update({
+        where: { id: invitation.staff!.id },
+        data: { userId },
+      });
+
+      // 3. Mark invitation as accepted
+      await tx.tenantInvitation.update({
+        where: { id: invitation.id },
+        data: { status: 'ACCEPTED' },
+      });
+
+      return user;
+    });
+
+    console.log(`[AutoAccept] Successfully linked user ${userId} to staff ${invitation.staff.id} in tenant ${invitation.tenantId}`);
+    return updatedUser;
+  } catch (error) {
+    console.error('[AutoAccept] Error auto-accepting invitation:', error);
+    return null;
+  }
+}
 
 export interface CreateOrUpdateUserData {
   id: string;
@@ -64,6 +132,20 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
         }
       });
 
+      // If user doesn't have a tenant, check for pending invitations
+      if (!updatedUser.tenantId) {
+        const linkedUser = await autoAcceptPendingInvitation(id, email);
+        if (linkedUser) {
+          // Set RLS tenant ID for the newly linked tenant
+          try {
+            await setRLSTenantId(linkedUser.tenantId!);
+          } catch (rlsError) {
+            console.warn('Failed to set RLS tenant ID:', rlsError);
+          }
+          return serializeUser(linkedUser);
+        }
+      }
+
       // Set RLS tenant ID if user has a tenant (for subsequent queries)
       if (updatedUser.tenantId) {
         try {
@@ -100,6 +182,18 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
           updatedAt: true,
         },
       });
+
+      // Check for pending invitations for new users
+      const linkedUser = await autoAcceptPendingInvitation(id, email);
+      if (linkedUser) {
+        // Set RLS tenant ID for the newly linked tenant
+        try {
+          await setRLSTenantId(linkedUser.tenantId!);
+        } catch (rlsError) {
+          console.warn('Failed to set RLS tenant ID:', rlsError);
+        }
+        return serializeUser(linkedUser);
+      }
 
       // New users don't have tenant yet (will be set during onboarding)
       return serializeUser({
