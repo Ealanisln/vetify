@@ -130,6 +130,12 @@ describe('Staff Permissions', () => {
         expect(canAccess(StaffPosition.VETERINARIAN, 'staff', 'read')).toBe(true);
         expect(canAccess(StaffPosition.VETERINARIAN, 'staff', 'write')).toBe(false);
       });
+
+      it('should have read-only access to testimonials', () => {
+        expect(canAccess(StaffPosition.VETERINARIAN, 'testimonials', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.VETERINARIAN, 'testimonials', 'write')).toBe(false);
+        expect(canAccess(StaffPosition.VETERINARIAN, 'testimonials', 'delete')).toBe(false);
+      });
     });
 
     describe('RECEPTIONIST', () => {
@@ -161,6 +167,11 @@ describe('Staff Permissions', () => {
       it('should NOT have access to reports', () => {
         expect(canAccess(StaffPosition.RECEPTIONIST, 'reports', 'read')).toBe(false);
       });
+
+      it('should have read-only access to testimonials', () => {
+        expect(canAccess(StaffPosition.RECEPTIONIST, 'testimonials', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.RECEPTIONIST, 'testimonials', 'write')).toBe(false);
+      });
     });
 
     describe('ASSISTANT', () => {
@@ -178,6 +189,11 @@ describe('Staff Permissions', () => {
         expect(canAccess(StaffPosition.ASSISTANT, 'sales', 'read')).toBe(true);
         expect(canAccess(StaffPosition.ASSISTANT, 'sales', 'write')).toBe(true);
       });
+
+      it('should NOT have access to testimonials', () => {
+        expect(canAccess(StaffPosition.ASSISTANT, 'testimonials', 'read')).toBe(false);
+        expect(canAccess(StaffPosition.ASSISTANT, 'testimonials', 'write')).toBe(false);
+      });
     });
 
     describe('VETERINARY_TECHNICIAN', () => {
@@ -188,6 +204,11 @@ describe('Staff Permissions', () => {
 
       it('should NOT have access to reports', () => {
         expect(canAccess(StaffPosition.VETERINARY_TECHNICIAN, 'reports', 'read')).toBe(false);
+      });
+
+      it('should have read-only access to testimonials', () => {
+        expect(canAccess(StaffPosition.VETERINARY_TECHNICIAN, 'testimonials', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.VETERINARY_TECHNICIAN, 'testimonials', 'write')).toBe(false);
       });
     });
 
@@ -204,6 +225,11 @@ describe('Staff Permissions', () => {
 
       it('should NOT have access to medical records', () => {
         expect(canAccess(StaffPosition.GROOMER, 'medical', 'read')).toBe(false);
+      });
+
+      it('should NOT have access to testimonials', () => {
+        expect(canAccess(StaffPosition.GROOMER, 'testimonials', 'read')).toBe(false);
+        expect(canAccess(StaffPosition.GROOMER, 'testimonials', 'write')).toBe(false);
       });
     });
 
