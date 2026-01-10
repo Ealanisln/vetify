@@ -13,6 +13,7 @@ import {
   canManageInventory,
   canEditMedicalRecords,
   canProcessSales,
+  canManageLocations,
   POSITION_PERMISSIONS,
   ADMIN_POSITIONS,
   type Feature,
@@ -136,6 +137,12 @@ describe('Staff Permissions', () => {
         expect(canAccess(StaffPosition.VETERINARIAN, 'testimonials', 'write')).toBe(false);
         expect(canAccess(StaffPosition.VETERINARIAN, 'testimonials', 'delete')).toBe(false);
       });
+
+      it('should have read-only access to locations', () => {
+        expect(canAccess(StaffPosition.VETERINARIAN, 'locations', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.VETERINARIAN, 'locations', 'write')).toBe(false);
+        expect(canAccess(StaffPosition.VETERINARIAN, 'locations', 'delete')).toBe(false);
+      });
     });
 
     describe('RECEPTIONIST', () => {
@@ -172,6 +179,12 @@ describe('Staff Permissions', () => {
         expect(canAccess(StaffPosition.RECEPTIONIST, 'testimonials', 'read')).toBe(true);
         expect(canAccess(StaffPosition.RECEPTIONIST, 'testimonials', 'write')).toBe(false);
       });
+
+      it('should have read-only access to locations', () => {
+        expect(canAccess(StaffPosition.RECEPTIONIST, 'locations', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.RECEPTIONIST, 'locations', 'write')).toBe(false);
+        expect(canAccess(StaffPosition.RECEPTIONIST, 'locations', 'delete')).toBe(false);
+      });
     });
 
     describe('ASSISTANT', () => {
@@ -194,6 +207,12 @@ describe('Staff Permissions', () => {
         expect(canAccess(StaffPosition.ASSISTANT, 'testimonials', 'read')).toBe(false);
         expect(canAccess(StaffPosition.ASSISTANT, 'testimonials', 'write')).toBe(false);
       });
+
+      it('should have read-only access to locations', () => {
+        expect(canAccess(StaffPosition.ASSISTANT, 'locations', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.ASSISTANT, 'locations', 'write')).toBe(false);
+        expect(canAccess(StaffPosition.ASSISTANT, 'locations', 'delete')).toBe(false);
+      });
     });
 
     describe('VETERINARY_TECHNICIAN', () => {
@@ -209,6 +228,12 @@ describe('Staff Permissions', () => {
       it('should have read-only access to testimonials', () => {
         expect(canAccess(StaffPosition.VETERINARY_TECHNICIAN, 'testimonials', 'read')).toBe(true);
         expect(canAccess(StaffPosition.VETERINARY_TECHNICIAN, 'testimonials', 'write')).toBe(false);
+      });
+
+      it('should have read-only access to locations', () => {
+        expect(canAccess(StaffPosition.VETERINARY_TECHNICIAN, 'locations', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.VETERINARY_TECHNICIAN, 'locations', 'write')).toBe(false);
+        expect(canAccess(StaffPosition.VETERINARY_TECHNICIAN, 'locations', 'delete')).toBe(false);
       });
     });
 
@@ -230,6 +255,12 @@ describe('Staff Permissions', () => {
       it('should NOT have access to testimonials', () => {
         expect(canAccess(StaffPosition.GROOMER, 'testimonials', 'read')).toBe(false);
         expect(canAccess(StaffPosition.GROOMER, 'testimonials', 'write')).toBe(false);
+      });
+
+      it('should NOT have access to locations', () => {
+        expect(canAccess(StaffPosition.GROOMER, 'locations', 'read')).toBe(false);
+        expect(canAccess(StaffPosition.GROOMER, 'locations', 'write')).toBe(false);
+        expect(canAccess(StaffPosition.GROOMER, 'locations', 'delete')).toBe(false);
       });
     });
 
@@ -391,6 +422,40 @@ describe('Staff Permissions', () => {
         expect(canProcessSales(StaffPosition.VETERINARIAN)).toBe(false);
       });
     });
+
+    describe('canManageLocations', () => {
+      it('should return true for MANAGER', () => {
+        expect(canManageLocations(StaffPosition.MANAGER)).toBe(true);
+      });
+
+      it('should return true for ADMINISTRATOR', () => {
+        expect(canManageLocations(StaffPosition.ADMINISTRATOR)).toBe(true);
+      });
+
+      it('should return false for VETERINARIAN (read-only locations)', () => {
+        expect(canManageLocations(StaffPosition.VETERINARIAN)).toBe(false);
+      });
+
+      it('should return false for VETERINARY_TECHNICIAN (read-only locations)', () => {
+        expect(canManageLocations(StaffPosition.VETERINARY_TECHNICIAN)).toBe(false);
+      });
+
+      it('should return false for RECEPTIONIST (read-only locations)', () => {
+        expect(canManageLocations(StaffPosition.RECEPTIONIST)).toBe(false);
+      });
+
+      it('should return false for ASSISTANT (read-only locations)', () => {
+        expect(canManageLocations(StaffPosition.ASSISTANT)).toBe(false);
+      });
+
+      it('should return false for GROOMER (no locations access)', () => {
+        expect(canManageLocations(StaffPosition.GROOMER)).toBe(false);
+      });
+
+      it('should return false for OTHER (no locations access)', () => {
+        expect(canManageLocations(StaffPosition.OTHER)).toBe(false);
+      });
+    });
   });
 
   describe('Integration scenarios', () => {
@@ -411,6 +476,11 @@ describe('Staff Permissions', () => {
       // Can view staff list but cannot manage
       expect(canAccess(vetPosition, 'staff', 'read')).toBe(true);
       expect(canAccess(vetPosition, 'staff', 'write')).toBe(false);
+
+      // Can view locations but cannot manage
+      expect(canAccess(vetPosition, 'locations', 'read')).toBe(true);
+      expect(canAccess(vetPosition, 'locations', 'write')).toBe(false);
+      expect(canManageLocations(vetPosition)).toBe(false);
     });
 
     it('should correctly model a receptionist workflow', () => {
@@ -425,6 +495,11 @@ describe('Staff Permissions', () => {
 
       // Cannot access medical records
       expect(canAccess(receptionistPosition, 'medical', 'read')).toBe(false);
+
+      // Can view locations but cannot manage
+      expect(canAccess(receptionistPosition, 'locations', 'read')).toBe(true);
+      expect(canAccess(receptionistPosition, 'locations', 'write')).toBe(false);
+      expect(canManageLocations(receptionistPosition)).toBe(false);
     });
 
     it('should correctly model an assistant workflow', () => {
@@ -440,6 +515,20 @@ describe('Staff Permissions', () => {
 
       // Can process sales
       expect(canAccess(assistantPosition, 'sales', 'write')).toBe(true);
+
+      // Can view locations but cannot manage
+      expect(canAccess(assistantPosition, 'locations', 'read')).toBe(true);
+      expect(canManageLocations(assistantPosition)).toBe(false);
+    });
+
+    it('should correctly model a manager workflow', () => {
+      const managerPosition = StaffPosition.MANAGER;
+
+      // Can manage everything including locations
+      expect(canAccess(managerPosition, 'locations', 'read')).toBe(true);
+      expect(canAccess(managerPosition, 'locations', 'write')).toBe(true);
+      expect(canAccess(managerPosition, 'locations', 'delete')).toBe(true);
+      expect(canManageLocations(managerPosition)).toBe(true);
     });
   });
 });

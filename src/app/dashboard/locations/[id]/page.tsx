@@ -1,9 +1,10 @@
-import { requireAuth } from '@/lib/auth';
+import { requireAuthWithStaff } from '@/lib/auth';
+import { canAccess } from '@/lib/staff-permissions';
 import { getLocationById } from '@/lib/locations';
 import LocationForm from '@/components/locations/LocationForm';
 import Link from 'next/link';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -14,7 +15,15 @@ export default async function EditLocationPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const { tenant } = await requireAuth();
+  const { tenant, staff } = await requireAuthWithStaff();
+
+  // Check if user has permission to edit locations
+  // If no staff record, user is tenant owner (has admin access)
+  const hasPermission = !staff || canAccess(staff.position, 'locations', 'write');
+
+  if (!hasPermission) {
+    redirect('/dashboard/locations');
+  }
 
   // Fetch location
   const location = await getLocationById(id, tenant.id);

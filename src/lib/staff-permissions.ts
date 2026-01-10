@@ -285,6 +285,13 @@ export function canProcessSales(position: StaffPositionType | string | null): bo
   return canAccess(position, 'sales', 'write');
 }
 
+/**
+ * Check if position can manage locations (create/edit/delete)
+ */
+export function canManageLocations(position: StaffPositionType | string | null): boolean {
+  return canAccess(position, 'locations', 'write');
+}
+
 // =============================================================================
 // NAVIGATION FILTERING
 // =============================================================================

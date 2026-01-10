@@ -4,18 +4,12 @@ import {
   createTestTenant,
   createTestUser,
 } from '../../utils/test-utils';
-
-// Mock the locations API route
-const mockLocationsRoute = {
-  GET: jest.fn(),
-  POST: jest.fn(),
-  PUT: jest.fn(),
-  DELETE: jest.fn(),
-};
+import { canAccess } from '@/lib/staff-permissions';
+import { StaffPosition } from '@/lib/staff-positions';
 
 describe('Locations API Integration Tests', () => {
   let mockTenant: ReturnType<typeof createTestTenant>;
-  let mockUser: ReturnType<typeof createTestUser>;
+  let _mockUser: ReturnType<typeof createTestUser>;
   let mockLocation: ReturnType<typeof createTestLocation>;
 
   beforeEach(() => {
@@ -23,7 +17,7 @@ describe('Locations API Integration Tests', () => {
 
     // Create test data
     mockTenant = createTestTenant();
-    mockUser = createTestUser({ tenantId: mockTenant.id });
+    _mockUser = createTestUser({ tenantId: mockTenant.id });
     mockLocation = createTestLocation({ tenantId: mockTenant.id });
 
     // Mock Prisma responses
@@ -57,6 +51,7 @@ describe('Locations API Integration Tests', () => {
         name: 'Closed Clinic',
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       prismaMock.location.findMany.mockImplementation(async (args: any) => {
         if (args?.where?.isActive === true) {
           return [activeLocation];
@@ -78,11 +73,12 @@ describe('Locations API Integration Tests', () => {
     it('should search by name, address, or phone', async () => {
       const searchTerm = 'Main';
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       prismaMock.location.findMany.mockImplementation(async (args: any) => {
         const where = args?.where;
         if (
-          where?.OR?.some(
-            (condition: any) =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          where?.OR?.some((condition: any) =>
               condition?.name?.contains === searchTerm ||
               condition?.address?.contains === searchTerm ||
               condition?.phone?.contains === searchTerm
@@ -109,11 +105,13 @@ describe('Locations API Integration Tests', () => {
     });
 
     it('should enforce tenant isolation', async () => {
-      const otherTenantLocation = createTestLocation({
+      // Create a location for another tenant to verify isolation
+      const _otherTenantLocation = createTestLocation({
         id: 'other-location',
         tenantId: 'other-tenant-id',
       });
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       prismaMock.location.findMany.mockImplementation(async (args: any) => {
         if (args?.where?.tenantId === mockTenant.id) {
           return [mockLocation];
@@ -380,6 +378,101 @@ describe('Locations API Integration Tests', () => {
       });
 
       expect(result.count).toBe(0);
+    });
+  });
+
+  describe('Role-Based Permission Checks', () => {
+    describe('Locations read permissions', () => {
+      it('should allow MANAGER full access to locations', () => {
+        expect(canAccess(StaffPosition.MANAGER, 'locations', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.MANAGER, 'locations', 'write')).toBe(true);
+        expect(canAccess(StaffPosition.MANAGER, 'locations', 'delete')).toBe(true);
+      });
+
+      it('should allow ADMINISTRATOR full access to locations', () => {
+        expect(canAccess(StaffPosition.ADMINISTRATOR, 'locations', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.ADMINISTRATOR, 'locations', 'write')).toBe(true);
+        expect(canAccess(StaffPosition.ADMINISTRATOR, 'locations', 'delete')).toBe(true);
+      });
+
+      it('should allow VETERINARIAN only read access to locations', () => {
+        expect(canAccess(StaffPosition.VETERINARIAN, 'locations', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.VETERINARIAN, 'locations', 'write')).toBe(false);
+        expect(canAccess(StaffPosition.VETERINARIAN, 'locations', 'delete')).toBe(false);
+      });
+
+      it('should allow VETERINARY_TECHNICIAN only read access to locations', () => {
+        expect(canAccess(StaffPosition.VETERINARY_TECHNICIAN, 'locations', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.VETERINARY_TECHNICIAN, 'locations', 'write')).toBe(false);
+        expect(canAccess(StaffPosition.VETERINARY_TECHNICIAN, 'locations', 'delete')).toBe(false);
+      });
+
+      it('should allow RECEPTIONIST only read access to locations', () => {
+        expect(canAccess(StaffPosition.RECEPTIONIST, 'locations', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.RECEPTIONIST, 'locations', 'write')).toBe(false);
+        expect(canAccess(StaffPosition.RECEPTIONIST, 'locations', 'delete')).toBe(false);
+      });
+
+      it('should allow ASSISTANT only read access to locations', () => {
+        expect(canAccess(StaffPosition.ASSISTANT, 'locations', 'read')).toBe(true);
+        expect(canAccess(StaffPosition.ASSISTANT, 'locations', 'write')).toBe(false);
+        expect(canAccess(StaffPosition.ASSISTANT, 'locations', 'delete')).toBe(false);
+      });
+
+      it('should NOT allow GROOMER access to locations', () => {
+        expect(canAccess(StaffPosition.GROOMER, 'locations', 'read')).toBe(false);
+        expect(canAccess(StaffPosition.GROOMER, 'locations', 'write')).toBe(false);
+        expect(canAccess(StaffPosition.GROOMER, 'locations', 'delete')).toBe(false);
+      });
+
+      it('should NOT allow OTHER position access to locations', () => {
+        expect(canAccess(StaffPosition.OTHER, 'locations', 'read')).toBe(false);
+        expect(canAccess(StaffPosition.OTHER, 'locations', 'write')).toBe(false);
+        expect(canAccess(StaffPosition.OTHER, 'locations', 'delete')).toBe(false);
+      });
+    });
+
+    describe('Location management scenarios', () => {
+      it('should allow only admin positions to create locations', () => {
+        const canCreateLocation = (position: string) => canAccess(position, 'locations', 'write');
+
+        // Admin positions can create
+        expect(canCreateLocation(StaffPosition.MANAGER)).toBe(true);
+        expect(canCreateLocation(StaffPosition.ADMINISTRATOR)).toBe(true);
+
+        // Non-admin positions cannot create
+        expect(canCreateLocation(StaffPosition.VETERINARIAN)).toBe(false);
+        expect(canCreateLocation(StaffPosition.VETERINARY_TECHNICIAN)).toBe(false);
+        expect(canCreateLocation(StaffPosition.RECEPTIONIST)).toBe(false);
+        expect(canCreateLocation(StaffPosition.ASSISTANT)).toBe(false);
+        expect(canCreateLocation(StaffPosition.GROOMER)).toBe(false);
+        expect(canCreateLocation(StaffPosition.OTHER)).toBe(false);
+      });
+
+      it('should allow only admin positions to edit locations', () => {
+        const canEditLocation = (position: string) => canAccess(position, 'locations', 'write');
+
+        // Admin positions can edit
+        expect(canEditLocation(StaffPosition.MANAGER)).toBe(true);
+        expect(canEditLocation(StaffPosition.ADMINISTRATOR)).toBe(true);
+
+        // Non-admin positions cannot edit
+        expect(canEditLocation(StaffPosition.VETERINARIAN)).toBe(false);
+        expect(canEditLocation(StaffPosition.RECEPTIONIST)).toBe(false);
+      });
+
+      it('should allow only admin positions to delete locations', () => {
+        const canDeleteLocation = (position: string) => canAccess(position, 'locations', 'delete');
+
+        // Admin positions can delete
+        expect(canDeleteLocation(StaffPosition.MANAGER)).toBe(true);
+        expect(canDeleteLocation(StaffPosition.ADMINISTRATOR)).toBe(true);
+
+        // Non-admin positions cannot delete
+        expect(canDeleteLocation(StaffPosition.VETERINARIAN)).toBe(false);
+        expect(canDeleteLocation(StaffPosition.RECEPTIONIST)).toBe(false);
+        expect(canDeleteLocation(StaffPosition.GROOMER)).toBe(false);
+      });
     });
   });
 });

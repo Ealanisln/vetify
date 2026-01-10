@@ -1,13 +1,23 @@
-import { requireAuth } from '@/lib/auth';
+import { requireAuthWithStaff } from '@/lib/auth';
+import { canAccess } from '@/lib/staff-permissions';
 import LocationForm from '@/components/locations/LocationForm';
 import Link from 'next/link';
 import { ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { redirect } from 'next/navigation';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 export default async function NewLocationPage() {
-  const { tenant } = await requireAuth();
+  const { tenant, staff } = await requireAuthWithStaff();
+
+  // Check if user has permission to create locations
+  // If no staff record, user is tenant owner (has admin access)
+  const hasPermission = !staff || canAccess(staff.position, 'locations', 'write');
+
+  if (!hasPermission) {
+    redirect('/dashboard/locations');
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
