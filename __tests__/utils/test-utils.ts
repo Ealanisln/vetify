@@ -254,7 +254,7 @@ export const createTestStaff = (overrides = {}) => ({
   locationId: null,
   userId: null,
   name: 'Dr. Maria Garcia',
-  position: 'Veterinarian',
+  position: 'VETERINARIAN',
   email: 'maria.garcia@example.com',
   phone: '+52 1 55 1111 2222',
   licenseNumber: 'VET-MX-12345',
@@ -263,6 +263,56 @@ export const createTestStaff = (overrides = {}) => ({
   updatedAt: new Date('2024-01-01'),
   ...overrides,
 });
+
+// Staff position type constant for tests
+// Note: These match the values in src/lib/staff-positions.ts
+export type TestStaffPosition =
+  | 'MANAGER'
+  | 'Administrador'  // ADMINISTRATOR uses Spanish value
+  | 'VETERINARIAN'
+  | 'VETERINARY_TECHNICIAN'
+  | 'ASSISTANT'
+  | 'RECEPTIONIST'
+  | 'GROOMER'
+  | 'OTHER';
+
+// Helper to create staff with specific position
+export const createTestStaffWithPosition = (position: TestStaffPosition, overrides = {}) => {
+  const staffNames: Record<TestStaffPosition, string> = {
+    MANAGER: 'Admin Manager',
+    'Administrador': 'System Administrator',
+    VETERINARIAN: 'Dr. Maria Garcia',
+    VETERINARY_TECHNICIAN: 'Tech Assistant',
+    ASSISTANT: 'Sofia Assistant',
+    RECEPTIONIST: 'Front Desk Receptionist',
+    GROOMER: 'Pet Groomer',
+    OTHER: 'General Staff',
+  };
+
+  return createTestStaff({
+    id: `staff-${position.toLowerCase().replace(/\s+/g, '-')}`,
+    name: staffNames[position],
+    position,
+    email: `${position.toLowerCase().replace(/\s+/g, '-')}@example.com`,
+    ...overrides,
+  });
+};
+
+// Positions that have full appointments access (can create/edit/delete)
+export const POSITIONS_WITH_APPOINTMENTS_WRITE: TestStaffPosition[] = [
+  'MANAGER',
+  'Administrador',  // ADMINISTRATOR uses Spanish value
+  'VETERINARIAN',
+  'VETERINARY_TECHNICIAN',
+  'RECEPTIONIST',
+];
+
+// Positions that have read-only appointments access
+export const POSITIONS_WITH_APPOINTMENTS_READ_ONLY: TestStaffPosition[] = [
+  'ASSISTANT',
+  'GROOMER',
+  'OTHER',
+];
 
 export const createTestStaffLocation = (overrides = {}) => ({
   id: 'staff-location-1',
