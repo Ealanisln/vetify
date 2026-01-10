@@ -13,6 +13,7 @@ const serviceSchema = z.object({
   duration: z.number().min(1).max(480).optional(),
   isActive: z.boolean(),
   tenantId: z.string(),
+  locationId: z.string().nullable().optional(), // null = global (todas las ubicaciones)
   // Public page display fields
   isFeatured: z.boolean().optional().default(false),
   publicDisplayOrder: z.number().int().min(1).max(10).nullable().optional(),
@@ -38,7 +39,21 @@ export async function GET(request: NextRequest) {
     const services = await prisma.service.findMany({
       where: {
         tenantId: tenant.id,
-        ...(locationId && { locationId }),
+        // Si se especifica locationId, incluir servicios de esa ubicación Y servicios globales
+        ...(locationId && {
+          OR: [
+            { locationId },
+            { locationId: null } // Servicios globales
+          ]
+        }),
+      },
+      include: {
+        location: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       },
       orderBy: [
         { category: 'asc' },
@@ -97,10 +112,14 @@ export async function POST(request: NextRequest) {
         duration: validatedData.duration,
         isActive: validatedData.isActive,
         tenantId: tenant.id,
+        locationId: validatedData.locationId ?? null, // null = global
         isFeatured: validatedData.isFeatured ?? false,
         publicDisplayOrder: validatedData.publicDisplayOrder ?? null,
         publicIcon: validatedData.publicIcon ?? null,
         publicPriceLabel: validatedData.publicPriceLabel ?? null
+      },
+      include: {
+        location: true // Incluir ubicación para mostrar en UI
       }
     });
 

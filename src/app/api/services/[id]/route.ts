@@ -13,6 +13,7 @@ const updateServiceSchema = z.object({
   duration: z.number().min(1).max(480).optional(),
   isActive: z.boolean(),
   tenantId: z.string(),
+  locationId: z.string().nullable().optional(), // null = global (todas las ubicaciones)
   // Public page display fields
   isFeatured: z.boolean().optional(),
   publicDisplayOrder: z.number().int().min(1).max(10).nullable().optional(),
@@ -85,10 +86,19 @@ export async function PUT(
         price: validatedData.price,
         duration: validatedData.duration,
         isActive: validatedData.isActive,
+        locationId: validatedData.locationId ?? null, // null = global
         isFeatured: validatedData.isFeatured,
         publicDisplayOrder: validatedData.publicDisplayOrder,
         publicIcon: validatedData.publicIcon,
         publicPriceLabel: validatedData.publicPriceLabel
+      },
+      include: {
+        location: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     });
 
