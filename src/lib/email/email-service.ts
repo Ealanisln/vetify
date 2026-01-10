@@ -20,6 +20,7 @@ import type {
   LowStockAlertData,
   TreatmentReminderData,
   TestimonialRequestData,
+  StaffInvitationData,
 } from './types';
 import { logEmailSend } from '../notifications/notification-logger';
 import {
@@ -33,6 +34,7 @@ import {
   NewUserRegistrationEmail,
   NewSubscriptionPaymentEmail,
   TestimonialRequestEmail,
+  StaffInvitationEmail,
 } from './templates';
 import { formatDateLong, formatDateTimeLong, formatDate, formatCurrency } from '../utils/date-format';
 
@@ -394,6 +396,19 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
           clinicName: d.clinicName,
           clinicSlug: d.clinicSlug,
           baseUrl: d.baseUrl,
+        })
+      );
+    }
+
+    case 'staff-invitation': {
+      const d = (emailData as StaffInvitationData).data;
+      return await render(
+        StaffInvitationEmail({
+          staffName: d.staffName,
+          clinicName: d.clinicName,
+          position: d.position,
+          inviteUrl: d.inviteUrl,
+          expirationDays: d.expirationDays,
         })
       );
     }

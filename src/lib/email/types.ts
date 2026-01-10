@@ -14,7 +14,8 @@ export type EmailTemplate =
   | 'treatment-reminder'
   | 'new-user-registration'
   | 'new-subscription-payment'
-  | 'testimonial-request';
+  | 'testimonial-request'
+  | 'staff-invitation';
 
 export type EmailStatus =
   | 'PENDING'
@@ -245,6 +246,20 @@ export interface TestimonialRequestData extends BaseEmailData {
 }
 
 /**
+ * Staff Invitation Email Data
+ */
+export interface StaffInvitationData extends BaseEmailData {
+  template: 'staff-invitation';
+  data: {
+    staffName: string;
+    clinicName: string;
+    position: string;
+    inviteUrl: string;
+    expirationDays: number;
+  };
+}
+
+/**
  * Union type for all email data types
  */
 export type EmailData =
@@ -257,7 +272,8 @@ export type EmailData =
   | TreatmentReminderData
   | NewUserRegistrationData
   | NewSubscriptionPaymentData
-  | TestimonialRequestData;
+  | TestimonialRequestData
+  | StaffInvitationData;
 
 /**
  * Email send result
