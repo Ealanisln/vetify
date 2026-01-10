@@ -2,22 +2,45 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { PetsList } from '@/components/pets/PetsList';
+import { PaginationControls } from '@/components/ui/PaginationControls';
 import Link from 'next/link';
 import { useLocation } from '@/components/providers/LocationProvider';
 import { PetWithOwner } from '@/types';
+import type { SortOrder } from '@/components/ui/ResponsiveTable';
 
 interface PetsPageClientProps {
   maxPets: number;
 }
+
+interface PaginationState {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+const ITEMS_PER_PAGE = 20;
 
 export function PetsPageClient({ maxPets }: PetsPageClientProps) {
   const [pets, setPets] = useState<PetWithOwner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Pagination state
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 1,
+    limit: ITEMS_PER_PAGE,
+    total: 0,
+    totalPages: 0,
+  });
+
+  // Sorting state
+  const [sortBy, setSortBy] = useState<string>('createdAt');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
   const { currentLocation, isAllLocations } = useLocation();
 
-  const fetchPets = useCallback(async () => {
+  const fetchPets = useCallback(async (page: number = 1) => {
     setIsLoading(true);
     setError(null);
 
@@ -27,7 +50,15 @@ export function PetsPageClient({ maxPets }: PetsPageClientProps) {
         params.set('locationId', currentLocation.id);
       }
 
-      const url = `/api/pets${params.toString() ? `?${params.toString()}` : ''}`;
+      // Add pagination params
+      params.set('page', String(page));
+      params.set('limit', String(ITEMS_PER_PAGE));
+
+      // Add sorting params
+      params.set('sortBy', sortBy);
+      params.set('sortOrder', sortOrder);
+
+      const url = `/api/pets?${params.toString()}`;
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -35,22 +66,58 @@ export function PetsPageClient({ maxPets }: PetsPageClientProps) {
       }
 
       const data = await response.json();
-      setPets(data);
+
+      // Handle paginated response
+      if (data.success && data.data && data.pagination) {
+        setPets(data.data);
+        setPagination({
+          page: data.pagination.page,
+          limit: data.pagination.limit,
+          total: data.pagination.total,
+          totalPages: data.pagination.totalPages,
+        });
+      } else {
+        // Fallback for legacy response format
+        const petsArray = Array.isArray(data) ? data : (data.data || []);
+        setPets(petsArray);
+        setPagination({
+          page: 1,
+          limit: ITEMS_PER_PAGE,
+          total: petsArray.length,
+          totalPages: 1,
+        });
+      }
     } catch (err) {
       console.error('Error fetching pets:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setIsLoading(false);
     }
-  }, [currentLocation?.id, isAllLocations]);
+  }, [currentLocation?.id, isAllLocations, sortBy, sortOrder]);
 
   useEffect(() => {
-    fetchPets();
-  }, [fetchPets]);
+    fetchPets(1); // Reset to page 1 when filters change
+  }, [currentLocation?.id, isAllLocations, sortBy, sortOrder]);
 
-  const canAddPet = pets.length < maxPets;
+  // Separate effect for initial load
+  useEffect(() => {
+    fetchPets(pagination.page);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (isLoading) {
+  const handlePageChange = (newPage: number) => {
+    fetchPets(newPage);
+  };
+
+  const handleSort = (newSortBy: string, newSortOrder: SortOrder) => {
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
+    // fetchPets will be called automatically due to useEffect dependency
+  };
+
+  // Use total from pagination for accurate count
+  const canAddPet = pagination.total < maxPets;
+
+  if (isLoading && pets.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -85,7 +152,7 @@ export function PetsPageClient({ maxPets }: PetsPageClientProps) {
         <div className="text-center py-12">
           <p className="text-red-500">{error}</p>
           <button
-            onClick={fetchPets}
+            onClick={() => fetchPets(pagination.page)}
             className="mt-4 btn-primary"
           >
             Reintentar
@@ -135,7 +202,7 @@ export function PetsPageClient({ maxPets }: PetsPageClientProps) {
       )}
 
       {/* Pets list with search functionality */}
-      {pets.length === 0 ? (
+      {pets.length === 0 && pagination.total === 0 ? (
         <div className="text-center py-12" data-testid="empty-pets-state">
           <span className="text-6xl">🐕</span>
           <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -155,7 +222,27 @@ export function PetsPageClient({ maxPets }: PetsPageClientProps) {
           )}
         </div>
       ) : (
-        <PetsList pets={pets} maxPets={maxPets} />
+        <>
+          <PetsList
+            pets={pets}
+            maxPets={maxPets}
+            totalPets={pagination.total}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={handleSort}
+            isLoading={isLoading}
+          />
+
+          {/* Pagination Controls */}
+          <PaginationControls
+            currentPage={pagination.page}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.total}
+            itemsPerPage={pagination.limit}
+            onPageChange={handlePageChange}
+            itemLabel="mascotas"
+          />
+        </>
       )}
     </div>
   );

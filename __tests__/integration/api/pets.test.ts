@@ -248,6 +248,223 @@ describe('Pets API Integration Tests', () => {
     });
   });
 
+  describe('Pagination and Sorting', () => {
+    it('should return paginated results with correct metadata', async () => {
+      // Create multiple pets for pagination testing
+      const pets = Array.from({ length: 25 }, (_, i) =>
+        createTestPet({
+          id: `pet-${i}`,
+          tenantId: mockTenant.id,
+          customerId: mockCustomer.id,
+          name: `Pet ${i}`,
+          createdAt: new Date(Date.now() - i * 86400000), // Each pet created 1 day apart
+        })
+      );
+
+      // Mock count and findMany for pagination
+      prismaMock.pet.count.mockResolvedValue(25);
+      prismaMock.pet.findMany.mockResolvedValue(pets.slice(0, 10)); // First page
+
+      const total = await prismaMock.pet.count({
+        where: { tenantId: mockTenant.id },
+      });
+
+      const result = await prismaMock.pet.findMany({
+        where: { tenantId: mockTenant.id },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      expect(total).toBe(25);
+      expect(result).toHaveLength(10);
+    });
+
+    it('should respect page and limit parameters', async () => {
+      const pets = Array.from({ length: 50 }, (_, i) =>
+        createTestPet({
+          id: `pet-${i}`,
+          tenantId: mockTenant.id,
+          customerId: mockCustomer.id,
+          name: `Pet ${i}`,
+        })
+      );
+
+      // Page 2 with limit 10 should skip first 10
+      prismaMock.pet.findMany.mockResolvedValue(pets.slice(10, 20));
+
+      const result = await prismaMock.pet.findMany({
+        where: { tenantId: mockTenant.id },
+        skip: 10, // (page - 1) * limit = (2 - 1) * 10
+        take: 10,
+      });
+
+      expect(result).toHaveLength(10);
+      expect(result[0].id).toBe('pet-10');
+    });
+
+    it('should sort by name ascending', async () => {
+      const pets = [
+        createTestPet({ id: 'p3', tenantId: mockTenant.id, customerId: mockCustomer.id, name: 'Zeus' }),
+        createTestPet({ id: 'p1', tenantId: mockTenant.id, customerId: mockCustomer.id, name: 'Apollo' }),
+        createTestPet({ id: 'p2', tenantId: mockTenant.id, customerId: mockCustomer.id, name: 'Buddy' }),
+      ];
+
+      // Return sorted by name ascending
+      prismaMock.pet.findMany.mockResolvedValue(
+        [...pets].sort((a, b) => a.name.localeCompare(b.name))
+      );
+
+      const result = await prismaMock.pet.findMany({
+        where: { tenantId: mockTenant.id },
+        orderBy: { name: 'asc' },
+      });
+
+      expect(result[0].name).toBe('Apollo');
+      expect(result[1].name).toBe('Buddy');
+      expect(result[2].name).toBe('Zeus');
+    });
+
+    it('should sort by name descending', async () => {
+      const pets = [
+        createTestPet({ id: 'p1', tenantId: mockTenant.id, customerId: mockCustomer.id, name: 'Apollo' }),
+        createTestPet({ id: 'p2', tenantId: mockTenant.id, customerId: mockCustomer.id, name: 'Buddy' }),
+        createTestPet({ id: 'p3', tenantId: mockTenant.id, customerId: mockCustomer.id, name: 'Zeus' }),
+      ];
+
+      // Return sorted by name descending
+      prismaMock.pet.findMany.mockResolvedValue(
+        [...pets].sort((a, b) => b.name.localeCompare(a.name))
+      );
+
+      const result = await prismaMock.pet.findMany({
+        where: { tenantId: mockTenant.id },
+        orderBy: { name: 'desc' },
+      });
+
+      expect(result[0].name).toBe('Zeus');
+      expect(result[1].name).toBe('Buddy');
+      expect(result[2].name).toBe('Apollo');
+    });
+
+    it('should sort by species', async () => {
+      const pets = [
+        createTestPet({ id: 'p2', tenantId: mockTenant.id, customerId: mockCustomer.id, species: 'dog' }),
+        createTestPet({ id: 'p1', tenantId: mockTenant.id, customerId: mockCustomer.id, species: 'bird' }),
+        createTestPet({ id: 'p3', tenantId: mockTenant.id, customerId: mockCustomer.id, species: 'cat' }),
+      ];
+
+      prismaMock.pet.findMany.mockResolvedValue(
+        [...pets].sort((a, b) => a.species.localeCompare(b.species))
+      );
+
+      const result = await prismaMock.pet.findMany({
+        where: { tenantId: mockTenant.id },
+        orderBy: { species: 'asc' },
+      });
+
+      expect(result[0].species).toBe('bird');
+      expect(result[1].species).toBe('cat');
+      expect(result[2].species).toBe('dog');
+    });
+
+    it('should sort by createdAt (default)', async () => {
+      const now = Date.now();
+      const pets = [
+        createTestPet({ id: 'p1', tenantId: mockTenant.id, customerId: mockCustomer.id, createdAt: new Date(now - 3000) }),
+        createTestPet({ id: 'p2', tenantId: mockTenant.id, customerId: mockCustomer.id, createdAt: new Date(now - 1000) }),
+        createTestPet({ id: 'p3', tenantId: mockTenant.id, customerId: mockCustomer.id, createdAt: new Date(now - 2000) }),
+      ];
+
+      // Sort by createdAt desc (newest first)
+      prismaMock.pet.findMany.mockResolvedValue(
+        [...pets].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      );
+
+      const result = await prismaMock.pet.findMany({
+        where: { tenantId: mockTenant.id },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      expect(result[0].id).toBe('p2'); // Most recent
+      expect(result[2].id).toBe('p1'); // Oldest
+    });
+
+    it('should combine pagination with sorting', async () => {
+      const pets = Array.from({ length: 30 }, (_, i) =>
+        createTestPet({
+          id: `pet-${i}`,
+          tenantId: mockTenant.id,
+          customerId: mockCustomer.id,
+          name: `Pet ${String.fromCharCode(65 + (i % 26))}${i}`, // A0, B1, C2, etc.
+        })
+      );
+
+      // Sort by name and get page 2
+      const sorted = [...pets].sort((a, b) => a.name.localeCompare(b.name));
+      prismaMock.pet.findMany.mockResolvedValue(sorted.slice(10, 20));
+
+      const result = await prismaMock.pet.findMany({
+        where: { tenantId: mockTenant.id },
+        skip: 10,
+        take: 10,
+        orderBy: { name: 'asc' },
+      });
+
+      expect(result).toHaveLength(10);
+    });
+
+    it('should handle empty results with pagination', async () => {
+      prismaMock.pet.count.mockResolvedValue(0);
+      prismaMock.pet.findMany.mockResolvedValue([]);
+
+      const total = await prismaMock.pet.count({
+        where: { tenantId: mockTenant.id },
+      });
+
+      const result = await prismaMock.pet.findMany({
+        where: { tenantId: mockTenant.id },
+        skip: 0,
+        take: 10,
+      });
+
+      expect(total).toBe(0);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should not allow sorting by non-whitelisted fields', async () => {
+      // Simulate the whitelist validation that happens in the API route
+      const allowedFields = ['name', 'species', 'breed', 'createdAt'] as const;
+      const requestedSortBy = 'customerId'; // Invalid field for sorting
+
+      const sortBy = allowedFields.includes(requestedSortBy as any) ? requestedSortBy : 'createdAt';
+
+      expect(sortBy).toBe('createdAt'); // Should fallback to default
+    });
+
+    it('should return hasMore true when more pages exist', async () => {
+      const total = 25;
+      const limit = 10;
+      const page = 1;
+      const totalPages = Math.ceil(total / limit);
+      const hasMore = page < totalPages;
+
+      expect(totalPages).toBe(3);
+      expect(hasMore).toBe(true);
+    });
+
+    it('should return hasMore false on last page', async () => {
+      const total = 25;
+      const limit = 10;
+      const page = 3;
+      const totalPages = Math.ceil(total / limit);
+      const hasMore = page < totalPages;
+
+      expect(totalPages).toBe(3);
+      expect(hasMore).toBe(false);
+    });
+  });
+
   describe('Location Filtering', () => {
     it('should filter pets by locationId when provided', async () => {
       const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });

@@ -11,10 +11,14 @@ import {
   PhoneIcon,
   EnvelopeIcon,
   ArchiveBoxIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  ChevronUpIcon,
+  ChevronDownIcon,
+  ChevronUpDownIcon
 } from '@heroicons/react/24/outline';
 import { getThemeClasses } from '../../utils/theme-colors';
 import { toast } from 'sonner';
+import type { SortOrder } from '../ui/ResponsiveTable';
 
 interface Customer {
   id: string;
@@ -39,19 +43,53 @@ interface Customer {
 
 interface CustomersListProps {
   customers: Customer[];
+  sortBy?: string;
+  sortOrder?: SortOrder;
+  onSort?: (sortBy: string, sortOrder: SortOrder) => void;
+  isLoading?: boolean;
 }
 
-export function CustomersList({ customers }: CustomersListProps) {
+export function CustomersList({
+  customers,
+  sortBy,
+  sortOrder,
+  onSort,
+  isLoading = false,
+}: CustomersListProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [customerToArchive, setCustomerToArchive] = useState<Customer | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
 
+  // Client-side search filter (works on current page data)
   const filteredCustomers = customers.filter(customer =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.phone?.includes(searchTerm)
   );
+
+  const handleSort = (columnKey: string) => {
+    if (!onSort) return;
+
+    const newOrder: SortOrder =
+      sortBy === columnKey && sortOrder === 'asc' ? 'desc' : 'asc';
+
+    onSort(columnKey, newOrder);
+  };
+
+  const getSortIndicator = (columnKey: string) => {
+    if (!onSort) return null;
+
+    const isActive = sortBy === columnKey;
+
+    if (!isActive) {
+      return <ChevronUpDownIcon className="w-4 h-4 ml-1 text-gray-400" />;
+    }
+
+    return sortOrder === 'asc'
+      ? <ChevronUpIcon className="w-4 h-4 ml-1 text-[#75a99c]" />
+      : <ChevronDownIcon className="w-4 h-4 ml-1 text-[#75a99c]" />;
+  };
 
   const handleArchiveCustomer = async () => {
     if (!customerToArchive) return;
@@ -90,7 +128,7 @@ export function CustomersList({ customers }: CustomersListProps) {
             </div>
             <input
               type="text"
-              placeholder="Buscar clientes..."
+              placeholder="Buscar en esta página..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={`${getThemeClasses('input.base')} block w-full pl-10 pr-3 py-2 border rounded-md leading-5 placeholder-opacity-75 focus:outline-none focus:ring-1 ${getThemeClasses('input.focus')}`}
@@ -98,6 +136,13 @@ export function CustomersList({ customers }: CustomersListProps) {
             />
           </div>
         </div>
+
+        {/* Loading overlay */}
+        {isLoading && (
+          <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 flex items-center justify-center z-10 rounded-lg">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#75a99c]"></div>
+          </div>
+        )}
 
         {/* Customers Table */}
         {filteredCustomers.length === 0 ? (
@@ -107,7 +152,7 @@ export function CustomersList({ customers }: CustomersListProps) {
               {searchTerm ? 'No se encontraron clientes' : 'Sin clientes registrados'}
             </h3>
             <p className={`text-sm ${getThemeClasses('text.muted')} mb-4`}>
-              {searchTerm 
+              {searchTerm
                 ? 'Intenta con otros términos de búsqueda'
                 : 'Comienza agregando tu primer cliente'
               }
@@ -119,16 +164,29 @@ export function CustomersList({ customers }: CustomersListProps) {
             )}
           </div>
         ) : (
-          <div className="overflow-hidden">
+          <div className="overflow-hidden relative">
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700" data-testid="customers-table">
+              {/* Desktop Table */}
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700 hidden sm:table" data-testid="customers-table">
                 <thead className={`${getThemeClasses('table.header')}`}>
                   <tr>
-                    <th className={`px-6 py-3 text-left text-xs font-medium ${getThemeClasses('text.secondary')} uppercase tracking-wider`}>
-                      Cliente
+                    <th
+                      className={`px-6 py-3 text-left text-xs font-medium ${getThemeClasses('text.secondary')} uppercase tracking-wider ${onSort ? 'cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-700' : ''}`}
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center">
+                        Cliente
+                        {getSortIndicator('name')}
+                      </div>
                     </th>
-                    <th className={`px-6 py-3 text-left text-xs font-medium ${getThemeClasses('text.secondary')} uppercase tracking-wider`}>
-                      Contacto
+                    <th
+                      className={`px-6 py-3 text-left text-xs font-medium ${getThemeClasses('text.secondary')} uppercase tracking-wider ${onSort ? 'cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-700' : ''}`}
+                      onClick={() => handleSort('email')}
+                    >
+                      <div className="flex items-center">
+                        Contacto
+                        {getSortIndicator('email')}
+                      </div>
                     </th>
                     <th className={`px-6 py-3 text-left text-xs font-medium ${getThemeClasses('text.secondary')} uppercase tracking-wider`}>
                       Mascotas
@@ -138,6 +196,15 @@ export function CustomersList({ customers }: CustomersListProps) {
                     </th>
                     <th className={`px-6 py-3 text-left text-xs font-medium ${getThemeClasses('text.secondary')} uppercase tracking-wider`}>
                       Estado
+                    </th>
+                    <th
+                      className={`px-6 py-3 text-left text-xs font-medium ${getThemeClasses('text.secondary')} uppercase tracking-wider ${onSort ? 'cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-700' : ''}`}
+                      onClick={() => handleSort('createdAt')}
+                    >
+                      <div className="flex items-center">
+                        Fecha
+                        {getSortIndicator('createdAt')}
+                      </div>
                     </th>
                     <th className={`px-6 py-3 text-right text-xs font-medium ${getThemeClasses('text.secondary')} uppercase tracking-wider`}>
                       Acciones
@@ -191,12 +258,19 @@ export function CustomersList({ customers }: CustomersListProps) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          customer.isActive 
+                          customer.isActive
                             ? getThemeClasses('status.success')
                             : getThemeClasses('status.error')
                         }`}>
                           {customer.isActive ? 'Activo' : 'Inactivo'}
                         </span>
+                      </td>
+                      <td className={`px-6 py-4 whitespace-nowrap text-sm ${getThemeClasses('text.muted')}`}>
+                        {new Date(customer.createdAt).toLocaleDateString('es-MX', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex space-x-2 justify-end">
@@ -226,6 +300,78 @@ export function CustomersList({ customers }: CustomersListProps) {
                   ))}
                 </tbody>
               </table>
+
+              {/* Mobile Cards */}
+              <div className="sm:hidden space-y-4">
+                {filteredCustomers.map((customer) => (
+                  <div
+                    key={customer.id}
+                    className={`${getThemeClasses('background.card')} border ${getThemeClasses('border.primary')} rounded-lg p-4`}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <div className={`text-sm font-medium ${getThemeClasses('text.primary')}`}>
+                          {customer.name}
+                        </div>
+                        <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full mt-1 ${
+                          customer.isActive
+                            ? getThemeClasses('status.success')
+                            : getThemeClasses('status.error')
+                        }`}>
+                          {customer.isActive ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </div>
+                      <div className="flex space-x-1">
+                        <Link href={`/dashboard/customers/${customer.id}`}>
+                          <Button variant="ghost" size="sm" title="Ver">
+                            <EyeIcon className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                        <Link href={`/dashboard/customers/${customer.id}?edit=true`}>
+                          <Button variant="ghost" size="sm" title="Editar">
+                            <PencilIcon className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 text-sm">
+                      {customer.phone && (
+                        <div className={`flex items-center ${getThemeClasses('text.secondary')}`}>
+                          <PhoneIcon className="h-4 w-4 mr-2" />
+                          {customer.phone}
+                        </div>
+                      )}
+                      {customer.email && (
+                        <div className={`flex items-center ${getThemeClasses('text.secondary')}`}>
+                          <EnvelopeIcon className="h-4 w-4 mr-2" />
+                          {customer.email}
+                        </div>
+                      )}
+                      <div className="flex justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                        <span className={getThemeClasses('text.muted')}>
+                          {customer._count?.pets || 0} mascotas
+                        </span>
+                        <span className={getThemeClasses('text.muted')}>
+                          {customer._count?.appointments || 0} citas
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCustomerToArchive(customer)}
+                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-xs"
+                      >
+                        <ArchiveBoxIcon className="h-4 w-4 mr-1" />
+                        Archivar
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -293,4 +439,4 @@ export function CustomersList({ customers }: CustomersListProps) {
       )}
     </div>
   );
-} 
+}

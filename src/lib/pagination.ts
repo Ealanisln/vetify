@@ -1,5 +1,5 @@
 /**
- * Pagination utilities for API endpoints
+ * Pagination and sorting utilities for API endpoints
  */
 
 export interface PaginationParams {
@@ -7,6 +7,13 @@ export interface PaginationParams {
   limit: number;
   skip: number;
 }
+
+export interface SortParams {
+  sortBy: string;
+  sortOrder: 'asc' | 'desc';
+}
+
+export interface PaginationSortParams extends PaginationParams, SortParams {}
 
 export interface PaginatedResponse<T> {
   data: T[];
@@ -66,4 +73,48 @@ export function createPaginatedResponse<T>(
       hasMore: params.page < totalPages,
     },
   };
+}
+
+/**
+ * Parse sort parameters from URL search params with whitelist validation
+ * @param searchParams - URL search params
+ * @param allowedFields - Array of allowed field names for sorting
+ * @param defaultField - Default field to sort by
+ * @param defaultOrder - Default sort order
+ * @returns Parsed and validated sort parameters
+ */
+export function parseSortParams(
+  searchParams: URLSearchParams,
+  allowedFields: readonly string[],
+  defaultField: string = 'createdAt',
+  defaultOrder: 'asc' | 'desc' = 'desc'
+): SortParams {
+  const rawSortBy = searchParams.get('sortBy') || defaultField;
+  const rawSortOrder = searchParams.get('sortOrder') || defaultOrder;
+
+  // Whitelist validation for security
+  const sortBy = allowedFields.includes(rawSortBy) ? rawSortBy : defaultField;
+  const sortOrder = rawSortOrder === 'asc' || rawSortOrder === 'desc' ? rawSortOrder : defaultOrder;
+
+  return { sortBy, sortOrder };
+}
+
+/**
+ * Parse both pagination and sort parameters
+ * @param searchParams - URL search params
+ * @param allowedSortFields - Array of allowed field names for sorting
+ * @param defaultSortField - Default field to sort by
+ * @param defaultSortOrder - Default sort order
+ * @returns Combined pagination and sort parameters
+ */
+export function parsePaginationAndSortParams(
+  searchParams: URLSearchParams,
+  allowedSortFields: readonly string[],
+  defaultSortField: string = 'createdAt',
+  defaultSortOrder: 'asc' | 'desc' = 'desc'
+): PaginationSortParams {
+  const pagination = parsePaginationParams(searchParams);
+  const sort = parseSortParams(searchParams, allowedSortFields, defaultSortField, defaultSortOrder);
+
+  return { ...pagination, ...sort };
 }

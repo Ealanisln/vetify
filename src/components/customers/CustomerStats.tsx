@@ -12,12 +12,16 @@ interface Customer {
 
 interface CustomerStatsProps {
   customers: Customer[];
+  totalCustomers?: number; // Optional override for paginated data
 }
 
-export function CustomerStats({ customers }: CustomerStatsProps) {
-  const totalCustomers = customers.length;
-  const totalPets = customers.reduce((sum, customer) => sum + (customer._count?.pets || 0), 0);
-  const activeCustomers = customers.filter(customer => customer.isActive).length;
+export function CustomerStats({ customers, totalCustomers: totalCustomersProp }: CustomerStatsProps) {
+  // Defensive check: ensure customers is an array
+  const safeCustomers = Array.isArray(customers) ? customers : [];
+  // Use provided total or fallback to array length
+  const totalCustomers = totalCustomersProp ?? safeCustomers.length;
+  const totalPets = safeCustomers.reduce((sum, customer) => sum + (customer._count?.pets || 0), 0);
+  const activeCustomers = safeCustomers.filter(customer => customer.isActive).length;
   const averagePetsPerCustomer = totalCustomers > 0 ? (totalPets / totalCustomers).toFixed(1) : 0;
 
   const stats = [

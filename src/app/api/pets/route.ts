@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireActiveSubscription } from '../../../lib/auth';
-import { createPet, createPetSchema, getPetsByTenant } from '../../../lib/pets';
+import { createPet, createPetSchema, getPetsByTenant, PETS_ALLOWED_SORT_FIELDS } from '../../../lib/pets';
 import { validatePlanAction, PlanLimitError } from '../../../lib/plan-limits';
 import { validateDateOfBirth } from '../../../lib/utils/date-validation';
+import { parsePaginationParams, parseSortParams, createPaginatedResponse } from '../../../lib/pagination';
 
 export async function POST(request: NextRequest) {
   try {
@@ -114,9 +115,28 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const locationId = searchParams.get('locationId') || undefined;
 
-    const pets = await getPetsByTenant(tenant.id as string, locationId);
+    // Parse pagination and sort params
+    const paginationParams = parsePaginationParams(searchParams);
+    const sortParams = parseSortParams(searchParams, PETS_ALLOWED_SORT_FIELDS);
 
-    return NextResponse.json(pets);
+    const result = await getPetsByTenant(
+      tenant.id as string,
+      locationId,
+      paginationParams,
+      sortParams
+    );
+
+    // Handle paginated response
+    if ('pets' in result && 'total' in result) {
+      const response = createPaginatedResponse(result.pets, result.total, paginationParams);
+      return NextResponse.json({
+        success: true,
+        ...response
+      });
+    }
+
+    // Backwards compatible response (shouldn't happen with pagination)
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching pets:', error);
     return NextResponse.json(
