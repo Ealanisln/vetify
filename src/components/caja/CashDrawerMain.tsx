@@ -17,6 +17,7 @@ import { CashDrawerSelector } from './CashDrawerSelector';
 
 interface CashDrawerMainProps {
   tenantId: string;
+  canOperate?: boolean;
 }
 
 interface CashDrawer {
@@ -47,7 +48,7 @@ interface TransactionSummary {
   transactionCount: number;
 }
 
-export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
+export function CashDrawerMain({ tenantId, canOperate = true }: CashDrawerMainProps) {
   const { currentLocation } = useLocation();
   const [drawers, setDrawers] = useState<CashDrawer[]>([]);
   const [selectedDrawerId, setSelectedDrawerId] = useState<string | null>(null);
@@ -370,10 +371,12 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
             {!isOpen ? (
               <>
                 {!showOpenForm ? (
-                  <Button 
+                  <Button
                     onClick={() => setShowOpenForm(true)}
                     className="w-full"
                     size="lg"
+                    disabled={!canOperate}
+                    title={!canOperate ? 'No tienes permisos para operar la caja' : undefined}
                   >
                     <LockOpenIcon className="h-4 w-4 mr-2" />
                     Abrir Caja
@@ -438,11 +441,13 @@ export function CashDrawerMain({ tenantId }: CashDrawerMainProps) {
             ) : (
               <>
                 {!showCloseForm ? (
-                  <Button 
+                  <Button
                     onClick={() => setShowCloseForm(true)}
                     variant="destructive"
                     className="w-full"
                     size="lg"
+                    disabled={!canOperate}
+                    title={!canOperate ? 'No tienes permisos para operar la caja' : undefined}
                   >
                     <LockClosedIcon className="h-4 w-4 mr-2" />
                     Cerrar Caja

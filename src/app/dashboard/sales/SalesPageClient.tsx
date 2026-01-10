@@ -6,13 +6,15 @@ import {
   TrashIcon,
   PrinterIcon,
   CreditCardIcon,
-  UserIcon
+  UserIcon,
+  LockClosedIcon
 } from '@heroicons/react/24/outline';
 import { CustomerSearchResult, ProductSearchResult, SaleItemForm } from '@/types';
 import { toast } from 'sonner';
 import { SaleDetailModal } from '@/components/sales/SaleDetailModal';
 import { useLocation } from '@/components/providers/LocationProvider';
 import { calculateTaxBreakdown, formatTaxRateLabel } from '@/lib/tax-utils';
+import { useStaffPermissions } from '@/hooks/useStaffPermissions';
 
 interface SalesPageClientProps {
   tenantId: string;
@@ -64,23 +66,27 @@ export default function SalesPageClient({}: SalesPageClientProps) {
   const [taxRate, setTaxRate] = useState<number>(0.16);
 
   const { currentLocation, isAllLocations } = useLocation();
+  const { canAccess, isLoading: permissionsLoading } = useStaffPermissions();
+
+  // Check if user can process sales
+  const canProcessSales = canAccess('sales', 'write');
 
   // Cargar tasa de IVA del tenant
   useEffect(() => {
-    const fetchTenantSettings = async () => {
+    const fetchTaxRate = async () => {
       try {
-        const response = await fetch('/api/settings/clinic');
+        const response = await fetch('/api/settings/tax-rate');
         if (response.ok) {
           const data = await response.json();
-          if (data.settings?.taxRate) {
-            setTaxRate(Number(data.settings.taxRate));
+          if (data.taxRate !== undefined) {
+            setTaxRate(Number(data.taxRate));
           }
         }
       } catch (error) {
-        console.error('Error loading tenant settings:', error);
+        console.error('Error loading tax rate:', error);
       }
     };
-    fetchTenantSettings();
+    fetchTaxRate();
   }, []);
 
   // Build location query param
@@ -284,7 +290,21 @@ export default function SalesPageClient({}: SalesPageClientProps) {
   }, [currentLocation?.id]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="space-y-6">
+      {/* Read-only alert for users without write permission */}
+      {!permissionsLoading && !canProcessSales && (
+        <div className="flex items-start gap-3 p-4 border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 rounded-lg">
+          <LockClosedIcon className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <h4 className="font-medium text-amber-800 dark:text-amber-200">Modo de solo lectura</h4>
+            <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+              Tu rol actual no tiene permisos para procesar ventas. Solo puedes ver la información.
+            </p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Panel izquierdo - Búsqueda y selección */}
       <div className="space-y-6">
         {/* Búsqueda de cliente */}
@@ -519,7 +539,8 @@ export default function SalesPageClient({}: SalesPageClientProps) {
           <div className="mt-6 space-y-3">
             <button
               onClick={processSale}
-              disabled={(!selectedCustomer && !isGeneralSale) || cartItems.length === 0 || isProcessing}
+              disabled={(!selectedCustomer && !isGeneralSale) || cartItems.length === 0 || isProcessing || !canProcessSales}
+              title={!canProcessSales ? 'No tienes permisos para procesar ventas' : undefined}
               className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-[#75a99c] hover:bg-[#5b9788] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#75a99c] disabled:opacity-50 disabled:cursor-not-allowed"
               data-testid="process-sale-button"
             >
@@ -539,6 +560,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
             </button>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Modal de detalle de venta */}

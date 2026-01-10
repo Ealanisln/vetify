@@ -13,7 +13,6 @@ import {
   Wrench,
   Clock,
   Bell,
-  Users,
   Shield,
   Building2,
   CreditCard,
@@ -24,7 +23,6 @@ import {
 import { PublicPageSettings } from '../../../components/settings/PublicPageSettings';
 import { QrCodeGenerator } from '../../../components/settings/QrCodeGenerator';
 import { LandingAnalyticsSection } from '../../../components/analytics/LandingAnalyticsSection';
-import StaffList from '../../../components/staff/StaffList';
 
 const settingsSections = [
   {
@@ -77,13 +75,6 @@ const settingsSections = [
     component: 'notifications'
   },
   {
-    id: 'staff',
-    title: 'Personal',
-    description: 'Gestione el equipo de su clínica',
-    icon: Users,
-    component: 'staff'
-  },
-  {
     id: 'security',
     title: 'Seguridad',
     description: 'Configure la seguridad y autenticación',
@@ -124,8 +115,6 @@ export function SettingsPageClient({ tenant }: SettingsPageClientProps) {
         return <SubscriptionManager tenant={tenant} />;
       case 'notifications':
         return <NotificationSettings tenantId={tenant.id} />;
-      case 'staff':
-        return <StaffList initialStaff={[]} pagination={{ total: 0, page: 1, limit: 20, totalPages: 0 }} />;
       default:
         return (
           <div className="text-center py-12">
