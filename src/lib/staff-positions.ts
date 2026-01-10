@@ -13,6 +13,7 @@ export const StaffPosition = {
   VETERINARY_TECHNICIAN: 'VETERINARY_TECHNICIAN',
   RECEPTIONIST: 'RECEPTIONIST',
   MANAGER: 'MANAGER',
+  ADMINISTRATOR: 'Administrador',
   GROOMER: 'GROOMER',
   OTHER: 'OTHER',
 } as const;
@@ -32,6 +33,7 @@ export const POSITION_LABELS_ES: Record<StaffPositionType, string> = {
   [StaffPosition.VETERINARY_TECHNICIAN]: 'Técnico Veterinario',
   [StaffPosition.RECEPTIONIST]: 'Recepcionista',
   [StaffPosition.MANAGER]: 'Gerente',
+  [StaffPosition.ADMINISTRATOR]: 'Administrador',
   [StaffPosition.GROOMER]: 'Peluquero',
   [StaffPosition.OTHER]: 'Otro',
 };
@@ -54,6 +56,7 @@ export const SPANISH_POSITION_TO_ENUM: Record<string, StaffPositionType> = {
   'Técnico Veterinario': StaffPosition.VETERINARY_TECHNICIAN,
   'Recepcionista': StaffPosition.RECEPTIONIST,
   'Gerente': StaffPosition.MANAGER,
+  'Administrador': StaffPosition.ADMINISTRATOR,
   'Peluquero': StaffPosition.GROOMER,
   'Otro': StaffPosition.OTHER,
 };
@@ -92,6 +95,7 @@ export const POSITION_SELECT_OPTIONS = [
   { value: 'Técnico Veterinario', label: 'Técnico Veterinario' },
   { value: 'Recepcionista', label: 'Recepcionista' },
   { value: 'Gerente', label: 'Gerente' },
+  { value: 'Administrador', label: 'Administrador' },
   { value: 'Peluquero', label: 'Peluquero' },
   { value: 'Otro', label: 'Otro' },
 ] as const;

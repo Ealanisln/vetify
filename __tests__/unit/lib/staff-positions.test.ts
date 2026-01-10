@@ -25,13 +25,14 @@ describe('Staff Positions', () => {
       expect(StaffPosition.VETERINARY_TECHNICIAN).toBe('VETERINARY_TECHNICIAN');
       expect(StaffPosition.RECEPTIONIST).toBe('RECEPTIONIST');
       expect(StaffPosition.MANAGER).toBe('MANAGER');
+      expect(StaffPosition.ADMINISTRATOR).toBe('Administrador');
       expect(StaffPosition.GROOMER).toBe('GROOMER');
       expect(StaffPosition.OTHER).toBe('OTHER');
     });
 
-    it('should have 7 position types', () => {
+    it('should have 8 position types', () => {
       const positions = Object.keys(StaffPosition);
-      expect(positions).toHaveLength(7);
+      expect(positions).toHaveLength(8);
     });
   });
 
@@ -42,6 +43,7 @@ describe('Staff Positions', () => {
       expect(POSITION_LABELS_ES[StaffPosition.VETERINARY_TECHNICIAN]).toBe('Técnico Veterinario');
       expect(POSITION_LABELS_ES[StaffPosition.RECEPTIONIST]).toBe('Recepcionista');
       expect(POSITION_LABELS_ES[StaffPosition.MANAGER]).toBe('Gerente');
+      expect(POSITION_LABELS_ES[StaffPosition.ADMINISTRATOR]).toBe('Administrador');
       expect(POSITION_LABELS_ES[StaffPosition.GROOMER]).toBe('Peluquero');
       expect(POSITION_LABELS_ES[StaffPosition.OTHER]).toBe('Otro');
     });
@@ -125,8 +127,8 @@ describe('Staff Positions', () => {
       });
     });
 
-    it('should have 9 options (including specialty variants)', () => {
-      expect(POSITION_SELECT_OPTIONS).toHaveLength(9);
+    it('should have 10 options (including specialty variants and administrator)', () => {
+      expect(POSITION_SELECT_OPTIONS).toHaveLength(10);
     });
 
     it('should include all veterinarian variants', () => {
