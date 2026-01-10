@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '../../../../lib/auth';
+import { requirePermission } from '../../../../lib/auth';
 import {
   getNotificationPreferences,
   updateNotificationPreferences,
@@ -11,10 +11,11 @@ import { z } from 'zod';
 /**
  * GET /api/settings/notifications
  * Get notification preferences for the authenticated tenant
+ * Only admins can access settings
  */
 export async function GET() {
   try {
-    const { tenant } = await requireAuth();
+    const { tenant } = await requirePermission('settings', 'read');
     const preferences = await getNotificationPreferences(tenant.id);
 
     return NextResponse.json({
@@ -23,6 +24,14 @@ export async function GET() {
     });
   } catch (error) {
     console.error('[SETTINGS] Error fetching notification preferences:', error);
+
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { success: false, error: 'No tienes permiso para ver la configuración' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
@@ -33,10 +42,11 @@ export async function GET() {
 /**
  * PUT /api/settings/notifications
  * Update notification preferences for the authenticated tenant
+ * Only admins can modify settings
  */
 export async function PUT(request: NextRequest) {
   try {
-    const { tenant } = await requireAuth();
+    const { tenant } = await requirePermission('settings', 'write');
     const body = await request.json();
 
     // Validate the input data
@@ -65,6 +75,12 @@ export async function PUT(request: NextRequest) {
     }
 
     if (error instanceof Error) {
+      if (error.message.includes('Access denied')) {
+        return NextResponse.json(
+          { success: false, error: 'No tienes permiso para modificar la configuración' },
+          { status: 403 }
+        );
+      }
       return NextResponse.json(
         { success: false, error: error.message },
         { status: 400 }

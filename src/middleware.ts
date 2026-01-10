@@ -395,10 +395,16 @@ export const config = {
      *
      * NOTE: /api/public/* is excluded from the matcher to allow unauthenticated access
      * to public endpoints like /api/public/promotion
+     *
+     * NOTE: /api/auth/* is excluded to allow the auth status endpoint to work
+     * without redirecting unauthenticated users to login
+     *
+     * NOTE: /api/invitations/* is excluded to allow invitation validation and
+     * acceptance without requiring authentication first
      */
     '/dashboard/:path*',
     '/onboarding',
     '/admin/:path*',
-    '/api/((?!public/).*)',
+    '/api/((?!public/|auth/|invitations/).*)',
   ],
 };

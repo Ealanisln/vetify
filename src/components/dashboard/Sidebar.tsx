@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -16,12 +16,15 @@ import {
   DocumentTextIcon,
   CurrencyDollarIcon,
   MapPinIcon,
-  StarIcon
+  StarIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
 import { LocationSwitcher } from '@/components/locations/LocationSwitcher';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useStaffPermissions } from '@/hooks/useStaffPermissions';
+import type { Feature } from '@/lib/staff-permissions';
 
 interface SidebarProps {
   user: UserWithTenant;
@@ -34,6 +37,7 @@ interface NavigationItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  feature: Feature;
   isPro?: boolean;
   proTooltip?: string;
 }
@@ -44,22 +48,41 @@ interface NavigationItem {
 // - Reportes: Basic reports for all, advanced analytics require Plan Profesional
 // - Caja: Basic single cash drawer for all, multiple drawers require Plan Profesional
 const navigation: NavigationItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon },
-  { name: 'Mascotas', href: '/dashboard/pets', icon: UserGroupIcon },
-  { name: 'Ubicaciones', href: '/dashboard/locations', icon: MapPinIcon },
-  { name: 'Punto de Venta', href: '/dashboard/sales', icon: CreditCardIcon },
-  { name: 'Caja', href: '/dashboard/caja', icon: CurrencyDollarIcon, isPro: true, proTooltip: 'Múltiples cajas en Plan Profesional' },
-  { name: 'Inventario', href: '/dashboard/inventory', icon: CubeIcon, isPro: true, proTooltip: 'Análisis avanzado en Plan Profesional' },
-  { name: 'Historia Clínica', href: '/dashboard/medical-history', icon: DocumentTextIcon },
-  { name: 'Citas', href: '/dashboard/appointments', icon: CalendarIcon },
-  { name: 'Testimonios', href: '/dashboard/testimonials', icon: StarIcon },
-  { name: 'Reportes', href: '/dashboard/reports', icon: ChartBarIcon, isPro: true, proTooltip: 'Analytics avanzados en Plan Profesional' },
-  { name: 'Configuración', href: '/dashboard/settings', icon: CogIcon },
+  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, feature: 'dashboard' },
+  { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon, feature: 'customers' },
+  { name: 'Mascotas', href: '/dashboard/pets', icon: UserGroupIcon, feature: 'pets' },
+  { name: 'Ubicaciones', href: '/dashboard/locations', icon: MapPinIcon, feature: 'locations' },
+  { name: 'Punto de Venta', href: '/dashboard/sales', icon: CreditCardIcon, feature: 'sales' },
+  { name: 'Caja', href: '/dashboard/caja', icon: CurrencyDollarIcon, feature: 'sales', isPro: true, proTooltip: 'Múltiples cajas en Plan Profesional' },
+  { name: 'Inventario', href: '/dashboard/inventory', icon: CubeIcon, feature: 'inventory', isPro: true, proTooltip: 'Análisis avanzado en Plan Profesional' },
+  { name: 'Historia Clínica', href: '/dashboard/medical-history', icon: DocumentTextIcon, feature: 'medical' },
+  { name: 'Citas', href: '/dashboard/appointments', icon: CalendarIcon, feature: 'appointments' },
+  { name: 'Testimonios', href: '/dashboard/testimonials', icon: StarIcon, feature: 'testimonials' },
+  { name: 'Reportes', href: '/dashboard/reports', icon: ChartBarIcon, feature: 'reports', isPro: true, proTooltip: 'Analytics avanzados en Plan Profesional' },
+  { name: 'Equipo', href: '/dashboard/staff', icon: UsersIcon, feature: 'staff' },
+  { name: 'Configuración', href: '/dashboard/settings', icon: CogIcon, feature: 'settings' },
 ];
 
 export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarProps) {
   const pathname = usePathname();
+  const { canAccess, isLoading: permissionsLoading } = useStaffPermissions();
+
+  // Filter navigation based on staff permissions
+  const filteredNavigation = useMemo(() => {
+    // While loading permissions, show all items (prevents flashing)
+    if (permissionsLoading) return navigation;
+
+    const filtered = navigation.filter((item) => canAccess(item.feature, 'read'));
+
+    // Fallback: if no items are accessible (shouldn't happen for valid users),
+    // show all navigation items to prevent empty sidebar
+    if (filtered.length === 0) {
+      console.warn('[Sidebar] No accessible navigation items - showing all items as fallback');
+      return navigation;
+    }
+
+    return filtered;
+  }, [canAccess, permissionsLoading]);
 
   // Manejar escape key para cerrar sidebar
   useEffect(() => {
@@ -137,7 +160,7 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
                 <ul role="list" className="flex flex-1 flex-col gap-y-7">
                   <li>
                     <ul role="list" className="-mx-2 space-y-1">
-                      {navigation.map((item) => {
+                      {filteredNavigation.map((item) => {
                         const isActive = pathname === item.href;
                         return (
                           <li key={item.name}>
@@ -216,7 +239,7 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
                 <ul role="list" className="-mx-2 space-y-1">
-                  {navigation.map((item) => {
+                  {filteredNavigation.map((item) => {
                     const isActive = pathname === item.href;
                     return (
                       <li key={item.name}>
