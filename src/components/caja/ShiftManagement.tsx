@@ -49,9 +49,10 @@ interface CashShift {
 
 interface ShiftManagementProps {
   tenantId: string;
+  canOperate?: boolean;
 }
 
-export function ShiftManagement({ tenantId }: ShiftManagementProps) {
+export function ShiftManagement({ tenantId, canOperate = true }: ShiftManagementProps) {
   const [shifts, setShifts] = useState<CashShift[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -157,7 +158,11 @@ export function ShiftManagement({ tenantId }: ShiftManagementProps) {
 
         <button
           onClick={() => setShowStartDialog(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md transition-colors"
+          disabled={!canOperate}
+          title={!canOperate ? 'No tienes permisos para gestionar turnos' : undefined}
+          className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-md transition-colors ${
+            canOperate ? 'hover:bg-primary/90' : 'opacity-50 cursor-not-allowed'
+          }`}
         >
           <PlusIcon className="h-4 w-4" />
           Iniciar Turno
@@ -227,7 +232,11 @@ export function ShiftManagement({ tenantId }: ShiftManagementProps) {
               </p>
               <button
                 onClick={() => setShowStartDialog(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md"
+                disabled={!canOperate}
+                title={!canOperate ? 'No tienes permisos para gestionar turnos' : undefined}
+                className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary rounded-md ${
+                  canOperate ? 'hover:bg-primary/90' : 'opacity-50 cursor-not-allowed'
+                }`}
               >
                 <PlusIcon className="h-4 w-4" />
                 Iniciar Turno
@@ -241,7 +250,7 @@ export function ShiftManagement({ tenantId }: ShiftManagementProps) {
                   shift={shift}
                   onEnd={() => handleEndShift(shift)}
                   onHandoff={() => handleHandoff(shift)}
-                  showActions={true}
+                  showActions={canOperate}
                 />
               ))}
             </div>

@@ -9,13 +9,8 @@ import { getTheme, getThemeClasses } from '../../lib/themes';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
 import {
-  fadeInUp,
-  fadeInLeft,
-  fadeInRight,
   buttonHover,
   buttonTap,
-  sectionVariant,
-  viewportSettings,
 } from './animations';
 
 interface ClinicInfoProps {
@@ -56,16 +51,12 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
   };
 
   return (
-    <motion.section
+    <section
       className="py-16 transition-colors duration-200"
       style={{ backgroundColor: colors.background }}
-      initial="hidden"
-      whileInView="visible"
-      viewport={viewportSettings}
-      variants={sectionVariant}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div className="text-center mb-12" variants={fadeInUp}>
+        <div className="text-center mb-12">
           <h2
             className="text-3xl font-bold mb-4"
             style={{
@@ -79,17 +70,11 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
           <p className="text-lg" style={{ color: colors.textMuted }}>
             Estamos aquí para cuidar a tu mascota. Contáctanos cuando lo necesites.
           </p>
-        </motion.div>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           {/* Información de contacto */}
-          <motion.div
-            className="space-y-8"
-            variants={fadeInLeft}
-            initial="hidden"
-            whileInView="visible"
-            viewport={viewportSettings}
-          >
+          <div className="space-y-8">
             <div>
               <h3 className="text-xl font-semibold mb-6" style={{ color: colors.text }}>
                 Datos de Contacto
@@ -173,39 +158,43 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
 
                 {tenant.publicAddress && (
                   <div
-                    className="flex items-start p-4 transition-colors"
+                    className="p-4 transition-colors"
                     style={{
                       backgroundColor: colors.backgroundAlt,
                       borderRadius: theme.layout.borderRadius
                     }}
                   >
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center mr-4 mt-1"
-                      style={{ backgroundColor: colors.primaryLight }}
-                    >
-                      <MapPin className="h-6 w-6" style={{ color: themeColor }} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm mb-1" style={{ color: colors.textMuted }}>Dirección</p>
-                      <p
-                        className="text-lg font-semibold leading-relaxed"
-                        style={{ color: colors.text }}
+                    <div className="flex items-start">
+                      <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center mr-4 flex-shrink-0"
+                        style={{ backgroundColor: colors.primaryLight }}
                       >
-                        {tenant.publicAddress}
-                      </p>
+                        <MapPin className="h-6 w-6" style={{ color: themeColor }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm mb-1" style={{ color: colors.textMuted }}>Dirección</p>
+                        <p
+                          className="text-base sm:text-lg font-semibold leading-relaxed"
+                          style={{ color: colors.text }}
+                        >
+                          {tenant.publicAddress}
+                        </p>
+                      </div>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className={`border-2 mt-1 ${themeClasses.button}`}
-                      style={{
-                        borderColor: themeColor,
-                        color: themeColor
-                      }}
-                    >
-                      <Navigation className="h-4 w-4 mr-1" />
-                      Navegar
-                    </Button>
+                    <div className="mt-3 ml-16">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={`border-2 ${themeClasses.button}`}
+                        style={{
+                          borderColor: themeColor,
+                          color: themeColor
+                        }}
+                      >
+                        <Navigation className="h-4 w-4 mr-1" />
+                        Navegar
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -224,7 +213,7 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
                   borderRadius: theme.layout.borderRadius
                 }}
               >
-                {publicHours ? (
+                {publicHours && (publicHours.weekdays || publicHours.saturday || publicHours.sunday) ? (
                   <div className="space-y-3">
                     {publicHours.weekdays && (
                       <div className="flex justify-between items-center">
@@ -263,16 +252,10 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
                 )}
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Call to action y testimonios */}
-          <motion.div
-            className="space-y-8"
-            variants={fadeInRight}
-            initial="hidden"
-            whileInView="visible"
-            viewport={viewportSettings}
-          >
+          <div className="space-y-8">
             {/* CTA principal */}
             <div
               className="p-8 text-center transition-colors"
@@ -381,9 +364,9 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 } 

@@ -157,6 +157,13 @@ export async function getStaffByTenant(tenantId: string, filters: Partial<StaffF
             medicalOrders: true,
             Sale: true,
           }
+        },
+        invitation: {
+          select: {
+            id: true,
+            status: true,
+            expiresAt: true,
+          }
         }
       },
       orderBy: [
@@ -410,6 +417,24 @@ export async function getActiveStaffForSelect(tenantId: string) {
     },
     orderBy: { name: 'asc' }
   });
+}
+
+export async function getStaffByUserId(userId: string) {
+  const staff = await prisma.staff.findUnique({
+    where: {
+      userId,
+    },
+    select: {
+      id: true,
+      name: true,
+      position: true,
+      email: true,
+      tenantId: true,
+      isActive: true,
+    }
+  });
+
+  return staff;
 }
 
 // TODO: Fix type issues with Prisma generated types

@@ -255,6 +255,11 @@ jest.mock('@prisma/client', () => ({
 // Global test environment setup
 global.fetch = jest.fn();
 
+// Mock nanoid (ESM-only module)
+jest.mock('nanoid', () => ({
+  nanoid: jest.fn(() => 'mock-nanoid-1234567890123456'),
+}));
+
 // Mock environment variables
 process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/vetify_test';
 process.env.NEXTAUTH_SECRET = 'test-secret';

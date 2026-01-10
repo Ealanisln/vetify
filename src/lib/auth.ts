@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { serializeTenant, serializeUser } from "./serializers";
 import { findOrCreateUser, findUserById } from "./db/queries/users";
 import { UserWithTenant } from "@/types";
+import { prisma } from "./prisma";
+import type { StaffPositionType } from "./staff-positions";
 
 export async function getAuthenticatedUser(): Promise<UserWithTenant> {
   const { getUser } = getKindeServerSession();
@@ -153,4 +155,101 @@ export async function requireActiveSubscription() {
   }
 
   return { user, tenant };
+}
+
+// =============================================================================
+// STAFF FUNCTIONS
+// =============================================================================
+
+export interface StaffInfo {
+  id: string;
+  name: string;
+  position: StaffPositionType;
+  email: string | null;
+  isActive: boolean;
+  tenantId: string;
+}
+
+/**
+ * Get staff record for the authenticated user
+ * Returns null if user has no associated staff record
+ */
+export async function getStaffForUser(userId: string): Promise<StaffInfo | null> {
+  const staff = await prisma.staff.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      name: true,
+      position: true,
+      email: true,
+      isActive: true,
+      tenantId: true,
+    },
+  });
+
+  if (!staff) return null;
+
+  return {
+    ...staff,
+    position: staff.position as StaffPositionType,
+  };
+}
+
+/**
+ * Get staff record for authenticated user with auth check
+ * Returns user, tenant, and staff info
+ */
+export async function requireAuthWithStaff() {
+  const { user, tenant } = await requireAuth();
+  const staff = await getStaffForUser(user.id);
+
+  return { user, tenant, staff };
+}
+
+/**
+ * Check if a user is the owner of a tenant (first user to join)
+ */
+async function isTenantOwner(userId: string, tenantId: string): Promise<boolean> {
+  // Find the first user who joined this tenant (by createdAt)
+  const firstUser = await prisma.user.findFirst({
+    where: { tenantId },
+    orderBy: { createdAt: 'asc' },
+    select: { id: true },
+  });
+
+  return firstUser?.id === userId;
+}
+
+/**
+ * Require authentication and a specific permission level
+ * Throws if user doesn't have the required permission
+ */
+export async function requirePermission(
+  feature: string,
+  action: 'read' | 'write' | 'delete' = 'read'
+) {
+  const { user, tenant, staff } = await requireAuthWithStaff();
+
+  // Import dynamically to avoid circular dependency
+  const { canAccess } = await import('./staff-permissions');
+
+  // If no staff record, user is tenant owner (has admin access)
+  if (!staff) {
+    return { user, tenant, staff: null, position: 'MANAGER' as StaffPositionType };
+  }
+
+  // Check if staff has permission for this feature
+  if (canAccess(staff.position, feature as import('./staff-permissions').Feature, action)) {
+    return { user, tenant, staff, position: staff.position };
+  }
+
+  // Staff doesn't have permission by role - check if they're the tenant owner
+  // Tenant owners always get MANAGER-level access regardless of their staff position
+  const isOwner = await isTenantOwner(user.id, tenant.id);
+  if (isOwner) {
+    return { user, tenant, staff, position: 'MANAGER' as StaffPositionType };
+  }
+
+  // Not owner and doesn't have permission
+  throw new Error(`Access denied. You don't have permission to ${action} ${feature}.`);
 } 

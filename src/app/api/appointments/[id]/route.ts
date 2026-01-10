@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '../../../../lib/auth';
+import { requireAuth, requirePermission } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
 import {
@@ -101,7 +101,8 @@ export async function PUT(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { tenant } = await requireAuth();
+    // Require write permission for appointments
+    const { tenant } = await requirePermission('appointments', 'write');
     const { id } = await context.params;
     const appointmentId = id;
     const body = await request.json();
@@ -390,6 +391,14 @@ export async function PUT(
       );
     }
 
+    // Handle permission denied errors
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { success: false, error: 'No tienes permiso para editar citas' },
+        { status: 403 }
+      );
+    }
+
     // Log error for production monitoring
     console.error('[APPOINTMENT] Error updating appointment:', error);
     return NextResponse.json(
@@ -404,7 +413,8 @@ export async function DELETE(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { tenant } = await requireAuth();
+    // Require delete permission for appointments (write is sufficient as per staff-permissions)
+    const { tenant } = await requirePermission('appointments', 'write');
     const { id } = await context.params;
     const appointmentId = id;
 
@@ -507,6 +517,14 @@ export async function DELETE(
     });
 
   } catch (error) {
+    // Handle permission denied errors
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { success: false, error: 'No tienes permiso para cancelar citas' },
+        { status: 403 }
+      );
+    }
+
     // Log error for production monitoring
     console.error('[APPOINTMENT] Error cancelling appointment:', error);
     return NextResponse.json(

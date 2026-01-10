@@ -9,6 +9,7 @@ import {
 import { prisma } from '../../../lib/prisma';
 import { InventoryFormData } from '@/types';
 import { parsePagination } from '../../../lib/security/validation-schemas';
+import { requirePermission } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
@@ -70,21 +71,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { getUser } = getKindeServerSession();
-    const user = await getUser();
-
-    if (!user?.id) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
-
-    const userWithTenant = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: { tenant: true }
-    });
-    
-    if (!userWithTenant?.tenant) {
-      return NextResponse.json({ error: 'Tenant no encontrado' }, { status: 404 });
-    }
+    // Check permission - only MANAGER and ADMINISTRATOR can create inventory items
+    const { tenant } = await requirePermission('inventory', 'write');
 
     const itemData: InventoryFormData = await request.json();
 
@@ -113,13 +101,21 @@ export async function POST(request: Request) {
 
     // Crear el producto
     const item = await createInventoryItem(
-      userWithTenant.tenant.id,
+      tenant.id,
       sanitizedData
     );
 
     return NextResponse.json(item, { status: 201 });
   } catch (error) {
     console.error('Error en POST /api/inventory:', error);
+
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { error: 'No tienes permiso para crear productos en inventario' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

@@ -4,9 +4,14 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, GlobeAltIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
 import { ServiceCategory } from '@prisma/client';
 import { ServiceWithCategory } from '@/types';
+
+interface Location {
+  id: string;
+  name: string;
+}
 
 // Iconos disponibles para la página pública
 const serviceIcons = [
@@ -28,6 +33,7 @@ const serviceSchema = z.object({
   price: z.number().min(0, 'El precio no puede ser negativo').max(99999, 'El precio es demasiado alto'),
   duration: z.number().min(1, 'La duración mínima es 1 minuto').max(480, 'La duración máxima es 8 horas').optional(),
   isActive: z.boolean(),
+  locationId: z.string().nullable().optional(), // null = global (todas las ubicaciones)
   // Public page display fields
   isFeatured: z.boolean().optional(),
   publicIcon: z.string().max(50).nullable().optional(),
@@ -46,7 +52,27 @@ interface ServiceModalProps {
 
 export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: ServiceModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loadingLocations, setLoadingLocations] = useState(true);
   const isEditing = !!service;
+
+  // Cargar ubicaciones del tenant
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await fetch('/api/locations');
+        if (response.ok) {
+          const data = await response.json();
+          setLocations(data);
+        }
+      } catch (error) {
+        console.error('Error loading locations:', error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    };
+    fetchLocations();
+  }, []);
 
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceSchema),
@@ -57,6 +83,7 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
       price: 0,
       duration: 30,
       isActive: true,
+      locationId: null, // Global por defecto
       isFeatured: false,
       publicIcon: null,
       publicPriceLabel: null
@@ -73,6 +100,7 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
         price: typeof service.price === 'number' ? service.price : Number(service.price),
         duration: service.duration || undefined,
         isActive: service.isActive,
+        locationId: service.locationId ?? null,
         isFeatured: service.isFeatured ?? false,
         publicIcon: service.publicIcon ?? null,
         publicPriceLabel: service.publicPriceLabel ?? null
@@ -85,6 +113,7 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
         price: 0,
         duration: 30,
         isActive: true,
+        locationId: null,
         isFeatured: false,
         publicIcon: null,
         publicPriceLabel: null
@@ -222,6 +251,77 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                     </p>
                   )}
                 </div>
+
+                {/* Ubicación - Solo mostrar si hay más de una ubicación */}
+                {locations.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Disponibilidad
+                    </label>
+                    <div className="space-y-2">
+                      {/* Opción Global */}
+                      <label
+                        className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                          !form.watch('locationId')
+                            ? 'border-[#75a99c] bg-[#75a99c]/10 dark:bg-[#75a99c]/20'
+                            : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          value=""
+                          checked={!form.watch('locationId')}
+                          onChange={() => form.setValue('locationId', null)}
+                          className="sr-only"
+                        />
+                        <GlobeAltIcon className={`h-5 w-5 mr-3 ${!form.watch('locationId') ? 'text-[#75a99c]' : 'text-gray-400'}`} />
+                        <div className="flex-1">
+                          <span className={`font-medium ${!form.watch('locationId') ? 'text-[#75a99c]' : 'text-gray-700 dark:text-gray-300'}`}>
+                            Todas las ubicaciones
+                          </span>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            Servicio disponible en todas las sucursales
+                          </p>
+                        </div>
+                        {!form.watch('locationId') && (
+                          <span className="text-[#75a99c] text-sm font-medium">✓</span>
+                        )}
+                      </label>
+
+                      {/* Opciones por ubicación */}
+                      {!loadingLocations && locations.map((location) => (
+                        <label
+                          key={location.id}
+                          className={`flex items-center p-3 border rounded-lg cursor-pointer transition-colors ${
+                            form.watch('locationId') === location.id
+                              ? 'border-[#75a99c] bg-[#75a99c]/10 dark:bg-[#75a99c]/20'
+                              : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            value={location.id}
+                            checked={form.watch('locationId') === location.id}
+                            onChange={() => form.setValue('locationId', location.id)}
+                            className="sr-only"
+                          />
+                          <BuildingStorefrontIcon className={`h-5 w-5 mr-3 ${form.watch('locationId') === location.id ? 'text-[#75a99c]' : 'text-gray-400'}`} />
+                          <div className="flex-1">
+                            <span className={`font-medium ${form.watch('locationId') === location.id ? 'text-[#75a99c]' : 'text-gray-700 dark:text-gray-300'}`}>
+                              Solo en {location.name}
+                            </span>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Servicio exclusivo de esta ubicación
+                            </p>
+                          </div>
+                          {form.watch('locationId') === location.id && (
+                            <span className="text-[#75a99c] text-sm font-medium">✓</span>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Precio */}
                 <div>

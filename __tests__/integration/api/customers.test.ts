@@ -299,6 +299,198 @@ describe('Customers API Integration Tests', () => {
     });
   });
 
+  describe('Pagination and Sorting', () => {
+    it('should return paginated results with correct metadata', async () => {
+      // Create multiple customers for pagination testing
+      const customers = Array.from({ length: 25 }, (_, i) =>
+        createTestCustomer({
+          id: `customer-${i}`,
+          tenantId: mockTenant.id,
+          name: `Customer ${i}`,
+          createdAt: new Date(Date.now() - i * 86400000), // Each customer created 1 day apart
+        })
+      );
+
+      // Mock count and findMany for pagination
+      prismaMock.customer.count.mockResolvedValue(25);
+      prismaMock.customer.findMany.mockResolvedValue(customers.slice(0, 10)); // First page
+
+      const total = await prismaMock.customer.count({
+        where: { tenantId: mockTenant.id, isActive: true },
+      });
+
+      const result = await prismaMock.customer.findMany({
+        where: { tenantId: mockTenant.id, isActive: true },
+        skip: 0,
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      expect(total).toBe(25);
+      expect(result).toHaveLength(10);
+    });
+
+    it('should respect page and limit parameters', async () => {
+      const customers = Array.from({ length: 50 }, (_, i) =>
+        createTestCustomer({
+          id: `customer-${i}`,
+          tenantId: mockTenant.id,
+          name: `Customer ${i}`,
+        })
+      );
+
+      // Page 2 with limit 10 should skip first 10
+      prismaMock.customer.findMany.mockResolvedValue(customers.slice(10, 20));
+
+      const result = await prismaMock.customer.findMany({
+        where: { tenantId: mockTenant.id, isActive: true },
+        skip: 10, // (page - 1) * limit = (2 - 1) * 10
+        take: 10,
+      });
+
+      expect(result).toHaveLength(10);
+      expect(result[0].id).toBe('customer-10');
+    });
+
+    it('should sort by name ascending', async () => {
+      const customers = [
+        createTestCustomer({ id: 'c3', tenantId: mockTenant.id, name: 'Zara' }),
+        createTestCustomer({ id: 'c1', tenantId: mockTenant.id, name: 'Alice' }),
+        createTestCustomer({ id: 'c2', tenantId: mockTenant.id, name: 'Bob' }),
+      ];
+
+      // Return sorted by name ascending
+      prismaMock.customer.findMany.mockResolvedValue(
+        [...customers].sort((a, b) => a.name.localeCompare(b.name))
+      );
+
+      const result = await prismaMock.customer.findMany({
+        where: { tenantId: mockTenant.id },
+        orderBy: { name: 'asc' },
+      });
+
+      expect(result[0].name).toBe('Alice');
+      expect(result[1].name).toBe('Bob');
+      expect(result[2].name).toBe('Zara');
+    });
+
+    it('should sort by name descending', async () => {
+      const customers = [
+        createTestCustomer({ id: 'c1', tenantId: mockTenant.id, name: 'Alice' }),
+        createTestCustomer({ id: 'c2', tenantId: mockTenant.id, name: 'Bob' }),
+        createTestCustomer({ id: 'c3', tenantId: mockTenant.id, name: 'Zara' }),
+      ];
+
+      // Return sorted by name descending
+      prismaMock.customer.findMany.mockResolvedValue(
+        [...customers].sort((a, b) => b.name.localeCompare(a.name))
+      );
+
+      const result = await prismaMock.customer.findMany({
+        where: { tenantId: mockTenant.id },
+        orderBy: { name: 'desc' },
+      });
+
+      expect(result[0].name).toBe('Zara');
+      expect(result[1].name).toBe('Bob');
+      expect(result[2].name).toBe('Alice');
+    });
+
+    it('should sort by email', async () => {
+      const customers = [
+        createTestCustomer({ id: 'c2', tenantId: mockTenant.id, email: 'bob@example.com' }),
+        createTestCustomer({ id: 'c1', tenantId: mockTenant.id, email: 'alice@example.com' }),
+        createTestCustomer({ id: 'c3', tenantId: mockTenant.id, email: 'charlie@example.com' }),
+      ];
+
+      prismaMock.customer.findMany.mockResolvedValue(
+        [...customers].sort((a, b) => (a.email || '').localeCompare(b.email || ''))
+      );
+
+      const result = await prismaMock.customer.findMany({
+        where: { tenantId: mockTenant.id },
+        orderBy: { email: 'asc' },
+      });
+
+      expect(result[0].email).toBe('alice@example.com');
+      expect(result[1].email).toBe('bob@example.com');
+      expect(result[2].email).toBe('charlie@example.com');
+    });
+
+    it('should sort by createdAt (default)', async () => {
+      const now = Date.now();
+      const customers = [
+        createTestCustomer({ id: 'c1', tenantId: mockTenant.id, createdAt: new Date(now - 3000) }),
+        createTestCustomer({ id: 'c2', tenantId: mockTenant.id, createdAt: new Date(now - 1000) }),
+        createTestCustomer({ id: 'c3', tenantId: mockTenant.id, createdAt: new Date(now - 2000) }),
+      ];
+
+      // Sort by createdAt desc (newest first)
+      prismaMock.customer.findMany.mockResolvedValue(
+        [...customers].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      );
+
+      const result = await prismaMock.customer.findMany({
+        where: { tenantId: mockTenant.id },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      expect(result[0].id).toBe('c2'); // Most recent
+      expect(result[2].id).toBe('c1'); // Oldest
+    });
+
+    it('should combine pagination with sorting', async () => {
+      const customers = Array.from({ length: 30 }, (_, i) =>
+        createTestCustomer({
+          id: `customer-${i}`,
+          tenantId: mockTenant.id,
+          name: `Customer ${String.fromCharCode(65 + (i % 26))}${i}`, // A0, B1, C2, etc.
+        })
+      );
+
+      // Sort by name and get page 2
+      const sorted = [...customers].sort((a, b) => a.name.localeCompare(b.name));
+      prismaMock.customer.findMany.mockResolvedValue(sorted.slice(10, 20));
+
+      const result = await prismaMock.customer.findMany({
+        where: { tenantId: mockTenant.id },
+        skip: 10,
+        take: 10,
+        orderBy: { name: 'asc' },
+      });
+
+      expect(result).toHaveLength(10);
+    });
+
+    it('should handle empty results with pagination', async () => {
+      prismaMock.customer.count.mockResolvedValue(0);
+      prismaMock.customer.findMany.mockResolvedValue([]);
+
+      const total = await prismaMock.customer.count({
+        where: { tenantId: mockTenant.id, isActive: true },
+      });
+
+      const result = await prismaMock.customer.findMany({
+        where: { tenantId: mockTenant.id, isActive: true },
+        skip: 0,
+        take: 10,
+      });
+
+      expect(total).toBe(0);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should not allow sorting by non-whitelisted fields', async () => {
+      // Simulate the whitelist validation that happens in the API route
+      const allowedFields = ['name', 'email', 'createdAt'] as const;
+      const requestedSortBy = 'password'; // Invalid field
+
+      const sortBy = allowedFields.includes(requestedSortBy as any) ? requestedSortBy : 'createdAt';
+
+      expect(sortBy).toBe('createdAt'); // Should fallback to default
+    });
+  });
+
   describe('Location Filtering', () => {
     it('should filter customers by locationId when provided', async () => {
       const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A' });

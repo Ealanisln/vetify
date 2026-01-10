@@ -57,9 +57,9 @@ export default async function PublicLayout({
 
   return (
     <DynamicPublicTheme primaryColor={primaryColor} themeColors={theme.colors}>
-      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <div className="flex flex-col md:min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <PublicNavbar tenant={{ ...tenant, hasGallery, hasTeam }} />
-        <main className="flex-1">
+        <main className="md:flex-1">
           {children}
         </main>
         <PublicFooter tenant={tenant} />

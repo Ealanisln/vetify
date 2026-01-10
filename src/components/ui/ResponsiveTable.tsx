@@ -1,15 +1,20 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { ChevronUpIcon, ChevronDownIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline';
 import { themeColors, responsiveTable } from '../../utils/theme-colors';
 
-interface Column<T> {
+export interface Column<T> {
   key: keyof T | string;
   header: string;
   render?: (item: T) => ReactNode;
   className?: string;
   mobileLabel?: string; // Custom label for mobile view
+  sortable?: boolean; // Whether this column can be sorted
+  sortKey?: string; // Key to use for sorting (may differ from display key)
 }
+
+export type SortOrder = 'asc' | 'desc';
 
 interface ResponsiveTableProps<T> {
   data: T[];
@@ -18,6 +23,10 @@ interface ResponsiveTableProps<T> {
   emptyMessage?: string;
   onRowClick?: (item: T) => void;
   className?: string;
+  // Sorting props
+  sortBy?: string;
+  sortOrder?: SortOrder;
+  onSort?: (sortBy: string, sortOrder: SortOrder) => void;
 }
 
 export function ResponsiveTable<T extends Record<string, unknown>>({
@@ -27,7 +36,36 @@ export function ResponsiveTable<T extends Record<string, unknown>>({
   emptyMessage = "No hay datos disponibles",
   onRowClick,
   className = "",
+  sortBy,
+  sortOrder,
+  onSort,
 }: ResponsiveTableProps<T>) {
+  // Handle column header click for sorting
+  const handleSort = (column: Column<T>) => {
+    if (!column.sortable || !onSort) return;
+
+    const sortKey = column.sortKey || String(column.key);
+    const newOrder: SortOrder =
+      sortBy === sortKey && sortOrder === 'asc' ? 'desc' : 'asc';
+
+    onSort(sortKey, newOrder);
+  };
+
+  // Get sort indicator for a column
+  const getSortIndicator = (column: Column<T>) => {
+    if (!column.sortable) return null;
+
+    const sortKey = column.sortKey || String(column.key);
+    const isActive = sortBy === sortKey;
+
+    if (!isActive) {
+      return <ChevronUpDownIcon className="w-4 h-4 ml-1 text-gray-400" />;
+    }
+
+    return sortOrder === 'asc'
+      ? <ChevronUpIcon className="w-4 h-4 ml-1 text-[#75a99c]" />
+      : <ChevronDownIcon className="w-4 h-4 ml-1 text-[#75a99c]" />;
+  };
   if (loading) {
     return (
       <div className={`${themeColors.background.card} rounded-lg border ${themeColors.border.primary} p-8`}>
@@ -51,71 +89,101 @@ export function ResponsiveTable<T extends Record<string, unknown>>({
 
   return (
     <div className={`${responsiveTable.container} ${className}`}>
-      {/* Desktop Table */}
-      <table className={`${responsiveTable.table} hidden sm:table`}>
-        <thead className={themeColors.table.header}>
-          <tr>
-            {columns.map((column, index) => (
-              <th
-                key={String(column.key) + index}
-                className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${column.className || ''}`}
-              >
-                {column.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className={`${themeColors.background.primary} divide-y ${themeColors.border.primary}`}>
-          {data.map((item, rowIndex) => (
-            <tr
-              key={rowIndex}
-              className={`${themeColors.table.rowHover} ${onRowClick ? 'cursor-pointer' : ''} transition-colors`}
-              onClick={() => onRowClick?.(item)}
-            >
-              {columns.map((column, colIndex) => (
-                <td
-                  key={String(column.key) + colIndex}
-                  className={`px-6 py-4 whitespace-nowrap text-sm ${themeColors.table.cell} ${column.className || ''}`}
+      {/* Desktop Table with horizontal scroll */}
+      <div className="hidden sm:block overflow-x-auto">
+        <table className={`${responsiveTable.table} min-w-full`}>
+          <thead className={themeColors.table.header}>
+            <tr>
+              {columns.map((column, index) => (
+                <th
+                  key={String(column.key) + index}
+                  className={`px-6 py-3 text-left text-xs font-medium uppercase tracking-wider ${
+                    index === 0
+                      ? 'sticky left-0 z-10 bg-gray-50 dark:bg-gray-800 after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-gray-200 dark:after:bg-gray-700'
+                      : ''
+                  } ${column.sortable ? 'cursor-pointer select-none hover:bg-gray-100 dark:hover:bg-gray-700' : ''} ${column.className || ''}`}
+                  onClick={() => handleSort(column)}
                 >
-                  {column.render 
-                    ? column.render(item)
-                    : String(item[column.key as keyof T] || '-')
-                  }
-                </td>
+                  <div className="flex items-center">
+                    {column.header}
+                    {getSortIndicator(column)}
+                  </div>
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className={`${themeColors.background.primary} divide-y ${themeColors.border.primary}`}>
+            {data.map((item, rowIndex) => (
+              <tr
+                key={rowIndex}
+                className={`${themeColors.table.rowHover} ${onRowClick ? 'cursor-pointer' : ''} transition-colors`}
+                onClick={() => onRowClick?.(item)}
+              >
+                {columns.map((column, colIndex) => (
+                  <td
+                    key={String(column.key) + colIndex}
+                    className={`px-6 py-4 whitespace-nowrap text-sm ${themeColors.table.cell} ${
+                      colIndex === 0
+                        ? 'sticky left-0 z-10 bg-white dark:bg-gray-900 after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-gray-200 dark:after:bg-gray-700'
+                        : ''
+                    } ${column.className || ''}`}
+                  >
+                    {column.render
+                      ? column.render(item)
+                      : String(item[column.key as keyof T] || '-')
+                    }
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {/* Mobile Cards */}
-      <div className="sm:hidden space-y-4">
-        {data.map((item, index) => (
-          <div
-            key={index}
-            className={`${themeColors.background.card} border ${themeColors.border.primary} rounded-lg p-4 ${
-              onRowClick ? 'cursor-pointer hover:shadow-md' : ''
-            } transition-shadow`}
-            onClick={() => onRowClick?.(item)}
-          >
-            {columns.map((column, colIndex) => {
-              const value = column.render 
-                ? column.render(item)
-                : String(item[column.key as keyof T] || '-');
-              
-              return (
-                <div key={String(column.key) + colIndex} className="flex justify-between items-start py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
-                  <dt className={`font-medium ${themeColors.text.secondary} text-sm flex-shrink-0 mr-4`}>
-                    {column.mobileLabel || column.header}:
-                  </dt>
-                  <dd className={`${themeColors.text.primary} text-sm text-right flex-1`}>
-                    {value}
-                  </dd>
+      <div className="sm:hidden space-y-4 p-4">
+        {data.map((item, index) => {
+          // Separate actions column from other columns
+          const actionsColumn = columns.find(col => col.key === 'actions');
+          const regularColumns = columns.filter(col => col.key !== 'actions');
+
+          return (
+            <div
+              key={index}
+              className={`${themeColors.background.card} border ${themeColors.border.primary} rounded-lg p-4 ${
+                onRowClick ? 'cursor-pointer hover:shadow-md' : ''
+              } transition-shadow`}
+              onClick={() => onRowClick?.(item)}
+            >
+              {regularColumns.map((column, colIndex) => {
+                const value = column.render
+                  ? column.render(item)
+                  : String(item[column.key as keyof T] || '-');
+
+                return (
+                  <div key={String(column.key) + colIndex} className="flex justify-between items-start py-2 border-b border-gray-100 dark:border-gray-700 last:border-b-0">
+                    <dt className={`font-medium ${themeColors.text.secondary} text-sm flex-shrink-0 mr-4`}>
+                      {column.mobileLabel || column.header}:
+                    </dt>
+                    <dd className={`${themeColors.text.primary} text-sm text-right flex-1`}>
+                      {value}
+                    </dd>
+                  </div>
+                );
+              })}
+
+              {/* Actions rendered at the bottom as prominent buttons */}
+              {actionsColumn && (
+                <div className="pt-3 mt-3 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
+                  {actionsColumn.render
+                    ? actionsColumn.render(item)
+                    : null
+                  }
                 </div>
-              );
-            })}
-          </div>
-        ))}
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

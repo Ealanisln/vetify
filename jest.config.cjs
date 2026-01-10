@@ -10,6 +10,10 @@ const customJestConfig = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
+  // Transform ESM-only modules (nanoid, etc.)
+  transformIgnorePatterns: [
+    '/node_modules/(?!(nanoid)/)',
+  ],
   testPathIgnorePatterns: [
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -16,12 +16,15 @@ import {
   DocumentTextIcon,
   CurrencyDollarIcon,
   MapPinIcon,
-  StarIcon
+  StarIcon,
+  UsersIcon,
 } from '@heroicons/react/24/outline';
 import { UserWithTenant, TenantWithPlan } from '@/types';
 import { LocationSwitcher } from '@/components/locations/LocationSwitcher';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useStaffPermissions } from '@/hooks/useStaffPermissions';
+import type { Feature } from '@/lib/staff-permissions';
 
 interface SidebarProps {
   user: UserWithTenant;
@@ -34,6 +37,7 @@ interface NavigationItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  feature: Feature;
   isPro?: boolean;
   proTooltip?: string;
 }
@@ -43,23 +47,56 @@ interface NavigationItem {
 // - Inventario: Basic inventory for all, advanced features require Plan Profesional
 // - Reportes: Basic reports for all, advanced analytics require Plan Profesional
 // - Caja: Basic single cash drawer for all, multiple drawers require Plan Profesional
+// Skeleton component for loading state
+const NavigationSkeleton = () => (
+  <ul role="list" className="-mx-2 space-y-1">
+    {[1, 2, 3, 4, 5].map((i) => (
+      <li key={i}>
+        <div className="flex gap-x-3 rounded-md p-2 animate-pulse">
+          <div className="h-6 w-6 shrink-0 rounded bg-gray-200 dark:bg-gray-700" />
+          <div className="h-5 w-24 rounded bg-gray-200 dark:bg-gray-700" />
+        </div>
+      </li>
+    ))}
+  </ul>
+);
+
 const navigation: NavigationItem[] = [
-  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon },
-  { name: 'Mascotas', href: '/dashboard/pets', icon: UserGroupIcon },
-  { name: 'Ubicaciones', href: '/dashboard/locations', icon: MapPinIcon },
-  { name: 'Punto de Venta', href: '/dashboard/sales', icon: CreditCardIcon },
-  { name: 'Caja', href: '/dashboard/caja', icon: CurrencyDollarIcon, isPro: true, proTooltip: 'Múltiples cajas en Plan Profesional' },
-  { name: 'Inventario', href: '/dashboard/inventory', icon: CubeIcon, isPro: true, proTooltip: 'Análisis avanzado en Plan Profesional' },
-  { name: 'Historia Clínica', href: '/dashboard/medical-history', icon: DocumentTextIcon },
-  { name: 'Citas', href: '/dashboard/appointments', icon: CalendarIcon },
-  { name: 'Testimonios', href: '/dashboard/testimonials', icon: StarIcon },
-  { name: 'Reportes', href: '/dashboard/reports', icon: ChartBarIcon, isPro: true, proTooltip: 'Analytics avanzados en Plan Profesional' },
-  { name: 'Configuración', href: '/dashboard/settings', icon: CogIcon },
+  { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, feature: 'dashboard' },
+  { name: 'Clientes', href: '/dashboard/customers', icon: UserGroupIcon, feature: 'customers' },
+  { name: 'Mascotas', href: '/dashboard/pets', icon: UserGroupIcon, feature: 'pets' },
+  { name: 'Ubicaciones', href: '/dashboard/locations', icon: MapPinIcon, feature: 'locations' },
+  { name: 'Punto de Venta', href: '/dashboard/sales', icon: CreditCardIcon, feature: 'sales' },
+  { name: 'Caja', href: '/dashboard/caja', icon: CurrencyDollarIcon, feature: 'sales', isPro: true, proTooltip: 'Múltiples cajas en Plan Profesional' },
+  { name: 'Inventario', href: '/dashboard/inventory', icon: CubeIcon, feature: 'inventory', isPro: true, proTooltip: 'Análisis avanzado en Plan Profesional' },
+  { name: 'Historia Clínica', href: '/dashboard/medical-history', icon: DocumentTextIcon, feature: 'medical' },
+  { name: 'Citas', href: '/dashboard/appointments', icon: CalendarIcon, feature: 'appointments' },
+  { name: 'Testimonios', href: '/dashboard/testimonials', icon: StarIcon, feature: 'testimonials' },
+  { name: 'Reportes', href: '/dashboard/reports', icon: ChartBarIcon, feature: 'reports', isPro: true, proTooltip: 'Analytics avanzados en Plan Profesional' },
+  { name: 'Equipo', href: '/dashboard/staff', icon: UsersIcon, feature: 'staff' },
+  { name: 'Configuración', href: '/dashboard/settings', icon: CogIcon, feature: 'settings' },
 ];
 
 export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarProps) {
   const pathname = usePathname();
+  const { canAccess, isLoading: permissionsLoading } = useStaffPermissions();
+
+  // Filter navigation based on staff permissions
+  const filteredNavigation = useMemo(() => {
+    // While loading permissions, return empty array to show skeleton
+    if (permissionsLoading) return [];
+
+    const filtered = navigation.filter((item) => canAccess(item.feature, 'read'));
+
+    // Fallback: if no items are accessible (shouldn't happen for valid users),
+    // show all navigation items to prevent empty sidebar
+    if (filtered.length === 0) {
+      console.warn('[Sidebar] No accessible navigation items - showing all items as fallback');
+      return navigation;
+    }
+
+    return filtered;
+  }, [canAccess, permissionsLoading]);
 
   // Manejar escape key para cerrar sidebar
   useEffect(() => {
@@ -136,38 +173,42 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
               <nav className="flex flex-1 flex-col" aria-label="Navegación principal">
                 <ul role="list" className="flex flex-1 flex-col gap-y-7">
                   <li>
-                    <ul role="list" className="-mx-2 space-y-1">
-                      {navigation.map((item) => {
-                        const isActive = pathname === item.href;
-                        return (
-                          <li key={item.name}>
-                            <Link
-                              href={item.href}
-                              onClick={() => setSidebarOpen(false)}
-                              className={`group flex gap-x-3 rounded-md p-3 text-sm leading-6 font-semibold transition-all duration-200 ${
-                                isActive
-                                  ? 'bg-[#75a99c] text-white shadow-sm'
-                                  : 'text-gray-700 hover:text-[#5b9788] hover:bg-[#e5f1ee] hover:scale-[1.02] dark:text-gray-300 dark:hover:text-[#75a99c] dark:hover:bg-[#2a3630]/30'
-                              }`}
-                            >
-                              <item.icon className={`h-6 w-6 shrink-0 transition-colors ${
-                                isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#5b9788] dark:text-gray-500 dark:group-hover:text-[#75a99c]'
-                              }`} />
-                              <span className="flex items-center gap-2">
-                                {item.name}
-                                {item.isPro && item.proTooltip && (
-                                  <Tooltip content={item.proTooltip} position="top">
-                                    <Badge variant="pro" className="text-[10px] px-1.5 py-0 leading-tight">
-                                      PRO
-                                    </Badge>
-                                  </Tooltip>
-                                )}
-                              </span>
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
+                    {permissionsLoading ? (
+                      <NavigationSkeleton />
+                    ) : (
+                      <ul role="list" className="-mx-2 space-y-1">
+                        {filteredNavigation.map((item) => {
+                          const isActive = pathname === item.href;
+                          return (
+                            <li key={item.name}>
+                              <Link
+                                href={item.href}
+                                onClick={() => setSidebarOpen(false)}
+                                className={`group flex gap-x-3 rounded-md p-3 text-sm leading-6 font-semibold transition-all duration-200 ${
+                                  isActive
+                                    ? 'bg-[#75a99c] text-white shadow-sm'
+                                    : 'text-gray-700 hover:text-[#5b9788] hover:bg-[#e5f1ee] hover:scale-[1.02] dark:text-gray-300 dark:hover:text-[#75a99c] dark:hover:bg-[#2a3630]/30'
+                                }`}
+                              >
+                                <item.icon className={`h-6 w-6 shrink-0 transition-colors ${
+                                  isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#5b9788] dark:text-gray-500 dark:group-hover:text-[#75a99c]'
+                                }`} />
+                                <span className="flex items-center gap-2">
+                                  {item.name}
+                                  {item.isPro && item.proTooltip && (
+                                    <Tooltip content={item.proTooltip} position="top">
+                                      <Badge variant="pro" className="text-[10px] px-1.5 py-0 leading-tight">
+                                        PRO
+                                      </Badge>
+                                    </Tooltip>
+                                  )}
+                                </span>
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
                   </li>
 
                   {/* User info section */}
@@ -215,37 +256,41 @@ export function Sidebar({ user, tenant, sidebarOpen, setSidebarOpen }: SidebarPr
           <nav className="flex flex-1 flex-col" aria-label="Navegación principal">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
               <li>
-                <ul role="list" className="-mx-2 space-y-1">
-                  {navigation.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                      <li key={item.name}>
-                        <Link
-                          href={item.href}
-                          className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-all duration-200 ${
-                            isActive
-                              ? 'bg-[#75a99c] text-white shadow-sm'
-                              : 'text-gray-700 hover:text-[#5b9788] hover:bg-[#e5f1ee] hover:scale-[1.02] dark:text-gray-300 dark:hover:text-[#75a99c] dark:hover:bg-[#2a3630]/30'
-                          }`}
-                        >
-                          <item.icon className={`h-6 w-6 shrink-0 transition-colors ${
-                            isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#5b9788] dark:text-gray-500 dark:group-hover:text-[#75a99c]'
-                          }`} />
-                          <span className="flex items-center gap-2">
-                            {item.name}
-                            {item.isPro && item.proTooltip && (
-                              <Tooltip content={item.proTooltip} position="top">
-                                <Badge variant="pro" className="text-[10px] px-1.5 py-0 leading-tight">
-                                  PRO
-                                </Badge>
-                              </Tooltip>
-                            )}
-                          </span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
+                {permissionsLoading ? (
+                  <NavigationSkeleton />
+                ) : (
+                  <ul role="list" className="-mx-2 space-y-1">
+                    {filteredNavigation.map((item) => {
+                      const isActive = pathname === item.href;
+                      return (
+                        <li key={item.name}>
+                          <Link
+                            href={item.href}
+                            className={`group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold transition-all duration-200 ${
+                              isActive
+                                ? 'bg-[#75a99c] text-white shadow-sm'
+                                : 'text-gray-700 hover:text-[#5b9788] hover:bg-[#e5f1ee] hover:scale-[1.02] dark:text-gray-300 dark:hover:text-[#75a99c] dark:hover:bg-[#2a3630]/30'
+                            }`}
+                          >
+                            <item.icon className={`h-6 w-6 shrink-0 transition-colors ${
+                              isActive ? 'text-white' : 'text-gray-400 group-hover:text-[#5b9788] dark:text-gray-500 dark:group-hover:text-[#75a99c]'
+                            }`} />
+                            <span className="flex items-center gap-2">
+                              {item.name}
+                              {item.isPro && item.proTooltip && (
+                                <Tooltip content={item.proTooltip} position="top">
+                                  <Badge variant="pro" className="text-[10px] px-1.5 py-0 leading-tight">
+                                    PRO
+                                  </Badge>
+                                </Tooltip>
+                              )}
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </li>
 
               {/* User info section */}

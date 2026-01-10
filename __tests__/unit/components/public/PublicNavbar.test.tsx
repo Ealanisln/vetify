@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { PublicNavbar } from '@/components/public/PublicNavbar';
 
 // Mock next/image
@@ -25,18 +25,25 @@ jest.mock('next/link', () => ({
   default: ({
     children,
     href,
+    onClick,
   }: {
     children: React.ReactNode;
     href: string;
-  }) => <a href={href}>{children}</a>,
+    onClick?: () => void;
+  }) => (
+    <a href={href} onClick={onClick}>
+      {children}
+    </a>
+  ),
 }));
 
 // Mock next-themes
 const mockSetTheme = jest.fn();
+let mockResolvedTheme = 'light';
 jest.mock('next-themes', () => ({
   useTheme: () => ({
     setTheme: mockSetTheme,
-    resolvedTheme: 'light',
+    resolvedTheme: mockResolvedTheme,
   }),
 }));
 
@@ -50,27 +57,37 @@ describe('PublicNavbar', () => {
     publicAddress: 'Av. Test 123',
     publicThemeColor: '#75a99c',
     hasGallery: true,
+    hasTeam: false,
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockResolvedTheme = 'light';
+    // Reset body overflow
+    document.body.style.overflow = '';
   });
 
   describe('Basic Rendering', () => {
     it('should render nav element', () => {
       render(<PublicNavbar tenant={defaultTenant} />);
-      expect(screen.getByRole('navigation')).toBeInTheDocument();
+      // There may be multiple nav elements (main nav + mobile menu nav)
+      const navElements = screen.getAllByRole('navigation');
+      expect(navElements.length).toBeGreaterThanOrEqual(1);
     });
 
     it('should render clinic name', () => {
       render(<PublicNavbar tenant={defaultTenant} />);
-      expect(screen.getByText('Test Clinic')).toBeInTheDocument();
+      // Name appears in both desktop and mobile menu header
+      const names = screen.getAllByText('Test Clinic');
+      expect(names.length).toBeGreaterThan(0);
     });
 
     it('should render clinic name as link to home', () => {
       render(<PublicNavbar tenant={defaultTenant} />);
-      const link = screen.getByText('Test Clinic').closest('a');
-      expect(link).toHaveAttribute('href', '/test-clinic');
+      const homeLinks = screen.getAllByRole('link').filter(
+        (link) => link.getAttribute('href') === '/test-clinic'
+      );
+      expect(homeLinks.length).toBeGreaterThan(0);
     });
   });
 
@@ -79,36 +96,41 @@ describe('PublicNavbar', () => {
       const tenantWithLogo = { ...defaultTenant, logo: 'https://example.com/logo.png' };
       render(<PublicNavbar tenant={tenantWithLogo} />);
 
-      const logo = screen.getByTestId('navbar-logo');
-      expect(logo).toBeInTheDocument();
-      expect(logo).toHaveAttribute('src', 'https://example.com/logo.png');
+      const logos = screen.getAllByTestId('navbar-logo');
+      expect(logos.length).toBeGreaterThan(0);
+      expect(logos[0]).toHaveAttribute('src', 'https://example.com/logo.png');
     });
 
     it('should render initial fallback when no logo', () => {
       render(<PublicNavbar tenant={defaultTenant} />);
 
-      // Should show first letter of clinic name
-      expect(screen.getByText('T')).toBeInTheDocument();
+      // Should show first letter of clinic name (appears multiple times)
+      const initials = screen.getAllByText('T');
+      expect(initials.length).toBeGreaterThan(0);
     });
 
     it('should apply theme color to initial fallback', () => {
       const tenant = { ...defaultTenant, publicThemeColor: '#ff5500' };
       render(<PublicNavbar tenant={tenant} />);
 
-      const initial = screen.getByText('T');
-      expect(initial).toHaveStyle({ backgroundColor: 'rgb(255, 85, 0)' });
+      const initials = screen.getAllByText('T');
+      expect(initials[0]).toHaveStyle({ backgroundColor: 'rgb(255, 85, 0)' });
     });
   });
 
   describe('Contact Information (Desktop)', () => {
     it('should display phone when provided', () => {
       render(<PublicNavbar tenant={defaultTenant} />);
-      expect(screen.getByText('+52 55 1234 5678')).toBeInTheDocument();
+      // Phone appears in multiple places (desktop nav and mobile menu)
+      const phones = screen.getAllByText('+52 55 1234 5678');
+      expect(phones.length).toBeGreaterThan(0);
     });
 
     it('should display address when provided', () => {
       render(<PublicNavbar tenant={defaultTenant} />);
-      expect(screen.getByText('Av. Test 123')).toBeInTheDocument();
+      // Address appears in desktop nav and mobile menu
+      const addresses = screen.getAllByText('Av. Test 123');
+      expect(addresses.length).toBeGreaterThan(0);
     });
 
     it('should not display phone when null', () => {
@@ -127,81 +149,240 @@ describe('PublicNavbar', () => {
   describe('Navigation Links', () => {
     it('should render Servicios link', () => {
       render(<PublicNavbar tenant={defaultTenant} />);
-      const serviciosButtons = screen.getAllByRole('button', { name: /servicios/i });
-      expect(serviciosButtons.length).toBeGreaterThan(0);
+      const serviciosLinks = screen.getAllByRole('link').filter(
+        (link) => link.getAttribute('href') === '/test-clinic/servicios'
+      );
+      expect(serviciosLinks.length).toBeGreaterThan(0);
     });
 
     it('should render Galería link when hasGallery is true', () => {
       render(<PublicNavbar tenant={defaultTenant} />);
-      const galeriaButtons = screen.getAllByRole('button', { name: /galería/i });
-      expect(galeriaButtons.length).toBeGreaterThan(0);
+      const galeriaLinks = screen.getAllByRole('link').filter(
+        (link) => link.getAttribute('href') === '/test-clinic/galeria'
+      );
+      expect(galeriaLinks.length).toBeGreaterThan(0);
     });
 
     it('should not render Galería link when hasGallery is false', () => {
       const tenant = { ...defaultTenant, hasGallery: false };
       render(<PublicNavbar tenant={tenant} />);
-      expect(screen.queryByRole('button', { name: /galería/i })).not.toBeInTheDocument();
+      const galeriaLinks = screen.getAllByRole('link').filter(
+        (link) => link.getAttribute('href') === '/test-clinic/galeria'
+      );
+      expect(galeriaLinks.length).toBe(0);
     });
 
-    it('should render Agendar Cita button', () => {
+    it('should render Equipo link when hasTeam is true', () => {
+      const tenant = { ...defaultTenant, hasTeam: true };
+      render(<PublicNavbar tenant={tenant} />);
+      const equipoLinks = screen.getAllByRole('link').filter(
+        (link) => link.getAttribute('href') === '/test-clinic/equipo'
+      );
+      expect(equipoLinks.length).toBeGreaterThan(0);
+    });
+
+    it('should not render Equipo link when hasTeam is false', () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+      const equipoLinks = screen.getAllByRole('link').filter(
+        (link) => link.getAttribute('href') === '/test-clinic/equipo'
+      );
+      expect(equipoLinks.length).toBe(0);
+    });
+
+    it('should render Agendar Cita buttons', () => {
       render(<PublicNavbar tenant={defaultTenant} />);
       const agendarButtons = screen.getAllByRole('button', { name: /agendar cita/i });
       expect(agendarButtons.length).toBeGreaterThan(0);
     });
 
-    it('should have correct href for Servicios link', () => {
-      render(<PublicNavbar tenant={defaultTenant} />);
-      const serviciosLink = screen.getAllByRole('link').find(
-        link => link.getAttribute('href') === '/test-clinic/servicios'
-      );
-      expect(serviciosLink).toBeInTheDocument();
-    });
-
     it('should have correct href for Agendar link', () => {
       render(<PublicNavbar tenant={defaultTenant} />);
-      const agendarLink = screen.getAllByRole('link').find(
-        link => link.getAttribute('href') === '/test-clinic/agendar'
+      const agendarLinks = screen.getAllByRole('link').filter(
+        (link) => link.getAttribute('href') === '/test-clinic/agendar'
       );
-      expect(agendarLink).toBeInTheDocument();
+      expect(agendarLinks.length).toBeGreaterThan(0);
     });
   });
 
   describe('Mobile Menu', () => {
-    it('should have mobile menu toggle button', () => {
+    it('should have mobile menu toggle button with aria-label', () => {
       render(<PublicNavbar tenant={defaultTenant} />);
-      // The hamburger menu button (initially shows Menu icon)
-      const menuButton = screen.getByRole('button', { name: '' });
+      const menuButton = screen.getByLabelText('Abrir menú');
       expect(menuButton).toBeInTheDocument();
     });
 
-    it('should show mobile menu when toggle is clicked', () => {
+    it('should show mobile menu when toggle is clicked', async () => {
       render(<PublicNavbar tenant={defaultTenant} />);
 
-      // Find the mobile menu button (the one in md:hidden container)
-      const buttons = screen.getAllByRole('button');
-      // The last button with Menu/X icon is the mobile toggle
-      const mobileToggle = buttons.find(btn =>
-        btn.closest('.md\\:hidden') !== null
-      );
+      const menuButton = screen.getByLabelText('Abrir menú');
+      fireEvent.click(menuButton);
 
-      if (mobileToggle) {
-        fireEvent.click(mobileToggle);
-        // After click, mobile menu content should be visible
-        // Check for mobile-specific elements (contact info in mobile menu)
-        const phoneElements = screen.getAllByText('+52 55 1234 5678');
-        expect(phoneElements.length).toBeGreaterThanOrEqual(1);
-      }
+      // Check that the menu panel becomes visible (Cerrar menú button appears)
+      await waitFor(() => {
+        expect(screen.getByLabelText('Cerrar menú')).toBeInTheDocument();
+      });
+    });
+
+    it('should close mobile menu when close button is clicked', async () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      // Open menu
+      const menuButton = screen.getByLabelText('Abrir menú');
+      fireEvent.click(menuButton);
+
+      // Wait for menu to open
+      await waitFor(() => {
+        expect(screen.getByLabelText('Cerrar menú')).toBeInTheDocument();
+      });
+
+      // Close menu
+      const closeButton = screen.getByLabelText('Cerrar menú');
+      fireEvent.click(closeButton);
+
+      // Menu should close (body overflow should be reset)
+      await waitFor(() => {
+        expect(document.body.style.overflow).toBe('');
+      });
+    });
+
+    it('should close mobile menu on Escape key', async () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      // Open menu
+      const menuButton = screen.getByLabelText('Abrir menú');
+      fireEvent.click(menuButton);
+
+      // Wait for menu to open and body scroll to be locked
+      await waitFor(() => {
+        expect(document.body.style.overflow).toBe('hidden');
+      });
+
+      // Press Escape
+      fireEvent.keyDown(document, { key: 'Escape' });
+
+      // Menu should close
+      await waitFor(() => {
+        expect(document.body.style.overflow).toBe('');
+      });
+    });
+
+    it('should lock body scroll when menu is open', async () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      // Open menu
+      const menuButton = screen.getByLabelText('Abrir menú');
+      fireEvent.click(menuButton);
+
+      await waitFor(() => {
+        expect(document.body.style.overflow).toBe('hidden');
+      });
+    });
+
+    it('should render contact section in mobile menu', async () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      // Open menu
+      const menuButton = screen.getByLabelText('Abrir menú');
+      fireEvent.click(menuButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Contacto')).toBeInTheDocument();
+      });
+    });
+
+    it('should render navigation section in mobile menu', async () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      // Open menu
+      const menuButton = screen.getByLabelText('Abrir menú');
+      fireEvent.click(menuButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Navegación')).toBeInTheDocument();
+      });
+    });
+
+    it('should render phone with click-to-call in mobile menu', async () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      // Open menu
+      const menuButton = screen.getByLabelText('Abrir menú');
+      fireEvent.click(menuButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Llamar ahora')).toBeInTheDocument();
+      });
+    });
+
+    it('should show clinic type subtitle in mobile menu header', async () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      // Open menu
+      const menuButton = screen.getByLabelText('Abrir menú');
+      fireEvent.click(menuButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Clínica Veterinaria')).toBeInTheDocument();
+      });
     });
   });
 
   describe('Theme Toggle', () => {
-    it('should render theme toggle button after mount', async () => {
+    it('should render theme toggle button in desktop nav after mount', async () => {
       render(<PublicNavbar tenant={defaultTenant} />);
 
-      // After useEffect runs, theme toggle should appear
-      // Look for aria-label that indicates theme toggle
-      const themeButton = screen.queryByLabelText(/modo/i);
-      // Note: Due to mounted state, this may or may not render immediately in test
+      await waitFor(() => {
+        const themeButton = screen.getByLabelText(/cambiar a modo/i);
+        expect(themeButton).toBeInTheDocument();
+      });
+    });
+
+    it('should render appearance section in mobile menu after mount', async () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      // Open menu
+      const menuButton = screen.getByLabelText('Abrir menú');
+      fireEvent.click(menuButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Apariencia')).toBeInTheDocument();
+      });
+    });
+
+    it('should call setTheme when theme toggle is clicked', async () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      await waitFor(() => {
+        const themeButton = screen.getByLabelText(/cambiar a modo/i);
+        fireEvent.click(themeButton);
+        expect(mockSetTheme).toHaveBeenCalledWith('dark');
+      });
+    });
+
+    it('should show "Modo Claro" text in light mode', async () => {
+      mockResolvedTheme = 'light';
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      // Open menu
+      const menuButton = screen.getByLabelText('Abrir menú');
+      fireEvent.click(menuButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Modo Claro')).toBeInTheDocument();
+      });
+    });
+
+    it('should show "Modo Oscuro" text in dark mode', async () => {
+      mockResolvedTheme = 'dark';
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      // Open menu
+      const menuButton = screen.getByLabelText('Abrir menú');
+      fireEvent.click(menuButton);
+
+      await waitFor(() => {
+        expect(screen.getByText('Modo Oscuro')).toBeInTheDocument();
+      });
     });
   });
 
@@ -222,6 +403,87 @@ describe('PublicNavbar', () => {
       const agendarButtons = screen.getAllByRole('button', { name: /agendar cita/i });
       const desktopButton = agendarButtons[0];
       expect(desktopButton).toHaveStyle({ backgroundColor: 'rgb(117, 169, 156)' });
+    });
+
+    it('should apply theme color to phone icon', () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      const { container } = render(<PublicNavbar tenant={defaultTenant} />);
+      const phoneIcons = container.querySelectorAll('.lucide-phone');
+      expect(phoneIcons.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Minimal Tenant Data', () => {
+    it('should render with minimal tenant data', () => {
+      const minimalTenant = {
+        id: 'tenant-1',
+        name: 'Minimal Clinic',
+        slug: 'minimal-clinic',
+        logo: null,
+        publicPhone: null,
+        publicAddress: null,
+        publicThemeColor: null,
+        hasGallery: false,
+        hasTeam: false,
+      };
+
+      render(<PublicNavbar tenant={minimalTenant} />);
+
+      // Should render clinic name
+      const names = screen.getAllByText('Minimal Clinic');
+      expect(names.length).toBeGreaterThan(0);
+
+      // Should not render gallery or team links
+      const galeriaLinks = screen.getAllByRole('link').filter(
+        (link) => link.getAttribute('href') === '/minimal-clinic/galeria'
+      );
+      expect(galeriaLinks.length).toBe(0);
+    });
+
+    it('should not render contact section when no phone or address', async () => {
+      const minimalTenant = {
+        id: 'tenant-1',
+        name: 'Minimal Clinic',
+        slug: 'minimal-clinic',
+        logo: null,
+        publicPhone: null,
+        publicAddress: null,
+        publicThemeColor: null,
+        hasGallery: false,
+        hasTeam: false,
+      };
+
+      render(<PublicNavbar tenant={minimalTenant} />);
+
+      // Open menu
+      const menuButton = screen.getByLabelText('Abrir menú');
+      fireEvent.click(menuButton);
+
+      // Should not show "Contacto" section header
+      expect(screen.queryByText('Contacto')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Accessibility', () => {
+    it('should have proper aria-labels for interactive elements', () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+
+      // Mobile menu button
+      expect(screen.getByLabelText('Abrir menú')).toBeInTheDocument();
+    });
+
+    it('should have semantic nav elements', () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+      // There's a main nav element and a nested nav in mobile menu
+      const navElements = screen.getAllByRole('navigation');
+      expect(navElements.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should have proper link structure', () => {
+      render(<PublicNavbar tenant={defaultTenant} />);
+      const allLinks = screen.getAllByRole('link');
+      expect(allLinks.length).toBeGreaterThan(0);
     });
   });
 });

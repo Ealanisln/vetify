@@ -18,6 +18,7 @@ import { INVENTORY_UPDATED_EVENT } from './LowStockAlert';
 import { ResponsiveTable } from '../ui/ResponsiveTable';
 import { themeColors, responsive } from '../../utils/theme-colors';
 import { useLocation } from '@/components/providers/LocationProvider';
+import { useStaffPermissions } from '@/hooks/useStaffPermissions';
 
 interface InventoryMainProps {
   tenantId: string;
@@ -25,6 +26,9 @@ interface InventoryMainProps {
 
 export function InventoryMain({ tenantId }: InventoryMainProps) {
   const { currentLocation, availableLocations } = useLocation();
+  const { canAccess } = useStaffPermissions();
+  const canEditInventory = canAccess('inventory', 'write');
+  const canDeleteInventory = canAccess('inventory', 'delete');
   const [items, setItems] = useState<InventoryItemWithStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -242,32 +246,43 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
         );
       },
     },
-    {
+    // Only show actions column if user has any permission to edit or delete
+    ...(canEditInventory || canDeleteInventory ? [{
       key: 'actions',
       header: 'Acciones',
       mobileLabel: 'Acciones',
       className: 'text-right',
       render: (item: InventoryItemWithStock) => (
         <div className="flex items-center justify-end sm:justify-center space-x-2">
-          <button
-            onClick={() => handleEdit(item)}
-            className={`${themeColors.text.accent} hover:opacity-75 p-1 rounded transition-opacity`}
-            title="Editar"
-            data-testid="edit-product-button"
-          >
-            <PencilIcon className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => handleDelete(item)}
-            className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1 rounded transition-colors"
-            title="Eliminar"
-            data-testid="delete-product-button"
-          >
-            <TrashIcon className="h-4 w-4" />
-          </button>
+          {canEditInventory && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleEdit(item);
+              }}
+              className={`${themeColors.text.accent} hover:opacity-75 p-1 rounded transition-opacity`}
+              title="Editar"
+              data-testid="edit-product-button"
+            >
+              <PencilIcon className="h-4 w-4" />
+            </button>
+          )}
+          {canDeleteInventory && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(item);
+              }}
+              className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 p-1 rounded transition-colors"
+              title="Eliminar"
+              data-testid="delete-product-button"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
+          )}
         </div>
       ),
-    },
+    }] : []),
   ];
 
   return (
@@ -283,17 +298,19 @@ export function InventoryMain({ tenantId }: InventoryMainProps) {
               Gestiona los productos, medicamentos y suministros de la clínica
             </p>
           </div>
-          <div className="flex-shrink-0">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="btn-primary"
-              data-testid="add-product-button"
-            >
-              <PlusIcon className="h-5 w-5 mr-2" />
-              <span className="hidden sm:inline">Agregar Producto</span>
-              <span className="sm:hidden">Agregar</span>
-            </button>
-          </div>
+          {canEditInventory && (
+            <div className="flex-shrink-0">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="btn-primary"
+                data-testid="add-product-button"
+              >
+                <PlusIcon className="h-5 w-5 mr-2" />
+                <span className="hidden sm:inline">Agregar Producto</span>
+                <span className="sm:hidden">Agregar</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Search and Filters */}

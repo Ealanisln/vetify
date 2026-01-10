@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { StaffPhotoUploader } from './StaffPhotoUploader';
-import { VETERINARY_SPECIALTIES } from '@/lib/staff-positions';
+import { VETERINARY_SPECIALTIES, StaffPosition, POSITION_LABELS_ES, type StaffPositionType } from '@/lib/staff-positions';
 
 interface StaffMember {
   id: string;
@@ -55,9 +55,20 @@ interface FormData {
   showOnPublicPage: boolean;
 }
 
+// Staff position options for dropdown
+const STAFF_POSITION_OPTIONS: { value: StaffPositionType; label: string }[] = [
+  { value: StaffPosition.MANAGER, label: POSITION_LABELS_ES[StaffPosition.MANAGER] },
+  { value: StaffPosition.VETERINARIAN, label: POSITION_LABELS_ES[StaffPosition.VETERINARIAN] },
+  { value: StaffPosition.VETERINARY_TECHNICIAN, label: POSITION_LABELS_ES[StaffPosition.VETERINARY_TECHNICIAN] },
+  { value: StaffPosition.ASSISTANT, label: POSITION_LABELS_ES[StaffPosition.ASSISTANT] },
+  { value: StaffPosition.RECEPTIONIST, label: POSITION_LABELS_ES[StaffPosition.RECEPTIONIST] },
+  { value: StaffPosition.GROOMER, label: POSITION_LABELS_ES[StaffPosition.GROOMER] },
+  { value: StaffPosition.OTHER, label: POSITION_LABELS_ES[StaffPosition.OTHER] },
+];
+
 const initialFormData: FormData = {
   name: '',
-  position: '',
+  position: StaffPosition.VETERINARIAN, // Default to veterinarian
   email: '',
   phone: '',
   licenseNumber: '',
@@ -104,10 +115,10 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
       newErrors.name = 'El nombre debe tener al menos 2 caracteres';
     }
 
-    if (!formData.position.trim()) {
+    if (!formData.position) {
       newErrors.position = 'La posición es requerida';
-    } else if (formData.position.trim().length < 2) {
-      newErrors.position = 'La posición debe tener al menos 2 caracteres';
+    } else if (!Object.values(StaffPosition).includes(formData.position as StaffPositionType)) {
+      newErrors.position = 'Posición inválida';
     }
 
     if (formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -213,7 +224,9 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
                   <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Posición
                   </label>
-                  <div className="text-lg text-foreground">{staff?.position}</div>
+                  <div className="text-lg text-foreground">
+                    {POSITION_LABELS_ES[staff?.position as StaffPositionType] || staff?.position}
+                  </div>
                 </div>
 
                 {staff?.email && (
@@ -322,13 +335,17 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
                   <label className="form-label">
                     Posición *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.position}
                     onChange={(e) => handleInputChange('position', e.target.value)}
-                    className={`form-input ${errors.position ? 'border-destructive' : ''}`}
-                    placeholder="Ej: Veterinario, Asistente, Recepcionista"
-                  />
+                    className={`form-select ${errors.position ? 'border-destructive' : ''}`}
+                  >
+                    {STAFF_POSITION_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                   {errors.position && <p className="form-error">{errors.position}</p>}
                 </div>
 

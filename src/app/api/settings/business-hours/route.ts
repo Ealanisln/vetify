@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { requireAuth } from '../../../../lib/auth';
+import { requirePermission } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
 
@@ -28,7 +28,8 @@ const businessHoursSchema = z.object({
 
 export async function GET() {
   try {
-    const { tenant } = await requireAuth();
+    // Only admins can view business hours settings
+    const { tenant } = await requirePermission('settings', 'read');
 
     // Get tenant settings with business hours
     let tenantSettings = await prisma.tenantSettings.findUnique({
@@ -97,6 +98,14 @@ export async function GET() {
 
   } catch (error) {
     console.error('Error fetching business hours:', error);
+
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { success: false, error: 'No tienes permiso para ver la configuración' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }
@@ -106,7 +115,8 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const { tenant } = await requireAuth();
+    // Only admins can update business hours settings
+    const { tenant } = await requirePermission('settings', 'write');
     const body = await request.json();
 
     const validatedData = businessHoursSchema.parse(body);
@@ -226,6 +236,14 @@ export async function PUT(request: Request) {
     }
 
     console.error('Error updating business hours:', error);
+
+    if (error instanceof Error && error.message.includes('Access denied')) {
+      return NextResponse.json(
+        { success: false, error: 'No tienes permiso para modificar la configuración' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },
       { status: 500 }

@@ -39,9 +39,10 @@ interface PlanLimits {
 
 interface MultiCashDrawerManagerProps {
   tenantId: string;
+  canOperate?: boolean;
 }
 
-export function MultiCashDrawerManager({ tenantId }: MultiCashDrawerManagerProps) {
+export function MultiCashDrawerManager({ tenantId, canOperate = true }: MultiCashDrawerManagerProps) {
   const { currentLocation } = useLocation();
   const [drawers, setDrawers] = useState<CashDrawer[]>([]);
   const [planLimits, setPlanLimits] = useState<PlanLimits | null>(null);
@@ -136,7 +137,11 @@ export function MultiCashDrawerManager({ tenantId }: MultiCashDrawerManagerProps
               {planLimits.current} / {planLimits.limit === -1 ? '∞' : planLimits.limit} cajas
             </span>
           )}
-          <Button onClick={handleOpenNewDrawer}>
+          <Button
+            onClick={handleOpenNewDrawer}
+            disabled={!canOperate}
+            title={!canOperate ? 'No tienes permisos para operar cajas' : undefined}
+          >
             <PlusIcon className="h-4 w-4 mr-2" />
             Nueva Caja
           </Button>
@@ -194,7 +199,13 @@ export function MultiCashDrawerManager({ tenantId }: MultiCashDrawerManagerProps
           ) : drawers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <p>No hay cajas registradas hoy</p>
-              <Button variant="outline" className="mt-4" onClick={handleOpenNewDrawer}>
+              <Button
+                variant="outline"
+                className="mt-4"
+                onClick={handleOpenNewDrawer}
+                disabled={!canOperate}
+                title={!canOperate ? 'No tienes permisos para operar cajas' : undefined}
+              >
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Abrir primera caja
               </Button>

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { Badge } from '../../../components/ui/badge';
 import { PlusIcon, Calendar, Clock, Users, Loader2 } from 'lucide-react';
 import { useAppointments, AppointmentWithDetails } from '../../../hooks/useAppointments';
+import { useStaffPermissions } from '../../../hooks/useStaffPermissions';
 import { DateSelectArg } from '@fullcalendar/core';
 import { formatDate, formatTime } from '../../../lib/utils/date-format';
 
@@ -78,6 +79,10 @@ export function AppointmentsPageClient({
   const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
 
   const { quickAction, refresh } = useAppointments();
+  const { canAccess: checkPermission } = useStaffPermissions();
+
+  // Check if user has permission to create/edit appointments
+  const canWriteAppointments = checkPermission('appointments', 'write');
 
   // Trigger calendar refresh
   const triggerCalendarRefresh = () => {
@@ -164,10 +169,12 @@ export function AppointmentsPageClient({
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Calendario de Citas</h1>
           <p className="text-gray-500 dark:text-gray-400">Gestiona las citas y horarios de tu clínica</p>
         </div>
-        <Button onClick={handleNewAppointment} className="inline-flex items-center" data-testid="new-appointment-button">
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Nueva Cita
-        </Button>
+        {canWriteAppointments && (
+          <Button onClick={handleNewAppointment} className="inline-flex items-center" data-testid="new-appointment-button">
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Nueva Cita
+          </Button>
+        )}
       </div>
 
       {/* Stats */}
@@ -227,11 +234,11 @@ export function AppointmentsPageClient({
       <div data-testid="appointments-calendar">
         <FullCalendarView
           onEventClick={handleEventClick}
-          onEventEdit={handleEventEdit}
-          onDateSelect={handleDateSelect}
+          onEventEdit={canWriteAppointments ? handleEventEdit : undefined}
+          onDateSelect={canWriteAppointments ? handleDateSelect : undefined}
           defaultView="timeGridWeek"
-          editable={true}
-          selectable={true}
+          editable={canWriteAppointments}
+          selectable={canWriteAppointments}
           className="mobile-calendar"
           refreshTrigger={calendarRefreshTrigger}
         />

@@ -20,6 +20,7 @@ import type {
   LowStockAlertData,
   TreatmentReminderData,
   TestimonialRequestData,
+  StaffInvitationData,
 } from './types';
 import { logEmailSend } from '../notifications/notification-logger';
 import {
@@ -33,6 +34,7 @@ import {
   NewUserRegistrationEmail,
   NewSubscriptionPaymentEmail,
   TestimonialRequestEmail,
+  StaffInvitationEmail,
 } from './templates';
 import { formatDateLong, formatDateTimeLong, formatDate, formatCurrency } from '../utils/date-format';
 
@@ -73,11 +75,6 @@ export async function sendEmail(
 
     // Dry run mode for testing
     if (DEFAULT_CONFIG.dryRun) {
-      console.log('[EMAIL] Dry run mode - Email not sent:', {
-        to: emailData.to.email,
-        subject: emailData.subject,
-        template: emailData.template,
-      });
       return {
         success: true,
         messageId: 'dry-run-' + Date.now(),
@@ -394,6 +391,19 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
           clinicName: d.clinicName,
           clinicSlug: d.clinicSlug,
           baseUrl: d.baseUrl,
+        })
+      );
+    }
+
+    case 'staff-invitation': {
+      const d = (emailData as StaffInvitationData).data;
+      return await render(
+        StaffInvitationEmail({
+          staffName: d.staffName,
+          clinicName: d.clinicName,
+          position: d.position,
+          inviteUrl: d.inviteUrl,
+          expirationDays: d.expirationDays,
         })
       );
     }

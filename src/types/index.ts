@@ -177,4 +177,9 @@ export type ProductSearchResult = {
 };
 
 // Tipo común para servicios con categoría
-export type ServiceWithCategory = NonNullable<Awaited<ReturnType<typeof prisma.service.findUnique>>>; 
+export type ServiceWithCategory = NonNullable<Awaited<ReturnType<typeof prisma.service.findUnique>>> & {
+  location?: {
+    id: string;
+    name: string;
+  } | null;
+}; 
