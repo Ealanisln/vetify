@@ -11,11 +11,15 @@ import { test, expect } from '@playwright/test';
  * - Notification settings
  * - Public page settings
  * - Subscription management
+ * - Role-based access control (only MANAGER/ADMINISTRATOR can access)
  *
  * NOTE: These tests require authentication and proper test user setup.
  * They will be skipped if TEST_AUTH_ENABLED is not set.
  *
  * NOTE: QR Code Generator tests are in a separate file: qr-code-generator.spec.ts
+ *
+ * SECURITY: Settings page is protected - only MANAGER and ADMINISTRATOR roles
+ * can access. Other roles are redirected to dashboard.
  */
 const isAuthTestEnabled = process.env.TEST_AUTH_ENABLED === 'true';
 
@@ -483,6 +487,139 @@ test.describe('Settings Management', () => {
       await page.setViewportSize({ width: 768, height: 1024 });
 
       await expect(page.locator('[data-testid="settings-tabs"]')).toBeVisible();
+    });
+  });
+});
+
+/**
+ * Role-based Access Control Tests for Settings
+ *
+ * These tests verify that the settings page is properly protected
+ * and only accessible to MANAGER and ADMINISTRATOR roles.
+ *
+ * NOTE: These tests require special setup with test users having different roles.
+ * Set TEST_ROLE_ACCESS_ENABLED=true to run these tests.
+ */
+const isRoleAccessTestEnabled = process.env.TEST_ROLE_ACCESS_ENABLED === 'true';
+
+test.describe('Settings Role-Based Access Control', () => {
+  test.skip(!isRoleAccessTestEnabled, 'Skipping - requires role-based test setup. Set TEST_ROLE_ACCESS_ENABLED=true');
+
+  test.describe('Access Denied Scenarios', () => {
+    test('should redirect non-admin user to dashboard when accessing settings directly', async ({ page }) => {
+      // This test requires a user logged in with a non-admin role (e.g., VETERINARIAN)
+      // The page should redirect to /dashboard?error=access_denied
+      await page.goto('/dashboard/settings');
+      await page.waitForLoadState('networkidle');
+
+      // Should be redirected to dashboard
+      await expect(page).toHaveURL(/\/dashboard(?:\?error=access_denied)?/);
+
+      // Should NOT see the settings page header
+      await expect(page.locator('h1:has-text("Configuración")')).not.toBeVisible();
+    });
+
+    test('should not show settings link in navigation for non-admin users', async ({ page }) => {
+      // This test requires a user logged in with a non-admin role
+      await page.goto('/dashboard');
+      await page.waitForLoadState('networkidle');
+
+      // The sidebar should not have a settings link for non-admin users
+      const settingsLink = page.locator('a[href="/dashboard/settings"]');
+
+      // Settings link should not be visible in sidebar for non-admin
+      await expect(settingsLink).not.toBeVisible();
+    });
+
+    test('should not show settings link in user dropdown for non-admin users', async ({ page }) => {
+      // This test requires a user logged in with a non-admin role
+      await page.goto('/');
+      await page.waitForLoadState('networkidle');
+
+      // Click on user dropdown to open menu
+      const userDropdown = page.locator('[data-testid="user-dropdown"]');
+      if (await userDropdown.isVisible()) {
+        await userDropdown.click();
+
+        // Settings link should not be visible in dropdown for non-admin
+        const settingsMenuItem = page.locator('a[href="/dashboard/settings"]:has-text("Configuración")');
+        await expect(settingsMenuItem).not.toBeVisible();
+      }
+    });
+  });
+
+  test.describe('Access Allowed Scenarios', () => {
+    test('should allow MANAGER to access settings page', async ({ page }) => {
+      // This test requires a user logged in with MANAGER role
+      await page.goto('/dashboard/settings');
+      await page.waitForLoadState('networkidle');
+
+      // Should see the settings page header
+      await expect(page.locator('h1:has-text("Configuración")')).toBeVisible();
+      await expect(page.locator('[data-testid="settings-tabs"]')).toBeVisible();
+    });
+
+    test('should show settings link in sidebar for MANAGER', async ({ page }) => {
+      // This test requires a user logged in with MANAGER role
+      await page.goto('/dashboard');
+      await page.waitForLoadState('networkidle');
+
+      // The sidebar should have a settings link for admin users
+      const settingsLink = page.locator('a[href="/dashboard/settings"]');
+      await expect(settingsLink).toBeVisible();
+    });
+
+    test('should show settings link in user dropdown for MANAGER', async ({ page }) => {
+      // This test requires a user logged in with MANAGER role
+      await page.goto('/');
+      await page.waitForLoadState('networkidle');
+
+      // Click on user dropdown to open menu
+      const userDropdown = page.locator('[data-testid="user-dropdown"]');
+      if (await userDropdown.isVisible()) {
+        await userDropdown.click();
+
+        // Settings link should be visible in dropdown for admin
+        const settingsMenuItem = page.locator('a[href="/dashboard/settings"]:has-text("Configuración")');
+        await expect(settingsMenuItem).toBeVisible();
+      }
+    });
+  });
+
+  test.describe('Security Edge Cases', () => {
+    test('should handle direct URL access attempt by non-admin', async ({ page }) => {
+      // Attempt to access settings with various URL patterns
+      const settingsUrls = [
+        '/dashboard/settings',
+        '/dashboard/settings?tab=subscription',
+        '/dashboard/settings?tab=public-page',
+        '/dashboard/settings?tab=business-hours',
+      ];
+
+      for (const url of settingsUrls) {
+        await page.goto(url);
+        await page.waitForLoadState('networkidle');
+
+        // Should be redirected away from settings
+        const currentUrl = page.url();
+        expect(currentUrl).not.toContain('/dashboard/settings');
+      }
+    });
+
+    test('should maintain access denial after page refresh', async ({ page }) => {
+      // This test requires a user logged in with a non-admin role
+      await page.goto('/dashboard/settings');
+      await page.waitForLoadState('networkidle');
+
+      // Should be redirected to dashboard
+      await expect(page).toHaveURL(/\/dashboard(?:\?error=access_denied)?/);
+
+      // Refresh the page
+      await page.reload();
+      await page.waitForLoadState('networkidle');
+
+      // Should still be on dashboard, not settings
+      await expect(page).not.toHaveURL(/\/dashboard\/settings/);
     });
   });
 });
