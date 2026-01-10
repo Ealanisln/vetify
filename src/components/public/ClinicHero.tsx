@@ -180,18 +180,18 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
             </motion.div>
 
             {/* Botones de acción */}
-            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4">
+            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row flex-wrap gap-3">
               <Link href={`/${tenant.slug}/agendar`}>
                 <motion.div whileHover={buttonHover} whileTap={buttonTap}>
                   <Button
                     size="lg"
-                    className={`w-full sm:w-auto text-white shadow-lg hover:shadow-xl transition-all duration-200 ${themeClasses.button}`}
+                    className={`w-full sm:w-auto whitespace-nowrap text-white shadow-lg hover:shadow-xl transition-all duration-200 ${themeClasses.button}`}
                     style={{
                       backgroundColor: themeColor,
                       borderRadius: theme.layout.borderRadius
                     }}
                   >
-                    <Phone className="h-5 w-5 mr-2" />
+                    <Phone className="h-5 w-5 mr-2 flex-shrink-0" />
                     Agendar Cita
                   </Button>
                 </motion.div>
@@ -203,7 +203,7 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
                     <Button
                       variant="outline"
                       size="lg"
-                      className={`w-full sm:w-auto border-2 transition-all duration-200 ${themeClasses.button}`}
+                      className={`w-full sm:w-auto whitespace-nowrap border-2 transition-all duration-200 ${themeClasses.button}`}
                       style={{
                         borderColor: themeColor,
                         color: themeColor,
@@ -211,7 +211,7 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
                         backgroundColor: 'transparent'
                       }}
                     >
-                      <Phone className="h-5 w-5 mr-2" />
+                      <Phone className="h-5 w-5 mr-2 flex-shrink-0" />
                       Llamar Ahora
                     </Button>
                   </motion.div>

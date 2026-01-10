@@ -9,11 +9,6 @@ import type { PublicTenant } from '@/lib/tenant';
 import { getTheme } from '@/lib/themes';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
-import {
-  fadeInUp,
-  sectionVariant,
-  viewportSettings,
-} from './animations';
 
 interface Testimonial {
   id: string;
@@ -107,18 +102,14 @@ export function TestimonialsSection({ tenant, testimonials, stats }: Testimonial
   const currentTestimonial = testimonials[currentIndex];
 
   return (
-    <motion.section
+    <section
       id="testimonios"
       className="py-16 sm:py-20"
       style={{ backgroundColor: colors.backgroundAlt }}
-      variants={sectionVariant}
-      initial="hidden"
-      whileInView="visible"
-      viewport={viewportSettings}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <motion.div variants={fadeInUp} className="text-center mb-12">
+        <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: colors.text }}>
             Lo que dicen nuestros clientes
           </h2>
@@ -135,11 +126,10 @@ export function TestimonialsSection({ tenant, testimonials, stats }: Testimonial
               </span>
             </div>
           )}
-        </motion.div>
+        </div>
 
         {/* Carousel */}
-        <motion.div
-          variants={fadeInUp}
+        <div
           className="relative max-w-3xl mx-auto"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
@@ -230,10 +220,10 @@ export function TestimonialsSection({ tenant, testimonials, stats }: Testimonial
               ))}
             </div>
           )}
-        </motion.div>
+        </div>
 
         {/* CTA */}
-        <motion.div variants={fadeInUp} className="text-center mt-10">
+        <div className="text-center mt-10">
           <Link href={`/${tenant.slug}/testimonios/nuevo`}>
             <Button
               size="lg"
@@ -248,8 +238,8 @@ export function TestimonialsSection({ tenant, testimonials, stats }: Testimonial
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </Link>
-        </motion.div>
+        </div>
       </div>
-    </motion.section>
+    </section>
   );
 }
