@@ -24,7 +24,7 @@ describe('Pagination Utilities', () => {
   describe('PAGINATION_DEFAULTS', () => {
     it('should have correct default values', () => {
       expect(PAGINATION_DEFAULTS.DEFAULT_PAGE).toBe(1);
-      expect(PAGINATION_DEFAULTS.DEFAULT_LIMIT).toBe(50);
+      expect(PAGINATION_DEFAULTS.DEFAULT_LIMIT).toBe(10);
       expect(PAGINATION_DEFAULTS.MAX_LIMIT).toBe(100);
     });
   });

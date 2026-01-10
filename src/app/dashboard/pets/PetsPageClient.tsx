@@ -19,7 +19,7 @@ interface PaginationState {
   totalPages: number;
 }
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 10;
 
 export function PetsPageClient({ maxPets }: PetsPageClientProps) {
   const [pets, setPets] = useState<PetWithOwner[]>([]);
@@ -34,9 +34,9 @@ export function PetsPageClient({ maxPets }: PetsPageClientProps) {
     totalPages: 0,
   });
 
-  // Sorting state
-  const [sortBy, setSortBy] = useState<string>('createdAt');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  // Sorting state - default to alphabetical order by name
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
 
   const { currentLocation, isAllLocations } = useLocation();
 
