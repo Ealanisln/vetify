@@ -137,7 +137,6 @@ export default function InvitePage() {
         // the session might not be ready yet after registration redirect.
         // Retry a few times with increasing delays.
         if (!authenticated && state === 'already_accepted' && retryCount < 5) {
-          console.log(`[Invite] Auth not ready, retrying... (attempt ${retryCount + 1}/5)`);
           setTimeout(() => checkAuth(retryCount + 1), 800 * (retryCount + 1));
           return;
         }

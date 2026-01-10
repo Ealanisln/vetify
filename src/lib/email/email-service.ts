@@ -75,11 +75,6 @@ export async function sendEmail(
 
     // Dry run mode for testing
     if (DEFAULT_CONFIG.dryRun) {
-      console.log('[EMAIL] Dry run mode - Email not sent:', {
-        to: emailData.to.email,
-        subject: emailData.subject,
-        template: emailData.template,
-      });
       return {
         success: true,
         messageId: 'dry-run-' + Date.now(),

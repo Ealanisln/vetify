@@ -128,8 +128,6 @@ export async function sendStaffInvitationEmail(
       return { success: false, error: 'Error al enviar el email de invitación' };
     }
 
-    console.log(`[StaffInvitation] Email sent successfully to ${staff.email}`);
-
     return {
       success: true,
       invitationId: invitation.id,

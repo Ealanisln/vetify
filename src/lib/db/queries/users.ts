@@ -26,7 +26,6 @@ async function autoAcceptPendingInvitation(userId: string, email: string) {
     });
 
     if (existingStaff?.userId) {
-      console.log(`[AutoAccept] Staff ${invitation.staff.id} already linked to user ${existingStaff.userId}`);
       return null;
     }
 
@@ -62,7 +61,6 @@ async function autoAcceptPendingInvitation(userId: string, email: string) {
       return user;
     });
 
-    console.log(`[AutoAccept] Successfully linked user ${userId} to staff ${invitation.staff.id} in tenant ${invitation.tenantId}`);
     return updatedUser;
   } catch (error) {
     console.error('[AutoAccept] Error auto-accepting invitation:', error);
