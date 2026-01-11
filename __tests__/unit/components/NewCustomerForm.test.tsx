@@ -630,6 +630,99 @@ describe('NewCustomerForm', () => {
     });
   });
 
+  describe('Double Submit Prevention', () => {
+    it('should prevent multiple submissions on rapid clicks', async () => {
+      // Create a delayed mock that we can control
+      let resolveFirst: (value: Response) => void;
+      const firstCallPromise = new Promise<Response>((resolve) => {
+        resolveFirst = resolve;
+      });
+
+      mockFetch.mockReturnValueOnce(firstCallPromise);
+
+      render(<NewCustomerForm {...defaultProps} />);
+
+      const nameInput = document.querySelectorAll('input[type="text"]')[0];
+      fireEvent.change(nameInput, { target: { value: 'Juan Pérez' } });
+
+      const form = document.querySelector('form') as HTMLFormElement;
+
+      // Submit the form multiple times rapidly (simulating double-click)
+      fireEvent.submit(form);
+      fireEvent.submit(form);
+      fireEvent.submit(form);
+
+      // Should only have called fetch once despite multiple submits
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      // Resolve the promise to clean up
+      resolveFirst!({
+        ok: true,
+        json: async () => ({ id: 'customer-123' }),
+      } as Response);
+
+      await waitFor(() => {
+        expect(screen.getByText('¡Cliente creado exitosamente!')).toBeInTheDocument();
+      });
+    });
+
+    it('should allow new submission after previous submission completes with error', async () => {
+      // First submission fails
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ message: 'Server error' }),
+      } as Response);
+
+      // Second submission succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 'customer-123' }),
+      } as Response);
+
+      render(<NewCustomerForm {...defaultProps} />);
+
+      const nameInput = document.querySelectorAll('input[type="text"]')[0];
+      fireEvent.change(nameInput, { target: { value: 'Juan Pérez' } });
+
+      const form = document.querySelector('form') as HTMLFormElement;
+
+      // First submission
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockedToast.error).toHaveBeenCalledWith('Server error');
+      });
+
+      // Second submission should be allowed after error
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    it('should disable submit button while submitting', async () => {
+      // Never-resolving promise to keep loading state
+      mockFetch.mockImplementation(() => new Promise(() => {}));
+
+      render(<NewCustomerForm {...defaultProps} />);
+
+      const nameInput = document.querySelectorAll('input[type="text"]')[0];
+      fireEvent.change(nameInput, { target: { value: 'Juan Pérez' } });
+
+      const submitButton = screen.getByRole('button', { name: 'Crear Cliente' });
+      expect(submitButton).not.toBeDisabled();
+
+      const form = document.querySelector('form') as HTMLFormElement;
+      fireEvent.submit(form);
+
+      await waitFor(() => {
+        const loadingButton = screen.getByRole('button', { name: 'Guardando...' });
+        expect(loadingButton).toBeDisabled();
+      });
+    });
+  });
+
   describe('Location Selection', () => {
     it('should include locationId in submission', async () => {
       mockFetch.mockResolvedValueOnce({

@@ -22,14 +22,27 @@ interface Tenant {
   slug: string;
 }
 
+interface StaffInfo {
+  position: string;
+}
+
+// Admin positions that can access settings
+// Note: ADMINISTRATOR has value 'Administrador' in the StaffPosition enum
+const ADMIN_POSITIONS = ['MANAGER', 'Administrador'];
+
 // Componente separado para la información del usuario que se hidrata después
 function UserSection({ onNavigate }: { onNavigate?: () => void }) {
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [staff, setStaff] = useState<StaffInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const userDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Check if user can access settings (only MANAGER/ADMINISTRATOR)
+  // If no staff record, user is tenant owner (has admin access)
+  const canAccessSettings = !staff || ADMIN_POSITIONS.includes(staff.position);
 
   useEffect(() => {
     setMounted(true);
@@ -57,6 +70,17 @@ function UserSection({ onNavigate }: { onNavigate?: () => void }) {
             const tenantData = await tenantResponse.json();
             setTenant(tenantData.tenant);
           }
+
+          // Obtener información del staff para verificar permisos
+          const staffResponse = await fetch('/api/staff/me', {
+            signal: abortController.signal,
+          });
+          if (staffResponse.ok && !abortController.signal.aborted) {
+            const staffData = await staffResponse.json();
+            setStaff(staffData);
+          }
+          // If 404, user is tenant owner without staff record (has admin access)
+          // staff remains null, which grants settings access via canAccessSettings
         }
       } catch (error) {
         // Ignore abort errors (happens during normal navigation/unmount)
@@ -204,14 +228,17 @@ function UserSection({ onNavigate }: { onNavigate?: () => void }) {
               <span className="font-medium">Dashboard</span>
             </Link>
 
-            <Link
-              href="/dashboard/settings"
-              className="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-[#4DB8A3]/10 dark:hover:bg-[#4DB8A3]/20 transition-all duration-200 group"
-              onClick={() => setUserDropdownOpen(false)}
-            >
-              <Settings className="h-4 w-4 mr-3 transition-transform duration-200 group-hover:rotate-90" />
-              <span className="font-medium">Configuración</span>
-            </Link>
+            {/* Only show settings link for MANAGER/ADMINISTRATOR */}
+            {canAccessSettings && (
+              <Link
+                href="/dashboard/settings"
+                className="flex items-center px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-[#4DB8A3]/10 dark:hover:bg-[#4DB8A3]/20 transition-all duration-200 group"
+                onClick={() => setUserDropdownOpen(false)}
+              >
+                <Settings className="h-4 w-4 mr-3 transition-transform duration-200 group-hover:rotate-90" />
+                <span className="font-medium">Configuración</span>
+              </Link>
+            )}
           </div>
 
           <div className="border-t border-gray-200/50 dark:border-gray-700/50 mt-1 pt-1">

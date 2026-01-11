@@ -155,6 +155,7 @@ export function getChangelogContent(): string {
 }
 
 // Hardcoded changelog content - updated manually or via build script
+// IMPORTANT: Keep this in sync with CHANGELOG.md when releasing new versions
 const CHANGELOG_CONTENT = `# Registro de Cambios
 
 Todos los cambios notables en este proyecto se documentarán en este archivo.
@@ -162,20 +163,77 @@ Todos los cambios notables en este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
-## [Sin Publicar]
+## [1.1.0] - 2026-01-10
 
 ### Agregado
+- **Sistema de Invitaciones de Staff**
+  - Envío de invitaciones por email a nuevos miembros del equipo
+  - Validación y aceptación de invitaciones con tokens seguros
+  - Nuevo endpoint /api/invitations/* para gestión de invitaciones
+  - Plantilla de email STAFF_INVITATION para notificaciones
+- **Sistema de Permisos de Staff (RBAC)**
+  - Control de acceso basado en roles con permisos granulares
+  - Componente PermissionGate para protección de UI
+  - Hook useStaffPermissions para verificación de permisos en cliente
+  - Modos de solo lectura para roles no administrativos
+  - Permisos para: ubicaciones, servicios, inventario, ventas, testimonios
 - Página de Actualizaciones (/actualizaciones)
   - Vista de timeline con historial de versiones
   - Categorías con código de colores (Agregado, Corregido, Modificado, Seguridad)
   - Parser de CHANGELOG con soporte para español e inglés
+  - Secciones colapsables por versión
+  - Metadatos SEO y datos estructurados
 - Botón Flotante de Reporte de Errores
-  - Modal de formulario con campos: descripción, pasos, comportamiento esperado
+  - Componente de botón fijo en la esquina inferior derecha del dashboard
+  - Modal de formulario con campos: descripción, pasos para reproducir, comportamiento esperado
   - Soporte para captura de pantallas (hasta 3 imágenes)
   - Integración con Resend para envío de emails
+  - Incluye información del navegador y URL actual automáticamente
 - Sistema de Control de Versiones
   - Versión mostrada en el footer del sitio
   - Endpoint API /api/version para consultar versión
+  - Utilidades de parsing y comparación de versiones
+  - Versión inyectada en tiempo de build via next.config.js
+- Sistema de Analíticas para Landing Page (VETIF-71)
+  - Modelo LandingPageAnalytics para tracking anónimo
+  - Eventos: PAGE_VIEW, FORM_START, FORM_SUBMIT, CONVERSION, BUTTON_CLICK, SCROLL_DEPTH
+  - Dashboard de métricas de conversión con exportación CSV
+  - Endpoint público /api/public/analytics para tracking
+- Generador de Códigos QR para Páginas Públicas (VETIF-72)
+  - Generación de QR en configuración del tenant
+  - Exportación a PNG, SVG y PDF
+  - Personalización de colores y tamaño
+- Paginación en Endpoints de API (VETIF-168)
+  - Paginación servidor para clientes, mascotas y ubicaciones
+  - Mejora de rendimiento en listados grandes
+- Tests E2E para Dashboard (VETIF-187)
+  - Atributos data-testid en todos los componentes del dashboard
+  - Tests automatizados para flujos críticos
+  - Cobertura de tests: 97 unit suites (2938 tests), 55 integration suites (1144 tests)
+
+### Corregido
+- Espacio blanco en móvil iOS Safari debajo de testimonios
+- Componente ClinicInfo no renderizaba en iOS (removidas animaciones whileInView)
+- Layout de horarios y botón "Navegar" en página pública
+- Layout responsive de ServiceManagement
+- Menú móvil de PublicNavbar rediseñado (mejor UX)
+- Texto de botones Hero se cortaba en móvil
+- Widget "Plan Actual" mostraba '0' en lugar del nombre del plan (VETIF-169)
+- Problemas de CORS y renderizado en exportación de QR a PNG/PDF
+- Timing de animaciones en tests de página de equipo
+- URLs hardcodeadas en layout de clínica (ahora usa getBaseUrl())
+- Imports no usados en componentes de analíticas
+- Permisos de creación de citas ahora respetan roles (VETERINARIAN, ADMIN, RECEPTIONIST)
+- Valores por defecto de paginación y permisos de caja para staff
+
+### Modificado
+- Middleware actualizado para excluir rutas de invitaciones de autenticación
+- Unificación de correos electrónicos del sistema a español (soporte@, contacto@vetify.pro)
+- Generador QR simplificado removiendo opción de logo
+
+### Seguridad
+- Verificación de permisos en endpoints de appointments, inventory y staff
+- Tokens de invitación con expiración y validación
 
 ---
 
@@ -183,16 +241,32 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Agregado
 - Página Pública de Servicios para sitios web de clínicas
+  - Ruta dinámica /[clinicSlug]/servicios mostrando todos los servicios activos
+  - Servicios agrupados por categoría con traducciones en español
+  - Diseño de cuadrícula responsive con animaciones Framer Motion
+  - Estilos adaptables al tema con soporte para modo oscuro
+  - Metadatos SEO y datos estructurados de breadcrumb
 - Página Pública de Equipo para sitios web de clínicas
+  - Ruta dinámica /[clinicSlug]/equipo mostrando los miembros del staff
+  - Fotos del personal subidas vía Cloudinary
+  - Visibilidad configurable del staff (bandera showOnPublicPage)
+  - Visualización de biografía profesional y especialidades
 - Sistema Completo de Testimonios
-- Gestión de fotos del personal con integración Cloudinary
+  - Formulario de envío de testimonios de clientes
+  - Panel de administración para gestión de testimonios (aprobar/rechazar/destacar)
+  - Sección pública de testimonios en páginas de clínicas
+  - Sistema de calificación con estrellas (1-5 estrellas)
+  - Plantilla de email para solicitar testimonios
+- Gestión de fotos del personal
+  - Integración con Cloudinary para fotos de perfil del staff
+  - Carga de fotos en el modal de configuración del staff
 
 ### Corregido
 - Botón de compartir no ocupaba todo el ancho en móvil en la sección hero
 - Posición del menú del staff en la barra de navegación pública
 
 ### Seguridad
-- Actualizado jspdf para corregir vulnerabilidad crítica
+- Actualizado jspdf para corregir vulnerabilidad crítica (CVE-2024-XXXXX)
 
 ---
 
@@ -200,12 +274,41 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Agregado
 - Sistema de autenticación API v1 (VETIF-36)
+  - Autenticación con API key usando claves hasheadas SHA-256
+  - API keys con alcance por ubicación para control de acceso multi-sucursal
+  - Permisos granulares (read:pets, write:appointments, etc.)
+  - Límite de tasa configurable por API key (predeterminado 1000 req/hora)
+  - Utilidades de gestión de API keys con generación segura de claves
 - Seguimiento de ventas por ubicación (VETIF-95)
+  - Agregado locationId al modelo Sale para reportes por sucursal
+  - Filtrado basado en ubicación en consultas de ventas
+  - Índices de rendimiento para consultas de ventas por ubicación
 - Infraestructura de testing completa con GitHub Actions CI
+  - Pruebas unitarias con Jest (49 suites, 1600+ pruebas)
+  - Pruebas de integración para rutas API (40+ suites, 600+ pruebas)
+  - Pruebas E2E con Playwright (490 pruebas en Chrome, Firefox, Safari)
+  - Reportes de cobertura con umbrales configurables
+  - Hooks pre-commit para lint-staged y pruebas unitarias
+- Cobertura extendida de pruebas de integración (Fase 2 de iniciativa de testing)
+  - Pruebas de API de Facturación y Precios Admin (VETIF-94)
+  - Pruebas de integración de checkout y webhook de Stripe (VETIF-93)
+  - Pruebas de API de Suscripción incluyendo upgrades/downgrades (VETIF-92)
+  - Pruebas de API de Configuración y Onboarding (VETIF-61)
+  - Pruebas unitarias de hooks para useErrorHandler y useThemeAware (VETIF-60)
 - Sistema de notificaciones por email para citas
+  - Plantillas de notificación configurables
+  - Soporte para recordatorios y confirmaciones de citas
+  - Nuevos tipos de plantillas de email en enum de base de datos
 - Soporte de modo oscuro para páginas públicas de tenants
+  - Estilos adaptables al tema para páginas de cara al cliente
+  - Experiencia consistente de modo oscuro en todas las vistas
 - Preferencias de notificación en configuración
+  - Configuración de notificaciones por email y push personalizable por usuario
+  - Controles de toggle por tipo de notificación
 - Soporte de ubicación en gestión de inventario
+  - Asignación de ubicación de sucursal para artículos de inventario
+  - Campo de ubicación de almacenamiento para colocación precisa de artículos
+  - Filtrado basado en ubicación en vistas de inventario
 
 ### Corregido
 - Inconsistencias de bordes en modo oscuro en componentes del dashboard
@@ -221,5 +324,8 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Seguridad
 - Agregado modelo Email Log para registro de auditoría de notificaciones enviadas
+- Índices de rendimiento mejoran tiempos de respuesta de consultas
 - Reemplazado paquete xlsx con exceljs para corregir vulnerabilidades de alta severidad
+  - Resuelto GHSA-4r6h-8v6p-xvw6: Prototype Pollution
+  - Resuelto GHSA-5pgg-2g8v-p4x9: ReDoS
 `;

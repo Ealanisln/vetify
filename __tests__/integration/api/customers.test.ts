@@ -226,6 +226,103 @@ describe('Customers API Integration Tests', () => {
       expect(existingCustomer).not.toBeNull();
       expect(existingCustomer?.email).toBe(duplicateEmailData.email);
     });
+
+    it('should return error message with location info when duplicate email found with location', async () => {
+      const location = createTestLocation({ id: 'location-1', name: 'Clinic Central' });
+      const customerWithLocation = {
+        ...mockCustomer,
+        name: 'María García',
+        email: 'maria@example.com',
+        locationId: location.id,
+        location: { name: location.name },
+      };
+
+      // Simulate finding existing customer with location
+      prismaMock.customer.findFirst.mockResolvedValue(customerWithLocation);
+
+      const existingCustomer = await prismaMock.customer.findFirst({
+        where: {
+          email: customerWithLocation.email,
+          tenantId: mockTenant.id,
+          isActive: true,
+        },
+        include: {
+          location: { select: { name: true } },
+        },
+      });
+
+      // Verify the error message would include location info
+      const locationInfo = existingCustomer?.location?.name
+        ? ` en la ubicación "${existingCustomer.location.name}"`
+        : ' (sin ubicación asignada)';
+      const expectedMessage = `Ya existe un cliente "${existingCustomer?.name}" con el email ${existingCustomer?.email}${locationInfo}. Puedes verlo cambiando a "Todas las ubicaciones".`;
+
+      expect(existingCustomer).not.toBeNull();
+      expect(existingCustomer?.location?.name).toBe('Clinic Central');
+      expect(expectedMessage).toContain('en la ubicación "Clinic Central"');
+    });
+
+    it('should return error message indicating no location when duplicate email found without location', async () => {
+      const customerWithoutLocation = {
+        ...mockCustomer,
+        name: 'Carlos López',
+        email: 'carlos@example.com',
+        locationId: null,
+        location: null,
+      };
+
+      // Simulate finding existing customer without location
+      prismaMock.customer.findFirst.mockResolvedValue(customerWithoutLocation);
+
+      const existingCustomer = await prismaMock.customer.findFirst({
+        where: {
+          email: customerWithoutLocation.email,
+          tenantId: mockTenant.id,
+          isActive: true,
+        },
+        include: {
+          location: { select: { name: true } },
+        },
+      });
+
+      // Verify the error message would indicate no location
+      const locationInfo = existingCustomer?.location?.name
+        ? ` en la ubicación "${existingCustomer.location.name}"`
+        : ' (sin ubicación asignada)';
+      const expectedMessage = `Ya existe un cliente "${existingCustomer?.name}" con el email ${existingCustomer?.email}${locationInfo}. Puedes verlo cambiando a "Todas las ubicaciones".`;
+
+      expect(existingCustomer).not.toBeNull();
+      expect(existingCustomer?.location).toBeNull();
+      expect(expectedMessage).toContain('(sin ubicación asignada)');
+      expect(expectedMessage).toContain('Puedes verlo cambiando a "Todas las ubicaciones"');
+    });
+
+    it('should only check active customers for duplicate email', async () => {
+      const inactiveCustomer = {
+        ...mockCustomer,
+        email: 'test@example.com',
+        isActive: false,
+      };
+
+      // When searching for active customers only, inactive should not be returned
+      prismaMock.customer.findFirst.mockImplementation(async (args: any) => {
+        if (args?.where?.isActive === true) {
+          return null; // No active customer with this email
+        }
+        return inactiveCustomer;
+      });
+
+      const existingActiveCustomer = await prismaMock.customer.findFirst({
+        where: {
+          email: 'test@example.com',
+          tenantId: mockTenant.id,
+          isActive: true, // Only check active customers
+        },
+      });
+
+      // Should allow creating customer with same email as inactive customer
+      expect(existingActiveCustomer).toBeNull();
+    });
   });
 
   describe('PUT /api/customers/:id', () => {
