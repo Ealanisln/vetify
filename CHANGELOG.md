@@ -54,6 +54,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   - Cobertura de tests: 97 unit suites (2938 tests), 55 integration suites (1144 tests)
 
 ### Corregido
+- Prevención de creación duplicada de clientes al enviar formulario (doble clic)
 - Espacio blanco en móvil iOS Safari debajo de testimonios
 - Componente ClinicInfo no renderizaba en iOS (removidas animaciones whileInView)
 - Layout de horarios y botón "Navegar" en página pública
@@ -74,6 +75,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Generador QR simplificado removiendo opción de logo
 
 ### Seguridad
+- Restricción de acceso a página de configuración solo para roles administrativos (MANAGER, ADMINISTRATOR)
 - Verificación de permisos en endpoints de appointments, inventory y staff
 - Tokens de invitación con expiración y validación
 
