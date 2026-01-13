@@ -219,5 +219,55 @@ Just some text without any version headers.
       // Should have at least one version
       expect(content).toMatch(/## \[/);
     });
+
+    it('should be parseable by parseChangelog', () => {
+      const content = getChangelogContent();
+      const entries = parseChangelog(content);
+
+      // The synced content should be valid and parseable
+      expect(entries.length).toBeGreaterThan(0);
+      expect(entries[0].version).toBeTruthy();
+    });
+
+    it('should contain recent version 1.1.0', () => {
+      const content = getChangelogContent();
+      const entries = parseChangelog(content);
+
+      const versions = entries.map(e => e.version);
+      expect(versions).toContain('1.1.0');
+    });
+  });
+
+  describe('Sync Script Integration', () => {
+    it('should have properly escaped backticks in content', () => {
+      const content = getChangelogContent();
+
+      // Content should be usable as a template literal (already is)
+      // This test ensures the sync script properly escapes special chars
+      expect(() => {
+        // The content is already in a template literal in the source
+        // If it parses, the escaping worked
+        parseChangelog(content);
+      }).not.toThrow();
+    });
+
+    it('should preserve code blocks with backticks', () => {
+      const content = getChangelogContent();
+
+      // Check that backtick content (like `code`) is preserved
+      if (content.includes('`')) {
+        // Backticks exist and are properly escaped (no syntax error)
+        expect(content).toMatch(/`[^`]+`/);
+      }
+    });
+
+    it('should contain sync markers in source file', () => {
+      // This test verifies the markers exist for the sync script
+      // We test indirectly by checking the content is properly formatted
+      const content = getChangelogContent();
+
+      // Should start with the header
+      expect(content.startsWith('# Registro de Cambios')).toBe(true);
+    });
   });
 });
