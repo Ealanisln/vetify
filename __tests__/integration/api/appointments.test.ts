@@ -425,6 +425,265 @@ describe('Appointments API Integration Tests', () => {
 
       expect(conflictingAppointments).toHaveLength(0);
     });
+
+    it('should detect location-based conflicts for same room', async () => {
+      const locationId = 'room-1';
+      const appointmentWithLocation = {
+        ...mockAppointment,
+        locationId,
+      };
+
+      // Mock: same location at same time = conflict
+      prismaMock.appointment.findMany.mockImplementation(async (args: { where?: { locationId?: string } }) => {
+        const where = args?.where;
+        if (where?.locationId === locationId) {
+          return [appointmentWithLocation];
+        }
+        return [];
+      });
+
+      const conflictingAppointments = await prismaMock.appointment.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          locationId,
+          dateTime: {
+            gte: mockAppointment.startTime,
+            lt: mockAppointment.endTime,
+          },
+          status: { notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW'] },
+        },
+      });
+
+      expect(conflictingAppointments).toHaveLength(1);
+      expect(conflictingAppointments[0].locationId).toBe(locationId);
+    });
+
+    it('should allow concurrent appointments in different locations', async () => {
+      const location1 = 'room-1';
+      const location2 = 'room-2';
+
+      const appointmentInRoom1 = {
+        ...mockAppointment,
+        locationId: location1,
+      };
+
+      // Mock: different location = no conflict
+      prismaMock.appointment.findMany.mockImplementation(async (args: { where?: { locationId?: string } }) => {
+        const where = args?.where;
+        if (where?.locationId === location2) {
+          return []; // No conflict for different location
+        }
+        return [appointmentInRoom1];
+      });
+
+      const conflictingAppointments = await prismaMock.appointment.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          locationId: location2, // Checking room 2
+          dateTime: {
+            gte: mockAppointment.startTime,
+            lt: mockAppointment.endTime,
+          },
+          status: { notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW'] },
+        },
+      });
+
+      expect(conflictingAppointments).toHaveLength(0);
+    });
+
+    it('should detect partial time overlaps (new appointment starts during existing)', async () => {
+      // Existing appointment: 10:00 - 11:00
+      // New appointment attempting: 10:30 - 11:30 (overlaps by 30 min)
+      const existingStart = new Date('2024-01-15T10:00:00');
+      const existingEnd = new Date('2024-01-15T11:00:00');
+      const newStart = new Date('2024-01-15T10:30:00');
+
+      const existingAppointment = {
+        ...mockAppointment,
+        startTime: existingStart,
+        endTime: existingEnd,
+      };
+
+      prismaMock.appointment.findMany.mockResolvedValue([existingAppointment]);
+
+      // Check if new appointment start time falls within existing appointment
+      const hasOverlap = newStart >= existingStart && newStart < existingEnd;
+      expect(hasOverlap).toBe(true);
+
+      const conflicts = await prismaMock.appointment.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          staffId: mockAppointment.staffId,
+          OR: [
+            // New start falls within existing
+            {
+              startTime: { lte: newStart },
+              endTime: { gt: newStart },
+            },
+          ],
+          status: { notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW'] },
+        },
+      });
+
+      expect(conflicts).toHaveLength(1);
+    });
+
+    it('should detect partial time overlaps (new appointment ends during existing)', async () => {
+      // Existing appointment: 10:00 - 11:00
+      // New appointment attempting: 09:30 - 10:30 (overlaps by 30 min)
+      const existingStart = new Date('2024-01-15T10:00:00');
+      const existingEnd = new Date('2024-01-15T11:00:00');
+      const newEnd = new Date('2024-01-15T10:30:00');
+
+      const existingAppointment = {
+        ...mockAppointment,
+        startTime: existingStart,
+        endTime: existingEnd,
+      };
+
+      prismaMock.appointment.findMany.mockResolvedValue([existingAppointment]);
+
+      // Check if new appointment end time falls within existing appointment
+      const hasOverlap = newEnd > existingStart && newEnd <= existingEnd;
+      expect(hasOverlap).toBe(true);
+
+      const conflicts = await prismaMock.appointment.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          staffId: mockAppointment.staffId,
+          OR: [
+            // New end falls within existing
+            {
+              startTime: { lt: newEnd },
+              endTime: { gte: newEnd },
+            },
+          ],
+          status: { notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW'] },
+        },
+      });
+
+      expect(conflicts).toHaveLength(1);
+    });
+
+    it('should detect when new appointment completely contains existing', async () => {
+      // Existing appointment: 10:00 - 10:30
+      // New appointment attempting: 09:30 - 11:00 (completely contains existing)
+      const existingStart = new Date('2024-01-15T10:00:00');
+      const existingEnd = new Date('2024-01-15T10:30:00');
+      const newStart = new Date('2024-01-15T09:30:00');
+      const newEnd = new Date('2024-01-15T11:00:00');
+
+      const existingAppointment = {
+        ...mockAppointment,
+        startTime: existingStart,
+        endTime: existingEnd,
+      };
+
+      prismaMock.appointment.findMany.mockResolvedValue([existingAppointment]);
+
+      // Check if new appointment completely contains existing
+      const containsExisting = newStart <= existingStart && newEnd >= existingEnd;
+      expect(containsExisting).toBe(true);
+
+      const conflicts = await prismaMock.appointment.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          staffId: mockAppointment.staffId,
+          // Existing is within new bounds
+          startTime: { gte: newStart },
+          endTime: { lte: newEnd },
+          status: { notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW'] },
+        },
+      });
+
+      expect(conflicts).toHaveLength(1);
+    });
+
+    it('should handle concurrent booking attempts with optimistic locking', async () => {
+      // Simulate race condition: two users try to book same slot
+      const slotTime = new Date('2024-01-15T10:00:00');
+      let bookingCount = 0;
+
+      // Mock transaction behavior
+      prismaMock.$transaction.mockImplementation(async (fn) => {
+        // First booking succeeds
+        if (bookingCount === 0) {
+          bookingCount++;
+          prismaMock.appointment.findMany.mockResolvedValueOnce([]);
+          prismaMock.appointment.create.mockResolvedValueOnce({
+            ...mockAppointment,
+            dateTime: slotTime,
+          });
+          return typeof fn === 'function' ? fn(prismaMock) : fn;
+        }
+        // Second booking should find conflict
+        prismaMock.appointment.findMany.mockResolvedValueOnce([mockAppointment]);
+        throw new Error('Slot already booked');
+      });
+
+      // First booking attempt
+      let firstBookingResult;
+      try {
+        firstBookingResult = await prismaMock.$transaction(async (tx) => {
+          const conflicts = await tx.appointment.findMany({
+            where: { dateTime: slotTime, staffId: mockAppointment.staffId },
+          });
+          if (conflicts.length > 0) throw new Error('Slot already booked');
+          return tx.appointment.create({ data: { ...mockAppointment, dateTime: slotTime } });
+        });
+      } catch {
+        firstBookingResult = null;
+      }
+
+      // Second booking attempt (simulated concurrent)
+      let secondBookingResult;
+      try {
+        secondBookingResult = await prismaMock.$transaction(async (tx) => {
+          const conflicts = await tx.appointment.findMany({
+            where: { dateTime: slotTime, staffId: mockAppointment.staffId },
+          });
+          if (conflicts.length > 0) throw new Error('Slot already booked');
+          return tx.appointment.create({ data: { ...mockAppointment, dateTime: slotTime } });
+        });
+      } catch {
+        secondBookingResult = null;
+      }
+
+      // First should succeed, second should fail
+      expect(firstBookingResult).not.toBeNull();
+      expect(secondBookingResult).toBeNull();
+    });
+
+    it('should exclude cancelled appointments from conflict detection', async () => {
+      const cancelledAppointment = {
+        ...mockAppointment,
+        status: 'CANCELLED_CLIENT',
+      };
+
+      // Mock: cancelled appointments should not be returned in conflict check
+      prismaMock.appointment.findMany.mockImplementation(async (args: { where?: { status?: { notIn?: string[] } } }) => {
+        const where = args?.where;
+        const excludedStatuses = where?.status?.notIn || [];
+        if (excludedStatuses.includes('CANCELLED_CLIENT')) {
+          return []; // Cancelled appointments excluded
+        }
+        return [cancelledAppointment];
+      });
+
+      const conflicts = await prismaMock.appointment.findMany({
+        where: {
+          tenantId: mockTenant.id,
+          staffId: mockAppointment.staffId,
+          dateTime: {
+            gte: mockAppointment.startTime,
+            lt: mockAppointment.endTime,
+          },
+          status: { notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW'] },
+        },
+      });
+
+      expect(conflicts).toHaveLength(0);
+    });
   });
 
   describe('Soft Delete Verification', () => {

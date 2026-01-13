@@ -4,20 +4,11 @@ import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
 import { addMinutes, format, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
-
-/**
- * Formatea una fecha como ISO local (sin Z) para enviar al cliente.
- * Esto evita la conversión a UTC que hace toISOString().
- */
-function formatLocalDateTime(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-}
+import {
+  formatLocalDateTime,
+  generateDaySlots,
+  DEFAULT_BUSINESS_HOURS,
+} from '../../../../lib/appointments/availability';
 
 const availabilitySchema = z.object({
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -67,17 +58,7 @@ async function getBusinessHours(tenantId: string, dayOfWeek: number) {
   } catch (error) {
     console.error('Error fetching business hours:', error);
     // Fallback to default hours
-    return {
-      start: 8,
-      startMinute: 0,
-      end: 18,
-      endMinute: 0,
-      lunchStart: 13,
-      lunchStartMinute: 0,
-      lunchEnd: 14,
-      lunchEndMinute: 0,
-      slotDuration: 15,
-    };
+    return DEFAULT_BUSINESS_HOURS;
   }
 }
 
@@ -256,67 +237,6 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
-}
-
-interface BusinessHours {
-  start: number;
-  startMinute: number;
-  end: number;
-  endMinute: number;
-  lunchStart: number | null;
-  lunchStartMinute: number;
-  lunchEnd: number | null;
-  lunchEndMinute: number;
-  slotDuration: number;
-}
-
-function generateDaySlots(date: Date, businessHours: BusinessHours) {
-  const slots = [];
-  
-  // Create a new date using the exact year, month, day to avoid timezone issues
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
-  
-  // Morning slots (start - lunch or end if no lunch)
-  const morningEnd = businessHours.lunchStart ? businessHours.lunchStart : businessHours.end;
-  for (let hour = businessHours.start; hour < morningEnd; hour++) {
-    const startMinute = hour === businessHours.start ? businessHours.startMinute : 0;
-    // For morning slots, always go to full hour unless it's the last hour before lunch
-    const endMinute = 60;
-    
-    for (let minute = startMinute; minute < endMinute; minute += businessHours.slotDuration) {
-      // Create slot time with explicit year, month, day to maintain local timezone
-      const slotTime = new Date(year, month, day, hour, minute, 0, 0);
-      
-      slots.push({
-        dateTime: slotTime,
-        period: 'morning'
-      });
-    }
-  }
-  
-  // Afternoon slots (lunch end - end) - only if there's a lunch break
-  if (businessHours.lunchStart && businessHours.lunchEnd) {
-    for (let hour = businessHours.lunchEnd; hour < businessHours.end; hour++) {
-      const startMinute = hour === businessHours.lunchEnd ? businessHours.lunchEndMinute : 0;
-      // For afternoon slots, always go to full hour except for the last hour
-      // If endMinute is 0 (meaning end at the top of the hour), treat it as if it goes to the full previous hour
-      const endMinute = hour === businessHours.end - 1 ? (businessHours.endMinute || 60) : 60;
-      
-      for (let minute = startMinute; minute < endMinute; minute += businessHours.slotDuration) {
-        // Create slot time with explicit year, month, day to maintain local timezone
-        const slotTime = new Date(year, month, day, hour, minute, 0, 0);
-        
-        slots.push({
-          dateTime: slotTime,
-          period: 'afternoon'
-        });
-      }
-    }
-  }
-  
-  return slots;
 }
 
 export async function POST(request: Request) {

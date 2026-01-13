@@ -68,17 +68,18 @@ export async function sendEmail(
   emailData: EmailData
 ): Promise<EmailSendResult> {
   try {
-    // Validate environment variables
-    if (!DEFAULT_CONFIG.apiKey) {
-      throw new Error('RESEND_API_KEY is not configured');
-    }
-
-    // Dry run mode for testing
+    // Dry run mode for testing - check BEFORE validating API key
+    // This allows tests to run without needing a real API key
     if (DEFAULT_CONFIG.dryRun) {
       return {
         success: true,
         messageId: 'dry-run-' + Date.now(),
       };
+    }
+
+    // Validate environment variables (only when not in dry-run mode)
+    if (!DEFAULT_CONFIG.apiKey) {
+      throw new Error('RESEND_API_KEY is not configured');
     }
 
     // Get HTML content based on template

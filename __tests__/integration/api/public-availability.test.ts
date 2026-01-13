@@ -149,12 +149,17 @@ describe('Public Availability API', () => {
     it('should exclude slots with existing appointments', async () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 7);
-      const dateString = futureDate.toISOString().split('T')[0];
+      futureDate.setHours(0, 0, 0, 0); // Reset to start of day in local time
+
+      // Use local date components to create the date string (avoid UTC conversion issues)
+      const year = futureDate.getFullYear();
+      const month = String(futureDate.getMonth() + 1).padStart(2, '0');
+      const day = String(futureDate.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
       const dayOfWeek = futureDate.getDay();
 
-      // Create a mock appointment at 10:00
-      const appointmentDateTime = new Date(futureDate);
-      appointmentDateTime.setHours(10, 0, 0, 0);
+      // Create a mock appointment at 10:00 using the same date components
+      const appointmentDateTime = new Date(year, futureDate.getMonth(), futureDate.getDate(), 10, 0, 0, 0);
 
       prismaMock.tenant.findUnique.mockResolvedValue(mockTenant as any);
       prismaMock.tenantSettings.findUnique.mockResolvedValue(
@@ -192,12 +197,17 @@ describe('Public Availability API', () => {
     it('should exclude slots with confirmed appointment requests', async () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 7);
-      const dateString = futureDate.toISOString().split('T')[0];
+      futureDate.setHours(0, 0, 0, 0); // Reset to start of day in local time
+
+      // Use local date components to create the date string (avoid UTC conversion issues)
+      const year = futureDate.getFullYear();
+      const month = String(futureDate.getMonth() + 1).padStart(2, '0');
+      const day = String(futureDate.getDate()).padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
       const dayOfWeek = futureDate.getDay();
 
-      // Create a confirmed request at 11:00
-      const requestDate = new Date(futureDate);
-      requestDate.setHours(0, 0, 0, 0);
+      // Create a confirmed request at 11:00 using the same date
+      const requestDate = new Date(year, futureDate.getMonth(), futureDate.getDate(), 0, 0, 0, 0);
 
       prismaMock.tenant.findUnique.mockResolvedValue(mockTenant as any);
       prismaMock.tenantSettings.findUnique.mockResolvedValue(
