@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, FileText, Package, CheckCircle2, ArrowRight } from "lucide-react"
+import { Calendar, FileText, Package, Globe, CheckCircle2, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
 const features = [
@@ -45,6 +45,20 @@ const features = [
       "Historial de movimientos de inventario",
     ],
   },
+  {
+    icon: Globe,
+    title: "Presencia Digital",
+    subtitle: "Páginas públicas",
+    description: "Crea una presencia profesional en línea para tu clínica con páginas públicas y códigos QR.",
+    items: [
+      "Página de servicios visible para todos",
+      "Perfil del equipo con fotos profesionales",
+      "Sistema de testimonios con calificaciones",
+      "Códigos QR para compartir tu clínica",
+      "Reserva de citas online para clientes",
+      "Invitaciones de personal con roles",
+    ],
+  },
 ]
 
 export function FeaturesSection() {
@@ -57,7 +71,7 @@ export function FeaturesSection() {
           </h2>
         </div>
 
-        <div className="grid gap-4 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:gap-8 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4">
           {features.map((feature, index) => {
             const Icon = feature.icon
             return (
