@@ -15,6 +15,24 @@ import {
   viewportSettings,
 } from './animations';
 
+/**
+ * Traduce las posiciones del personal al español
+ */
+function translatePosition(position: string): string {
+  const translations: Record<string, string> = {
+    VETERINARIAN: 'Veterinario/a',
+    ASSISTANT: 'Asistente',
+    VETERINARY_TECHNICIAN: 'Técnico Veterinario',
+    RECEPTIONIST: 'Recepcionista',
+    MANAGER: 'Gerente',
+    GROOMER: 'Peluquero/a',
+    ADMIN: 'Administrador/a',
+    OTHER: 'Otro',
+  };
+
+  return translations[position] || position;
+}
+
 interface TeamSectionProps {
   tenant: PublicTenant;
   team: PublicStaffMember[];
@@ -125,7 +143,7 @@ export function TeamSection({ tenant, team }: TeamSectionProps) {
                   className="text-sm mb-3"
                   style={{ color: themeColor }}
                 >
-                  {member.position}
+                  {translatePosition(member.position)}
                 </p>
 
                 {/* Specialties */}

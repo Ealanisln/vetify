@@ -3,7 +3,7 @@
 import { ImageUploader } from '../ui/ImageUploader';
 
 interface StaffPhotoUploaderProps {
-  staffId: string;
+  staffId?: string;
   currentImage?: string | null;
   staffName: string;
   onUpdate?: (url: string | null) => void;
@@ -18,7 +18,7 @@ export function StaffPhotoUploader({
   return (
     <ImageUploader
       imageType="staff-profile"
-      entityId={staffId}
+      entityId={staffId || undefined}
       currentImage={currentImage}
       aspectRatio="1:1"
       label={`Foto de ${staffName}`}

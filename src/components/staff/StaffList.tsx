@@ -454,7 +454,7 @@ export default function StaffList({ initialStaff, pagination: initialPagination,
                       </div>
 
                       {/* Access Status */}
-                      <div className="mt-3">
+                      <div className="mt-3 w-fit">
                         {renderAccessStatus(staffMember)}
                       </div>
                     </div>

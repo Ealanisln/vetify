@@ -421,19 +421,17 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Photo Upload */}
-                  {mode === 'edit' && staff && (
-                    <div className="md:col-span-1">
-                      <StaffPhotoUploader
-                        staffId={staff.id}
-                        currentImage={formData.publicPhoto || null}
-                        staffName={formData.name || 'Personal'}
-                        onUpdate={(url) => handleInputChange('publicPhoto', url || '')}
-                      />
-                    </div>
-                  )}
+                  <div className="md:col-span-1">
+                    <StaffPhotoUploader
+                      staffId={staff?.id}
+                      currentImage={formData.publicPhoto || null}
+                      staffName={formData.name || 'Personal'}
+                      onUpdate={(url) => handleInputChange('publicPhoto', url || '')}
+                    />
+                  </div>
 
                   {/* Biography */}
-                  <div className={mode === 'edit' && staff ? 'md:col-span-1' : 'md:col-span-2'}>
+                  <div className="md:col-span-1">
                     <label className="form-label">
                       Biografía
                     </label>
