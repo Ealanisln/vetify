@@ -154,8 +154,7 @@ export function getChangelogContent(): string {
   return CHANGELOG_CONTENT;
 }
 
-// Hardcoded changelog content - updated manually or via build script
-// IMPORTANT: Keep this in sync with CHANGELOG.md when releasing new versions
+// --- CHANGELOG_CONTENT_START ---
 const CHANGELOG_CONTENT = `# Registro de Cambios
 
 Todos los cambios notables en este proyecto se documentarán en este archivo.
@@ -163,21 +162,21 @@ Todos los cambios notables en este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
-## [1.1.0] - 2026-01-10
+## [1.1.0] - 2026-01-13
 
 ### Agregado
 - **Sistema de Invitaciones de Staff**
   - Envío de invitaciones por email a nuevos miembros del equipo
   - Validación y aceptación de invitaciones con tokens seguros
-  - Nuevo endpoint /api/invitations/* para gestión de invitaciones
-  - Plantilla de email STAFF_INVITATION para notificaciones
+  - Nuevo endpoint \`/api/invitations/*\` para gestión de invitaciones
+  - Plantilla de email \`STAFF_INVITATION\` para notificaciones
 - **Sistema de Permisos de Staff (RBAC)**
   - Control de acceso basado en roles con permisos granulares
-  - Componente PermissionGate para protección de UI
-  - Hook useStaffPermissions para verificación de permisos en cliente
+  - Componente \`PermissionGate\` para protección de UI
+  - Hook \`useStaffPermissions\` para verificación de permisos en cliente
   - Modos de solo lectura para roles no administrativos
   - Permisos para: ubicaciones, servicios, inventario, ventas, testimonios
-- Página de Actualizaciones (/actualizaciones)
+- Página de Actualizaciones (\`/actualizaciones\`)
   - Vista de timeline con historial de versiones
   - Categorías con código de colores (Agregado, Corregido, Modificado, Seguridad)
   - Parser de CHANGELOG con soporte para español e inglés
@@ -191,14 +190,14 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   - Incluye información del navegador y URL actual automáticamente
 - Sistema de Control de Versiones
   - Versión mostrada en el footer del sitio
-  - Endpoint API /api/version para consultar versión
+  - Endpoint API \`/api/version\` para consultar versión
   - Utilidades de parsing y comparación de versiones
   - Versión inyectada en tiempo de build via next.config.js
 - Sistema de Analíticas para Landing Page (VETIF-71)
-  - Modelo LandingPageAnalytics para tracking anónimo
+  - Modelo \`LandingPageAnalytics\` para tracking anónimo
   - Eventos: PAGE_VIEW, FORM_START, FORM_SUBMIT, CONVERSION, BUTTON_CLICK, SCROLL_DEPTH
   - Dashboard de métricas de conversión con exportación CSV
-  - Endpoint público /api/public/analytics para tracking
+  - Endpoint público \`/api/public/analytics\` para tracking
 - Generador de Códigos QR para Páginas Públicas (VETIF-72)
   - Generación de QR en configuración del tenant
   - Exportación a PNG, SVG y PDF
@@ -209,10 +208,21 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Tests E2E para Dashboard (VETIF-187)
   - Atributos data-testid en todos los componentes del dashboard
   - Tests automatizados para flujos críticos
-  - Cobertura de tests: 97 unit suites (2938 tests), 55 integration suites (1144 tests)
+  - Cobertura de tests: 102 unit suites (3242 tests), 55 integration suites (1144 tests)
+- **Menú Desplegable de Tema**
+  - Selector de tema con opciones: Claro, Oscuro, Sistema
+  - Sincronización mejorada entre preferencia del sistema y selección manual
+  - Icono dinámico que refleja el tema actual
+- Protocolo de Testing y Auto-Fix documentado en CLAUDE.md
+  - Guía de iteración para corrección automática de tests
+  - Flujo TDD para corrección de bugs
 
 ### Corregido
+- Prevención de creación duplicada de clientes al enviar formulario (doble clic)
 - Espacio blanco en móvil iOS Safari debajo de testimonios
+- Validación de API key en modo dry-run ahora se omite correctamente
+- Desincronización de zona horaria en tests de disponibilidad pública
+- Tests E2E actualizados para mayor estabilidad (analytics, team page, testimonials)
 - Componente ClinicInfo no renderizaba en iOS (removidas animaciones whileInView)
 - Layout de horarios y botón "Navegar" en página pública
 - Layout responsive de ServiceManagement
@@ -232,6 +242,7 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Generador QR simplificado removiendo opción de logo
 
 ### Seguridad
+- Restricción de acceso a página de configuración solo para roles administrativos (MANAGER, ADMINISTRATOR)
 - Verificación de permisos en endpoints de appointments, inventory y staff
 - Tokens de invitación con expiración y validación
 
@@ -241,13 +252,13 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ### Agregado
 - Página Pública de Servicios para sitios web de clínicas
-  - Ruta dinámica /[clinicSlug]/servicios mostrando todos los servicios activos
+  - Ruta dinámica \`/[clinicSlug]/servicios\` mostrando todos los servicios activos
   - Servicios agrupados por categoría con traducciones en español
   - Diseño de cuadrícula responsive con animaciones Framer Motion
   - Estilos adaptables al tema con soporte para modo oscuro
   - Metadatos SEO y datos estructurados de breadcrumb
 - Página Pública de Equipo para sitios web de clínicas
-  - Ruta dinámica /[clinicSlug]/equipo mostrando los miembros del staff
+  - Ruta dinámica \`/[clinicSlug]/equipo\` mostrando los miembros del staff
   - Fotos del personal subidas vía Cloudinary
   - Visibilidad configurable del staff (bandera showOnPublicPage)
   - Visualización de biografía profesional y especialidades
@@ -329,3 +340,4 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   - Resuelto GHSA-4r6h-8v6p-xvw6: Prototype Pollution
   - Resuelto GHSA-5pgg-2g8v-p4x9: ReDoS
 `;
+// --- CHANGELOG_CONTENT_END ---

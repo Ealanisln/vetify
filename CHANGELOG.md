@@ -5,7 +5,7 @@ Todos los cambios notables en este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
-## [1.1.0] - 2026-01-10
+## [1.1.0] - 2026-01-13
 
 ### Agregado
 - **Sistema de Invitaciones de Staff**
@@ -51,11 +51,21 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Tests E2E para Dashboard (VETIF-187)
   - Atributos data-testid en todos los componentes del dashboard
   - Tests automatizados para flujos críticos
-  - Cobertura de tests: 97 unit suites (2938 tests), 55 integration suites (1144 tests)
+  - Cobertura de tests: 102 unit suites (3242 tests), 55 integration suites (1144 tests)
+- **Menú Desplegable de Tema**
+  - Selector de tema con opciones: Claro, Oscuro, Sistema
+  - Sincronización mejorada entre preferencia del sistema y selección manual
+  - Icono dinámico que refleja el tema actual
+- Protocolo de Testing y Auto-Fix documentado en CLAUDE.md
+  - Guía de iteración para corrección automática de tests
+  - Flujo TDD para corrección de bugs
 
 ### Corregido
 - Prevención de creación duplicada de clientes al enviar formulario (doble clic)
 - Espacio blanco en móvil iOS Safari debajo de testimonios
+- Validación de API key en modo dry-run ahora se omite correctamente
+- Desincronización de zona horaria en tests de disponibilidad pública
+- Tests E2E actualizados para mayor estabilidad (analytics, team page, testimonials)
 - Componente ClinicInfo no renderizaba en iOS (removidas animaciones whileInView)
 - Layout de horarios y botón "Navegar" en página pública
 - Layout responsive de ServiceManagement
