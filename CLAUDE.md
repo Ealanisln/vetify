@@ -292,6 +292,138 @@ Follow [Semantic Versioning](https://semver.org/):
 - **Security Tests**: Input validation, rate limiting, auth flows
 - Tests use environment configuration via `scripts/env-config.mjs`
 
+## Testing & Auto-Fix Protocol
+
+### Configuration
+```yaml
+auto_fix_enabled: true
+max_fix_iterations: 3
+verify_after_fix: true
+test_command: "pnpm test"
+coverage_threshold: 80
+e2e_framework: "playwright"
+```
+
+### When Running Tests
+
+**Always follow this sequence:**
+
+1. **Execute** → Run the requested test suite
+2. **Analyze** → On failure, identify root cause
+3. **Categorize** → Implementation bug vs Test bug vs Environment issue
+4. **Fix** → Apply minimal, focused fix
+5. **Re-run** → Execute tests again
+6. **Iterate** → Repeat steps 2-5 up to 3 times
+7. **Report** → Summarize results and any remaining issues
+
+### Failure Categories & Actions
+
+| Category | Signs | Fix Action |
+|----------|-------|------------|
+| **Implementation Bug** | Test expects X, code returns Y | Fix source code, keep test |
+| **Test Bug** | Test outdated, wrong assertion | Fix test to match correct behavior |
+| **Environment Issue** | Connection errors, missing config | Fix setup, env vars, dependencies |
+| **Type Error** | TypeScript compilation failure | Fix types in source or test |
+| **Flaky Test** | Passes sometimes, timing issues | Add retries or fix race condition |
+
+### Auto-Fix Rules
+
+**✅ Automatically fix:**
+- Null/undefined handling
+- Type mismatches and missing types
+- Import statements
+- Mock data updates
+- Assertion updates (when implementation is correct)
+- Environment/config issues
+- Missing async/await
+
+**❌ Ask before fixing:**
+- Deleting or skipping tests
+- Database schema changes
+- API contract changes
+- Security-related code
+- Payment/financial logic
+- Authentication/authorization logic
+
+### Fix Iteration Protocol
+
+```
+for iteration in 1..3:
+    if tests_pass:
+        run_verification(typecheck, lint, full_suite)
+        report_success()
+        break
+    else:
+        analyze_failure()
+        categorize_issue()
+        apply_minimal_fix()
+        continue
+
+if iteration == 3 and tests_fail:
+    report_remaining_issues()
+    ask_for_guidance()
+```
+
+### Post-Fix Verification Checklist
+
+After any fix, verify:
+- [ ] Target tests pass
+- [ ] Full test suite passes (no regressions)
+- [ ] TypeScript compiles (`pnpm typecheck`)
+- [ ] Linting passes (`pnpm lint`)
+- [ ] Changes are minimal and focused
+
+### Reporting Template
+
+```markdown
+## Test Results
+
+**Scope:** [unit/integration/e2e]
+**Status:** ✅ All passing | ⚠️ Issues remaining
+
+### Fixes Applied
+1. [file] - [what was fixed]
+
+### Remaining Issues (if any)
+- [ ] [issue] - [recommended action]
+
+### Verification
+- [x] Tests pass
+- [x] Types check
+- [x] Lint clean
+```
+
+## TDD Bug Fix Workflow
+
+When fixing bugs, always use Test-Driven Development:
+
+```
+1. CREATE failing test that reproduces bug
+   └─ Verify test fails for the RIGHT reason
+
+2. IMPLEMENT minimal fix
+   └─ Change only what's necessary
+
+3. VERIFY test passes
+   └─ Run the specific test
+
+4. CHECK for regressions
+   └─ Run full test suite
+
+5. ITERATE if needed
+   └─ Fix any regressions (max 3 iterations)
+
+6. REPORT results
+   └─ Summary of changes and status
+```
+
+### Integration with Bug Tracking
+
+When fixing a tracked bug (Plane, etc.):
+1. Reference the issue ID in test description
+2. Link to test file in issue comments
+3. Update issue status after fix verified
+
 ### Database Protection
 
 **CRITICAL**: Never reset or truncate the database without explicit user confirmation. Always:

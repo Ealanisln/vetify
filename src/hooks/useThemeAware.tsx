@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
  */
 export function useThemeAware() {
   const [mounted, setMounted] = useState(false);
-  const { resolvedTheme, setTheme } = useTheme();
+  const { resolvedTheme, theme, setTheme } = useTheme();
 
   useEffect(() => {
     setMounted(true);
@@ -17,11 +17,16 @@ export function useThemeAware() {
 
   // Return a safe theme value that prevents hydration mismatches
   // During SSR and initial client render, we assume light theme
-  const safeTheme = mounted ? resolvedTheme : 'light';
+  // When mounted but resolvedTheme is undefined (can happen briefly during navigation),
+  // fall back to the stored theme preference or 'light'
+  const safeTheme = mounted
+    ? (resolvedTheme || theme || 'light')
+    : 'light';
 
   return {
     mounted,
     theme: safeTheme,
+    rawTheme: theme, // The actual theme setting (light/dark/system)
     setTheme,
     isLight: safeTheme === 'light',
     isDark: safeTheme === 'dark',

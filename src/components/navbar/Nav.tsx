@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { User, Settings, LogOut, Building2, ChevronDown, Sparkles } from "lucide-react";
+import { User, Settings, LogOut, Building2, ChevronDown, Sun, Moon, Monitor, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { useThemeAware } from '../../hooks/useThemeAware';
 import { useTheme } from 'next-themes';
@@ -255,22 +255,26 @@ function UserSection({ onNavigate }: { onNavigate?: () => void }) {
 
 export default function Nav() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { mounted, theme: resolvedTheme } = useThemeAware();
   const { theme, setTheme } = useTheme();
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const hamburgerButtonRef = useRef<HTMLButtonElement>(null);
 
-  const toggleTheme = () => {
-    // Cycle through: light -> dark -> system
-    if (theme === "light") {
-      setTheme("dark");
-    } else if (theme === "dark") {
-      setTheme("system");
-    } else {
-      setTheme("light");
-    }
+  const themeOptions = [
+    { value: 'light', label: 'Claro', icon: Sun },
+    { value: 'dark', label: 'Oscuro', icon: Moon },
+    { value: 'system', label: 'Sistema', icon: Monitor },
+  ] as const;
+
+  const getCurrentThemeIcon = () => {
+    if (theme === 'dark') return Moon;
+    if (theme === 'light') return Sun;
+    return Monitor;
   };
+
+  const CurrentIcon = getCurrentThemeIcon();
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
@@ -333,6 +337,23 @@ export default function Nav() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Close theme menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Check if the click is inside any element with data-theme-menu attribute
+      if (!target.closest('[data-theme-menu]')) {
+        setThemeMenuOpen(false);
+      }
+    };
+
+    if (themeMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [themeMenuOpen]);
 
   // Don't render theme-dependent content until mounted
   if (!mounted) {
@@ -462,21 +483,56 @@ export default function Nav() {
 
             {/* Right section - User section */}
             <div className="flex items-center justify-end space-x-3">
-              <button
-                onClick={toggleTheme}
-                className="p-2.5 rounded-xl bg-gradient-to-br from-[#4DB8A3]/10 to-[#75a99c]/5 hover:from-[#4DB8A3]/20 hover:to-[#75a99c]/10 dark:from-[#2a3630] dark:to-[#1a2620] dark:hover:from-[#3a4640] dark:hover:to-[#2a3630] transition-all duration-300 w-10 h-10 flex items-center justify-center hover:scale-110 hover:rotate-12 focus:ring-2 focus:ring-[#4DB8A3] focus:ring-offset-2 dark:focus:ring-offset-gray-900 shadow-sm hover:shadow-md group"
-                aria-label={`Cambiar tema. Tema actual: ${theme === 'system' ? 'sistema' : theme}`}
-                aria-pressed={theme === 'dark'}
-                title="Cambiar tema (luz/oscuro/sistema)"
-              >
-                <span aria-hidden="true">
-                  <Sparkles className={`h-4 w-4 transition-all duration-300 ${
+              {/* Theme Dropdown */}
+              <div className="relative" data-theme-menu>
+                <button
+                  onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+                  className="p-2.5 rounded-xl bg-gradient-to-br from-[#4DB8A3]/10 to-[#75a99c]/5 hover:from-[#4DB8A3]/20 hover:to-[#75a99c]/10 dark:from-[#2a3630] dark:to-[#1a2620] dark:hover:from-[#3a4640] dark:hover:to-[#2a3630] transition-all duration-300 w-10 h-10 flex items-center justify-center hover:scale-105 focus:ring-2 focus:ring-[#4DB8A3] focus:ring-offset-2 dark:focus:ring-offset-gray-900 shadow-sm hover:shadow-md group"
+                  aria-label="Seleccionar tema"
+                  aria-expanded={themeMenuOpen}
+                  aria-haspopup="true"
+                >
+                  <CurrentIcon className={`h-4 w-4 transition-all duration-300 ${
                     resolvedTheme === "dark"
                       ? "text-yellow-400 group-hover:text-yellow-300"
                       : "text-[#4DB8A3] group-hover:text-[#45635C]"
                   }`} />
-                </span>
-              </button>
+                </button>
+
+                {/* Theme Dropdown Menu */}
+                {themeMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-40 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {themeOptions.map((option) => {
+                      const Icon = option.icon;
+                      const isActive = theme === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setTheme(option.value);
+                            setThemeMenuOpen(false);
+                          }}
+                          className={`flex items-center w-full px-3 py-2 text-sm transition-all duration-200 ${
+                            isActive
+                              ? 'bg-[#4DB8A3]/15 text-[#4DB8A3] dark:bg-[#4DB8A3]/20'
+                              : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                          }`}
+                        >
+                          <Icon className={`h-4 w-4 mr-2.5 ${
+                            isActive ? 'text-[#4DB8A3]' : 'text-gray-500 dark:text-gray-400'
+                          }`} />
+                          <span className="font-medium">{option.label}</span>
+                          {isActive && (
+                            <svg className="ml-auto h-4 w-4 text-[#4DB8A3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               <UserSection />
             </div>
@@ -502,19 +558,54 @@ export default function Nav() {
             </div>
 
             <div className="flex items-center space-x-2">
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg bg-gradient-to-br from-[#4DB8A3]/10 to-[#75a99c]/5 hover:from-[#4DB8A3]/20 hover:to-[#75a99c]/10 dark:from-[#2a3630] dark:to-[#1a2620] transition-all duration-300 hover:scale-110 focus:ring-2 focus:ring-[#4DB8A3] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
-                aria-label={`Cambiar tema. Tema actual: ${theme === 'system' ? 'sistema' : theme}`}
-                aria-pressed={theme === 'dark'}
-                title="Cambiar tema (luz/oscuro/sistema)"
-              >
-                <span aria-hidden="true">
-                  <Sparkles className={`h-4 w-4 transition-colors duration-300 ${
+              {/* Mobile Theme Toggle - shows dropdown */}
+              <div className="relative" data-theme-menu>
+                <button
+                  onClick={() => setThemeMenuOpen(!themeMenuOpen)}
+                  className="p-2 rounded-lg bg-gradient-to-br from-[#4DB8A3]/10 to-[#75a99c]/5 hover:from-[#4DB8A3]/20 hover:to-[#75a99c]/10 dark:from-[#2a3630] dark:to-[#1a2620] transition-all duration-300 hover:scale-105 focus:ring-2 focus:ring-[#4DB8A3] focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                  aria-label="Seleccionar tema"
+                  aria-expanded={themeMenuOpen}
+                  aria-haspopup="true"
+                >
+                  <CurrentIcon className={`h-4 w-4 transition-colors duration-300 ${
                     resolvedTheme === "dark" ? "text-yellow-400" : "text-[#4DB8A3]"
                   }`} />
-                </span>
-              </button>
+                </button>
+
+                {/* Mobile Theme Dropdown */}
+                {themeMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-36 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-xl shadow-xl border border-gray-200/50 dark:border-gray-700/50 py-1 z-[110] animate-in fade-in slide-in-from-top-2 duration-200">
+                    {themeOptions.map((option) => {
+                      const Icon = option.icon;
+                      const isActive = theme === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setTheme(option.value);
+                            setThemeMenuOpen(false);
+                          }}
+                          className={`flex items-center w-full px-3 py-2 text-sm transition-all duration-200 ${
+                            isActive
+                              ? 'bg-[#4DB8A3]/15 text-[#4DB8A3] dark:bg-[#4DB8A3]/20'
+                              : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700/50'
+                          }`}
+                        >
+                          <Icon className={`h-4 w-4 mr-2 ${
+                            isActive ? 'text-[#4DB8A3]' : 'text-gray-500 dark:text-gray-400'
+                          }`} />
+                          <span className="font-medium">{option.label}</span>
+                          {isActive && (
+                            <svg className="ml-auto h-4 w-4 text-[#4DB8A3]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
 
               <button
                 ref={hamburgerButtonRef}

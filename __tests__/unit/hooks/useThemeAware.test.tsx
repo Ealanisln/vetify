@@ -9,10 +9,12 @@ import { useThemeAware, getThemeClass, ThemeAware } from '@/hooks/useThemeAware'
 // Mock next-themes
 const mockSetTheme = jest.fn();
 let mockResolvedTheme: string | undefined = 'light';
+let mockTheme: string | undefined = 'light';
 
 jest.mock('next-themes', () => ({
   useTheme: () => ({
     resolvedTheme: mockResolvedTheme,
+    theme: mockTheme,
     setTheme: mockSetTheme,
   }),
 }));
@@ -21,6 +23,7 @@ describe('useThemeAware', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockResolvedTheme = 'light';
+    mockTheme = 'light';
   });
 
   describe('Hydration Safety', () => {
@@ -136,6 +139,7 @@ describe('useThemeAware', () => {
 
       expect(result.current).toHaveProperty('mounted');
       expect(result.current).toHaveProperty('theme');
+      expect(result.current).toHaveProperty('rawTheme');
       expect(result.current).toHaveProperty('setTheme');
       expect(result.current).toHaveProperty('isLight');
       expect(result.current).toHaveProperty('isDark');
@@ -149,6 +153,41 @@ describe('useThemeAware', () => {
       expect(typeof result.current.setTheme).toBe('function');
       expect(typeof result.current.isLight).toBe('boolean');
       expect(typeof result.current.isDark).toBe('boolean');
+    });
+
+    it('should expose rawTheme as the actual theme setting', () => {
+      mockTheme = 'system';
+      mockResolvedTheme = 'dark'; // System resolved to dark
+      const { result } = renderHook(() => useThemeAware());
+
+      expect(result.current.rawTheme).toBe('system');
+      expect(result.current.theme).toBe('dark'); // resolvedTheme
+    });
+  });
+
+  describe('Fallback Behavior During Navigation', () => {
+    it('should fall back to theme when resolvedTheme is undefined', () => {
+      mockResolvedTheme = undefined;
+      mockTheme = 'dark';
+      const { result } = renderHook(() => useThemeAware());
+
+      expect(result.current.theme).toBe('dark');
+    });
+
+    it('should fall back to light when both resolvedTheme and theme are undefined', () => {
+      mockResolvedTheme = undefined;
+      mockTheme = undefined;
+      const { result } = renderHook(() => useThemeAware());
+
+      expect(result.current.theme).toBe('light');
+    });
+
+    it('should prefer resolvedTheme over theme when both are defined', () => {
+      mockResolvedTheme = 'dark';
+      mockTheme = 'system';
+      const { result } = renderHook(() => useThemeAware());
+
+      expect(result.current.theme).toBe('dark');
     });
   });
 });
@@ -291,7 +330,7 @@ describe('ThemeAware Component', () => {
     it('should use null as default fallback', () => {
       // When mounted is true (which happens immediately in tests),
       // we won't see the fallback. This test verifies the component works.
-      const { container } = render(
+      render(
         <ThemeAware>
           {() => <div data-testid="content">Content</div>}
         </ThemeAware>

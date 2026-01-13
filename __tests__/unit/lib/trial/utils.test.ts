@@ -512,6 +512,8 @@ describe('trial/utils', () => {
     it('should handle string date for trialEndsAt', () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 5);
+      // Set to end of day to ensure consistent calculation regardless of test run time
+      futureDate.setHours(23, 59, 59, 999);
 
       const tenant = createMockTenant({
         isTrialPeriod: true,

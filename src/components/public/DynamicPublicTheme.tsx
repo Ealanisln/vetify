@@ -1,7 +1,7 @@
 'use client';
 
-import { ThemeProvider, useTheme } from 'next-themes';
-import { useEffect, useMemo } from 'react';
+import { useTheme } from 'next-themes';
+import { useEffect, useMemo, useState } from 'react';
 import {
   generateThemeCSSVariables,
   publicThemeVars,
@@ -23,14 +23,23 @@ interface DynamicPublicThemeProps {
 }
 
 /**
- * Inner component that applies CSS variables based on current theme
+ * Dynamic theme provider for public clinic pages.
+ * Uses the parent ThemeProvider context (from app/providers.tsx) to avoid
+ * nested providers with different storage keys causing theme sync issues.
+ * Generates dark mode colors automatically from the tenant's primary color.
  */
-function ThemeVariablesInjector({
+export function DynamicPublicTheme({
   children,
   primaryColor,
   themeColors,
 }: DynamicPublicThemeProps) {
   const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Track mounted state to avoid hydration mismatches
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Generate CSS variables for both light and dark modes
   const cssVariables = useMemo(() => {
@@ -53,7 +62,11 @@ function ThemeVariablesInjector({
 
   // Apply CSS variables to document root based on current theme
   useEffect(() => {
+    // Only apply after mount and when we have a resolved theme
+    if (!mounted) return;
+
     const root = document.documentElement;
+    // Default to light if resolvedTheme is not yet available
     const isDark = resolvedTheme === 'dark';
     const variables = isDark ? cssVariables.dark : cssVariables.light;
 
@@ -68,37 +81,9 @@ function ThemeVariablesInjector({
         root.style.removeProperty(key);
       });
     };
-  }, [cssVariables, resolvedTheme]);
+  }, [cssVariables, resolvedTheme, mounted]);
 
   return <>{children}</>;
-}
-
-/**
- * Dynamic theme provider for public clinic pages.
- * Supports automatic dark/light mode based on visitor's system preference.
- * Generates dark mode colors automatically from the tenant's primary color.
- */
-export function DynamicPublicTheme({
-  children,
-  primaryColor,
-  themeColors,
-}: DynamicPublicThemeProps) {
-  return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem={true}
-      disableTransitionOnChange={false}
-      storageKey="vetify-public-theme"
-    >
-      <ThemeVariablesInjector
-        primaryColor={primaryColor}
-        themeColors={themeColors}
-      >
-        {children}
-      </ThemeVariablesInjector>
-    </ThemeProvider>
-  );
 }
 
 /**
