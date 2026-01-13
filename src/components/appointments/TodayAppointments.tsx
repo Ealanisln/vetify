@@ -1,6 +1,7 @@
 'use client';
 
-import { useTodayAppointments, AppointmentWithDetails } from '../../hooks/useAppointments';
+import { useSafeAppointmentsContext } from '../providers/AppointmentsProvider';
+import { useTodayAppointments as useTodayAppointmentsLegacy, AppointmentWithDetails } from '../../hooks/useAppointments';
 import { QuickActions } from './QuickActions';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -19,12 +20,21 @@ export function TodayAppointments({
   onQuickAction,
   onWhatsApp
 }: TodayAppointmentsProps) {
-  const {
-    appointments,
-    loading,
-    error,
-    refresh
-  } = useTodayAppointments();
+  // Always call both hooks unconditionally (React rules of hooks)
+  // Context-based data (no API call - filtered from shared data)
+  const contextData = useSafeAppointmentsContext();
+
+  // Legacy hook - always called but results ignored when context is available
+  const legacyData = useTodayAppointmentsLegacy();
+
+  // Prefer context data when in provider, fallback to legacy otherwise
+  const isInProvider = contextData !== null;
+
+  // Unified data access - context takes priority
+  const appointments = isInProvider ? (contextData?.todayAppointments ?? []) : (legacyData?.appointments ?? []);
+  const loading = isInProvider ? (contextData?.isLoading ?? false) : (legacyData?.loading ?? false);
+  const error = isInProvider ? (contextData?.error?.message ?? null) : (legacyData?.error ?? null);
+  const refresh = isInProvider ? (contextData?.refresh ?? (() => Promise.resolve())) : (legacyData?.refresh ?? (() => Promise.resolve()));
 
   const today = new Date();
   const formattedDate = format(today, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
