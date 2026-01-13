@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { AppointmentModal, TodayAppointments, AppointmentStats } from '../../../components/appointments';
+import { AppointmentsProvider, useAppointmentsContext } from '../../../components/providers/AppointmentsProvider';
+import { type AppointmentWithDetails } from '../../../lib/appointments';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Badge } from '../../../components/ui/badge';
 import { PlusIcon, Calendar, Clock, Users, Loader2 } from 'lucide-react';
-import { useAppointments, AppointmentWithDetails } from '../../../hooks/useAppointments';
 import { useStaffPermissions } from '../../../hooks/useStaffPermissions';
 import { DateSelectArg } from '@fullcalendar/core';
 import { formatDate, formatTime } from '../../../lib/utils/date-format';
@@ -73,12 +74,33 @@ export function AppointmentsPageClient({
   pets,
   staff,
 }: AppointmentsPageClientProps) {
+  return (
+    <AppointmentsProvider>
+      <AppointmentsPageContent
+        customers={customers}
+        pets={pets}
+        staff={staff}
+      />
+    </AppointmentsProvider>
+  );
+}
+
+/**
+ * Inner component that uses AppointmentsContext
+ * Separated to allow hooks to be called inside the provider
+ */
+function AppointmentsPageContent({
+  customers,
+  pets,
+  staff,
+}: AppointmentsPageClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithDetails | undefined>();
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
 
-  const { quickAction, refresh } = useAppointments();
+  // Use context for quickAction and refresh (single source of truth)
+  const { quickAction, refresh } = useAppointmentsContext();
   const { canAccess: checkPermission } = useStaffPermissions();
 
   // Check if user has permission to create/edit appointments

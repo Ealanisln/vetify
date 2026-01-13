@@ -1,25 +1,35 @@
 'use client';
 
-import { useAppointmentStats } from '../../hooks/useAppointments';
+import { useSafeAppointmentsContext } from '../providers/AppointmentsProvider';
+import { useAppointmentStats as useAppointmentStatsLegacy } from '../../hooks/useAppointments';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { 
-  CalendarCheck, 
-  Clock, 
+import {
+  CalendarCheck,
+  Clock,
   TrendingUp,
   Users,
   AlertCircle
 } from 'lucide-react';
 
 export function AppointmentStats() {
-  const { 
-    today, 
-    thisWeek, 
-    thisMonth, 
-    completionRate, 
-    loading, 
-    error, 
-    refresh 
-  } = useAppointmentStats();
+  // Always call both hooks unconditionally (React rules of hooks)
+  // Context-based stats (no API calls - derived from shared data)
+  const contextData = useSafeAppointmentsContext();
+
+  // Legacy hook - always called but results ignored when context is available
+  const legacyData = useAppointmentStatsLegacy();
+
+  // Prefer context data when in provider, fallback to legacy otherwise
+  const isInProvider = contextData !== null;
+
+  // Unified data access - context takes priority
+  const today = isInProvider ? (contextData?.stats.today ?? 0) : (legacyData?.today ?? 0);
+  const thisWeek = isInProvider ? (contextData?.stats.thisWeek ?? 0) : (legacyData?.thisWeek ?? 0);
+  const thisMonth = isInProvider ? (contextData?.stats.thisMonth ?? 0) : (legacyData?.thisMonth ?? 0);
+  const completionRate = isInProvider ? (contextData?.stats.completionRate ?? 0) : (legacyData?.completionRate ?? 0);
+  const loading = isInProvider ? (contextData?.isLoading ?? false) : (legacyData?.loading ?? false);
+  const error = isInProvider ? (contextData?.error?.message ?? null) : (legacyData?.error ?? null);
+  const refresh = isInProvider ? (contextData?.refresh ?? (() => Promise.resolve())) : (legacyData?.refresh ?? (() => Promise.resolve()));
 
   if (loading) {
     return (
