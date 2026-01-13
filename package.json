@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "implementation:check": "node scripts/update-implementation-status.mjs",
+    "sync:changelog": "node scripts/sync-changelog.mjs",
     "dev": "next dev",
-    "prebuild": "npx prisma generate",
+    "prebuild": "node scripts/sync-changelog.mjs && npx prisma generate",
     "build": "prisma generate && next build",
-    "vercel-build": "prisma generate && next build",
+    "vercel-build": "node scripts/sync-changelog.mjs && prisma generate && next build",
     "vercel-build-clean": "prisma generate && next build --config next.config.vercel.js",
     "vercel-build-original": "rm -rf .next && node scripts/create-vercel-tsconfig.mjs && prisma generate && SKIP_TYPE_CHECK=true next build --no-lint",
     "vercel-build-fallback": "rm -rf .next && node scripts/create-vercel-tsconfig-fallback.mjs && prisma generate && SKIP_TYPE_CHECK=true next build --no-lint",
@@ -201,6 +202,10 @@
     ],
     "*.{js,mjs}": [
       "eslint --fix"
+    ],
+    "CHANGELOG.md": [
+      "node scripts/sync-changelog.mjs",
+      "git add src/lib/changelog-parser.ts"
     ]
   }
 }
