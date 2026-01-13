@@ -78,6 +78,9 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Imports no usados en componentes de analíticas
 - Permisos de creación de citas ahora respetan roles (VETERINARIAN, ADMIN, RECEPTIONIST)
 - Valores por defecto de paginación y permisos de caja para staff
+- Títulos de posiciones en página pública de equipo ahora se muestran en español (VETERINARIAN → Veterinario/a, etc.)
+- Campo de foto ahora disponible al crear nuevo personal (antes solo en edición)
+- Badge "Acceso activo" en lista de personal ya no se expande a todo el ancho
 
 ### Modificado
 - Middleware actualizado para excluir rutas de invitaciones de autenticación
