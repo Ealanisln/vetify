@@ -2,7 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle2, MessageSquare, Star } from "lucide-react"
+import { CheckCircle2, Star } from "lucide-react"
 import Image from "next/image"
 import { useState } from "react"
 
@@ -93,14 +93,14 @@ export function TestimonialsSection() {
 
             <Card className="overflow-hidden border-border bg-card shadow-2xl">
               <CardContent className="p-0">
-                <div className="relative aspect-[3/2]">
+                <div className="relative aspect-[3/2] bg-muted/50">
                   {screenshots.map((screenshot) => (
                     <Image
                       key={screenshot.id}
                       src={screenshot.src}
                       alt={screenshot.alt}
                       fill
-                      className={`object-cover transition-opacity duration-300 ${
+                      className={`object-contain transition-opacity duration-300 ${
                         activeTab === screenshot.id ? "opacity-100" : "opacity-0"
                       }`}
                       sizes="(max-width: 1024px) 100vw, 50vw"
@@ -109,13 +109,6 @@ export function TestimonialsSection() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* Floating testimonial icon */}
-            <div className="absolute -top-4 -left-4 lg:-left-8">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg">
-                <MessageSquare className="h-7 w-7 text-primary-foreground" />
-              </div>
-            </div>
 
             {/* Decorative elements */}
             <div className="absolute -z-10 -top-4 -right-4 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
