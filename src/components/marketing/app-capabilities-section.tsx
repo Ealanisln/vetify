@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Smartphone, WifiOff, Moon, Zap, RefreshCw, Mail } from "lucide-react"
+import Image from "next/image"
 
 const capabilities = [
   {
@@ -70,30 +71,25 @@ export function AppCapabilitiesSection() {
           })}
         </div>
 
-        {/* Mobile mockup placeholder */}
-        <div className="mt-16 flex justify-center">
-          <div className="relative">
-            <Card className="overflow-hidden border-border bg-card shadow-2xl w-64">
+        {/* Dark mode showcase */}
+        <div className="mt-16">
+          <div className="relative max-w-4xl mx-auto">
+            <Card className="overflow-hidden border-border bg-card shadow-2xl">
               <CardContent className="p-0">
-                <div className="relative aspect-[9/16] bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center">
-                  {/* Placeholder - replace with actual mobile screenshot */}
-                  <div className="text-center p-4">
-                    <div className="mb-3 mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                      <Smartphone className="h-6 w-6 text-primary" />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Screenshot: App móvil
-                    </p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">
-                      400x800px
-                    </p>
-                  </div>
+                <div className="relative aspect-[3/2]">
+                  <Image
+                    src="/images/marketing/dark-mode.png"
+                    alt="Dashboard de Vetify en modo oscuro"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 80vw"
+                  />
                 </div>
               </CardContent>
             </Card>
 
             {/* Decorative glow */}
-            <div className="absolute -z-10 inset-0 bg-primary/10 rounded-3xl blur-3xl scale-110" />
+            <div className="absolute -z-10 inset-0 bg-primary/10 rounded-3xl blur-3xl scale-105" />
           </div>
         </div>
       </div>

@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Globe, CheckCircle2 } from "lucide-react"
+import { CheckCircle2 } from "lucide-react"
+import Image from "next/image"
 
 const features = [
   "Página de servicios con descripción y precios",
@@ -52,23 +53,18 @@ export function PublicPagesSection() {
             </ul>
           </div>
 
-          {/* Screenshot placeholder */}
+          {/* Screenshot */}
           <div className="relative">
             <Card className="overflow-hidden border-border bg-card shadow-2xl">
               <CardContent className="p-0">
-                <div className="relative aspect-[4/3] bg-gradient-to-br from-primary/5 via-background to-accent/5 flex items-center justify-center">
-                  {/* Placeholder - replace with actual screenshot */}
-                  <div className="text-center p-8">
-                    <div className="mb-4 mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                      <Globe className="h-8 w-8 text-primary" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Screenshot: Página de servicios pública
-                    </p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">
-                      1200x800px recomendado
-                    </p>
-                  </div>
+                <div className="relative aspect-[3/2]">
+                  <Image
+                    src="/images/marketing/public-services.png"
+                    alt="Página pública de servicios veterinarios"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                  />
                 </div>
               </CardContent>
             </Card>

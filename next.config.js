@@ -60,6 +60,9 @@ const withPWA = withPWAInit({
 const nextConfig = {
   // Instrumentation is now enabled by default in Next.js 15+
 
+  // Disable dev indicator (Next.js logo in corner)
+  devIndicators: false,
+
   // Expose version information at build time
   env: {
     NEXT_PUBLIC_APP_VERSION: packageJson.version,

@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { QrCode, Download, CheckCircle2 } from "lucide-react"
+import { Download, CheckCircle2 } from "lucide-react"
+import Image from "next/image"
 
 const features = [
   "Genera códigos QR personalizados al instante",
@@ -20,19 +21,14 @@ export function QrCodeSection() {
           <div className="relative order-2 lg:order-1">
             <Card className="overflow-hidden border-border bg-card shadow-2xl">
               <CardContent className="p-0">
-                <div className="relative aspect-[4/3] bg-gradient-to-br from-accent/5 via-background to-primary/5 flex items-center justify-center">
-                  {/* Placeholder - replace with actual screenshot */}
-                  <div className="text-center p-8">
-                    <div className="mb-4 mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                      <QrCode className="h-8 w-8 text-primary" />
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Screenshot: Generador de códigos QR
-                    </p>
-                    <p className="text-xs text-muted-foreground/60 mt-1">
-                      800x600px recomendado
-                    </p>
-                  </div>
+                <div className="relative aspect-[3/2]">
+                  <Image
+                    src="/images/marketing/qr-generator.png"
+                    alt="Generador de códigos QR de Vetify"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                  />
                 </div>
               </CardContent>
             </Card>
