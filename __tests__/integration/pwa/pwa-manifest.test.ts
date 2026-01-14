@@ -288,12 +288,16 @@ describe('Layout PWA Integration', () => {
       layoutContent = readFileSync(layoutPath, 'utf-8');
     });
 
-    it('should import UpdatePrompt component', () => {
-      expect(layoutContent).toContain("import { UpdatePrompt } from '@/components/pwa'");
+    it('should import PWA components', () => {
+      expect(layoutContent).toContain("import { UpdatePrompt, InstallPrompt } from '@/components/pwa'");
     });
 
     it('should include UpdatePrompt in the layout', () => {
       expect(layoutContent).toContain('<UpdatePrompt');
+    });
+
+    it('should include InstallPrompt in the layout', () => {
+      expect(layoutContent).toContain('<InstallPrompt');
     });
 
     it('should configure manifest link', () => {
