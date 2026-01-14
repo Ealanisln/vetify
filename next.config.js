@@ -20,6 +20,34 @@ const withPWA = withPWAInit({
   },
   // Cache strategies
   runtimeCaching: [
+    // API routes - NetworkFirst for offline support with fresh data priority
+    {
+      urlPattern: /\/api\/(pets|appointments|inventory|dashboard|clients|species|breeds|services).*/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'api-cache',
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 5 * 60, // 5 minutes
+        },
+        networkTimeoutSeconds: 10,
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
+    // Static API data (rarely changes) - StaleWhileRevalidate
+    {
+      urlPattern: /\/api\/(public|version|health).*/i,
+      handler: 'StaleWhileRevalidate',
+      options: {
+        cacheName: 'api-static',
+        expiration: {
+          maxEntries: 20,
+          maxAgeSeconds: 60 * 60, // 1 hour
+        },
+      },
+    },
     {
       urlPattern: /^https:\/\/fonts\.(?:gstatic|googleapis)\.com\/.*/i,
       handler: 'CacheFirst',

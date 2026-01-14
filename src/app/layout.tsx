@@ -11,6 +11,7 @@ import { Metadata } from 'next'
 import {AuthProvider} from '../AuthProvider';
 import { ConditionalLayout } from '../components/ConditionalLayout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import { UpdatePrompt } from '@/components/pwa';
 import {
   createHomePageSEO,
   generateMetadata,
@@ -101,6 +102,8 @@ export default function RootLayout({
               <ConditionalLayout>
                 {children}
               </ConditionalLayout>
+              {/* PWA Update Notification */}
+              <UpdatePrompt />
             </Providers>
           </AuthProvider>
         </ErrorBoundary>
