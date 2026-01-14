@@ -9,6 +9,8 @@ import { Footer } from "@/components/footer"
 import { EarlyAdopterBanner } from "@/components/marketing/EarlyAdopterBanner"
 import { PublicPagesSection } from "@/components/marketing/public-pages-section"
 import { QrCodeSection } from "@/components/marketing/qr-code-section"
+import { TestimonialsSection } from "@/components/marketing/testimonials-section"
+import { StaffSection } from "@/components/marketing/staff-section"
 import { AppCapabilitiesSection } from "@/components/marketing/app-capabilities-section"
 import { getActivePromotionFromDB } from "@/lib/pricing-config"
 import { generateMetadata as generateSEOMetadata, createPageSEO } from '@/lib/seo';
@@ -116,6 +118,8 @@ export default async function FunctionalitiesPage() {
           <DetailedFunctionalitiesSection />
           <PublicPagesSection />
           <QrCodeSection />
+          <TestimonialsSection />
+          <StaffSection />
           <SecondaryFeaturesSection />
           <AppCapabilitiesSection />
           <StepsSection />

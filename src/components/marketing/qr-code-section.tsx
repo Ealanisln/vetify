@@ -17,7 +17,7 @@ export function QrCodeSection() {
     <section className="py-24">
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Screenshot placeholder - left side */}
+          {/* Screenshots - left side */}
           <div className="relative order-2 lg:order-1">
             <Card className="overflow-hidden border-border bg-card shadow-2xl">
               <CardContent className="p-0">
@@ -32,6 +32,23 @@ export function QrCodeSection() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* QR Example floating card */}
+            <div className="absolute -bottom-6 -right-6 lg:-right-12">
+              <Card className="overflow-hidden border-border bg-card shadow-xl">
+                <CardContent className="p-2">
+                  <div className="relative w-24 h-24 lg:w-32 lg:h-32">
+                    <Image
+                      src="/images/marketing/qr-example.png"
+                      alt="Ejemplo de código QR generado"
+                      fill
+                      className="object-contain"
+                      sizes="128px"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Decorative elements */}
             <div className="absolute -z-10 -top-4 -left-4 w-72 h-72 bg-accent/5 rounded-full blur-3xl" />

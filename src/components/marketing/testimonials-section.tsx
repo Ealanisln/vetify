@@ -2,65 +2,64 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { CheckCircle2 } from "lucide-react"
+import { CheckCircle2, MessageSquare, Star } from "lucide-react"
 import Image from "next/image"
 import { useState } from "react"
 
 const features = [
-  "Página de servicios con descripción y precios",
-  "Perfil del equipo con fotos profesionales",
-  "Reserva de citas online para clientes",
-  "Galería de imágenes de tu clínica",
-  "Testimonios y calificaciones de clientes",
-  "Tema personalizable con tu marca",
+  "Recibe testimonios directamente de tus clientes",
+  "Modera y aprueba antes de publicar",
+  "Calificaciones con estrellas (1-5)",
+  "Muestra los mejores en tu página pública",
+  "Carrusel automático con animaciones",
+  "Aumenta la confianza de nuevos clientes",
 ]
 
 const screenshots = [
   {
-    id: "services",
-    label: "Servicios",
-    src: "/images/marketing/public-services.png",
-    alt: "Página pública de servicios veterinarios",
+    id: "admin",
+    label: "Panel Admin",
+    src: "/images/marketing/testimonials-admin.png",
+    alt: "Panel de administración de testimonios",
   },
   {
-    id: "team",
-    label: "Equipo",
-    src: "/images/marketing/public-team.png",
-    alt: "Página pública del equipo veterinario",
+    id: "public",
+    label: "Vista Pública",
+    src: "/images/marketing/testimonials-public.png",
+    alt: "Testimonios en página pública",
   },
 ]
 
-export function PublicPagesSection() {
-  const [activeTab, setActiveTab] = useState("services")
+export function TestimonialsSection() {
+  const [activeTab, setActiveTab] = useState("admin")
 
   return (
-    <section className="py-24 bg-secondary/30">
+    <section className="py-24">
       <div className="container mx-auto px-4">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
-          {/* Content */}
+          {/* Content - left side */}
           <div>
             <Badge variant="secondary" className="mb-4">
-              Páginas públicas
+              Reputación online
             </Badge>
             <h2 className="text-balance text-4xl font-bold tracking-tight text-foreground md:text-5xl mb-4">
-              Tu clínica, visible para todos
+              Testimonios que generan confianza
             </h2>
             <p className="text-pretty text-lg text-muted-foreground mb-8">
-              Crea una presencia profesional en línea para tu clínica veterinaria.
-              Tus clientes podrán ver tus servicios, conocer a tu equipo y agendar
-              citas directamente desde su navegador.
+              Permite que tus clientes satisfechos compartan su experiencia.
+              Modera los testimonios desde el panel de administración y destaca
+              los mejores en tu página pública.
             </p>
 
-            <div className="mb-8">
-              <p className="text-sm text-muted-foreground mb-3">URLs de ejemplo:</p>
-              <div className="flex flex-wrap gap-2">
-                <code className="px-3 py-1.5 bg-muted rounded-lg text-sm font-mono">
-                  vetify.pro/tu-clinica/servicios
-                </code>
-                <code className="px-3 py-1.5 bg-muted rounded-lg text-sm font-mono">
-                  vetify.pro/tu-clinica/equipo
-                </code>
+            <div className="mb-8 flex items-center gap-4">
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
+                ))}
               </div>
+              <span className="text-sm text-muted-foreground">
+                Calificaciones verificadas
+              </span>
             </div>
 
             <ul className="space-y-3">
@@ -73,7 +72,7 @@ export function PublicPagesSection() {
             </ul>
           </div>
 
-          {/* Screenshots with tabs */}
+          {/* Screenshots with tabs - right side */}
           <div className="relative">
             {/* Tab buttons */}
             <div className="flex gap-2 mb-4">
@@ -110,6 +109,13 @@ export function PublicPagesSection() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Floating testimonial icon */}
+            <div className="absolute -top-4 -left-4 lg:-left-8">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg">
+                <MessageSquare className="h-7 w-7 text-primary-foreground" />
+              </div>
+            </div>
 
             {/* Decorative elements */}
             <div className="absolute -z-10 -top-4 -right-4 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
