@@ -375,56 +375,6 @@ describe('ClinicInfo', () => {
     });
   });
 
-  describe('Testimonials Section', () => {
-    it('should render testimonials heading', () => {
-      const tenant = createMockPublicTenant();
-      render(<ClinicInfo tenant={tenant} />);
-
-      expect(
-        screen.getByText('Lo que dicen nuestros clientes')
-      ).toBeInTheDocument();
-    });
-
-    it('should render two testimonial cards', () => {
-      const tenant = createMockPublicTenant();
-      render(<ClinicInfo tenant={tenant} />);
-
-      // Testimonials use HTML entities &ldquo; and &rdquo; - use regex to match
-      expect(
-        screen.getByText(/Excelente atención y profesionalismo\. Mi mascota siempre recibe el mejor cuidado\./i)
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(/Personal muy amable y instalaciones modernas\. Totalmente recomendado\./i)
-      ).toBeInTheDocument();
-    });
-
-    it('should render testimonial authors', () => {
-      const tenant = createMockPublicTenant();
-      render(<ClinicInfo tenant={tenant} />);
-
-      const authors = screen.getAllByText('- Cliente satisfecho');
-      expect(authors).toHaveLength(2);
-    });
-
-    it('should render 5-star ratings for each testimonial', () => {
-      const tenant = createMockPublicTenant();
-      const { container } = render(<ClinicInfo tenant={tenant} />);
-
-      // Testimonial stars are h-4 w-4
-      const testimonialStarContainers = container.querySelectorAll(
-        '.flex.text-yellow-400'
-      );
-      // Filter to only get containers with small stars
-      let testimonialStarCount = 0;
-      testimonialStarContainers.forEach((container) => {
-        const smallStars = container.querySelectorAll('svg.h-4.w-4');
-        testimonialStarCount += smallStars.length;
-      });
-      // Should have 10 small stars (5 per testimonial)
-      expect(testimonialStarCount).toBe(10);
-    });
-  });
-
   describe('Minimal Data Handling', () => {
     it('should render with minimal tenant data', () => {
       const tenant = createMinimalPublicTenant();

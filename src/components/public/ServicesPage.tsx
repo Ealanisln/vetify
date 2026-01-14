@@ -225,9 +225,9 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
       </motion.header>
 
       {/* Main content */}
-      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {totalServices > 0 ? (
-          <div className="space-y-16">
+          <div className="space-y-10 sm:space-y-16">
             {orderedCategories.map((category) => {
               const categoryInfo = categoryConfig[category];
               const categoryServices = servicesByCategory[category];
@@ -244,24 +244,24 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
                 >
                   {/* Category header */}
                   <motion.div
-                    className="flex items-center gap-4 mb-8"
+                    className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8"
                     variants={fadeInUp}
                   >
                     <div
-                      className="flex items-center justify-center w-12 h-12 rounded-xl shadow-md"
+                      className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-xl shadow-md"
                       style={{
                         backgroundColor: `${categoryInfo.color}15`,
                         border: `1px solid ${categoryInfo.color}30`,
                       }}
                     >
                       <CategoryIcon
-                        className="h-6 w-6"
+                        className="h-5 w-5 sm:h-6 sm:w-6"
                         style={{ color: categoryInfo.color }}
                       />
                     </div>
                     <div>
                       <h2
-                        className="text-xl sm:text-2xl font-semibold"
+                        className="text-lg sm:text-xl md:text-2xl font-semibold"
                         style={{
                           color: colors.text,
                           fontFamily: theme.typography.fontFamily,
@@ -269,14 +269,14 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
                       >
                         {categoryInfo.name}
                       </h2>
-                      <p className="text-sm" style={{ color: colors.textMuted }}>
+                      <p className="text-xs sm:text-sm" style={{ color: colors.textMuted }}>
                         {categoryServices.length}{' '}
                         {categoryServices.length === 1 ? 'servicio' : 'servicios'}
                       </p>
                     </div>
                     {/* Decorative line */}
                     <div
-                      className="flex-1 h-px ml-4 hidden sm:block"
+                      className="flex-1 h-px ml-2 sm:ml-4 hidden sm:block"
                       style={{
                         background: `linear-gradient(90deg, ${categoryInfo.color}30 0%, transparent 100%)`,
                       }}
@@ -285,7 +285,7 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
 
                   {/* Services grid */}
                   <motion.div
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6"
                     variants={staggerContainerFast}
                     initial="hidden"
                     whileInView="visible"
@@ -299,7 +299,7 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
                           key={service.id}
                           variants={cardVariant}
                           whileHover={cardHover}
-                          className={`relative overflow-hidden p-6 transition-all duration-300 ${themeClasses.card} border border-gray-200 dark:border-gray-700`}
+                          className={`relative overflow-hidden p-5 sm:p-6 transition-all duration-300 ${themeClasses.card} border border-gray-200 dark:border-gray-700 w-full`}
                           style={{
                             backgroundColor: colors.cardBg,
                             borderRadius: theme.layout.borderRadius,
@@ -316,9 +316,9 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
                           {/* Service content */}
                           <div className="relative">
                             {/* Icon and title row */}
-                            <div className="flex items-start gap-4 mb-4">
+                            <div className="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
                               <div
-                                className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-xl"
+                                className="flex-shrink-0 flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl"
                                 style={{
                                   backgroundColor: `${categoryInfo.color}12`,
                                 }}
@@ -330,14 +330,14 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h3
-                                  className="text-lg font-semibold leading-tight mb-1"
+                                  className="text-base sm:text-lg font-semibold leading-tight mb-1"
                                   style={{ color: colors.text }}
                                 >
                                   {service.name}
                                 </h3>
                                 {/* Price */}
                                 <p
-                                  className="text-base font-medium"
+                                  className="text-sm sm:text-base font-medium"
                                   style={{ color: themeColor }}
                                 >
                                   {service.publicPriceLabel || formatPrice(service.price)}
@@ -348,7 +348,7 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
                             {/* Description */}
                             {service.description && (
                               <p
-                                className="text-sm leading-relaxed mb-4 line-clamp-2"
+                                className="text-xs sm:text-sm leading-relaxed mb-3 sm:mb-4 line-clamp-2"
                                 style={{ color: colors.textMuted }}
                               >
                                 {service.description}
@@ -359,11 +359,11 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
                             {service.duration && (
                               <div className="flex items-center gap-1.5">
                                 <Clock
-                                  className="h-4 w-4"
+                                  className="h-3.5 w-3.5 sm:h-4 sm:w-4"
                                   style={{ color: colors.textMuted }}
                                 />
                                 <span
-                                  className="text-xs font-medium px-2 py-1 rounded-full"
+                                  className="text-xs font-medium px-2 py-0.5 sm:py-1 rounded-full"
                                   style={{
                                     backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
                                     color: colors.textMuted,
@@ -385,7 +385,7 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
         ) : (
           /* Empty state */
           <motion.div
-            className={`text-center py-20 px-8 ${themeClasses.card} border border-gray-200 dark:border-gray-700`}
+            className={`text-center py-12 sm:py-20 px-6 sm:px-8 ${themeClasses.card} border border-gray-200 dark:border-gray-700`}
             style={{
               backgroundColor: colors.cardBg,
               borderRadius: theme.layout.borderRadius,
@@ -395,21 +395,21 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
             variants={fadeInUp}
           >
             <div
-              className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-6"
+              className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full mb-4 sm:mb-6"
               style={{
                 backgroundColor: `${themeColor}15`,
               }}
             >
-              <Clock className="h-10 w-10" style={{ color: themeColor }} />
+              <Clock className="h-8 w-8 sm:h-10 sm:w-10" style={{ color: themeColor }} />
             </div>
             <h2
-              className="text-2xl font-semibold mb-3"
+              className="text-xl sm:text-2xl font-semibold mb-2 sm:mb-3"
               style={{ color: colors.text }}
             >
               Próximamente
             </h2>
             <p
-              className="text-base max-w-md mx-auto mb-8"
+              className="text-sm sm:text-base max-w-md mx-auto mb-6 sm:mb-8"
               style={{ color: colors.textMuted }}
             >
               Próximamente tendremos más servicios disponibles. Contáctanos para
@@ -417,7 +417,7 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
             </p>
             <Link
               href={`/${tenant.slug}`}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-white transition-all hover:shadow-lg"
+              className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3 rounded-lg font-medium text-white transition-all hover:shadow-lg"
               style={{
                 backgroundColor: themeColor,
                 borderRadius: theme.layout.borderRadius,
@@ -432,7 +432,7 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
         {/* Call to action */}
         {totalServices > 0 && (
           <motion.div
-            className={`mt-16 text-center p-10 ${themeClasses.card} border border-gray-200 dark:border-gray-700`}
+            className={`mt-10 sm:mt-16 text-center p-6 sm:p-10 ${themeClasses.card} border border-gray-200 dark:border-gray-700`}
             style={{
               backgroundColor: colors.cardBg,
               borderRadius: theme.layout.borderRadius,
@@ -443,7 +443,7 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
             variants={fadeInUp}
           >
             <h3
-              className="text-2xl font-bold mb-4"
+              className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4"
               style={{
                 color: colors.text,
                 fontFamily: theme.typography.fontFamily,
@@ -451,13 +451,13 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
             >
               ¿Listo para agendar tu cita?
             </h3>
-            <p className="mb-8 max-w-xl mx-auto" style={{ color: colors.textMuted }}>
+            <p className="text-sm sm:text-base mb-6 sm:mb-8 max-w-xl mx-auto" style={{ color: colors.textMuted }}>
               Nuestro equipo está preparado para brindarle a tu mascota la mejor
               atención. Agenda tu cita ahora y asegura el bienestar de tu compañero.
             </p>
             <Link
               href={`/${tenant.slug}/agendar`}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-lg font-semibold text-white transition-all hover:shadow-xl hover:scale-[1.02]"
+              className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-white transition-all hover:shadow-xl hover:scale-[1.02]"
               style={{
                 backgroundColor: themeColor,
                 borderRadius: theme.layout.borderRadius,

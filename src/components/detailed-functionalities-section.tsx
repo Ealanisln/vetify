@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, FileText, Package, Bell, Users, CheckCircle2 } from "lucide-react"
+import { Calendar, FileText, Package, Bell, Users, CheckCircle2, Globe } from "lucide-react"
 
 const functionalities = [
   {
@@ -66,6 +66,20 @@ const functionalities = [
       "Historial de consultas y tratamientos por mascota",
       "Búsqueda rápida de clientes y mascotas",
       "Notas y preferencias de contacto por cliente",
+    ],
+  },
+  {
+    icon: Globe,
+    title: "Presencia Digital Profesional",
+    subtitle: "Páginas públicas y marketing",
+    summary: "Aumenta tu visibilidad con páginas públicas y herramientas de marketing",
+    details: [
+      "Página de servicios con descripción y precios",
+      "Perfil del equipo con fotos profesionales",
+      "Sistema de testimonios con calificaciones de estrellas",
+      "Códigos QR personalizables para compartir tu clínica",
+      "Reserva de citas online para tus clientes",
+      "Tema personalizable con los colores de tu marca",
     ],
   },
 ]

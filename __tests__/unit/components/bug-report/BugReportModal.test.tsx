@@ -251,11 +251,16 @@ describe('BugReportModal', () => {
         expect(screen.getByText(/enviando/i)).toBeInTheDocument();
       });
 
-      // Try to close while submitting
+      // Get close button and verify it's disabled during submission
       const closeButton = screen.getByRole('button', { name: /cerrar/i });
+
+      // The close button should be disabled while submitting
+      expect(closeButton).toBeDisabled();
+
+      // Try to click - should have no effect due to disabled state
       fireEvent.click(closeButton);
 
-      // Should not close while submitting (button is disabled)
+      // Should not close while submitting (button is disabled and handleClose checks isSubmitting)
       expect(mockOnOpenChange).not.toHaveBeenCalled();
     });
   });

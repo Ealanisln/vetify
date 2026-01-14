@@ -1,6 +1,7 @@
 import { Navigation } from "@/components/navigation"
 import { HeroSection } from "@/components/hero-section"
 import { FeaturesSection } from "@/components/features-section"
+import { PublicPagesSection } from "@/components/marketing/public-pages-section"
 import { BenefitsSection } from "@/components/benefits-section"
 import { TestimonialsSection } from "@/components/testimonials-section"
 import { StepsSection } from "@/components/steps-section"
@@ -45,6 +46,7 @@ export default function Page() {
         <main>
           <HeroSection />
           <FeaturesSection />
+          <PublicPagesSection />
           <BenefitsSection />
           <TestimonialsSection />
           <StepsSection />
