@@ -1,6 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Bell, Users } from "lucide-react"
+import { Bell, Users, MessageSquare, UserPlus, Shield } from "lucide-react"
 import Link from "next/link"
 
 const secondaryFeatures = [
@@ -14,6 +14,21 @@ const secondaryFeatures = [
     title: "Gestión de Personal",
     description: "Administra tu equipo de veterinarios y personal con roles y permisos",
   },
+  {
+    icon: MessageSquare,
+    title: "Sistema de Testimonios",
+    description: "Recibe testimonios de clientes, modera y destaca los mejores con calificaciones de estrellas",
+  },
+  {
+    icon: UserPlus,
+    title: "Invitaciones de Personal",
+    description: "Invita a tu equipo con enlaces seguros. Cada miembro recibe su rol y permisos automáticamente",
+  },
+  {
+    icon: Shield,
+    title: "Control de Acceso Granular",
+    description: "Define roles personalizados con permisos específicos: citas, inventario, ventas, reportes",
+  },
 ]
 
 export function SecondaryFeaturesSection() {
@@ -26,7 +41,7 @@ export function SecondaryFeaturesSection() {
           </h2>
         </div>
 
-        <div className="grid gap-8 md:grid-cols-2 max-w-4xl mx-auto mb-16">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto mb-16">
           {secondaryFeatures.map((feature, index) => {
             const Icon = feature.icon
             return (

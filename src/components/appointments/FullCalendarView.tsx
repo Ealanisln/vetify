@@ -10,6 +10,7 @@ import { DateSelectArg, EventClickArg, EventDropArg, EventContentArg, EventApi }
 import esLocale from '@fullcalendar/core/locales/es';
 import { useCalendar, useCalendarConfig, CalendarView } from '../../hooks/useCalendar';
 import { useAppointments, AppointmentWithDetails } from '../../hooks/useAppointments';
+import { useSafeAppointmentsContext } from '../providers/AppointmentsProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -52,16 +53,27 @@ export function FullCalendarView({
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  const {
-    events,
-    loading,
-    error,
-    currentDate,
-    currentView,
-    setCurrentDate,
-    setCurrentView,
-    refresh
-  } = useCalendar(defaultView);
+  // Always call all hooks unconditionally (React rules of hooks)
+  // Context-based data (no API calls - uses shared data)
+  const contextData = useSafeAppointmentsContext();
+
+  // Legacy hooks - always called but results ignored when context is available
+  const legacyCalendarData = useCalendar(defaultView);
+  const legacyAppointmentData = useAppointments();
+
+  // Prefer context data when in provider, fallback to legacy otherwise
+  const isInProvider = contextData !== null;
+
+  // Unified data access - context takes priority
+  const events = isInProvider ? (contextData?.calendarEvents ?? []) : (legacyCalendarData?.events ?? []);
+  const loading = isInProvider ? (contextData?.isLoading ?? false) : (legacyCalendarData?.loading ?? false);
+  const error = isInProvider ? contextData?.error : (legacyCalendarData?.error ? new Error(legacyCalendarData.error) : null);
+  const currentDate = isInProvider ? (contextData?.currentDate ?? new Date()) : (legacyCalendarData?.currentDate ?? new Date());
+  const currentView = isInProvider ? (contextData?.currentView ?? defaultView) : (legacyCalendarData?.currentView ?? defaultView);
+  const setCurrentDate = isInProvider ? (contextData?.setCurrentDate ?? (() => {})) : (legacyCalendarData?.setCurrentDate ?? (() => {}));
+  const setCurrentView = isInProvider ? (contextData?.setCurrentView ?? (() => {})) : (legacyCalendarData?.setCurrentView ?? (() => {}));
+  const refresh = isInProvider ? (contextData?.refresh ?? (() => Promise.resolve())) : (legacyCalendarData?.refresh ?? (() => Promise.resolve()));
+  const updateAppointment = isInProvider ? (contextData?.updateAppointment ?? (async () => { throw new Error('Not available'); })) : (legacyAppointmentData?.updateAppointment ?? (async () => { throw new Error('Not available'); }));
 
   // Refresh calendar when refreshTrigger changes (controlled by parent)
   useEffect(() => {
@@ -75,14 +87,13 @@ export function FullCalendarView({
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 640);
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    
+
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-  
-  const { updateAppointment } = useAppointments();
+
   const calendarConfig = useCalendarConfig();
 
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
@@ -547,7 +558,15 @@ function EventDetailsModal({
   const appointment = event.extendedProps.appointment;
   const canEdit = event.extendedProps.canEdit;
   const canCancel = event.extendedProps.canCancel;
-  const { quickAction } = useAppointments();
+
+  // Always call both hooks unconditionally (React rules of hooks)
+  const contextData = useSafeAppointmentsContext();
+  const legacyData = useAppointments();
+
+  // Prefer context data when in provider
+  const isInProvider = contextData !== null;
+  const quickAction = isInProvider ? (contextData?.quickAction ?? (async () => { throw new Error('Not available'); })) : (legacyData?.quickAction ?? (async () => { throw new Error('Not available'); }));
+
   const [loading, setLoading] = useState(false);
 
   const handleQuickAction = async (action: string) => {

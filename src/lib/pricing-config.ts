@@ -132,8 +132,10 @@ export const COMPLETE_PLANS = {
       { name: 'Control de inventario básico', included: true },
       { name: 'Punto de venta básico', included: true },
       { name: 'Caja registradora (1 caja)', included: true },
-      { name: 'Registro de ventas', included: true },
       { name: 'Sistema de recordatorios', included: true },
+      { name: 'Páginas públicas (servicios y equipo)', included: true, highlight: true },
+      { name: 'Códigos QR personalizados', included: true },
+      { name: 'App móvil (PWA) con modo oscuro', included: true },
       { name: 'Reportes básicos', included: true },
       { name: 'Soporte profesional', included: true },
     ],
@@ -149,7 +151,9 @@ export const COMPLETE_PLANS = {
       canUseAdvancedInventory: false,
       canUseMultiLocation: false,
       canUseMultiDoctor: true,
-      canUseSMSReminders: true
+      canUseSMSReminders: true,
+      canUsePublicPages: true,
+      canUseQRCodes: true
     },
     cta: 'Iniciar prueba gratuita'
   },
@@ -169,12 +173,12 @@ export const COMPLETE_PLANS = {
       { name: 'Todo del plan Básico', included: true, highlight: true },
       { name: 'Gestión multi-sucursal', included: true, highlight: true },
       { name: 'Múltiples cajas por sucursal', included: true },
+      { name: 'Reservas online para clientes', included: true, highlight: true },
+      { name: 'Testimonios y calificaciones', included: true },
       { name: 'Control de inventario avanzado', included: true },
-      { name: 'Reportes avanzados', included: true },
-      { name: 'Reportes de caja avanzados', included: true },
-      { name: 'Gestión de personal', included: true },
-      { name: 'Gestión de turnos de caja', included: true },
-      { name: 'Reportes de ventas avanzados', included: true },
+      { name: 'Gestión de personal con roles', included: true },
+      { name: 'Invitaciones de equipo con permisos', included: true },
+      { name: 'Reportes avanzados de ventas y caja', included: true },
       { name: 'Soporte prioritario', included: true },
     ],
     limits: {
@@ -189,7 +193,11 @@ export const COMPLETE_PLANS = {
       canUseAdvancedInventory: true,
       canUseMultiLocation: true,
       canUseMultiDoctor: true,
-      canUseSMSReminders: true
+      canUseSMSReminders: true,
+      canUsePublicPages: true,
+      canUseQRCodes: true,
+      canUseOnlineBooking: true,
+      canUseTestimonials: true
     },
     cta: 'Iniciar prueba gratuita'
   },
@@ -209,10 +217,10 @@ export const COMPLETE_PLANS = {
       { name: 'Todo del plan Profesional', included: true, highlight: true },
       { name: 'API personalizada', included: true, highlight: true },
       { name: 'Múltiples sucursales ilimitadas', included: true },
+      { name: 'Branding personalizado en páginas públicas', included: true },
       { name: 'Reportes empresariales', included: true },
-      { name: 'Control total de inventario', included: true },
       { name: 'Analytics avanzados', included: true },
-      { name: 'Soporte 24/7', included: true },
+      { name: 'Soporte 24/7 dedicado', included: true },
       { name: 'Integraciones personalizadas', included: true },
       { name: 'Consultoría especializada', included: true },
     ],
@@ -229,7 +237,12 @@ export const COMPLETE_PLANS = {
       canUseMultiLocation: true,
       canUseMultiDoctor: true,
       canUseSMSReminders: true,
-      canUseApiAccess: true
+      canUseApiAccess: true,
+      canUsePublicPages: true,
+      canUseQRCodes: true,
+      canUseOnlineBooking: true,
+      canUseTestimonials: true,
+      canUseCustomBranding: true
     },
     cta: 'Contactar Ventas'
   }
@@ -300,6 +313,11 @@ export interface PricingPlan {
     canUseMultiDoctor: boolean;
     canUseSMSReminders: boolean;
     canUseApiAccess?: boolean;
+    canUsePublicPages?: boolean;
+    canUseQRCodes?: boolean;
+    canUseOnlineBooking?: boolean;
+    canUseTestimonials?: boolean;
+    canUseCustomBranding?: boolean;
   };
   cta: string;
 }

@@ -7,6 +7,11 @@ import { StepsSection } from "@/components/steps-section"
 import { CTASection } from "@/components/cta-section"
 import { Footer } from "@/components/footer"
 import { EarlyAdopterBanner } from "@/components/marketing/EarlyAdopterBanner"
+import { PublicPagesSection } from "@/components/marketing/public-pages-section"
+import { QrCodeSection } from "@/components/marketing/qr-code-section"
+import { TestimonialsSection } from "@/components/marketing/testimonials-section"
+import { StaffSection } from "@/components/marketing/staff-section"
+import { AppCapabilitiesSection } from "@/components/marketing/app-capabilities-section"
 import { getActivePromotionFromDB } from "@/lib/pricing-config"
 import { generateMetadata as generateSEOMetadata, createPageSEO } from '@/lib/seo';
 import { PAGE_METADATA } from '@/lib/seo/config';
@@ -41,6 +46,14 @@ export async function generateMetadata(): Promise<Metadata> {
         'calendario veterinario',
         'agenda veterinaria online',
         'expediente clínico digital',
+        'página web clínica veterinaria',
+        'código qr veterinaria',
+        'testimonios clínica veterinaria',
+        'gestión personal veterinaria',
+        'permisos roles veterinaria',
+        'app veterinaria móvil',
+        'pwa veterinaria',
+        'notificaciones email veterinaria',
       ],
       lang,
       images: [
@@ -103,7 +116,12 @@ export default async function FunctionalitiesPage() {
           <FeaturesHeroSection hasPromoBanner={promoActive} />
           <MainFeaturesSection />
           <DetailedFunctionalitiesSection />
+          <PublicPagesSection />
+          <QrCodeSection />
+          <TestimonialsSection />
+          <StaffSection />
           <SecondaryFeaturesSection />
+          <AppCapabilitiesSection />
           <StepsSection />
           <CTASection />
         </main>

@@ -320,50 +320,6 @@ export function ClinicInfo({ tenant }: ClinicInfoProps) {
               )}
             </div>
 
-            {/* Testimonios simples */}
-            <div className="space-y-4">
-              <h4 className="text-lg font-semibold" style={{ color: colors.text }}>
-                Lo que dicen nuestros clientes
-              </h4>
-              <div className="space-y-3">
-                <div
-                  className={`p-4 ${themeClasses.card} transition-colors`}
-                  style={{
-                    backgroundColor: colors.cardBg,
-                    borderRadius: theme.layout.borderRadius,
-                    borderColor: colors.border
-                  }}
-                >
-                  <div className="flex text-yellow-400 mb-2">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-sm mb-2" style={{ color: colors.textMuted }}>
-                    &ldquo;Excelente atención y profesionalismo. Mi mascota siempre recibe el mejor cuidado.&rdquo;
-                  </p>
-                  <p className="text-xs" style={{ color: colors.textMuted }}>- Cliente satisfecho</p>
-                </div>
-                <div
-                  className={`p-4 ${themeClasses.card} transition-colors`}
-                  style={{
-                    backgroundColor: colors.cardBg,
-                    borderRadius: theme.layout.borderRadius,
-                    borderColor: colors.border
-                  }}
-                >
-                  <div className="flex text-yellow-400 mb-2">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-sm mb-2" style={{ color: colors.textMuted }}>
-                    &ldquo;Personal muy amable y instalaciones modernas. Totalmente recomendado.&rdquo;
-                  </p>
-                  <p className="text-xs" style={{ color: colors.textMuted }}>- Cliente satisfecho</p>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>

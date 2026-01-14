@@ -105,7 +105,7 @@ export function PublicNavbar({ tenant }: PublicNavbarProps) {
             </Link>
 
             {/* Información de contacto (desktop) */}
-            <div className="hidden md:flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
+            <div className="hidden lg:flex items-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
               {tenant.publicPhone && (
                 <a
                   href={`tel:${tenant.publicPhone}`}
@@ -124,7 +124,7 @@ export function PublicNavbar({ tenant }: PublicNavbarProps) {
             </div>
 
             {/* Botones de acción (desktop) */}
-            <div className="hidden md:flex items-center space-x-2">
+            <div className="hidden lg:flex items-center space-x-2">
               <Link href={`/${tenant.slug}/servicios`}>
                 <Button variant="ghost" className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
                   Servicios
@@ -177,7 +177,7 @@ export function PublicNavbar({ tenant }: PublicNavbarProps) {
             {/* Botón menú móvil */}
             <button
               onClick={() => setIsMenuOpen(true)}
-              className="md:hidden p-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="lg:hidden p-2 rounded-xl text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               aria-label="Abrir menú"
             >
               <Menu className="h-6 w-6" />

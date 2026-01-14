@@ -30,7 +30,8 @@ test.describe('Actualizaciones Page', () => {
     });
 
     test('should display page description', async ({ page }) => {
-      const description = page.locator('text=/mejoras|correcciones|funcionalidades/i');
+      // Use first() to avoid strict mode violation when multiple matches exist
+      const description = page.locator('text=/mejoras|correcciones|funcionalidades/i').first();
       await expect(description).toBeVisible();
     });
 
@@ -51,6 +52,11 @@ test.describe('Actualizaciones Page', () => {
       // Look for version tags (v1.0.0, v1.1.0, etc.)
       const versionTags = page.locator('text=/v\\d+\\.\\d+\\.\\d+|En desarrollo/');
       await expect(versionTags.first()).toBeVisible();
+    });
+
+    test('should display version 1.2.0', async ({ page }) => {
+      const version = page.locator('text=v1.2.0');
+      await expect(version).toBeVisible();
     });
 
     test('should display version 1.1.0', async ({ page }) => {
@@ -129,20 +135,44 @@ test.describe('Actualizaciones Page', () => {
   });
 
   test.describe('Content Verification', () => {
-    test('should contain Sistema de Invitaciones feature', async ({ page }) => {
-      // This is a key feature from v1.1.0
+    test('should contain PWA InstallPrompt feature in v1.2.0', async ({ page }) => {
+      // This is a key feature from v1.2.0 (first expanded by default)
+      const feature = page.locator('text=/InstallPrompt|PWA/i');
+      const count = await feature.count();
+      expect(count).toBeGreaterThan(0);
+    });
+
+    test('should contain Sistema de Invitaciones feature in v1.1.0', async ({ page }) => {
+      // v1.1.0 may be collapsed, expand it first
+      const v110Button = page.locator('button').filter({ hasText: 'v1.1.0' });
+      if (await v110Button.count() > 0) {
+        await v110Button.click();
+        await page.waitForTimeout(300);
+      }
       const feature = page.locator('text=/Sistema de Invitaciones/i');
       const count = await feature.count();
       expect(count).toBeGreaterThan(0);
     });
 
-    test('should contain Sistema de Permisos feature', async ({ page }) => {
+    test('should contain Sistema de Permisos feature in v1.1.0', async ({ page }) => {
+      // v1.1.0 may be collapsed, expand it first
+      const v110Button = page.locator('button').filter({ hasText: 'v1.1.0' });
+      if (await v110Button.count() > 0) {
+        await v110Button.click();
+        await page.waitForTimeout(300);
+      }
       const feature = page.locator('text=/Sistema de Permisos|RBAC/i');
       const count = await feature.count();
       expect(count).toBeGreaterThan(0);
     });
 
-    test('should contain Página de Actualizaciones feature', async ({ page }) => {
+    test('should contain Página de Actualizaciones feature in v1.1.0', async ({ page }) => {
+      // v1.1.0 may be collapsed, expand it first
+      const v110Button = page.locator('button').filter({ hasText: 'v1.1.0' });
+      if (await v110Button.count() > 0) {
+        await v110Button.click();
+        await page.waitForTimeout(300);
+      }
       const feature = page.locator('text=/Página de Actualizaciones/i');
       const count = await feature.count();
       expect(count).toBeGreaterThan(0);

@@ -162,6 +162,32 @@ Todos los cambios notables en este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
+## [1.2.0] - 2026-01-13
+
+### Agregado
+- **Prompt de Instalación PWA (InstallPrompt)**
+  - Componente para facilitar instalación de PWA en dispositivos móviles
+  - Hook \`usePWAInstall\` para detectar plataforma y estado de instalación
+  - Variante iOS: Instrucciones paso a paso (Compartir → Agregar a inicio)
+  - Variante Android/Chrome: Botón que activa diálogo nativo de instalación
+  - Persistencia de dismissal en localStorage (7 días)
+  - Delay de 3 segundos antes de mostrar para UX no intrusiva
+- **Mejoras en Página de Marketing (VETIF-202)**
+  - Nuevos screenshots de funcionalidades en secciones de marketing
+  - Mejoras de diseño responsive
+  - Corrección de recorte de imágenes en testimonios
+- Tests completos para InstallPrompt (20 unit tests, 42 integration tests)
+- Tests unitarios para componentes de marketing
+
+### Corregido
+- Llamadas redundantes a API en página de calendario de citas (VETIF-167)
+- Recorte incorrecto de imágenes en sección de testimonios
+
+### Rendimiento
+- Infraestructura SWR optimizada para citas con tests comprehensivos
+
+---
+
 ## [1.1.0] - 2026-01-13
 
 ### Agregado
@@ -235,6 +261,9 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - Imports no usados en componentes de analíticas
 - Permisos de creación de citas ahora respetan roles (VETERINARIAN, ADMIN, RECEPTIONIST)
 - Valores por defecto de paginación y permisos de caja para staff
+- Títulos de posiciones en página pública de equipo ahora se muestran en español (VETERINARIAN → Veterinario/a, etc.)
+- Campo de foto ahora disponible al crear nuevo personal (antes solo en edición)
+- Badge "Acceso activo" en lista de personal ya no se expande a todo el ancho
 
 ### Modificado
 - Middleware actualizado para excluir rutas de invitaciones de autenticación
