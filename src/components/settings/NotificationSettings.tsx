@@ -19,7 +19,9 @@ import {
   Stethoscope,
   XCircle,
   RefreshCw,
+  Smartphone,
 } from 'lucide-react';
+import { NotificationSettings as PushNotificationSettings } from '@/components/pwa';
 import { toast } from 'sonner';
 
 interface NotificationPreferences {
@@ -277,6 +279,22 @@ export function NotificationSettings({ }: NotificationSettingsProps) {
           </Button>
         </div>
       </div>
+
+      {/* Push Notifications (Browser/Device) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Smartphone className="h-5 w-5" />
+            Notificaciones Push (Este dispositivo)
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Recibe notificaciones en tiempo real en tu navegador o dispositivo móvil
+          </p>
+        </CardHeader>
+        <CardContent>
+          <PushNotificationSettings />
+        </CardContent>
+      </Card>
 
       {/* Customer Notifications */}
       <Card>

@@ -15,11 +15,28 @@ const withPWA = withPWAInit({
   disable: process.env.NODE_ENV === 'development',
   register: true,
   skipWaiting: true,
+  customWorkerDir: 'worker', // Custom service worker extensions
   fallbacks: {
     document: '/offline',
   },
   // Cache strategies
   runtimeCaching: [
+    // Dashboard pages - NetworkFirst for offline access with fresh data priority
+    {
+      urlPattern: /^\/dashboard(\/pets|\/appointments|\/inventory)?$/i,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'dashboard-pages',
+        expiration: {
+          maxEntries: 20,
+          maxAgeSeconds: 60 * 60, // 1 hour
+        },
+        networkTimeoutSeconds: 10,
+        cacheableResponse: {
+          statuses: [0, 200],
+        },
+      },
+    },
     // API routes - NetworkFirst for offline support with fresh data priority
     {
       urlPattern: /\/api\/(pets|appointments|inventory|dashboard|clients|species|breeds|services).*/i,

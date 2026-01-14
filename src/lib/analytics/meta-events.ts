@@ -303,3 +303,69 @@ export function trackSubscribe(data?: {
 
   trackEvent('Subscribe', cleanData);
 }
+
+/**
+ * PWA Installation Event Types
+ */
+export type PWAInstallEventType =
+  | 'pwa_prompt_shown'
+  | 'pwa_install_accepted'
+  | 'pwa_install_dismissed'
+  | 'pwa_installed';
+
+/**
+ * Track PWA installation events
+ * Custom events for tracking PWA installation funnel
+ *
+ * @param eventType - Type of PWA installation event
+ * @param additionalData - Optional additional context
+ *
+ * @example
+ * ```ts
+ * trackPWAInstall('pwa_prompt_shown', { platform: 'android' });
+ * trackPWAInstall('pwa_install_accepted');
+ * trackPWAInstall('pwa_install_dismissed');
+ * trackPWAInstall('pwa_installed');
+ * ```
+ */
+export function trackPWAInstall(
+  eventType: PWAInstallEventType,
+  additionalData?: Record<string, unknown>
+): void {
+  const data = {
+    event_type: eventType,
+    platform: detectPlatform(),
+    ...additionalData,
+  };
+
+  const cleanData = sanitizeForTracking(data);
+  validateEventData(eventType, cleanData);
+
+  // Track as custom event in Meta Pixel
+  trackEvent(eventType, cleanData);
+
+  // Also track in Umami if available
+  if (typeof window !== 'undefined' && 'umami' in window) {
+    const umami = window.umami as { track?: (event: string, data?: Record<string, unknown>) => void };
+    if (umami?.track) {
+      umami.track(eventType, cleanData);
+    }
+  }
+}
+
+/**
+ * Helper to detect platform for PWA analytics
+ */
+function detectPlatform(): string {
+  if (typeof navigator === 'undefined') return 'unknown';
+
+  const userAgent = navigator.userAgent || '';
+
+  if (/iPad|iPhone|iPod/.test(userAgent)) return 'ios';
+  if (/Android/.test(userAgent)) return 'android';
+  if (/Windows/.test(userAgent)) return 'windows';
+  if (/Mac/.test(userAgent)) return 'macos';
+  if (/Linux/.test(userAgent)) return 'linux';
+
+  return 'other';
+}

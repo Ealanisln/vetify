@@ -144,6 +144,7 @@
     "stripe": "^16.12.0",
     "swr": "^2.3.8",
     "tailwind-merge": "^3.3.1",
+    "web-push": "^3.6.7",
     "yet-another-react-lightbox": "^3.25.0",
     "zod": "^3.25.36"
   },
@@ -164,6 +165,7 @@
     "@types/react-dom": "19.1.6",
     "@types/superagent": "^8.1.9",
     "@types/supertest": "^6.0.3",
+    "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.4.21",
     "chalk": "^5.4.1",
     "dotenv": "^17.2.1",
