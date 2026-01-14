@@ -11,10 +11,15 @@ interface OnlineStatusState {
 /**
  * Hook to detect and track online/offline status
  * Uses navigator.onLine and online/offline events for real-time updates
+ *
+ * IMPORTANT: Initial state is always `isOnline: true` to prevent hydration mismatch.
+ * The actual online status is determined in useEffect after mount.
  */
 export function useOnlineStatus() {
+  // Always start with isOnline: true to avoid hydration mismatch
+  // The actual status is checked in useEffect after mount
   const [state, setState] = useState<OnlineStatusState>({
-    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    isOnline: true,
     wasOffline: false,
     lastOnlineAt: null,
   });
