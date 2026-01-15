@@ -17,6 +17,7 @@ const VETIFY_PUBLIC_ROUTES = [
   '/privacidad',
   '/sign-in',
   '/sign-up',
+  '/blog',
 ];
 
 /**
@@ -34,7 +35,8 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
 
   // Check if this is a known Vetify public route
   const isVetifyPublicRoute = VETIFY_PUBLIC_ROUTES.includes(pathname) ||
-                              pathname.startsWith('/api/');
+                              pathname.startsWith('/api/') ||
+                              pathname.startsWith('/blog');
 
   // Show navbar only on known Vetify public routes
   // Hide it on app routes and clinic public pages (tenant slugs)
