@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getBlogPost, getRelatedPosts, getAllPostSlugs } from '@/lib/storyblok/api';
-import { BLOG_REVALIDATE_TIME } from '@/lib/storyblok/client';
 import { generateMetadata as generateSeoMetadata, createArticleSEO } from '@/lib/seo/metadata';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { generateArticleSchema } from '@/lib/seo/structured-data';
@@ -15,8 +14,8 @@ import { ArticleShare } from '@/components/blog/ArticleShare';
 import { FAQSection } from '@/components/blog/FAQSection';
 import { RelatedPosts } from '@/components/blog/RelatedPosts';
 
-// ISR: Revalidate every hour
-export const revalidate = BLOG_REVALIDATE_TIME;
+// ISR: Revalidate every hour (3600 seconds)
+export const revalidate = 3600;
 
 // Force dynamic for fresh content
 export const dynamic = 'force-dynamic';

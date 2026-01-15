@@ -2,7 +2,6 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import Image from 'next/image';
 import { getBlogPosts, getCategories } from '@/lib/storyblok/api';
-import { BLOG_REVALIDATE_TIME } from '@/lib/storyblok/client';
 import { generateMetadata as generateSeoMetadata, createPageSEO } from '@/lib/seo/metadata';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { generateWebPageSchema } from '@/lib/seo/structured-data';
@@ -10,8 +9,8 @@ import { generateBreadcrumbSchema } from '@/lib/seo/breadcrumbs';
 import Footer from '@/components/footer/Footer';
 import type { BlogPost, BlogCategory } from '@/lib/storyblok/types';
 
-// ISR: Revalidate every hour
-export const revalidate = BLOG_REVALIDATE_TIME;
+// ISR: Revalidate every hour (3600 seconds)
+export const revalidate = 3600;
 
 // Force dynamic to ensure fresh data
 export const dynamic = 'force-dynamic';
