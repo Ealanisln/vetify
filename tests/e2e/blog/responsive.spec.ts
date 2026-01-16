@@ -20,7 +20,7 @@ test.describe('Blog Responsive Design', () => {
 
     test('should display blog listing correctly on mobile', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Title should be visible
       const title = page.locator('h1');
@@ -33,7 +33,7 @@ test.describe('Blog Responsive Design', () => {
 
     test('should display single column layout on mobile', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Grid should adapt to single column
       const grid = page.locator('[class*="grid"]').first();
@@ -48,13 +48,13 @@ test.describe('Blog Responsive Design', () => {
 
     test('should display article correctly on mobile', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Title should be visible
         const title = page.locator('h1');
@@ -71,13 +71,13 @@ test.describe('Blog Responsive Design', () => {
 
     test('should hide or collapse TOC on mobile', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // TOC might be hidden or collapsed on mobile
         const toc = page.locator('nav[aria-label*="contenido"], [class*="toc"]').first();
@@ -93,7 +93,7 @@ test.describe('Blog Responsive Design', () => {
 
     test('should have touch-friendly tap targets on mobile', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Links and buttons should have adequate size for touch
       const interactiveElements = page.locator('a, button').first();
@@ -110,7 +110,7 @@ test.describe('Blog Responsive Design', () => {
 
     test('should display breadcrumbs on mobile', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
       if (await breadcrumb.count() > 0) {
@@ -126,7 +126,7 @@ test.describe('Blog Responsive Design', () => {
 
     test('should display blog listing correctly on tablet', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const title = page.locator('h1');
       await expect(title).toBeVisible();
@@ -134,7 +134,7 @@ test.describe('Blog Responsive Design', () => {
 
     test('should display two column layout on tablet', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Grid might have 2 columns on tablet
       const grid = page.locator('[class*="grid"]').first();
@@ -149,13 +149,13 @@ test.describe('Blog Responsive Design', () => {
 
     test('should display article with better spacing on tablet', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         const title = page.locator('h1');
         await expect(title).toBeVisible();
@@ -170,7 +170,7 @@ test.describe('Blog Responsive Design', () => {
 
     test('should display blog listing correctly on desktop', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const title = page.locator('h1');
       await expect(title).toBeVisible();
@@ -178,7 +178,7 @@ test.describe('Blog Responsive Design', () => {
 
     test('should display three column layout on desktop', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Grid should have 3 columns on desktop
       const grid = page.locator('[class*="grid"]').first();
@@ -193,13 +193,13 @@ test.describe('Blog Responsive Design', () => {
 
     test('should display article with sidebar TOC on desktop', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // TOC should be visible as sidebar on desktop
         const toc = page.locator('nav[aria-label*="contenido"], [class*="toc"], aside').first();
@@ -212,13 +212,13 @@ test.describe('Blog Responsive Design', () => {
 
     test('should have comfortable reading width on desktop', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Content should have max-width for readability
         const content = page.locator('article p, main p').first();
@@ -237,7 +237,7 @@ test.describe('Blog Responsive Design', () => {
   test.describe('Dark Mode', () => {
     test('should support dark mode classes', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Check for dark mode class support
       const darkModeElements = page.locator('[class*="dark:"]');
@@ -247,12 +247,12 @@ test.describe('Blog Responsive Design', () => {
 
     test('should apply dark mode background colors', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Emulate dark mode preference
       await page.emulateMedia({ colorScheme: 'dark' });
       await page.reload();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Page should still be visible in dark mode
       const title = page.locator('h1');
@@ -262,7 +262,7 @@ test.describe('Blog Responsive Design', () => {
     test('should maintain readability in dark mode', async ({ page }) => {
       await page.emulateMedia({ colorScheme: 'dark' });
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Text should be visible
       const content = page.locator('p').first();
@@ -274,13 +274,13 @@ test.describe('Blog Responsive Design', () => {
     test('should apply dark mode to article page', async ({ page }) => {
       await page.emulateMedia({ colorScheme: 'dark' });
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Article should be readable in dark mode
         const title = page.locator('h1');
@@ -293,7 +293,7 @@ test.describe('Blog Responsive Design', () => {
     test('should have responsive images on mobile', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const images = page.locator('img');
       const count = await images.count();
@@ -313,7 +313,7 @@ test.describe('Blog Responsive Design', () => {
     test('should have appropriate image sizes on desktop', async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const images = page.locator('img');
       const count = await images.count();
@@ -342,7 +342,7 @@ test.describe('Blog Responsive Design', () => {
       for (const viewport of viewports) {
         await page.setViewportSize(viewport);
         await page.goto(`${baseUrl}/blog`);
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         const header = page.locator('header, nav').first();
         await expect(header).toBeVisible();
@@ -359,7 +359,7 @@ test.describe('Blog Responsive Design', () => {
       for (const viewport of viewports) {
         await page.setViewportSize(viewport);
         await page.goto(`${baseUrl}/blog`);
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         const footer = page.locator('footer');
         await expect(footer).toBeVisible();
@@ -371,7 +371,7 @@ test.describe('Blog Responsive Design', () => {
     test('should have readable font sizes on mobile', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Text should be readable (typically minimum 16px for body text)
       const paragraph = page.locator('p').first();
@@ -383,7 +383,7 @@ test.describe('Blog Responsive Design', () => {
     test('should scale heading sizes appropriately', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const h1 = page.locator('h1').first();
       if (await h1.count() > 0) {

@@ -17,7 +17,7 @@ test.describe('Blog SEO', () => {
   test.describe('Blog Listing Page Meta Tags', () => {
     test.beforeEach(async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
     });
 
     test('should have title meta tag', async ({ page }) => {
@@ -64,13 +64,13 @@ test.describe('Blog SEO', () => {
   test.describe('Article Page Meta Tags', () => {
     async function navigateToArticle(page: import('@playwright/test').Page) {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         return true;
       }
       return false;
@@ -158,7 +158,7 @@ test.describe('Blog SEO', () => {
   test.describe('Structured Data (JSON-LD)', () => {
     test('should have JSON-LD script on blog listing', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const jsonLd = page.locator('script[type="application/ld+json"]');
       const count = await jsonLd.count();
@@ -167,7 +167,7 @@ test.describe('Blog SEO', () => {
 
     test('should have valid JSON-LD content', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const jsonLd = page.locator('script[type="application/ld+json"]').first();
 
@@ -182,13 +182,13 @@ test.describe('Blog SEO', () => {
 
     test('should have Article schema on article page', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         const jsonLdScripts = page.locator('script[type="application/ld+json"]');
         const count = await jsonLdScripts.count();
@@ -225,13 +225,13 @@ test.describe('Blog SEO', () => {
 
     test('should have BreadcrumbList schema', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         const jsonLdScripts = page.locator('script[type="application/ld+json"]');
         const count = await jsonLdScripts.count();
@@ -256,7 +256,7 @@ test.describe('Blog SEO', () => {
   test.describe('Accessibility', () => {
     test('should have proper heading hierarchy on blog listing', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should have exactly one h1
       const h1Count = await page.locator('h1').count();
@@ -265,13 +265,13 @@ test.describe('Blog SEO', () => {
 
     test('should have proper heading hierarchy on article page', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Should have exactly one h1
         const h1Count = await page.locator('h1').count();
@@ -281,7 +281,7 @@ test.describe('Blog SEO', () => {
 
     test('should have alt text on images', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const images = page.locator('img');
       const count = await images.count();
@@ -296,7 +296,7 @@ test.describe('Blog SEO', () => {
 
     test('should have accessible navigation', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Main navigation should exist
       const nav = page.locator('nav').first();
@@ -305,7 +305,7 @@ test.describe('Blog SEO', () => {
 
     test('should have accessible breadcrumb navigation', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const breadcrumb = page.locator('nav[aria-label="Breadcrumb"]');
       if (await breadcrumb.count() > 0) {
@@ -315,7 +315,7 @@ test.describe('Blog SEO', () => {
 
     test('should support keyboard navigation', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Tab should focus on interactive elements
       await page.keyboard.press('Tab');
@@ -326,7 +326,7 @@ test.describe('Blog SEO', () => {
 
     test('should have sufficient color contrast (dark mode support)', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Check that dark mode classes are present
       const darkModeElements = page.locator('[class*="dark:"]');
@@ -338,7 +338,7 @@ test.describe('Blog SEO', () => {
   test.describe('Language and Localization', () => {
     test('should have lang attribute on html', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const lang = await page.locator('html').getAttribute('lang');
       expect(lang).toBeTruthy();
@@ -346,7 +346,7 @@ test.describe('Blog SEO', () => {
 
     test('should have Spanish content', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Look for Spanish text indicators
       const spanishText = page.locator('text=/artículos|blog|inicio|leer/i').first();
@@ -357,7 +357,7 @@ test.describe('Blog SEO', () => {
   test.describe('Performance Hints', () => {
     test('should have preconnect links for external resources', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Check for preconnect to common external resources
       const preconnects = page.locator('link[rel="preconnect"]');
@@ -368,7 +368,7 @@ test.describe('Blog SEO', () => {
 
     test('should have viewport meta tag', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const viewport = await page.locator('meta[name="viewport"]').getAttribute('content');
       expect(viewport).toBeTruthy();

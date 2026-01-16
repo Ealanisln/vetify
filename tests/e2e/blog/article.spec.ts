@@ -17,13 +17,13 @@ test.describe('Blog Article Page', () => {
   // Helper to navigate to first available article
   async function navigateToArticle(page: import('@playwright/test').Page) {
     await page.goto(`${baseUrl}/blog`);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
     if (await articleLink.count() > 0) {
       await articleLink.click();
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
       return true;
     }
     return false;

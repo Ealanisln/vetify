@@ -16,14 +16,14 @@ test.describe('Blog Filtering', () => {
   test.describe('Category Page', () => {
     test('should display category page structure', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Find and click a category link
       const categoryLink = page.locator('a[href^="/blog/categoria/"]').first();
 
       if (await categoryLink.count() > 0) {
         await categoryLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Should have page title
         const title = page.locator('h1');
@@ -37,13 +37,13 @@ test.describe('Blog Filtering', () => {
 
     test('should display category description', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const categoryLink = page.locator('a[href^="/blog/categoria/"]').first();
 
       if (await categoryLink.count() > 0) {
         await categoryLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Category page should have some description text
         const description = page.locator('p').first();
@@ -53,13 +53,13 @@ test.describe('Blog Filtering', () => {
 
     test('should display posts count', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const categoryLink = page.locator('a[href^="/blog/categoria/"]').first();
 
       if (await categoryLink.count() > 0) {
         await categoryLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Should show article count
         const countText = page.locator('text=/\\d+\\s*artículos?/i').first();
@@ -71,13 +71,13 @@ test.describe('Blog Filtering', () => {
 
     test('should display filtered posts grid', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const categoryLink = page.locator('a[href^="/blog/categoria/"]').first();
 
       if (await categoryLink.count() > 0) {
         await categoryLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Either shows posts grid or empty state
         const postsOrEmpty = page.locator('article, [class*="grid"], text=/no hay artículos/i').first();
@@ -88,7 +88,7 @@ test.describe('Blog Filtering', () => {
     test('should display empty state when no posts in category', async ({ page }) => {
       // Navigate to a potentially empty category
       await page.goto(`${baseUrl}/blog/categoria/empty-category-test`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should either show posts or empty state/404
       const emptyOrContent = page.locator('text=/no hay artículos|no encontrada|404/i, article').first();
@@ -97,7 +97,7 @@ test.describe('Blog Filtering', () => {
 
     test('should show 404 for non-existent category', async ({ page }) => {
       await page.goto(`${baseUrl}/blog/categoria/categoria-que-no-existe-12345`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should show not found message
       const notFound = page.locator('text=/no encontrada|404|not found/i').first();
@@ -111,21 +111,21 @@ test.describe('Blog Filtering', () => {
     test('should display tag page structure', async ({ page }) => {
       // First find a tag link from an article
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Navigate to first article
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Find tag link
         const tagLink = page.locator('a[href^="/blog/etiqueta/"]').first();
 
         if (await tagLink.count() > 0) {
           await tagLink.click();
-          await page.waitForLoadState('networkidle');
+          await page.waitForLoadState('domcontentloaded');
 
           // Should have page title with hashtag
           const title = page.locator('h1');
@@ -140,19 +140,19 @@ test.describe('Blog Filtering', () => {
 
     test('should display hashtag in title', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         const tagLink = page.locator('a[href^="/blog/etiqueta/"]').first();
 
         if (await tagLink.count() > 0) {
           await tagLink.click();
-          await page.waitForLoadState('networkidle');
+          await page.waitForLoadState('domcontentloaded');
 
           // Check for hashtag in breadcrumb or title
           const hashtagText = page.locator('text=/#\\w+/').first();
@@ -166,7 +166,7 @@ test.describe('Blog Filtering', () => {
     test('should handle URL-encoded tags', async ({ page }) => {
       // Test with a URL-encoded tag (space becomes %20)
       await page.goto(`${baseUrl}/blog/etiqueta/cuidado%20de%20mascotas`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should handle the encoded URL (either showing content or 404)
       const content = page.locator('h1, text=/no encontrada|404/i').first();
@@ -175,19 +175,19 @@ test.describe('Blog Filtering', () => {
 
     test('should display posts with tag', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         const tagLink = page.locator('a[href^="/blog/etiqueta/"]').first();
 
         if (await tagLink.count() > 0) {
           await tagLink.click();
-          await page.waitForLoadState('networkidle');
+          await page.waitForLoadState('domcontentloaded');
 
           // Should show article count
           const countText = page.locator('text=/\\d+\\s*artículos?\\s*(con esta etiqueta)?/i').first();
@@ -200,7 +200,7 @@ test.describe('Blog Filtering', () => {
 
     test('should display empty state when no posts with tag', async ({ page }) => {
       await page.goto(`${baseUrl}/blog/etiqueta/etiqueta-vacia-test`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const emptyOrContent = page.locator('text=/no hay artículos|no encontrada|404/i, article').first();
       await expect(emptyOrContent).toBeVisible();
@@ -210,21 +210,21 @@ test.describe('Blog Filtering', () => {
   test.describe('Author Page', () => {
     test('should display author page structure', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Navigate to first article
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         // Find author link
         const authorLink = page.locator('a[href^="/blog/autor/"]').first();
 
         if (await authorLink.count() > 0) {
           await authorLink.click();
-          await page.waitForLoadState('networkidle');
+          await page.waitForLoadState('domcontentloaded');
 
           // Should have author name as title
           const title = page.locator('h1');
@@ -239,19 +239,19 @@ test.describe('Blog Filtering', () => {
 
     test('should display author avatar', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         const authorLink = page.locator('a[href^="/blog/autor/"]').first();
 
         if (await authorLink.count() > 0) {
           await authorLink.click();
-          await page.waitForLoadState('networkidle');
+          await page.waitForLoadState('domcontentloaded');
 
           // Should have author avatar image
           const avatar = page.locator('img').first();
@@ -262,19 +262,19 @@ test.describe('Blog Filtering', () => {
 
     test('should display author role', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         const authorLink = page.locator('a[href^="/blog/autor/"]').first();
 
         if (await authorLink.count() > 0) {
           await authorLink.click();
-          await page.waitForLoadState('networkidle');
+          await page.waitForLoadState('domcontentloaded');
 
           // Should have role/title text (Veterinario, Especialista, etc.)
           const roleText = page.locator('text=/veterinari|especialista|doctor/i').first();
@@ -287,19 +287,19 @@ test.describe('Blog Filtering', () => {
 
     test('should display author bio', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         const authorLink = page.locator('a[href^="/blog/autor/"]').first();
 
         if (await authorLink.count() > 0) {
           await authorLink.click();
-          await page.waitForLoadState('networkidle');
+          await page.waitForLoadState('domcontentloaded');
 
           // Should have bio paragraph
           const bio = page.locator('p').nth(1); // Skip potential role text
@@ -312,19 +312,19 @@ test.describe('Blog Filtering', () => {
 
     test('should display posts count by author', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         const authorLink = page.locator('a[href^="/blog/autor/"]').first();
 
         if (await authorLink.count() > 0) {
           await authorLink.click();
-          await page.waitForLoadState('networkidle');
+          await page.waitForLoadState('domcontentloaded');
 
           // Should show article count
           const countText = page.locator('text=/\\d+\\s*artículos?\\s*(publicados)?/i').first();
@@ -337,19 +337,19 @@ test.describe('Blog Filtering', () => {
 
     test('should display social links if available', async ({ page }) => {
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
       if (await articleLink.count() > 0) {
         await articleLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
 
         const authorLink = page.locator('a[href^="/blog/autor/"]').first();
 
         if (await authorLink.count() > 0) {
           await authorLink.click();
-          await page.waitForLoadState('networkidle');
+          await page.waitForLoadState('domcontentloaded');
 
           // Check for social links (optional)
           const socialLink = page.locator('a[href*="twitter.com"], a[href*="linkedin.com"], a[href*="instagram.com"]').first();
@@ -362,7 +362,7 @@ test.describe('Blog Filtering', () => {
 
     test('should show 404 for non-existent author', async ({ page }) => {
       await page.goto(`${baseUrl}/blog/autor/autor-que-no-existe-12345`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Should show not found message
       const notFound = page.locator('text=/no encontrad|404|not found/i').first();
@@ -376,13 +376,13 @@ test.describe('Blog Filtering', () => {
     test('should allow navigating between different filter types', async ({ page }) => {
       // Start at blog
       await page.goto(`${baseUrl}/blog`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Go to category
       const categoryLink = page.locator('a[href^="/blog/categoria/"]').first();
       if (await categoryLink.count() > 0) {
         await categoryLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         expect(page.url()).toContain('/blog/categoria/');
       }
 
@@ -390,7 +390,7 @@ test.describe('Blog Filtering', () => {
       const blogLink = page.locator('a[href="/blog"]').first();
       if (await blogLink.count() > 0) {
         await blogLink.click();
-        await page.waitForLoadState('networkidle');
+        await page.waitForLoadState('domcontentloaded');
         expect(page.url()).toBe(`${baseUrl}/blog`);
       }
     });
