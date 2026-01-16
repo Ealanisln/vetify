@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { trackPWAInstall } from '@/lib/analytics/meta-events';
 
 /**
  * BeforeInstallPromptEvent interface
@@ -79,6 +80,8 @@ export function usePWAInstall(): UsePWAInstallReturn {
       e.preventDefault();
       // Store the event for later use
       setInstallPrompt(e);
+      // Track that the prompt is available
+      trackPWAInstall('pwa_prompt_shown');
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -87,6 +90,8 @@ export function usePWAInstall(): UsePWAInstallReturn {
     const handleAppInstalled = () => {
       setInstallPrompt(null);
       setIsStandalone(true);
+      // Track successful installation
+      trackPWAInstall('pwa_installed');
     };
 
     window.addEventListener('appinstalled', handleAppInstalled);
@@ -109,8 +114,12 @@ export function usePWAInstall(): UsePWAInstallReturn {
     if (outcome === 'accepted') {
       // User accepted, clear the prompt
       setInstallPrompt(null);
+      // Track accepted (appinstalled event will also fire)
+      trackPWAInstall('pwa_install_accepted');
+    } else {
+      // User dismissed the prompt
+      trackPWAInstall('pwa_install_dismissed');
     }
-    // If dismissed, keep the prompt for potential future use
   }, [installPrompt]);
 
   const dismiss = useCallback(() => {

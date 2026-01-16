@@ -11,7 +11,7 @@ import { Metadata } from 'next'
 import {AuthProvider} from '../AuthProvider';
 import { ConditionalLayout } from '../components/ConditionalLayout';
 import { ErrorBoundary } from '../components/ErrorBoundary';
-import { UpdatePrompt, InstallPrompt } from '@/components/pwa';
+import { UpdatePrompt, InstallPrompt, ConnectionStatus } from '@/components/pwa';
 import {
   createHomePageSEO,
   generateMetadata,
@@ -99,6 +99,8 @@ export default function RootLayout({
         <ErrorBoundary>
           <AuthProvider>
             <Providers>
+              {/* Connection status indicator */}
+              <ConnectionStatus />
               <ConditionalLayout>
                 {children}
               </ConditionalLayout>

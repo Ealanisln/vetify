@@ -127,6 +127,7 @@ jobs:
     name: E2E Tests
     runs-on: ubuntu-latest
     needs: [unit-tests, integration-tests]
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:15
@@ -201,8 +202,8 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
 
-      - name: Run E2E tests
-        run: pnpm test:e2e
+      - name: Run E2E tests (excluding blog tests that require Storyblok)
+        run: pnpm exec playwright test tests/e2e/analytics tests/e2e/dashboard tests/e2e/public-pages tests/e2e/reports tests/e2e/subscription tests/e2e/auth-race-condition.spec.ts tests/e2e/qr-code-generator.spec.ts
         env:
           CI: true
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test

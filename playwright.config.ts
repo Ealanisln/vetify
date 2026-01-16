@@ -12,6 +12,8 @@ export default defineConfig({
   retries: isCI ? 1 : 0,
   workers: isCI ? 2 : undefined,
   timeout: 30 * 1000,
+  // Global timeout for the entire test run (10 minutes max)
+  globalTimeout: isCI ? 10 * 60 * 1000 : undefined,
   reporter: isCI
     ? [['github'], ['json', { outputFile: 'test-results/results.json' }]]
     : [['html'], ['json', { outputFile: 'test-results/results.json' }]],

@@ -289,7 +289,7 @@ describe('Layout PWA Integration', () => {
     });
 
     it('should import PWA components', () => {
-      expect(layoutContent).toContain("import { UpdatePrompt, InstallPrompt } from '@/components/pwa'");
+      expect(layoutContent).toContain("import { UpdatePrompt, InstallPrompt, ConnectionStatus } from '@/components/pwa'");
     });
 
     it('should include UpdatePrompt in the layout', () => {

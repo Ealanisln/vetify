@@ -4,22 +4,33 @@ A comprehensive, multi-tenant SaaS platform for veterinary practices built with 
 
 ## 🎉 Latest Release Highlights
 
-**Recent Updates (November 2025)**:
-- 🏢 **Multi-Location Support (Phase 3)**: Complete multi-location/multi-clinic feature set for Corporativo plan
-  - Location-based data scoping for inventory, cash drawer, appointments, and staff
-  - LocationProvider and LocationSwitcher components for easy location context management
-  - Inter-location inventory transfer system
-  - Staff-to-location assignment with access control utilities
-  - Plan-based access control (Corporativo plan exclusive)
-- 📧 **Email System**: Professional transactional emails with Resend (appointment confirmations, reminders, inventory alerts)
-- ✨ **Enhanced Medical Module**: Inline veterinarian creation during medical forms, improved consultation/treatment/vaccination forms
-- 🎨 **Appointment Calendar**: Enhanced UI/UX with better navigation and visual improvements
-- 💳 **Subscription UX**: Improved plan upgrade/downgrade experience with visual indicators and proper feature gating
-- 📊 **Tiered Reports**: Basic and advanced reports split by subscription plan (VETIF-1)
-- 🔧 **Onboarding Improvements**: URL slug validation for Spanish clinic names, Plan Corporativo handling
-- 🐾 **Pet Data Standardization**: Standardized species/gender enum values across the application
-- ⚡ **Code Quality**: Comprehensive type safety improvements and data integrity fixes
-- 🔮 **Future-Ready**: n8n automation integration prepared (currently disabled, will be enabled in future release)
+**Recent Updates (January 2026 - v1.2.0)**:
+- 📝 **SEO-Optimized Blog System**: Full-featured blog with Storyblok CMS integration
+  - Dynamic article pages with Table of Contents, FAQ sections, and related posts
+  - Category, author, and tag filtering with SEO-optimized URLs
+  - Rich text rendering with callout boxes, code blocks, and media support
+  - Comprehensive test coverage: 234 unit/integration tests + 80+ E2E tests
+- 📱 **PWA Install Prompt**: Native app-like installation experience
+  - Platform-specific prompts for iOS (step-by-step) and Android/Chrome (native dialog)
+  - Smart timing with 3-second delay and 7-day dismissal persistence
+  - `usePWAInstall` hook for installation state management
+- 👥 **Staff Permissions System (RBAC)**: Granular role-based access control
+  - `PermissionGate` component and `useStaffPermissions` hook
+  - Read-only modes for non-administrative roles
+  - Permissions for: locations, services, inventory, sales, testimonials
+- 📧 **Staff Invitation System**: Secure email-based team onboarding
+  - Token-based invitation validation and acceptance
+  - Professional email templates for notifications
+- 📊 **Updates Page** (`/actualizaciones`): Public changelog with version timeline
+- 🐛 **Bug Report System**: Floating button with screenshot capture support
+- 📈 **Landing Page Analytics**: Anonymous conversion tracking with metrics dashboard
+
+**Previous Updates (v1.1.0 - v1.0.0)**:
+- 🏢 **Multi-Location Support**: Complete multi-clinic feature set for Corporativo plan
+- 📧 **Email System**: Professional transactional emails with Resend
+- ✨ **Public Pages**: Services, team, and testimonials pages for clinic websites
+- 🎨 **Theme Selector**: Light, dark, and system preference modes
+- 💳 **Subscription System**: Trial periods, feature gating, and Stripe integration
 
 ## 🚀 Quick Start
 
@@ -42,16 +53,78 @@ Visit `http://localhost:3000` to access the application.
 
 ## 📦 Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
-- **UI**: React 19, Tailwind CSS, Framer Motion
-- **Database**: PostgreSQL with Prisma ORM
-- **Authentication**: Kinde Auth
-- **Payments**: Stripe (Subscriptions & Trials)
-- **Email**: Resend (Transactional Emails)
-- **Storage**: Supabase
-- **Rate Limiting**: Upstash Redis
-- **Monitoring**: Sentry
-- **Testing**: Jest, Playwright, React Testing Library
+### Core Framework
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Next.js** | 15.5.9 | React framework with App Router, Server Components, Server Actions |
+| **React** | 19.1.0 | UI library with latest concurrent features |
+| **TypeScript** | 5.x | Type-safe development |
+
+### Frontend
+| Technology | Purpose |
+|------------|---------|
+| **Tailwind CSS** | Utility-first CSS framework |
+| **Framer Motion** | Animations and transitions |
+| **Headless UI** | Accessible UI components |
+| **Heroicons / Lucide** | Icon libraries |
+| **React Hook Form + Zod** | Form handling and validation |
+| **FullCalendar** | Appointment calendar component |
+| **Recharts** | Data visualization charts |
+| **next-themes** | Dark/light mode support |
+
+### Backend & Database
+| Technology | Purpose |
+|------------|---------|
+| **PostgreSQL** | Primary database |
+| **Prisma ORM** | Database client and migrations |
+| **Supabase** | Database hosting, file storage, Row Level Security |
+
+### Authentication & Security
+| Technology | Purpose |
+|------------|---------|
+| **Kinde Auth** | OAuth, session management, multi-tenant auth |
+| **Upstash Redis** | Rate limiting and caching |
+| **Zod** | Input validation and sanitization |
+| **CSRF Protection** | Token-based state protection |
+
+### Payments & Email
+| Technology | Purpose |
+|------------|---------|
+| **Stripe** | Subscriptions, trials, payment processing |
+| **Resend** | Transactional emails (confirmations, invitations) |
+| **React Email** | Email template components |
+
+### Content & Media
+| Technology | Purpose |
+|------------|---------|
+| **Storyblok CMS** | Headless CMS for blog content |
+| **Cloudinary** | Image optimization and storage |
+| **jsPDF** | PDF generation for reports |
+| **ExcelJS** | Excel export functionality |
+| **QRCode.react** | QR code generation |
+
+### PWA & Performance
+| Technology | Purpose |
+|------------|---------|
+| **next-pwa** | Progressive Web App support |
+| **SWR** | Data fetching with caching |
+| **@vercel/og** | Open Graph image generation |
+
+### Testing
+| Technology | Purpose |
+|------------|---------|
+| **Jest** | Unit and integration testing |
+| **React Testing Library** | Component testing |
+| **Playwright** | End-to-end testing |
+| **MSW** | API mocking |
+
+### Monitoring & DevOps
+| Technology | Purpose |
+|------------|---------|
+| **Sentry** | Error tracking and performance monitoring |
+| **Husky** | Git hooks for code quality |
+| **lint-staged** | Pre-commit linting |
+| **ESLint** | Code linting |
 
 ## 🛠️ Development
 
@@ -198,13 +271,35 @@ vetify/
 
 ## 🧪 Testing
 
-The project includes comprehensive test coverage:
-- **Unit Tests**: Utilities, validation, business logic
-- **Integration Tests**: API routes, database operations
-- **E2E Tests**: User flows with Playwright
-- **Security Tests**: Input validation, rate limiting, auth flows
+The project includes comprehensive test coverage across all layers:
 
-Run `pnpm test:coverage` for detailed coverage reports.
+### Test Suites
+| Type | Description | Command |
+|------|-------------|---------|
+| **Unit Tests** | Components, utilities, validation, business logic | `pnpm test:unit` |
+| **Integration Tests** | API routes, database operations, server actions | `pnpm test:integration` |
+| **E2E Tests** | User flows, navigation, responsive design | `pnpm test:e2e` |
+| **Security Tests** | Input validation, rate limiting, auth flows | `pnpm test:security` |
+| **Component Tests** | UI components in isolation | `pnpm test:components` |
+
+### Coverage Highlights
+- **Blog Feature**: 234 unit/integration tests + 80+ E2E test cases
+  - Component tests: TableOfContents, RichTextRenderer, RelatedPosts, FAQSection
+  - Page tests: Article, listing, category, author, tag pages
+  - E2E tests: Navigation, SEO, responsive design, filtering
+- **Dashboard**: Appointments, customers, inventory, pets, sales, settings
+- **Subscription**: Feature gates, plan flows, upgrade/downgrade paths
+- **Public Pages**: Landing analytics, team page, testimonials
+
+### Running Tests
+```bash
+pnpm test                 # Run all unit tests
+pnpm test:coverage        # Generate coverage report
+pnpm test:e2e             # Run Playwright E2E tests
+pnpm test:e2e:ui          # Run E2E with interactive UI
+pnpm test:critical        # Run critical tests before deploy
+pnpm test:all             # Run unit + integration + E2E
+```
 
 ## 🚀 Deployment
 
