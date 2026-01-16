@@ -41,17 +41,22 @@ export function Footer() {
           </div>
 
           <div>
-            <h3 className="mb-4 font-semibold text-foreground">Contacto</h3>
+            <h3 className="mb-4 font-semibold text-foreground">Empresa</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/contacto" className="text-muted-foreground transition-colors hover:text-foreground">
-                  Contáctanos
+                <Link href="/acerca" className="text-muted-foreground transition-colors hover:text-foreground">
+                  Acerca de Nosotros
                 </Link>
               </li>
               <li>
-                <a href="mailto:contacto@vetify.pro" className="text-muted-foreground transition-colors hover:text-foreground">
-                  contacto@vetify.pro
-                </a>
+                <Link href="/contacto" className="text-muted-foreground transition-colors hover:text-foreground">
+                  Contacto
+                </Link>
+              </li>
+              <li>
+                <Link href="/blog" className="text-muted-foreground transition-colors hover:text-foreground">
+                  Blog
+                </Link>
               </li>
             </ul>
           </div>
@@ -63,6 +68,11 @@ export function Footer() {
                 <Link href="/privacidad" className="text-muted-foreground transition-colors hover:text-foreground">
                   Política de Privacidad
                 </Link>
+              </li>
+              <li>
+                <a href="mailto:contacto@vetify.pro" className="text-muted-foreground transition-colors hover:text-foreground">
+                  contacto@vetify.pro
+                </a>
               </li>
             </ul>
           </div>

@@ -11,6 +11,8 @@ import {
   Award,
   Sparkles,
   Mail,
+  User,
+  ExternalLink,
 } from 'lucide-react';
 import { generateMetadata as generateSEOMetadata, createPageSEO } from '@/lib/seo';
 import { PAGE_METADATA } from '@/lib/seo/config';
@@ -198,6 +200,34 @@ export default function AcercaPage() {
                   de citas, historiales médicos digitales, control de inventario y mucho más,
                   todo en una plataforma diseñada específicamente para el mercado hispanohablante.
                 </p>
+              </Section>
+
+              {/* Founder */}
+              <Section icon={<User className="h-5 w-5" />} title="Fundador">
+                <div className="flex flex-col sm:flex-row items-start gap-6 mt-4">
+                  <div className="shrink-0 w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center border border-primary/20">
+                    <span className="text-2xl font-bold text-primary">EA</span>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">Emmanuel Alanis</h3>
+                    <p className="text-sm text-primary mb-3">CEO & Fundador</p>
+                    <p className="text-muted-foreground">
+                      Desarrollador de software con pasión por crear soluciones tecnológicas
+                      que impacten positivamente en las industrias tradicionales. Con experiencia
+                      en desarrollo full-stack y productos SaaS, fundó Vetify con el objetivo de
+                      llevar herramientas modernas a las clínicas veterinarias de Latinoamérica.
+                    </p>
+                    <a
+                      href="https://alanis.dev"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 mt-4 text-primary hover:underline font-medium"
+                    >
+                      alanis.dev
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </div>
+                </div>
               </Section>
 
               {/* Values */}
