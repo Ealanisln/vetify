@@ -241,6 +241,8 @@ model Customer {
   @@index([tenantId])
   @@index([locationId])
   @@index([tenantId, locationId])
+  @@index([tenantId, isActive]) // Performance: common filter pattern
+  @@index([tenantId, isActive, createdAt]) // Performance: paginated active customer queries
   @@index([email])
   @@index([phone])
   @@index([tenantId, name])
