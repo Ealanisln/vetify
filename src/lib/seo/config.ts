@@ -131,6 +131,16 @@ export const PAGE_METADATA = {
       en: 'Discover all Vetify features: appointment management, digital medical records, smart inventory, automated billing and more.',
     },
   },
+  about: {
+    title: {
+      es: 'Acerca de Vetify - Nuestra Historia y Misión',
+      en: 'About Vetify - Our Story and Mission',
+    },
+    description: {
+      es: 'Conoce la misión de Vetify: transformar la gestión veterinaria con tecnología accesible, segura y diseñada para el éxito de las clínicas en México.',
+      en: 'Discover Vetify\'s mission: transforming veterinary management with accessible, secure technology designed for clinic success in Mexico.',
+    },
+  },
 } as const;
 
 // Robots meta configuration
