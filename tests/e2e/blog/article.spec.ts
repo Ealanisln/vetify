@@ -15,15 +15,31 @@ const baseUrl = process.env.TEST_BASE_URL || 'http://localhost:3000';
 
 test.describe('Blog Article Page', () => {
   // Helper to navigate to first available article
+  // Returns true if navigation was successful, false otherwise
   async function navigateToArticle(page: import('@playwright/test').Page) {
     await page.goto(`${baseUrl}/blog`);
+    // Use domcontentloaded instead of networkidle to avoid hanging when Storyblok API is unavailable
     await page.waitForLoadState('domcontentloaded');
+
+    // Wait a bit for dynamic content to load (but don't hang indefinitely)
+    try {
+      await page.waitForSelector('a[href^="/blog/"]', { timeout: 5000 });
+    } catch {
+      // No blog articles available (likely Storyblok API not configured)
+      return false;
+    }
 
     const articleLink = page.locator('a[href^="/blog/"]').filter({ hasNot: page.locator('a[href="/blog"]') }).first();
 
     if (await articleLink.count() > 0) {
       await articleLink.click();
       await page.waitForLoadState('domcontentloaded');
+      // Wait for article content to load
+      try {
+        await page.waitForSelector('h1', { timeout: 5000 });
+      } catch {
+        return false;
+      }
       return true;
     }
     return false;
