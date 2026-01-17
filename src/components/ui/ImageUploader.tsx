@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 
 export type AspectRatio = '1:1' | '16:9' | 'free';
 export type ImageType = 'logo' | 'hero' | 'pet-profile' | 'staff-profile';
+export type ImageSize = 'sm' | 'md' | 'lg' | 'full';
 
 interface ImageUploaderProps {
   imageType: ImageType;
@@ -16,6 +17,7 @@ interface ImageUploaderProps {
   onUpload?: (url: string) => void;
   onDelete?: () => void;
   aspectRatio?: AspectRatio;
+  size?: ImageSize;
   className?: string;
   label?: string;
   description?: string;
@@ -27,6 +29,13 @@ const ASPECT_RATIO_CLASSES: Record<AspectRatio, string> = {
   free: 'aspect-auto min-h-48',
 };
 
+const SIZE_CLASSES: Record<ImageSize, string> = {
+  sm: 'max-w-[120px]',
+  md: 'max-w-[180px]',
+  lg: 'max-w-[280px]',
+  full: 'w-full',
+};
+
 export function ImageUploader({
   imageType,
   entityId,
@@ -34,6 +43,7 @@ export function ImageUploader({
   onUpload,
   onDelete,
   aspectRatio = 'free',
+  size = 'full',
   className,
   label,
   description,
@@ -167,7 +177,7 @@ export function ImageUploader({
   );
 
   return (
-    <div className={cn('space-y-2', className)}>
+    <div className={cn('space-y-2', size !== 'full' && 'inline-block', className)}>
       {label && (
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
           {label}
@@ -178,6 +188,7 @@ export function ImageUploader({
         className={cn(
           'relative border-2 border-dashed rounded-lg transition-colors overflow-hidden',
           ASPECT_RATIO_CLASSES[aspectRatio],
+          SIZE_CLASSES[size],
           isDragging
             ? 'border-primary bg-primary/5'
             : 'border-gray-300 dark:border-gray-600',
@@ -199,19 +210,27 @@ export function ImageUploader({
         />
 
         {preview ? (
-          <div className="relative w-full h-full">
+          <div className="relative w-full h-full group">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={preview}
               alt="Preview"
               className="w-full h-full object-cover"
             />
-            <div className="absolute top-2 right-2 flex gap-2">
+            <div className={cn(
+              'absolute flex gap-1',
+              size === 'sm' || size === 'md'
+                ? 'inset-0 items-center justify-center opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity'
+                : 'top-2 right-2 gap-2'
+            )}>
               <Button
                 type="button"
                 variant="outline"
-                size="icon"
-                className="bg-white/90 hover:bg-white dark:bg-gray-800/90 dark:hover:bg-gray-800"
+                size={size === 'sm' ? 'sm' : 'icon'}
+                className={cn(
+                  'bg-white/90 hover:bg-white dark:bg-gray-800/90 dark:hover:bg-gray-800',
+                  size === 'sm' && 'h-7 w-7 p-0'
+                )}
                 onClick={(e) => {
                   e.stopPropagation();
                   fileInputRef.current?.click();
@@ -219,15 +238,16 @@ export function ImageUploader({
                 disabled={isUploading || isDeleting}
               >
                 {isUploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className={cn('animate-spin', size === 'sm' ? 'h-3 w-3' : 'h-4 w-4')} />
                 ) : (
-                  <Upload className="h-4 w-4" />
+                  <Upload className={size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'} />
                 )}
               </Button>
               <Button
                 type="button"
                 variant="destructive"
-                size="icon"
+                size={size === 'sm' ? 'sm' : 'icon'}
+                className={size === 'sm' ? 'h-7 w-7 p-0' : undefined}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDelete();
@@ -235,29 +255,61 @@ export function ImageUploader({
                 disabled={isUploading || isDeleting}
               >
                 {isDeleting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className={cn('animate-spin', size === 'sm' ? 'h-3 w-3' : 'h-4 w-4')} />
                 ) : (
-                  <X className="h-4 w-4" />
+                  <X className={size === 'sm' ? 'h-3 w-3' : 'h-4 w-4'} />
                 )}
               </Button>
             </div>
           </div>
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-3">
             {isUploading ? (
-              <Loader2 className="h-10 w-10 text-gray-400 animate-spin" />
+              <Loader2 className={cn(
+                'text-gray-400 animate-spin',
+                size === 'sm' ? 'h-6 w-6' : size === 'md' ? 'h-8 w-8' : 'h-10 w-10'
+              )} />
             ) : (
               <>
-                <ImageIcon className="h-10 w-10 text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500 text-center">
-                  Arrastra una imagen aqui o{' '}
-                  <span className="text-primary font-medium">
-                    haz clic para seleccionar
-                  </span>
-                </p>
-                <p className="text-xs text-gray-400 mt-1">
-                  JPG, PNG o WebP. Maximo 5MB.
-                </p>
+                <div className={cn(
+                  'rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-2',
+                  size === 'sm' ? 'w-10 h-10' : size === 'md' ? 'w-12 h-12' : 'w-14 h-14'
+                )}>
+                  <ImageIcon className={cn(
+                    'text-gray-400',
+                    size === 'sm' ? 'h-5 w-5' : size === 'md' ? 'h-6 w-6' : 'h-7 w-7'
+                  )} />
+                </div>
+                {size === 'sm' ? (
+                  <p className="text-xs text-primary font-medium text-center">
+                    Subir
+                  </p>
+                ) : size === 'md' ? (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                    <span className="text-primary font-medium">Clic para subir</span>
+                  </p>
+                ) : size === 'lg' ? (
+                  <>
+                    <p className="text-sm text-primary font-medium text-center">
+                      Subir imagen
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1 text-center">
+                      JPG, PNG, WebP
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                      Arrastra una imagen o{' '}
+                      <span className="text-primary font-medium">
+                        haz clic
+                      </span>
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      JPG, PNG o WebP. Max 5MB.
+                    </p>
+                  </>
+                )}
               </>
             )}
           </div>

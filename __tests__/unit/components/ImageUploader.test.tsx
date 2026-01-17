@@ -65,10 +65,10 @@ describe('ImageUploader Component', () => {
     it('should show upload instructions when no image', () => {
       render(<ImageUploader {...defaultProps} />);
 
-      expect(screen.getByText(/Arrastra una imagen aqui/i)).toBeInTheDocument();
-      expect(screen.getByText(/haz clic para seleccionar/i)).toBeInTheDocument();
+      expect(screen.getByText(/Arrastra una imagen o/i)).toBeInTheDocument();
+      expect(screen.getByText(/haz clic/i)).toBeInTheDocument();
       expect(screen.getByText(/JPG, PNG o WebP/i)).toBeInTheDocument();
-      expect(screen.getByText(/Maximo 5MB/i)).toBeInTheDocument();
+      expect(screen.getByText(/Max 5MB/i)).toBeInTheDocument();
     });
   });
 

@@ -116,9 +116,9 @@ export function QuickActionsCard({ pet }: QuickActionsCardProps) {
 
   const getActionStyles = (action: typeof actions[0]) => {
     if (action.primary) {
-      return `${getThemeClasses('background.card')} border-2 border-[#75a99c] dark:border-[#95c9bc] hover:${getThemeClasses('background.hover')}`;
+      return `${getThemeClasses('background.card')} border-2 border-[#75a99c] dark:border-[#95c9bc] hover:bg-[#e8f4f0] dark:hover:bg-[#2a3630]/50`;
     }
-    
+
     switch (action.color) {
       case 'green':
         return `${getThemeClasses('background.card', 'border.card')} hover:bg-green-50 dark:hover:bg-green-900/20 hover:border-green-200 dark:hover:border-green-700`;
@@ -127,7 +127,7 @@ export function QuickActionsCard({ pet }: QuickActionsCardProps) {
       case 'orange':
         return `${getThemeClasses('background.card', 'border.card')} hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:border-orange-200 dark:hover:border-orange-700`;
       default:
-        return `${getThemeClasses('background.card', 'border.card')} hover:${getThemeClasses('background.hover')}`;
+        return `${getThemeClasses('background.card', 'border.card')} hover:bg-gray-50 dark:hover:bg-gray-700`;
     }
   };
 
