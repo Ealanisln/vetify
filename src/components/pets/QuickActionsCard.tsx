@@ -44,6 +44,9 @@ export function QuickActionsCard({ pet }: QuickActionsCardProps) {
           alert('No hay número de WhatsApp registrado');
         }
         break;
+      case 'editPhoto':
+        router.push(`/dashboard/pets/${pet.id}/edit#photo`);
+        break;
       case 'images':
         alert('Abriendo galería de imágenes...');
         break;
@@ -98,6 +101,14 @@ export function QuickActionsCard({ pet }: QuickActionsCardProps) {
       name: 'WhatsApp',
       description: 'Contactar al dueño',
       icon: '💬',
+      primary: false,
+      color: 'gray'
+    },
+    {
+      id: 'editPhoto',
+      name: 'Editar Foto',
+      description: 'Cambiar foto de perfil',
+      icon: '📷',
       primary: false,
       color: 'gray'
     }

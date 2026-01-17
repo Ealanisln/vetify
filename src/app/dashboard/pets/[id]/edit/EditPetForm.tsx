@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Pet, Customer } from '@prisma/client';
 import { getThemeClasses } from '@/utils/theme-colors';
+import { PetProfileImage } from '@/components/pets/PetProfileImage';
 
 type PetWithCustomer = Pet & { customer: Customer };
 
@@ -14,6 +15,14 @@ interface EditPetFormProps {
 export function EditPetForm({ pet }: EditPetFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const photoSectionRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to photo section if URL has #photo hash
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash === '#photo') {
+      photoSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
   const [formData, setFormData] = useState({
     name: pet.name,
     species: pet.species,
@@ -81,6 +90,19 @@ export function EditPetForm({ pet }: EditPetFormProps) {
             <p className={`text-sm ${getThemeClasses('text.secondary')}`}>{pet.customer.email}</p>
           )}
         </div>
+      </div>
+
+      {/* Photo Section */}
+      <div ref={photoSectionRef} className={`card p-4 md:p-6 ${getThemeClasses('background.card', 'border.card')}`}>
+        <h3 className={`text-base md:text-lg font-medium ${getThemeClasses('text.primary')} mb-4`}>
+          Foto de Perfil
+        </h3>
+        <PetProfileImage
+          petId={pet.id}
+          currentImage={pet.profileImage}
+          petName={pet.name}
+          onUpdate={() => router.refresh()}
+        />
       </div>
 
       {/* Pet Info */}
