@@ -5,6 +5,27 @@ Todos los cambios notables en este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
+## [1.2.1] - 2026-01-22
+
+### Corregido
+- **Error "Maximum update depth exceeded" en página de citas**
+  - Memoización de handlers en AppointmentsPageClient para prevenir loops de re-render
+  - Debounce en listener de visibilidad (500ms)
+  - Funciones fallback estables en AppointmentStats y TodayAppointments
+  - Corrección de mutación de array de citas al ordenar
+  - Mejoras en useAppointmentsData con referencias de objeto estables
+  - Botón de WhatsApp deshabilitado temporalmente por bug con HeadlessUI Menu
+
+### Seguridad
+- **Control de acceso en páginas protegidas**
+  - Enforcement de verificación de suscripción en rutas protegidas
+
+### Modificado
+- **PWA: Dashboard como URL de inicio predeterminada**
+  - Mejora en experiencia de instalación de PWA
+
+---
+
 ## [1.2.0] - 2026-01-22
 
 ### Agregado
