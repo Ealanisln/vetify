@@ -5,9 +5,18 @@ Todos los cambios notables en este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
-## [1.2.0] - 2026-01-13
+## [1.2.0] - 2026-01-22
 
 ### Agregado
+- **Carga de Fotos de Mascotas (VETIF-224)**
+  - Subida de fotos de perfil para mascotas con integración Cloudinary
+  - Componente ImageLightbox para visualización de fotos en detalle
+  - Mejoras en componentes de UI: PetHeader, MedicalHistoryCard, TreatmentTimelineCard
+  - Tests comprehensivos: unitarios, integración y E2E
+- **Página Acerca de Nosotros (VETIF-41)**
+  - Nueva página `/acerca` con información de la empresa
+  - Sección de fundador con foto y biografía
+  - Enlaces actualizados en footer
 - **Prompt de Instalación PWA (InstallPrompt)**
   - Componente para facilitar instalación de PWA en dispositivos móviles
   - Hook `usePWAInstall` para detectar plataforma y estado de instalación
@@ -21,12 +30,14 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   - Corrección de recorte de imágenes en testimonios
 - Tests completos para InstallPrompt (20 unit tests, 42 integration tests)
 - Tests unitarios para componentes de marketing
+- Documentación de integración con Storyblok CMS
 
 ### Corregido
 - Llamadas redundantes a API en página de calendario de citas (VETIF-167)
 - Recorte incorrecto de imágenes en sección de testimonios
 
 ### Rendimiento
+- Optimización de tiempos de respuesta de API reduciendo overhead de autenticación (VETIF-168)
 - Infraestructura SWR optimizada para citas con tests comprehensivos
 
 ---
