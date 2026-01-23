@@ -24,7 +24,7 @@ import { redirect } from 'next/navigation';
 import { getFullReportsData } from '../../../lib/reports';
 import EnhancedReportsClient from '../../../components/reports/EnhancedReportsClient';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
-import { requireAuth } from '../../../lib/auth';
+import { requireActiveSubscription } from '../../../lib/auth';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -82,8 +82,8 @@ function ReportsLoading() {
 }
 
 export default async function ReportsPage() {
-  // Get authenticated user and tenant
-  const { tenant } = await requireAuth();
+  // Get authenticated user and tenant (requires active subscription)
+  const { tenant } = await requireActiveSubscription();
 
   if (!tenant?.id) {
     redirect('/onboarding');

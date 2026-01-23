@@ -1,5 +1,7 @@
+import { requireActiveSubscription } from '@/lib/auth';
 import { CustomersPageClient } from './CustomersPageClient';
 
-export default function CustomersPage() {
+export default async function CustomersPage() {
+  await requireActiveSubscription();
   return <CustomersPageClient />;
 }
