@@ -14,6 +14,10 @@ import { test, expect } from '@playwright/test';
  *
  * NOTE: These tests require authentication and proper test user setup.
  * They will be skipped if TEST_AUTH_ENABLED is not set.
+ *
+ * SECURITY: The customers page is protected by subscription access control.
+ * Users with expired trials will be redirected to /dashboard/settings?tab=subscription.
+ * See tests/e2e/subscription/subscription-access-control.spec.ts for subscription tests.
  */
 const isAuthTestEnabled = process.env.TEST_AUTH_ENABLED === 'true';
 

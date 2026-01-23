@@ -427,7 +427,8 @@ describe('useCalendarEvents', () => {
     const { result } = renderHook(() => useCalendarEvents(appointments));
 
     expect(result.current).toHaveLength(1);
-    expect(result.current[0]).toHaveProperty('id', 'appt-1');
+    // Event ID now includes status for uniqueness (prevents duplicate key warnings on status change)
+    expect(result.current[0]).toHaveProperty('id', 'appt-1-SCHEDULED');
     expect(result.current[0]).toHaveProperty('title');
     expect(result.current[0]).toHaveProperty('start');
     expect(result.current[0]).toHaveProperty('end');

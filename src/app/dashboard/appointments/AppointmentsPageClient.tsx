@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { AppointmentModal, TodayAppointments, AppointmentStats } from '../../../components/appointments';
 import { AppointmentsProvider, useAppointmentsContext } from '../../../components/providers/AppointmentsProvider';
@@ -107,9 +107,10 @@ function AppointmentsPageContent({
   const canWriteAppointments = checkPermission('appointments', 'write');
 
   // Trigger calendar refresh
-  const triggerCalendarRefresh = () => {
+  // IMPORTANT: Memoize to prevent infinite re-render loops
+  const triggerCalendarRefresh = useCallback(() => {
     setCalendarRefreshTrigger(prev => prev + 1);
-  };
+  }, []);
 
   // Auto-refresh calendar data when page mounts
   // This ensures new appointments appear after navigating back from creation page
@@ -123,65 +124,80 @@ function AppointmentsPageContent({
 
   useEffect(() => {
     // Refresh when page becomes visible again (e.g., returning from another tab)
+    // IMPORTANT: Add debounce to prevent rapid successive calls that can cause infinite loops
+    let debounceTimer: NodeJS.Timeout | null = null;
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        triggerCalendarRefresh();
+        // Clear any pending refresh
+        if (debounceTimer) {
+          clearTimeout(debounceTimer);
+        }
+        // Debounce the refresh to prevent rapid successive calls
+        debounceTimer = setTimeout(() => {
+          triggerCalendarRefresh();
+        }, 500);
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
     };
-  }, []);
+  }, [triggerCalendarRefresh]);
 
-  const handleNewAppointment = () => {
+  // IMPORTANT: Memoize all handlers to prevent infinite re-render loops
+  const handleNewAppointment = useCallback(() => {
     setSelectedAppointment(undefined);
     setSelectedDate(undefined);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleDateSelect = (selectInfo: DateSelectArg) => {
+  const handleDateSelect = useCallback((selectInfo: DateSelectArg) => {
     setSelectedAppointment(undefined);
     setSelectedDate(selectInfo.start);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleEventClick = () => {
+  const handleEventClick = useCallback(() => {
     // This is handled by the FullCalendarView component's internal modal
     // We could add additional logic here if needed
-  };
+  }, []);
 
-  const handleEventEdit = (appointment: AppointmentWithDetails) => {
+  const handleEventEdit = useCallback((appointment: AppointmentWithDetails) => {
     setSelectedAppointment(appointment);
     setSelectedDate(undefined);
     setIsModalOpen(true);
-  };
+  }, []);
 
-  const handleModalSuccess = async () => {
+  const handleModalSuccess = useCallback(async () => {
     await refresh();
     triggerCalendarRefresh();
-  };
+  }, [refresh, triggerCalendarRefresh]);
 
-  const handleQuickAction = async (appointmentId: string, action: string) => {
+  const handleQuickAction = useCallback(async (appointmentId: string, action: string) => {
     try {
+      // quickAction already invalidates the cache and triggers revalidation
+      // No need to call refresh() or triggerCalendarRefresh() separately
+      // as this can cause "Maximum update depth exceeded" errors
       await quickAction(appointmentId, action);
-      await refresh();
-      triggerCalendarRefresh();
     } catch (error) {
       throw error; // Re-throw to be handled by the QuickActions component
     }
-  };
+  }, [quickAction]);
 
-  const handleWhatsApp = (phone: string, appointment: AppointmentWithDetails) => {
+  const handleWhatsApp = useCallback((phone: string, appointment: AppointmentWithDetails) => {
     const cleanPhone = phone.replace(/\D/g, '');
     const message = encodeURIComponent(
       `Hola ${appointment.customer.name}, recordamos tu cita para ${appointment.pet.name} el ${formatDate(appointment.dateTime)} a las ${formatTime(appointment.dateTime)}. Motivo: ${appointment.reason}`
     );
-    
+
     const whatsappUrl = `https://wa.me/${cleanPhone}?text=${message}`;
     window.open(whatsappUrl, '_blank');
-  };
+  }, []);
 
   return (
     <div className="space-y-6">

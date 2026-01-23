@@ -45,9 +45,9 @@ describe('PWA Manifest Integration Tests', () => {
       expect((manifest.short_name as string).length).toBeLessThanOrEqual(15);
     });
 
-    it('should have start_url field', () => {
+    it('should have start_url field pointing to dashboard', () => {
       expect(manifest).toHaveProperty('start_url');
-      expect(manifest.start_url).toBe('/');
+      expect(manifest.start_url).toBe('/dashboard');
     });
 
     it('should have display field set to standalone', () => {
