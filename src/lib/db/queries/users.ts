@@ -1,4 +1,4 @@
-import { prisma, setRLSTenantId } from '../../prisma';
+import { prisma } from '../../prisma';
 import { serializeUser } from '../../serializers';
 import { UserWithTenant } from "@/types";
 import { getPendingInvitationByEmail } from '@/lib/invitations/invitation-token';
@@ -77,8 +77,30 @@ export interface CreateOrUpdateUserData {
 }
 
 /**
+ * Check if user data has changed and needs updating
+ * PERFORMANCE OPTIMIZATION: Only trigger updates when data actually changed
+ * @exported for unit testing
+ */
+export function userDataNeedsUpdate(
+  existingUser: { email: string; firstName: string | null; lastName: string | null; name: string | null; isActive: boolean },
+  newData: { email: string; firstName?: string | null; lastName?: string | null; name?: string }
+): boolean {
+  const computedName = newData.name || `${newData.firstName || ''} ${newData.lastName || ''}`.trim() || newData.email.split('@')[0];
+
+  return (
+    existingUser.email !== newData.email ||
+    existingUser.firstName !== (newData.firstName ?? null) ||
+    existingUser.lastName !== (newData.lastName ?? null) ||
+    existingUser.name !== computedName ||
+    !existingUser.isActive
+  );
+}
+
+/**
  * Find or create a user based on Kinde authentication data
  * Handles concurrent requests gracefully using upsert
+ *
+ * PERFORMANCE OPTIMIZED: Only updates user if data has actually changed
  *
  * @param data - User data from Kinde
  * @returns User with tenant information
@@ -108,53 +130,44 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
       }
     });
 
-    // If user exists, update basic info and return with tenant
+    // If user exists, only update if data has changed (PERFORMANCE: skip unnecessary writes)
     if (existingUser) {
-      const updatedUser = await prisma.user.update({
-        where: { id },
-        data: {
-          email,
-          firstName,
-          lastName,
-          name: name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
-          isActive: true,
-        },
-        include: {
-          tenant: {
-            include: {
-              tenantSubscription: {
-                include: { plan: true }
+      const needsUpdate = userDataNeedsUpdate(existingUser, { email, firstName, lastName, name });
+
+      let userToReturn = existingUser;
+
+      // Only perform UPDATE if data has actually changed
+      if (needsUpdate) {
+        userToReturn = await prisma.user.update({
+          where: { id },
+          data: {
+            email,
+            firstName,
+            lastName,
+            name: name || `${firstName || ''} ${lastName || ''}`.trim() || email.split('@')[0],
+            isActive: true,
+          },
+          include: {
+            tenant: {
+              include: {
+                tenantSubscription: {
+                  include: { plan: true }
+                }
               }
             }
           }
-        }
-      });
+        });
+      }
 
       // If user doesn't have a tenant, check for pending invitations
-      if (!updatedUser.tenantId) {
+      if (!userToReturn.tenantId) {
         const linkedUser = await autoAcceptPendingInvitation(id, email);
         if (linkedUser) {
-          // Set RLS tenant ID for the newly linked tenant
-          try {
-            await setRLSTenantId(linkedUser.tenantId!);
-          } catch (rlsError) {
-            console.warn('Failed to set RLS tenant ID:', rlsError);
-          }
           return serializeUser(linkedUser);
         }
       }
 
-      // Set RLS tenant ID if user has a tenant (for subsequent queries)
-      if (updatedUser.tenantId) {
-        try {
-          await setRLSTenantId(updatedUser.tenantId);
-        } catch (rlsError) {
-          console.warn('Failed to set RLS tenant ID:', rlsError);
-          // Continue without RLS - not critical for auth
-        }
-      }
-
-      return serializeUser(updatedUser);
+      return serializeUser(userToReturn);
     }
 
     // If user doesn't exist, try to create
@@ -184,12 +197,6 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
       // Check for pending invitations for new users
       const linkedUser = await autoAcceptPendingInvitation(id, email);
       if (linkedUser) {
-        // Set RLS tenant ID for the newly linked tenant
-        try {
-          await setRLSTenantId(linkedUser.tenantId!);
-        } catch (rlsError) {
-          console.warn('Failed to set RLS tenant ID:', rlsError);
-        }
         return serializeUser(linkedUser);
       }
 
@@ -215,15 +222,6 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
         });
 
         if (user) {
-          // Set RLS tenant ID if user has a tenant
-          if (user.tenantId) {
-            try {
-              await setRLSTenantId(user.tenantId);
-            } catch (rlsError) {
-              console.warn('Failed to set RLS tenant ID:', rlsError);
-            }
-          }
-
           return serializeUser(user);
         }
       }
@@ -259,16 +257,6 @@ export async function findUserById(userId: string): Promise<UserWithTenant | nul
 
     if (!user) {
       return null;
-    }
-
-    // Set RLS tenant ID if user has a tenant (for subsequent queries)
-    if (user.tenantId) {
-      try {
-        await setRLSTenantId(user.tenantId);
-      } catch (rlsError) {
-        console.warn('Failed to set RLS tenant ID:', rlsError);
-        // Continue without RLS - not critical for user lookup
-      }
     }
 
     return serializeUser(user);

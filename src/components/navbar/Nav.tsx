@@ -391,6 +391,14 @@ export default function Nav() {
               >
                 Precios
               </Link>
+              {/* TODO: Uncomment when blog is ready for production
+              <Link
+                href="/blog"
+                className="text-gray-700 hover:text-[#4DB8A3] px-4 py-2.5 text-base font-medium transition-all duration-200 rounded-lg hover:bg-[#4DB8A3]/5"
+              >
+                Blog
+              </Link>
+              */}
             </div>
 
             {/* Right section - User section placeholder */}
@@ -479,6 +487,15 @@ export default function Nav() {
                 Precios
                 <span className="absolute bottom-1 left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-[#4DB8A3] to-transparent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
               </Link>
+              {/* TODO: Uncomment when blog is ready for production
+              <Link
+                href="/blog"
+                className="text-gray-700 hover:text-[#4DB8A3] dark:text-gray-200 dark:hover:text-[#4DB8A3] px-4 py-2.5 text-base font-medium transition-all duration-300 rounded-lg hover:bg-[#4DB8A3]/10 dark:hover:bg-[#4DB8A3]/20 relative group"
+              >
+                Blog
+                <span className="absolute bottom-1 left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-[#4DB8A3] to-transparent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
+              </Link>
+              */}
             </div>
 
             {/* Right section - User section */}
@@ -690,6 +707,18 @@ export default function Nav() {
                   Precios
                 </span>
               </Link>
+              {/* TODO: Uncomment when blog is ready for production
+              <Link
+                href="/blog"
+                className="flex items-center px-5 py-3.5 text-base font-medium text-gray-700 dark:text-gray-200 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gradient-to-r hover:from-[#4DB8A3]/10 hover:to-[#4DB8A3]/5 dark:hover:from-[#4DB8A3]/20 dark:hover:to-[#4DB8A3]/10 rounded-xl transition-all duration-300 group relative overflow-hidden"
+                onClick={closeMobileMenu}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-[#4DB8A3]/0 via-[#4DB8A3]/10 to-[#4DB8A3]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                <span className="transform group-hover:translate-x-2 transition-transform duration-300 relative z-10">
+                  Blog
+                </span>
+              </Link>
+              */}
 
               {/* Divider with gradient */}
               <div className="h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent my-4"></div>

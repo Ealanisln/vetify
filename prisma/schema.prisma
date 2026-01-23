@@ -82,6 +82,7 @@ model Tenant {
   inventoryTransfers  InventoryTransfer[]
   testimonials        Testimonial[]
   landingPageAnalytics LandingPageAnalytics[]
+  pushSubscriptions   PushSubscription[]
 
   @@index([status])
   @@index([slug])
@@ -240,6 +241,8 @@ model Customer {
   @@index([tenantId])
   @@index([locationId])
   @@index([tenantId, locationId])
+  @@index([tenantId, isActive]) // Performance: common filter pattern
+  @@index([tenantId, isActive, createdAt]) // Performance: paginated active customer queries
   @@index([email])
   @@index([phone])
   @@index([tenantId, name])
@@ -1474,4 +1477,45 @@ enum AnalyticsEventType {
   CONVERSION // Appointment request created
   BUTTON_CLICK // User clicked a CTA button
   SCROLL_DEPTH // User scrolled to a certain point
+}
+
+// ============================================================================
+// PUSH NOTIFICATIONS
+// ============================================================================
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  tenantId  String
+  staffId   String?  // Optional link to staff member
+  userId    String?  // Optional link to user
+
+  // Web Push subscription data
+  endpoint  String   @unique // Push service endpoint URL
+  p256dh    String   // Client public key
+  auth      String   // Auth secret
+
+  // Device/browser info for management
+  userAgent String?
+  deviceName String? // User-friendly name like "Chrome on Windows"
+
+  // Notification preferences
+  notifyAppointments  Boolean @default(true)
+  notifyReminders     Boolean @default(true)
+  notifyLowStock      Boolean @default(false) // Staff-only typically
+
+  // Status tracking
+  isActive  Boolean  @default(true)
+  lastUsedAt DateTime?
+  failCount Int      @default(0) // Track failed delivery attempts
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+  @@index([staffId])
+  @@index([userId])
+  @@index([endpoint])
 }
