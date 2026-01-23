@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
-import { EditPetForm } from './EditPetForm';
+import { EditPetForm, SerializedPetWithCustomer } from './EditPetForm';
 
 interface EditPetPageProps {
   params: Promise<{ id: string }>;
@@ -20,6 +20,21 @@ export default async function EditPetPage({ params }: EditPetPageProps) {
     notFound();
   }
 
+  // Serialize the pet data for the client component
+  // Decimal and Date objects need to be converted to plain values
+  const serializedPet: SerializedPetWithCustomer = {
+    ...pet,
+    weight: pet.weight ? Number(pet.weight) : null,
+    dateOfBirth: pet.dateOfBirth.toISOString(),
+    createdAt: pet.createdAt.toISOString(),
+    updatedAt: pet.updatedAt.toISOString(),
+    customer: {
+      ...pet.customer,
+      createdAt: pet.customer.createdAt.toISOString(),
+      updatedAt: pet.customer.updatedAt.toISOString(),
+    },
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -28,7 +43,7 @@ export default async function EditPetPage({ params }: EditPetPageProps) {
         </h1>
       </div>
 
-      <EditPetForm pet={pet} />
+      <EditPetForm pet={serializedPet} />
     </div>
   );
 }

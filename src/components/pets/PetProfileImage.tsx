@@ -1,11 +1,13 @@
 'use client';
 
-import { ImageUploader } from '../ui/ImageUploader';
+import { ImageUploader, ImageSize } from '../ui/ImageUploader';
 
 interface PetProfileImageProps {
   petId: string;
   currentImage?: string | null;
   petName: string;
+  size?: ImageSize;
+  showDescription?: boolean;
   onUpdate?: (url: string | null) => void;
 }
 
@@ -13,6 +15,8 @@ export function PetProfileImage({
   petId,
   currentImage,
   petName,
+  size = 'md',
+  showDescription = true,
   onUpdate,
 }: PetProfileImageProps) {
   return (
@@ -21,8 +25,9 @@ export function PetProfileImage({
       entityId={petId}
       currentImage={currentImage}
       aspectRatio="1:1"
+      size={size}
       label={`Foto de ${petName}`}
-      description="Foto de perfil de la mascota"
+      description={showDescription ? "Foto de perfil de la mascota" : undefined}
       onUpload={(url) => onUpdate?.(url)}
       onDelete={() => onUpdate?.(null)}
     />
