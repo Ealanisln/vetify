@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -57,12 +57,22 @@ export function FullCalendarView({
   // Context-based data (no API calls - uses shared data)
   const contextData = useSafeAppointmentsContext();
 
-  // Legacy hooks - always called but results ignored when context is available
-  const legacyCalendarData = useCalendar(defaultView);
-  const legacyAppointmentData = useAppointments();
-
   // Prefer context data when in provider, fallback to legacy otherwise
   const isInProvider = contextData !== null;
+
+  // Legacy hooks - ALWAYS disabled since this component is only used inside AppointmentsProvider
+  // This prevents duplicate API calls and infinite re-render loops
+  const legacyCalendarData = useCalendar(defaultView, false);
+  const legacyAppointmentData = useAppointments(undefined, false);
+
+  // IMPORTANT: Create stable fallback functions to prevent infinite re-render loops
+  // Without these, inline arrow functions create new references on every render,
+  // which triggers useEffect dependencies and causes "Maximum update depth exceeded"
+  const noopPromise = useCallback(() => Promise.resolve(), []);
+  const noopVoid = useCallback(() => {}, []);
+  const noopThrowAsync = useCallback(async (): Promise<AppointmentWithDetails> => {
+    throw new Error('Not available');
+  }, []);
 
   // Unified data access - context takes priority
   const events = isInProvider ? (contextData?.calendarEvents ?? []) : (legacyCalendarData?.events ?? []);
@@ -70,10 +80,10 @@ export function FullCalendarView({
   const error = isInProvider ? contextData?.error : (legacyCalendarData?.error ? new Error(legacyCalendarData.error) : null);
   const currentDate = isInProvider ? (contextData?.currentDate ?? new Date()) : (legacyCalendarData?.currentDate ?? new Date());
   const currentView = isInProvider ? (contextData?.currentView ?? defaultView) : (legacyCalendarData?.currentView ?? defaultView);
-  const setCurrentDate = isInProvider ? (contextData?.setCurrentDate ?? (() => {})) : (legacyCalendarData?.setCurrentDate ?? (() => {}));
-  const setCurrentView = isInProvider ? (contextData?.setCurrentView ?? (() => {})) : (legacyCalendarData?.setCurrentView ?? (() => {}));
-  const refresh = isInProvider ? (contextData?.refresh ?? (() => Promise.resolve())) : (legacyCalendarData?.refresh ?? (() => Promise.resolve()));
-  const updateAppointment = isInProvider ? (contextData?.updateAppointment ?? (async () => { throw new Error('Not available'); })) : (legacyAppointmentData?.updateAppointment ?? (async () => { throw new Error('Not available'); }));
+  const setCurrentDate = isInProvider ? (contextData?.setCurrentDate ?? noopVoid) : (legacyCalendarData?.setCurrentDate ?? noopVoid);
+  const setCurrentView = isInProvider ? (contextData?.setCurrentView ?? noopVoid) : (legacyCalendarData?.setCurrentView ?? noopVoid);
+  const refresh = isInProvider ? (contextData?.refresh ?? noopPromise) : (legacyCalendarData?.refresh ?? noopPromise);
+  const updateAppointment = isInProvider ? (contextData?.updateAppointment ?? noopThrowAsync) : (legacyAppointmentData?.updateAppointment ?? noopThrowAsync);
 
   // Refresh calendar when refreshTrigger changes (controlled by parent)
   useEffect(() => {
@@ -211,7 +221,7 @@ export function FullCalendarView({
           <div className="text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-red-700 mb-2">Error al cargar el calendario</h3>
-            <p className="text-sm text-gray-600 mb-4">{error}</p>
+            <p className="text-sm text-gray-600 mb-4">{error?.message}</p>
             <Button onClick={refresh} variant="outline">
               Reintentar
             </Button>
@@ -561,11 +571,19 @@ function EventDetailsModal({
 
   // Always call both hooks unconditionally (React rules of hooks)
   const contextData = useSafeAppointmentsContext();
-  const legacyData = useAppointments();
 
   // Prefer context data when in provider
   const isInProvider = contextData !== null;
-  const quickAction = isInProvider ? (contextData?.quickAction ?? (async () => { throw new Error('Not available'); })) : (legacyData?.quickAction ?? (async () => { throw new Error('Not available'); }));
+
+  // Legacy hook - ALWAYS disabled since this component is only used inside AppointmentsProvider
+  // This prevents duplicate API calls and infinite re-render loops
+  const legacyData = useAppointments(undefined, false);
+
+  // IMPORTANT: Create stable fallback to prevent infinite re-render loops
+  const noopThrowAsync = useCallback(async (): Promise<AppointmentWithDetails> => {
+    throw new Error('Not available');
+  }, []);
+  const quickAction = isInProvider ? (contextData?.quickAction ?? noopThrowAsync) : (legacyData?.quickAction ?? noopThrowAsync);
 
   const [loading, setLoading] = useState(false);
 

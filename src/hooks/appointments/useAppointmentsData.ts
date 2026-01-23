@@ -11,7 +11,7 @@
 'use client';
 
 import useSWR from 'swr';
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import {
   APPOINTMENTS_KEYS,
   createListKey,
@@ -137,9 +137,12 @@ export function useAppointmentsData(
     }
   );
 
-  const refresh = async () => {
+  // IMPORTANT: Memoize refresh to prevent infinite re-render loops
+  // Without useCallback, a new function reference is created on every render,
+  // which can trigger useEffect dependencies and cause "Maximum update depth exceeded"
+  const refresh = useCallback(async () => {
     await mutate();
-  };
+  }, [mutate]);
 
   return {
     appointments: data ?? [],
@@ -248,7 +251,9 @@ export function useCalendarEvents(appointments: AppointmentWithDetails[]) {
       );
 
       return {
-        id: appointment.id,
+        // Include status in id to force FullCalendar to re-mount event when status changes
+        // This ensures the tooltip (set in eventDidMount) gets updated
+        id: `${appointment.id}-${appointment.status}`,
         title: `${appointment.pet.name} - ${appointment.customer.name}`,
         start: formatLocalDateTime(startTime),
         end: formatLocalDateTime(endTime),

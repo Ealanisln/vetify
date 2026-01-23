@@ -41,7 +41,7 @@ interface UseAppointmentsReturn {
   refresh: () => Promise<void>;
 }
 
-export const useAppointments = (initialQuery?: Partial<AppointmentQuery>): UseAppointmentsReturn => {
+export const useAppointments = (initialQuery?: Partial<AppointmentQuery>, enabled: boolean = true): UseAppointmentsReturn => {
   const [appointments, setAppointments] = useState<AppointmentWithDetails[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -234,10 +234,12 @@ export const useAppointments = (initialQuery?: Partial<AppointmentQuery>): UseAp
     await fetchAppointments();
   }, [fetchAppointments]);
 
-  // Cargar citas inicialmente - only once on mount
+  // Cargar citas inicialmente - only once on mount, and only when enabled
   useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]); // Empty dependency array to run only once
+    if (enabled) {
+      fetchAppointments();
+    }
+  }, [fetchAppointments, enabled]);
 
   return {
     appointments,
@@ -253,7 +255,7 @@ export const useAppointments = (initialQuery?: Partial<AppointmentQuery>): UseAp
 };
 
 // Hook específico para citas del día
-export const useTodayAppointments = () => {
+export const useTodayAppointments = (enabled: boolean = true) => {
   const today = new Date();
   const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
@@ -262,17 +264,17 @@ export const useTodayAppointments = () => {
   return useAppointments({
     start_date: startOfDay.toISOString(),
     end_date: endOfDay.toISOString(),
-  });
+  }, enabled);
 };
 
 // Hook para estadísticas de citas
-export const useAppointmentStats = () => {
+export const useAppointmentStats = (enabled: boolean = true) => {
   const [stats, setStats] = useState({
     today: 0,
     thisWeek: 0,
     thisMonth: 0,
     completionRate: 0,
-    loading: true,
+    loading: enabled, // Only show loading if enabled
     error: null as string | null,
   });
 
@@ -321,8 +323,10 @@ export const useAppointmentStats = () => {
   }, []);
 
   useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+    if (enabled) {
+      fetchStats();
+    }
+  }, [fetchStats, enabled]);
 
   return { ...stats, refresh: fetchStats };
 };

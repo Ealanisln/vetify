@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useSafeAppointmentsContext } from '../providers/AppointmentsProvider';
 import { useTodayAppointments as useTodayAppointmentsLegacy, AppointmentWithDetails } from '../../hooks/useAppointments';
 import { QuickActions } from './QuickActions';
@@ -24,25 +25,33 @@ export function TodayAppointments({
   // Context-based data (no API call - filtered from shared data)
   const contextData = useSafeAppointmentsContext();
 
-  // Legacy hook - always called but results ignored when context is available
-  const legacyData = useTodayAppointmentsLegacy();
-
   // Prefer context data when in provider, fallback to legacy otherwise
   const isInProvider = contextData !== null;
+
+  // Legacy hook - ALWAYS disabled since this component is only used inside AppointmentsProvider
+  // This prevents duplicate API calls and infinite re-render loops
+  const legacyData = useTodayAppointmentsLegacy(false);
+
+  // IMPORTANT: Create stable fallback function to prevent infinite re-render loops
+  // Without this, inline arrow functions create new references on every render,
+  // which triggers useEffect dependencies and causes "Maximum update depth exceeded"
+  const noopPromise = useCallback(() => Promise.resolve(), []);
 
   // Unified data access - context takes priority
   const appointments = isInProvider ? (contextData?.todayAppointments ?? []) : (legacyData?.appointments ?? []);
   const loading = isInProvider ? (contextData?.isLoading ?? false) : (legacyData?.loading ?? false);
   const error = isInProvider ? (contextData?.error?.message ?? null) : (legacyData?.error ?? null);
-  const refresh = isInProvider ? (contextData?.refresh ?? (() => Promise.resolve())) : (legacyData?.refresh ?? (() => Promise.resolve()));
+  const refresh = isInProvider ? (contextData?.refresh ?? noopPromise) : (legacyData?.refresh ?? noopPromise);
 
   const today = new Date();
   const formattedDate = format(today, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
   // Capitalize first letter
   const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
-  const sortedAppointments = appointments.sort((a, b) =>
-    a.dateTime.getTime() - b.dateTime.getTime()
+  // IMPORTANT: Create a copy before sorting to avoid mutating the context array
+  // Mutating the original array can cause infinite re-render loops
+  const sortedAppointments = [...appointments].sort((a, b) =>
+    new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime()
   );
 
   const getStatusBadgeStyle = (status: string) => {

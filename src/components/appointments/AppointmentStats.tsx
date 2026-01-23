@@ -1,5 +1,6 @@
 'use client';
 
+import { useCallback } from 'react';
 import { useSafeAppointmentsContext } from '../providers/AppointmentsProvider';
 import { useAppointmentStats as useAppointmentStatsLegacy } from '../../hooks/useAppointments';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -16,11 +17,17 @@ export function AppointmentStats() {
   // Context-based stats (no API calls - derived from shared data)
   const contextData = useSafeAppointmentsContext();
 
-  // Legacy hook - always called but results ignored when context is available
-  const legacyData = useAppointmentStatsLegacy();
-
   // Prefer context data when in provider, fallback to legacy otherwise
   const isInProvider = contextData !== null;
+
+  // Legacy hook - ALWAYS disabled since this component is only used inside AppointmentsProvider
+  // This prevents duplicate API calls and infinite re-render loops
+  const legacyData = useAppointmentStatsLegacy(false);
+
+  // IMPORTANT: Create stable fallback function to prevent infinite re-render loops
+  // Without this, inline arrow functions create new references on every render,
+  // which triggers useEffect dependencies and causes "Maximum update depth exceeded"
+  const noopPromise = useCallback(() => Promise.resolve(), []);
 
   // Unified data access - context takes priority
   const today = isInProvider ? (contextData?.stats.today ?? 0) : (legacyData?.today ?? 0);
@@ -29,7 +36,7 @@ export function AppointmentStats() {
   const completionRate = isInProvider ? (contextData?.stats.completionRate ?? 0) : (legacyData?.completionRate ?? 0);
   const loading = isInProvider ? (contextData?.isLoading ?? false) : (legacyData?.loading ?? false);
   const error = isInProvider ? (contextData?.error?.message ?? null) : (legacyData?.error ?? null);
-  const refresh = isInProvider ? (contextData?.refresh ?? (() => Promise.resolve())) : (legacyData?.refresh ?? (() => Promise.resolve()));
+  const refresh = isInProvider ? (contextData?.refresh ?? noopPromise) : (legacyData?.refresh ?? noopPromise);
 
   if (loading) {
     return (

@@ -257,6 +257,9 @@ describe('BugReportModal', () => {
       // The close button should be disabled while submitting
       expect(closeButton).toBeDisabled();
 
+      // Clear any previous calls to mockOnOpenChange (e.g., from userEvent interactions)
+      mockOnOpenChange.mockClear();
+
       // Try to click - should have no effect due to disabled state
       fireEvent.click(closeButton);
 

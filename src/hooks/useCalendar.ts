@@ -77,7 +77,7 @@ interface UseCalendarReturn {
   refresh: () => Promise<void>;
 }
 
-export const useCalendar = (initialView: CalendarView = 'timeGridWeek'): UseCalendarReturn => {
+export const useCalendar = (initialView: CalendarView = 'timeGridWeek', enabled: boolean = true): UseCalendarReturn => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -205,8 +205,10 @@ export const useCalendar = (initialView: CalendarView = 'timeGridWeek'): UseCale
   }, [fetchEvents]);
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents, currentDate, currentView]);
+    if (enabled) {
+      fetchEvents();
+    }
+  }, [fetchEvents, currentDate, currentView, enabled]);
 
   return {
     events,
