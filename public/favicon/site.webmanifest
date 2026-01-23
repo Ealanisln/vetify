@@ -2,9 +2,9 @@
   "name": "Vetify - Software de Gestión Veterinaria",
   "short_name": "Vetify",
   "description": "Sistema integral de gestión para clínicas veterinarias. Administra citas, historiales médicos, inventario y más.",
-  "start_url": "/",
+  "start_url": "/dashboard",
   "scope": "/",
-  "id": "/",
+  "id": "/dashboard",
   "lang": "es-MX",
   "icons": [
     {
