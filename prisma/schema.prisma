@@ -83,6 +83,7 @@ model Tenant {
   testimonials        Testimonial[]
   landingPageAnalytics LandingPageAnalytics[]
   pushSubscriptions   PushSubscription[]
+  webhooks            Webhook[]
 
   @@index([status])
   @@index([slug])
@@ -1518,4 +1519,57 @@ model PushSubscription {
   @@index([staffId])
   @@index([userId])
   @@index([endpoint])
+}
+
+// ============================================================================
+// WEBHOOKS (Outbound Events)
+// ============================================================================
+
+model Webhook {
+  id                  String   @id @default(uuid())
+  tenantId            String
+  name                String
+  url                 String   // HTTPS endpoint URL
+  secret              String   // HMAC signing secret (whsec_xxx format)
+  events              String[] // ["pet.created", "appointment.cancelled", etc.]
+  isActive            Boolean  @default(true)
+  consecutiveFailures Int      @default(0)
+  lastDeliveryAt      DateTime?
+  lastSuccessAt       DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  deliveries WebhookDeliveryLog[]
+
+  @@index([tenantId])
+  @@index([tenantId, isActive])
+}
+
+model WebhookDeliveryLog {
+  id             String                @id @default(uuid())
+  webhookId      String
+  eventType      String
+  payload        Json
+  attempt        Int                   @default(1)
+  status         WebhookDeliveryStatus @default(PENDING)
+  httpStatusCode Int?
+  responseBody   String?               @db.Text
+  error          String?               @db.Text
+  deliveredAt    DateTime?
+  createdAt      DateTime              @default(now())
+  scheduledFor   DateTime?             // For retry scheduling
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@index([webhookId])
+  @@index([webhookId, status])
+  @@index([status, scheduledFor])
+}
+
+enum WebhookDeliveryStatus {
+  PENDING
+  DELIVERED
+  FAILED
+  SKIPPED
 }

@@ -11,6 +11,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { withApiAuth, apiError } from '@/lib/api/api-key-auth';
 import { serializePet, serializeCustomerSummary } from '../../_shared/serializers';
+import { triggerWebhookEvent } from '@/lib/webhooks';
 
 // Validation schema for updating a pet
 const updatePetSchema = z.object({
@@ -169,6 +170,12 @@ export const PUT = withApiAuth(
       },
     });
 
+    // Trigger webhook event (fire-and-forget)
+    triggerWebhookEvent(apiKey.tenantId, 'pet.updated', {
+      ...serializePet(pet),
+      customer: serializeCustomerSummary(pet.customer),
+    });
+
     return NextResponse.json({
       data: {
         ...serializePet(pet),
@@ -204,9 +211,25 @@ export const DELETE = withApiAuth(
     }
 
     // Mark as deceased instead of hard delete to preserve medical history
-    await prisma.pet.update({
+    const pet = await prisma.pet.update({
       where: { id },
       data: { isDeceased: true },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    // Trigger webhook event (fire-and-forget)
+    triggerWebhookEvent(apiKey.tenantId, 'pet.deleted', {
+      ...serializePet(pet),
+      customer: serializeCustomerSummary(pet.customer),
     });
 
     return new NextResponse(null, { status: 204 });

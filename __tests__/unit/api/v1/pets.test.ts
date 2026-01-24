@@ -42,6 +42,11 @@ jest.mock('@upstash/redis', () => ({
   Redis: jest.fn().mockImplementation(() => ({})),
 }));
 
+// Mock webhooks module to prevent actual webhook triggering
+jest.mock('@/lib/webhooks', () => ({
+  triggerWebhookEvent: jest.fn(),
+}));
+
 import { prisma } from '@/lib/prisma';
 import { GET as listPets, POST as createPet } from '@/app/api/v1/pets/route';
 import { GET as getPet, PUT as updatePet, DELETE as deletePet } from '@/app/api/v1/pets/[id]/route';
@@ -459,10 +464,16 @@ describe('API v1 Pets', () => {
     it('should mark pet as deceased instead of hard delete', async () => {
       const mockApiKey = createMockApiKey();
       const existingPet = createMockPet();
+      const mockCustomer = createMockCustomer();
 
       (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
       (mockPrisma.pet.findFirst as jest.Mock).mockResolvedValue(existingPet);
-      (mockPrisma.pet.update as jest.Mock).mockResolvedValue({ ...existingPet, isDeceased: true });
+      // Include customer in update response for webhook serialization
+      (mockPrisma.pet.update as jest.Mock).mockResolvedValue({
+        ...existingPet,
+        isDeceased: true,
+        customer: mockCustomer,
+      });
 
       const request = createMockRequest(`https://api.vetify.com/api/v1/pets/${TEST_PET_ID}`, {
         headers: { authorization: `Bearer ${validKey}` },
@@ -473,10 +484,12 @@ describe('API v1 Pets', () => {
       });
 
       expect(response.status).toBe(204);
-      expect(mockPrisma.pet.update).toHaveBeenCalledWith({
-        where: { id: TEST_PET_ID },
-        data: { isDeceased: true },
-      });
+      expect(mockPrisma.pet.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: TEST_PET_ID },
+          data: { isDeceased: true },
+        })
+      );
     });
 
     it('should return 404 for non-existent pet', async () => {
