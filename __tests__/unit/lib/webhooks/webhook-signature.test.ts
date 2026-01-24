@@ -42,7 +42,7 @@ describe('Webhook Signature Utilities', () => {
 
   describe('signPayload', () => {
     const testPayload = '{"event":"pet.created","data":{"id":"123"}}';
-    const testSecret = 'whsec_1234567890abcdef1234567890abcdef1234567890abcdef';
+    const testSecret = 'whsec_000000000000000000000000000000000000000000000003';
     const testTimestamp = 1704067200; // 2024-01-01 00:00:00 UTC
 
     it('should produce signature with sha256= prefix', () => {
@@ -67,7 +67,7 @@ describe('Webhook Signature Utilities', () => {
     });
 
     it('should produce different signatures for different secrets', () => {
-      const secret1 = 'whsec_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+      const secret1 = 'whsec_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
       const secret2 = 'whsec_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
       const sig1 = signPayload(testPayload, secret1, testTimestamp);
@@ -84,8 +84,8 @@ describe('Webhook Signature Utilities', () => {
     });
 
     it('should work with secret without prefix', () => {
-      const secretWithPrefix = 'whsec_abc123def456abc123def456abc123def456abc123def456';
-      const secretWithoutPrefix = 'abc123def456abc123def456abc123def456abc123def456';
+      const secretWithPrefix = 'whsec_000000000000000000000000000000000000000000000004';
+      const secretWithoutPrefix = '000000000000000000000000000000000000000000000004';
 
       const sig1 = signPayload(testPayload, secretWithPrefix, testTimestamp);
       const sig2 = signPayload(testPayload, secretWithoutPrefix, testTimestamp);
@@ -96,7 +96,7 @@ describe('Webhook Signature Utilities', () => {
 
   describe('verifySignature', () => {
     const testPayload = '{"event":"pet.created","data":{"id":"123"}}';
-    const testSecret = 'whsec_1234567890abcdef1234567890abcdef1234567890abcdef';
+    const testSecret = 'whsec_000000000000000000000000000000000000000000000003';
 
     it('should verify valid signature', () => {
       const now = Math.floor(Date.now() / 1000);
@@ -117,7 +117,7 @@ describe('Webhook Signature Utilities', () => {
     it('should reject signature with wrong secret', () => {
       const now = Math.floor(Date.now() / 1000);
       const signature = signPayload(testPayload, testSecret, now);
-      const wrongSecret = 'whsec_wrongsecretwrongsecretwrongsecretwrongsecretwro';
+      const wrongSecret = 'whsec_000000000000000000000000000000000000000000000005';
 
       const isValid = verifySignature(testPayload, signature, wrongSecret, now);
       expect(isValid).toBe(false);
@@ -190,8 +190,8 @@ describe('Webhook Signature Utilities', () => {
 
   describe('isValidWebhookSecret', () => {
     it('should validate correct format', () => {
-      expect(isValidWebhookSecret('whsec_1234567890abcdef1234567890abcdef1234567890abcdef')).toBe(true);
-      expect(isValidWebhookSecret('whsec_abcdef1234abcdef1234abcdef1234abcdef1234abcdef12')).toBe(true);
+      expect(isValidWebhookSecret('whsec_000000000000000000000000000000000000000000000003')).toBe(true);
+      expect(isValidWebhookSecret('whsec_000000000000000000000000000000000000000000000006')).toBe(true);
     });
 
     it('should reject wrong prefix', () => {
@@ -201,7 +201,7 @@ describe('Webhook Signature Utilities', () => {
 
     it('should reject wrong length', () => {
       expect(isValidWebhookSecret('whsec_123456')).toBe(false);
-      expect(isValidWebhookSecret('whsec_1234567890abcdef1234567890abcdef1234567890abcdefAB')).toBe(false);
+      expect(isValidWebhookSecret('whsec_000000000000000000000000000000000000000000000003AB')).toBe(false);
     });
 
     it('should reject invalid hex characters', () => {

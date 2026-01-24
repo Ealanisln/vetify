@@ -25,7 +25,7 @@ jest.mock('@/app/actions/subscription', () => ({
 
 // Mock webhook secret generation for predictable tests
 jest.mock('@/lib/webhooks/webhook-signature', () => ({
-  generateWebhookSecret: jest.fn(() => 'whsec_test123456789012345678901234567890123456789012'),
+  generateWebhookSecret: jest.fn(() => 'whsec_000000000000000000000000000000000000000000000000'),
   signPayload: jest.fn(),
   verifySignature: jest.fn(),
 }));
@@ -43,7 +43,7 @@ const createTestWebhook = (overrides = {}) => ({
   tenantId: 'tenant-1',
   name: 'Test Webhook',
   url: 'https://example.com/webhook',
-  secret: 'whsec_existingsecret1234567890123456789012345678901',
+  secret: 'whsec_000000000000000000000000000000000000000000000001',
   events: ['pet.created', 'pet.updated'],
   isActive: true,
   consecutiveFailures: 0,
@@ -142,7 +142,7 @@ describe('Webhooks CRUD Integration Tests', () => {
       const createdWebhook = createTestWebhook({
         ...webhookData,
         id: 'new-webhook-id',
-        secret: 'whsec_test123456789012345678901234567890123456789012',
+        secret: 'whsec_000000000000000000000000000000000000000000000000',
       });
 
       prismaMock.webhook.create.mockResolvedValue(createdWebhook);

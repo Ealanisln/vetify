@@ -59,7 +59,7 @@ const createTestWebhook = (overrides = {}) => ({
   tenantId: 'tenant-1',
   name: 'Test Webhook',
   url: 'https://example.com/webhook',
-  secret: 'whsec_testsecret1234567890123456789012345678901234',
+  secret: 'whsec_000000000000000000000000000000000000000000000002',
   events: ['pet.created', 'pet.updated'],
   isActive: true,
   consecutiveFailures: 0,
