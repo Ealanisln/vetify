@@ -162,6 +162,29 @@ Todos los cambios notables en este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
+## [1.3.0] - 2026-01-24
+
+### Agregado
+- **Sistema de Gestión de API Keys para Planes Corporativos (VETIF-96, VETIF-97)**
+  - Nueva interfaz de administración de API keys en configuración del tenant
+  - Componentes: ApiKeyManagement, ApiKeyCard, CreateApiKeyModal, ApiKeyCreatedModal, ApiKeyScopes
+  - Endpoints REST: \`/api/settings/api-keys\` y \`/api/settings/api-keys/[id]\`
+  - Sistema de scopes granulares (lectura/escritura por recurso)
+  - Generación segura de keys con hash SHA-256
+  - Expiración configurable y revocación de keys
+  - Exclusivo para planes Corporativos (B2B)
+
+### Testing
+- **Suite de Testing Avanzada (VETIF-191)**
+  - Tests de contrato para API keys, appointments, pets y subscriptions
+  - Tests E2E para gestión de API keys
+  - Tests de rendimiento: tiempos de respuesta de API y carga de páginas
+  - Tests visuales para dashboard y páginas públicas
+  - Tests móviles para API keys, dashboard y páginas públicas
+  - Cobertura unitaria completa para componentes de API keys
+
+---
+
 ## [1.2.1] - 2026-01-22
 
 ### Corregido
