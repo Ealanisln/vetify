@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { SaleFormData, SaleWithDetails, CustomerSearchResult, ProductSearchResult } from '@/types';
+import { triggerWebhookEvent } from './webhooks';
 
 /**
  * Buscar clientes con sus mascotas para el POS
@@ -346,7 +347,29 @@ export async function createSale(
   });
 
   // Obtener la venta completa con relaciones
-  return getSaleById(tenantId, sale.id);
+  const fullSale = await getSaleById(tenantId, sale.id);
+
+  // Trigger webhook if sale is completed (fire-and-forget)
+  if (fullSale.status === 'COMPLETED') {
+    triggerWebhookEvent(tenantId, 'sale.completed', {
+      id: fullSale.id,
+      saleNumber: fullSale.saleNumber,
+      customerId: fullSale.customerId,
+      customerName: fullSale.customer?.name,
+      petId: fullSale.petId,
+      petName: fullSale.pet?.name,
+      subtotal: Number(fullSale.subtotal),
+      tax: Number(fullSale.tax),
+      discount: Number(fullSale.discount),
+      total: Number(fullSale.total),
+      status: fullSale.status,
+      itemCount: fullSale.items.length,
+      locationId: fullSale.locationId,
+      createdAt: fullSale.createdAt,
+    });
+  }
+
+  return fullSale;
 }
 
 /**

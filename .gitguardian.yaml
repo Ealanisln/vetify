@@ -1,0 +1,24 @@
+# GitGuardian configuration
+# https://docs.gitguardian.com/ggshield-docs/reference/gitguardian-yaml
+
+# Paths to ignore (test files contain mock/fake secrets)
+paths-ignore:
+  - "**/__tests__/**"
+  - "**/tests/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+  - "**/mocks/**"
+  - "**/__mocks__/**"
+
+# Secret types to ignore in specific contexts
+secret:
+  # Ignore webhook test secrets (whsec_ prefix with test data)
+  ignored-matches:
+    - match: "whsec_test*"
+      name: "Test webhook secret"
+    - match: "whsec_existing*"
+      name: "Test webhook secret"
+    - match: "whsec_*1234*"
+      name: "Test webhook secret pattern"

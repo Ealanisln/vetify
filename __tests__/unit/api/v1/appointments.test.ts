@@ -48,6 +48,11 @@ jest.mock('@upstash/redis', () => ({
   Redis: jest.fn().mockImplementation(() => ({})),
 }));
 
+// Mock webhooks module to prevent actual webhook triggering
+jest.mock('@/lib/webhooks', () => ({
+  triggerWebhookEvent: jest.fn(),
+}));
+
 import { prisma } from '@/lib/prisma';
 import { GET as listAppointments, POST as createAppointment } from '@/app/api/v1/appointments/route';
 import { GET as getAppointment, PUT as updateAppointment, DELETE as deleteAppointment } from '@/app/api/v1/appointments/[id]/route';
@@ -448,11 +453,13 @@ describe('API v1 Appointments', () => {
     it('should cancel an appointment', async () => {
       const mockApiKey = createMockApiKey();
       const existingAppointment = createMockAppointment();
+      // Use appointment with relations for the update response (needed for webhook serialization)
+      const appointmentWithRelations = createMockAppointmentWithRelations();
 
       (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
       (mockPrisma.appointment.findFirst as jest.Mock).mockResolvedValue(existingAppointment);
       (mockPrisma.appointment.update as jest.Mock).mockResolvedValue({
-        ...existingAppointment,
+        ...appointmentWithRelations,
         status: 'CANCELLED_CLINIC',
       });
 
@@ -465,10 +472,12 @@ describe('API v1 Appointments', () => {
       });
 
       expect(response.status).toBe(204);
-      expect(mockPrisma.appointment.update).toHaveBeenCalledWith({
-        where: { id: TEST_APPOINTMENT_ID },
-        data: { status: 'CANCELLED_CLINIC' },
-      });
+      expect(mockPrisma.appointment.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: TEST_APPOINTMENT_ID },
+          data: { status: 'CANCELLED_CLINIC' },
+        })
+      );
     });
 
     it('should not cancel already completed appointment', async () => {

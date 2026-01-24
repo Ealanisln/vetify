@@ -8,6 +8,7 @@ import { getLowStockItems } from '../inventory';
 import { sendLowStockAlert } from './email-service';
 import type { LowStockAlertData } from './types';
 import { prisma } from '../prisma';
+import { triggerWebhookEvent } from '../webhooks';
 
 /**
  * Check inventory and send low stock alerts for a specific tenant
@@ -31,6 +32,19 @@ export async function checkAndSendLowStockAlerts(tenantId: string): Promise<{
         alertsSent: 0,
         errors: [],
       };
+    }
+
+    // Trigger webhook event for low stock items (fire-and-forget)
+    for (const item of lowStockItems) {
+      triggerWebhookEvent(tenantId, 'inventory.low_stock', {
+        id: item.id,
+        name: item.name,
+        category: item.category,
+        currentQuantity: Number(item.quantity),
+        minimumStock: item.minStock || 0,
+        unit: item.measure || 'unidades',
+        locationId: item.locationId,
+      });
     }
 
     // Get tenant info and staff emails

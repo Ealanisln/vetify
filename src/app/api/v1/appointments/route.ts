@@ -27,6 +27,7 @@ import {
   apiError,
 } from '@/lib/api/api-key-auth';
 import { serializeAppointmentWithRelations } from '../_shared/serializers';
+import { triggerWebhookEvent } from '@/lib/webhooks';
 
 // Valid appointment statuses
 const APPOINTMENT_STATUSES = [
@@ -312,6 +313,9 @@ export const POST = withApiAuth(
         },
       },
     });
+
+    // Trigger webhook event (fire-and-forget)
+    triggerWebhookEvent(apiKey.tenantId, 'appointment.created', serializeAppointmentWithRelations(appointment));
 
     return NextResponse.json(
       { data: serializeAppointmentWithRelations(appointment) },

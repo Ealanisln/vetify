@@ -11,6 +11,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { withApiAuth, apiError } from '@/lib/api/api-key-auth';
 import { serializeAppointmentWithRelations } from '../../_shared/serializers';
+import { triggerWebhookEvent } from '@/lib/webhooks';
 
 // Valid appointment statuses
 const APPOINTMENT_STATUSES = [
@@ -265,7 +266,17 @@ export const PUT = withApiAuth(
       },
     });
 
-    return NextResponse.json({ data: serializeAppointmentWithRelations(appointment) });
+    // Trigger appropriate webhook event based on status change (fire-and-forget)
+    const cancelledStatuses = ['CANCELLED_CLIENT', 'CANCELLED_CLINIC'];
+    const serialized = serializeAppointmentWithRelations(appointment);
+
+    if (data.status && cancelledStatuses.includes(data.status) && !cancelledStatuses.includes(existing.status)) {
+      triggerWebhookEvent(apiKey.tenantId, 'appointment.cancelled', serialized);
+    } else {
+      triggerWebhookEvent(apiKey.tenantId, 'appointment.updated', serialized);
+    }
+
+    return NextResponse.json({ data: serialized });
   },
   { requiredScope: 'write:appointments' }
 );
@@ -305,10 +316,45 @@ export const DELETE = withApiAuth(
     }
 
     // Cancel the appointment (via API implies clinic-initiated)
-    await prisma.appointment.update({
+    const appointment = await prisma.appointment.update({
       where: { id },
       data: { status: 'CANCELLED_CLINIC' },
+      include: {
+        pet: {
+          select: {
+            id: true,
+            name: true,
+            species: true,
+            breed: true,
+          },
+        },
+        customer: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+          },
+        },
+        staff: {
+          select: {
+            id: true,
+            name: true,
+            position: true,
+          },
+        },
+        location: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+      },
     });
+
+    // Trigger webhook event (fire-and-forget)
+    triggerWebhookEvent(apiKey.tenantId, 'appointment.cancelled', serializeAppointmentWithRelations(appointment));
 
     return new NextResponse(null, { status: 204 });
   },

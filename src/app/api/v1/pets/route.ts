@@ -24,6 +24,7 @@ import {
   apiError,
 } from '@/lib/api/api-key-auth';
 import { serializePet, serializeCustomerSummary } from '../_shared/serializers';
+import { triggerWebhookEvent } from '@/lib/webhooks';
 
 // Validation schema for creating a pet
 const createPetSchema = z.object({
@@ -187,6 +188,12 @@ export const POST = withApiAuth(
           },
         },
       },
+    });
+
+    // Trigger webhook event (fire-and-forget)
+    triggerWebhookEvent(apiKey.tenantId, 'pet.created', {
+      ...serializePet(pet),
+      customer: serializeCustomerSummary(pet.customer),
     });
 
     return NextResponse.json(
