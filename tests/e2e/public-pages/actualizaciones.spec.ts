@@ -136,7 +136,12 @@ test.describe('Actualizaciones Page', () => {
 
   test.describe('Content Verification', () => {
     test('should contain PWA InstallPrompt feature in v1.2.0', async ({ page }) => {
-      // This is a key feature from v1.2.0 (first expanded by default)
+      // v1.2.0 may be collapsed if newer versions exist, expand it first
+      const v120Button = page.locator('button').filter({ hasText: 'v1.2.0' });
+      if (await v120Button.count() > 0) {
+        await v120Button.click();
+        await page.waitForTimeout(300);
+      }
       const feature = page.locator('text=/InstallPrompt|PWA/i');
       const count = await feature.count();
       expect(count).toBeGreaterThan(0);
