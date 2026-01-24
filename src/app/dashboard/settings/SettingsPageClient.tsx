@@ -20,11 +20,14 @@ import {
   Globe,
   QrCode,
   BarChart3,
-  Lock
+  Lock,
+  Key
 } from 'lucide-react';
 import { PublicPageSettings } from '../../../components/settings/PublicPageSettings';
 import { QrCodeGenerator } from '../../../components/settings/QrCodeGenerator';
 import { LandingAnalyticsSection } from '../../../components/analytics/LandingAnalyticsSection';
+import { ApiKeyManagement } from '../../../components/api';
+import { FeatureGate } from '../../../components/features/FeatureGate';
 
 const settingsSections = [
   {
@@ -82,6 +85,15 @@ const settingsSections = [
     icon: Bell,
     component: 'notifications',
     requiresSubscription: true
+  },
+  {
+    id: 'api',
+    title: 'API y Desarrolladores',
+    description: 'Gestiona las claves de API para integraciones',
+    icon: Key,
+    component: 'api',
+    requiresSubscription: true,
+    requiresFeature: 'apiAccess'
   },
   {
     id: 'security',
@@ -146,6 +158,15 @@ export function SettingsPageClient({ tenant, isActiveSubscription }: SettingsPag
         return <SubscriptionManager tenant={tenant} />;
       case 'notifications':
         return <NotificationSettings tenantId={tenant.id} />;
+      case 'api':
+        return (
+          <FeatureGate
+            feature="apiAccess"
+            upgradeMessage="El acceso a la API requiere el plan Corporativo"
+          >
+            <ApiKeyManagement tenantId={tenant.id} />
+          </FeatureGate>
+        );
       default:
         return (
           <div className="text-center py-12">
