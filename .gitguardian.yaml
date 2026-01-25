@@ -1,0 +1,45 @@
+# GitGuardian configuration
+# https://docs.gitguardian.com/ggshield-docs/reference/gitguardian-yaml
+
+version: 2
+
+# Paths to ignore (test files contain mock/fake secrets)
+secret:
+  ignored-paths:
+    - "**/__tests__/**"
+    - "**/tests/**"
+    - "**/*.test.ts"
+    - "**/*.test.tsx"
+    - "**/*.spec.ts"
+    - "**/*.spec.tsx"
+    - "**/mocks/**"
+    - "**/__mocks__/**"
+    - "**/*.mock.ts"
+    - "**/*.fixture.ts"
+
+  # Ignore specific test secrets used in webhook tests
+  # These are obviously fake test secrets (all zeros, repeated chars)
+  ignored-matches:
+    # Test webhook secrets with all zeros
+    - name: "Test webhook secret - all zeros variant 0"
+      match: "whsec_000000000000000000000000000000000000000000000000"
+    - name: "Test webhook secret - all zeros variant 1"
+      match: "whsec_000000000000000000000000000000000000000000000001"
+    - name: "Test webhook secret - all zeros variant 2"
+      match: "whsec_000000000000000000000000000000000000000000000002"
+    - name: "Test webhook secret - all zeros variant 3"
+      match: "whsec_000000000000000000000000000000000000000000000003"
+    - name: "Test webhook secret - all zeros variant 4"
+      match: "whsec_000000000000000000000000000000000000000000000004"
+    - name: "Test webhook secret - all zeros variant 5"
+      match: "whsec_000000000000000000000000000000000000000000000005"
+    - name: "Test webhook secret - all zeros variant 6"
+      match: "whsec_000000000000000000000000000000000000000000000006"
+    # Test secrets with repeated characters
+    - name: "Test webhook secret - repeated a"
+      match: "whsec_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    - name: "Test webhook secret - repeated b"
+      match: "whsec_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    # Stripe test webhook secret
+    - name: "Stripe test webhook secret"
+      match: "whsec_test_secret"

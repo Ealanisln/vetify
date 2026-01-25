@@ -324,21 +324,17 @@ test.describe('API Key Management - Mobile', () => {
 
 /**
  * Test with specific device emulation
+ * Note: Device-specific tests are already covered by the playwright.config.ts
+ * projects configuration which runs mobile tests on Pixel 5 and iPhone 12.
  */
 test.describe('API Keys - Device Emulation', () => {
   test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session');
 
-  for (const device of ['iPhone 12', 'Pixel 5']) {
-    test.describe(`${device}`, () => {
-      test.use({ ...devices[device] });
+  test('should work correctly on current device', async ({ page }) => {
+    await page.goto('/dashboard/settings?tab=api');
+    await page.waitForLoadState('networkidle');
 
-      test(`should work correctly on ${device}`, async ({ page }) => {
-        await page.goto('/dashboard/settings?tab=api');
-        await page.waitForLoadState('networkidle');
-
-        // Basic functionality should work
-        await expect(page.locator('button:has-text("Nueva Clave")')).toBeVisible();
-      });
-    });
-  }
+    // Basic functionality should work
+    await expect(page.locator('button:has-text("Nueva Clave")')).toBeVisible();
+  });
 });

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { completeInventoryTransfer } from '@/lib/locations';
 import { createSecureResponse, createSecureErrorResponse } from '@/lib/security/input-sanitization';
+import { triggerWebhookEvent } from '@/lib/webhooks';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -24,6 +25,17 @@ export async function PATCH(
 
     // Complete the transfer (atomic transaction)
     const transfer = await completeInventoryTransfer(transferId, tenant.id);
+
+    // Trigger webhook event (fire-and-forget)
+    triggerWebhookEvent(tenant.id, 'inventory.transfer_completed', {
+      id: transfer.id,
+      inventoryItemId: transfer.inventoryItemId,
+      fromLocationId: transfer.fromLocationId,
+      toLocationId: transfer.toLocationId,
+      quantity: Number(transfer.quantity),
+      status: transfer.status,
+      completedAt: transfer.completedAt,
+    });
 
     return createSecureResponse({
       transfer,

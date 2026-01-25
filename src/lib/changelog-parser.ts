@@ -174,6 +174,34 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   - Expiración configurable y revocación de keys
   - Exclusivo para planes Corporativos (B2B)
 
+- **API Versionada v1 (VETIF-98)**
+  - Endpoints RESTful bajo \`/api/v1/*\` con esquemas de respuesta consistentes
+  - Recursos: appointments, customers, pets, inventory, locations, reports
+  - Serializers compartidos para respuestas uniformes
+  - Tipos TypeScript para todas las respuestas de API
+  - Soporte para paginación, filtrado y ordenamiento
+  - Autenticación via API Keys con validación de scopes
+
+- **Sistema de Webhooks Salientes (VETIF-99)**
+  - Configuración de webhooks por tenant en \`/api/settings/webhooks\`
+  - Firma HMAC-SHA256 para verificación de autenticidad
+  - Eventos soportados: pet.created, pet.updated, appointment.created, appointment.updated, appointment.cancelled, inventory.low_stock
+  - Sistema de reintentos con backoff exponencial (3 intentos)
+  - Logs de entregas con estado y tiempo de respuesta
+  - UI de configuración: WebhookConfig, WebhookCard, CreateWebhookModal
+  - Endpoint de prueba para verificar conectividad
+
+- **Documentación OpenAPI 3.0 (VETIF-100)**
+  - Especificación OpenAPI completa en \`/api/openapi.json\`
+  - Swagger UI interactivo en \`/api/docs\`
+  - Documentación de todos los endpoints v1
+  - Esquemas de request/response con ejemplos
+  - Autenticación documentada (API Key via header)
+
+### Seguridad
+- **Configuración GitGuardian**
+  - Archivo \`.gitguardian.yaml\` para ignorar secretos de prueba en tests
+
 ### Testing
 - **Suite de Testing Avanzada (VETIF-191)**
   - Tests de contrato para API keys, appointments, pets y subscriptions
@@ -182,6 +210,12 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   - Tests visuales para dashboard y páginas públicas
   - Tests móviles para API keys, dashboard y páginas públicas
   - Cobertura unitaria completa para componentes de API keys
+
+- **Tests para Nuevas Funcionalidades**
+  - Tests unitarios completos para API v1 (appointments, customers, inventory, locations, pets, reports)
+  - Tests de integración para webhooks CRUD
+  - Tests unitarios para webhook-delivery, webhook-events, webhook-signature
+  - Tests E2E para configuración de webhooks
 
 ---
 
