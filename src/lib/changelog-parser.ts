@@ -217,6 +217,14 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   - Tests unitarios para webhook-delivery, webhook-events, webhook-signature
   - Tests E2E para configuración de webhooks
 
+- **Weekly E2E Smoke Tests**
+  - Suite de smoke tests semanal para flujos críticos de negocio (65 tests)
+  - Tests P0 (críticos): Clientes, Mascotas - CRUD completo
+  - Tests P1 (importantes): Citas, Inventario, Punto de Venta, Caja
+  - Tests CRUD para prevenir fallos durante demos
+  - GitHub Actions workflow para ejecución automática (domingos 6AM UTC)
+  - Comandos: \`pnpm test:e2e:weekly\`, \`pnpm test:e2e:weekly:p0\`
+
 ---
 
 ## [1.2.1] - 2026-01-22
