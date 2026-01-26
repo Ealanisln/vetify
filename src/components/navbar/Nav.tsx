@@ -314,15 +314,36 @@ export default function Nav() {
       // Use both mouse and touch events for better mobile support
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('touchstart', handleClickOutside, { passive: true });
+      // iOS-safe scroll prevention
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'unset';
+      // Restore scroll position after closing menu
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
-      document.body.style.overflow = 'unset';
+      // Cleanup: restore body styles
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
     };
   }, [mobileMenuOpen]);
 
@@ -358,7 +379,7 @@ export default function Nav() {
   // Don't render theme-dependent content until mounted
   if (!mounted) {
     return (
-      <nav className="sticky top-0 z-[100] bg-white/95 backdrop-blur-lg border-b border-gray-100 shadow-sm min-h-[4rem] transition-all duration-300">
+      <nav className="sticky top-0 z-[100] bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-100 dark:border-gray-700 shadow-sm min-h-[4rem] transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="hidden sm:grid sm:grid-cols-3 sm:items-center h-20">
             {/* Left section - Logo */}
@@ -667,7 +688,7 @@ export default function Nav() {
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-50 sm:hidden"
+          className="fixed inset-0 z-[110] sm:hidden"
           aria-hidden={!mobileMenuOpen}
         >
           {/* Backdrop with enhanced blur */}
@@ -679,13 +700,13 @@ export default function Nav() {
           {/* Mobile Navigation Panel */}
           <div
             ref={mobileMenuRef}
-            className={`absolute top-16 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-2xl transform transition-all duration-500 ease-out ${
+            className={`absolute top-16 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-2xl transform transition-all duration-500 ease-out mobile-menu-panel ${
               mobileMenuOpen
                 ? 'translate-y-0 opacity-100'
                 : '-translate-y-4 opacity-0'
             }`}
           >
-            <div className="px-4 pt-6 pb-8 space-y-2">
+            <div className="px-4 pt-6 pb-8 space-y-2 mobile-menu-safe-area">
               {/* Navigation Links */}
               <Link
                 href="/funcionalidades"

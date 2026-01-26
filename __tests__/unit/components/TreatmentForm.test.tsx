@@ -387,4 +387,164 @@ describe('TreatmentForm', () => {
       });
     });
   });
+
+  describe('Staff Position Translation (i18n)', () => {
+    const mockStaffWithEnglishPositions = [
+      { id: 'vet-1', name: 'Dr. García', position: 'VETERINARIAN', licenseNumber: 'VET001' },
+      { id: 'vet-2', name: 'María López', position: 'RECEPTIONIST', licenseNumber: null },
+      { id: 'vet-3', name: 'Juan Pérez', position: 'GROOMER', licenseNumber: null },
+      { id: 'vet-4', name: 'Ana Torres', position: 'ASSISTANT', licenseNumber: null },
+      { id: 'vet-5', name: 'Carlos Ruiz', position: 'VETERINARY_TECHNICIAN', licenseNumber: 'TEC001' },
+      { id: 'vet-6', name: 'Sofia Martinez', position: 'MANAGER', licenseNumber: null },
+    ];
+
+    it('should display "Veterinario" instead of "VETERINARIAN"', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockStaffWithEnglishPositions,
+      } as Response);
+
+      render(<TreatmentForm {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Dr\. García - Veterinario/)).toBeInTheDocument();
+      });
+
+      // Should NOT show English position
+      expect(screen.queryByText(/Dr\. García - VETERINARIAN/)).not.toBeInTheDocument();
+    });
+
+    it('should display "Recepcionista" instead of "RECEPTIONIST"', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockStaffWithEnglishPositions,
+      } as Response);
+
+      render(<TreatmentForm {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/María López - Recepcionista/)).toBeInTheDocument();
+      });
+
+      // Should NOT show English position
+      expect(screen.queryByText(/María López - RECEPTIONIST/)).not.toBeInTheDocument();
+    });
+
+    it('should display "Peluquero" instead of "GROOMER"', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockStaffWithEnglishPositions,
+      } as Response);
+
+      render(<TreatmentForm {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Juan Pérez - Peluquero/)).toBeInTheDocument();
+      });
+
+      // Should NOT show English position
+      expect(screen.queryByText(/Juan Pérez - GROOMER/)).not.toBeInTheDocument();
+    });
+
+    it('should display "Asistente Veterinario" instead of "ASSISTANT"', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockStaffWithEnglishPositions,
+      } as Response);
+
+      render(<TreatmentForm {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Ana Torres - Asistente Veterinario/)).toBeInTheDocument();
+      });
+
+      // Should NOT show English position
+      expect(screen.queryByText(/Ana Torres - ASSISTANT/)).not.toBeInTheDocument();
+    });
+
+    it('should display "Técnico Veterinario" instead of "VETERINARY_TECHNICIAN"', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockStaffWithEnglishPositions,
+      } as Response);
+
+      render(<TreatmentForm {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Carlos Ruiz - Técnico Veterinario/)).toBeInTheDocument();
+      });
+
+      // Should NOT show English position
+      expect(screen.queryByText(/Carlos Ruiz - VETERINARY_TECHNICIAN/)).not.toBeInTheDocument();
+    });
+
+    it('should display "Gerente" instead of "MANAGER"', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockStaffWithEnglishPositions,
+      } as Response);
+
+      render(<TreatmentForm {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Sofia Martinez - Gerente/)).toBeInTheDocument();
+      });
+
+      // Should NOT show English position
+      expect(screen.queryByText(/Sofia Martinez - MANAGER/)).not.toBeInTheDocument();
+    });
+
+    it('should fall back to raw position if translation not found', async () => {
+      const staffWithUnknownPosition = [
+        { id: 'vet-1', name: 'Test User', position: 'UNKNOWN_POSITION', licenseNumber: null },
+      ];
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => staffWithUnknownPosition,
+      } as Response);
+
+      render(<TreatmentForm {...defaultProps} />);
+
+      await waitFor(() => {
+        // Should show the raw position since no translation exists
+        expect(screen.getByText(/Test User - UNKNOWN_POSITION/)).toBeInTheDocument();
+      });
+    });
+
+    it('should format license number correctly with "Lic."', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockStaffWithEnglishPositions,
+      } as Response);
+
+      render(<TreatmentForm {...defaultProps} />);
+
+      await waitFor(() => {
+        // Veterinarian with license
+        expect(screen.getByText(/Dr\. García - Veterinario \(Lic\. VET001\)/)).toBeInTheDocument();
+      });
+
+      // Staff without license should not show "Lic."
+      expect(screen.getByText(/María López - Recepcionista/)).toBeInTheDocument();
+      expect(screen.queryByText(/María López.*Lic\./)).not.toBeInTheDocument();
+    });
+
+    it('should display all staff with translated positions in dropdown', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockStaffWithEnglishPositions,
+      } as Response);
+
+      render(<TreatmentForm {...defaultProps} />);
+
+      await waitFor(() => {
+        // Verify dropdown has all 6 staff members + default option
+        const dropdown = screen.getByRole('combobox', { name: /veterinario responsable/i });
+        const options = dropdown.querySelectorAll('option');
+        // 1 default "Seleccionar veterinario" + 6 staff members = 7 options
+        expect(options.length).toBe(7);
+      });
+    });
+  });
 });
