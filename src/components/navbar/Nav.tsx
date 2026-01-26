@@ -688,10 +688,10 @@ export default function Nav() {
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-[110] sm:hidden"
+          className="fixed inset-x-0 top-16 bottom-0 z-[110] sm:hidden"
           aria-hidden={!mobileMenuOpen}
         >
-          {/* Backdrop - darker for better contrast */}
+          {/* Backdrop - starts below navbar */}
           <div
             className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={closeMobileMenu}
@@ -700,7 +700,7 @@ export default function Nav() {
           {/* Mobile Navigation Panel - solid background */}
           <div
             ref={mobileMenuRef}
-            className={`absolute top-16 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-xl transform transition-all duration-300 ease-out mobile-menu-panel ${
+            className={`absolute top-0 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-xl transform transition-all duration-300 ease-out mobile-menu-panel ${
               mobileMenuOpen
                 ? 'translate-y-0 opacity-100'
                 : '-translate-y-4 opacity-0'
