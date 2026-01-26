@@ -691,61 +691,52 @@ export default function Nav() {
           className="fixed inset-0 z-[110] sm:hidden"
           aria-hidden={!mobileMenuOpen}
         >
-          {/* Backdrop with enhanced blur */}
+          {/* Backdrop - darker for better contrast */}
           <div
-            className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/30 dark:from-black/50 dark:via-black/40 dark:to-black/50 backdrop-blur-md animate-in fade-in duration-300"
+            className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={closeMobileMenu}
           />
 
-          {/* Mobile Navigation Panel */}
+          {/* Mobile Navigation Panel - solid background */}
           <div
             ref={mobileMenuRef}
-            className={`absolute top-16 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-2xl transform transition-all duration-500 ease-out mobile-menu-panel ${
+            className={`absolute top-16 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-xl transform transition-all duration-300 ease-out mobile-menu-panel ${
               mobileMenuOpen
                 ? 'translate-y-0 opacity-100'
                 : '-translate-y-4 opacity-0'
             }`}
           >
-            <div className="px-4 pt-6 pb-8 space-y-2 mobile-menu-safe-area">
+            <div className="px-5 py-4 space-y-1 mobile-menu-safe-area">
               {/* Navigation Links */}
               <Link
                 href="/funcionalidades"
-                className="flex items-center px-5 py-3.5 text-base font-medium text-gray-700 dark:text-gray-200 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gradient-to-r hover:from-[#4DB8A3]/10 hover:to-[#4DB8A3]/5 dark:hover:from-[#4DB8A3]/20 dark:hover:to-[#4DB8A3]/10 rounded-xl transition-all duration-300 group relative overflow-hidden"
+                className="flex items-center px-4 py-3 text-base font-medium text-gray-800 dark:text-gray-100 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
                 onClick={closeMobileMenu}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#4DB8A3]/0 via-[#4DB8A3]/10 to-[#4DB8A3]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                <span className="transform group-hover:translate-x-2 transition-transform duration-300 relative z-10">
-                  Funcionalidades
-                </span>
+                Funcionalidades
               </Link>
               <Link
                 href="/precios"
-                className="flex items-center px-5 py-3.5 text-base font-medium text-gray-700 dark:text-gray-200 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gradient-to-r hover:from-[#4DB8A3]/10 hover:to-[#4DB8A3]/5 dark:hover:from-[#4DB8A3]/20 dark:hover:to-[#4DB8A3]/10 rounded-xl transition-all duration-300 group relative overflow-hidden"
+                className="flex items-center px-4 py-3 text-base font-medium text-gray-800 dark:text-gray-100 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
                 onClick={closeMobileMenu}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#4DB8A3]/0 via-[#4DB8A3]/10 to-[#4DB8A3]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                <span className="transform group-hover:translate-x-2 transition-transform duration-300 relative z-10">
-                  Precios
-                </span>
+                Precios
               </Link>
               {/* TODO: Uncomment when blog is ready for production
               <Link
                 href="/blog"
-                className="flex items-center px-5 py-3.5 text-base font-medium text-gray-700 dark:text-gray-200 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gradient-to-r hover:from-[#4DB8A3]/10 hover:to-[#4DB8A3]/5 dark:hover:from-[#4DB8A3]/20 dark:hover:to-[#4DB8A3]/10 rounded-xl transition-all duration-300 group relative overflow-hidden"
+                className="flex items-center px-4 py-3 text-base font-medium text-gray-800 dark:text-gray-100 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
                 onClick={closeMobileMenu}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#4DB8A3]/0 via-[#4DB8A3]/10 to-[#4DB8A3]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                <span className="transform group-hover:translate-x-2 transition-transform duration-300 relative z-10">
-                  Blog
-                </span>
+                Blog
               </Link>
               */}
 
-              {/* Divider with gradient */}
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent my-4"></div>
+              {/* Divider */}
+              <div className="h-px bg-gray-200 dark:bg-gray-700 my-3"></div>
 
               {/* User Section for Mobile */}
-              <div className="pt-2">
+              <div className="pt-1">
                 <UserSection onNavigate={closeMobileMenu} />
               </div>
             </div>
