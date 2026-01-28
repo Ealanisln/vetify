@@ -15,6 +15,7 @@ import { SaleDetailModal } from '@/components/sales/SaleDetailModal';
 import { useLocation } from '@/components/providers/LocationProvider';
 import { calculateTaxBreakdown, formatTaxRateLabel } from '@/lib/tax-utils';
 import { useStaffPermissions } from '@/hooks/useStaffPermissions';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface SalesPageClientProps {
   tenantId: string;
@@ -396,7 +397,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
                 <option value="">Seleccionar mascota</option>
                 {selectedCustomer.pets.map((pet) => (
                   <option key={pet.id} value={pet.id}>
-                    {pet.name} - {pet.species} ({pet.breed})
+                    {pet.name} - {mapSpeciesToSpanish(pet.species)} ({pet.breed})
                   </option>
                 ))}
               </select>

@@ -87,3 +87,34 @@ export const VALID_GENDERS = ['male', 'female'] as const;
 
 export type Species = typeof VALID_SPECIES[number];
 export type Gender = typeof VALID_GENDERS[number];
+
+/**
+ * Maps English species enum values to Spanish for UI display
+ * @param species - English species enum value from the database
+ * @returns Spanish species name for display
+ */
+export function mapSpeciesToSpanish(species: string): string {
+  const speciesMap: Record<string, string> = {
+    'dog': 'Perro',
+    'cat': 'Gato',
+    'bird': 'Ave',
+    'rabbit': 'Conejo',
+    'other': 'Otro'
+  };
+
+  return speciesMap[species.toLowerCase()] || species;
+}
+
+/**
+ * Maps English gender enum values to Spanish for UI display
+ * @param gender - English gender enum value from the database
+ * @returns Spanish gender name for display
+ */
+export function mapGenderToSpanish(gender: string): string {
+  const genderMap: Record<string, string> = {
+    'male': 'Macho',
+    'female': 'Hembra'
+  };
+
+  return genderMap[gender.toLowerCase()] || gender;
+}

@@ -14,6 +14,7 @@ import { es } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
 import LocationSelector from '@/components/locations/LocationSelector';
 import { POSITION_LABELS_ES, StaffPositionType } from '@/lib/staff-positions';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface Customer {
   id: string;
@@ -198,7 +199,7 @@ export function AppointmentForm({
                 </option>
                 {availablePets.map((pet) => (
                   <option key={pet.id} value={pet.id}>
-                    {pet.name} - {pet.species} {pet.breed && `(${pet.breed})`}
+                    {pet.name} - {mapSpeciesToSpanish(pet.species)} {pet.breed && `(${pet.breed})`}
                   </option>
                 ))}
               </select>

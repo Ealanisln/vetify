@@ -14,6 +14,7 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface NewMedicalHistoryFormProps {
   tenantId: string;
@@ -171,7 +172,7 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                 <HeartIcon className="h-5 w-5 text-[#75a99c] dark:text-[#9ed3c4]" />
                 <div>
                   <h3 className={`font-medium ${getThemeClasses('text.primary')}`}>
-                    {selectedPet.name} ({selectedPet.species})
+                    {selectedPet.name} ({mapSpeciesToSpanish(selectedPet.species)})
                   </h3>
                   <div className={`flex items-center gap-2 text-sm ${getThemeClasses('text.secondary')}`}>
                     <UserIcon className="h-3 w-3" />
@@ -227,7 +228,7 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                         <HeartIcon className="h-4 w-4 text-red-500" />
                         <div>
                           <div className="font-medium text-gray-900">
-                            {pet.name} ({pet.species})
+                            {pet.name} ({mapSpeciesToSpanish(pet.species)})
                           </div>
                           <div className="text-sm text-gray-600">
                             {pet.customer.name}

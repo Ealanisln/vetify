@@ -4,6 +4,7 @@ import { Pet, Customer } from '@prisma/client';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, Users, FileText, Activity } from 'lucide-react';
 import { parseWeight } from '../../utils/format';
+import { mapSpeciesToSpanish, mapGenderToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 type PetWithCustomer = Pet & { customer: Customer };
 
@@ -144,7 +145,7 @@ export function MedicalFormLayout({
                       {petInfo.name}
                     </h2>
                     <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 truncate">
-                      {petInfo.species} • {petInfo.breed} • {petInfo.gender}
+                      {mapSpeciesToSpanish(petInfo.species)} • {petInfo.breed} • {mapGenderToSpanish(petInfo.gender)}
                     </p>
                   </div>
                 </div>

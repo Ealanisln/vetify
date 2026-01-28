@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { TreatmentForm } from '../../../../../../components/medical/TreatmentForm';
 import { Pet, Customer } from '@prisma/client';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 type PetWithCustomer = Pet & { customer: Customer };
 
@@ -28,7 +29,7 @@ export function TreatmentPageClient({ pet, tenantId }: TreatmentPageClientProps)
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h1 className="text-2xl font-bold mb-4 dark:text-white">Nuevo Tratamiento - {pet.name}</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            {pet.species} • {pet.breed} • Propietario: {pet.customer.name}
+            {mapSpeciesToSpanish(pet.species)} • {pet.breed} • Propietario: {pet.customer.name}
           </p>
           
           <TreatmentForm

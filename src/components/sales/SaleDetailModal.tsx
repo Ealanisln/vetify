@@ -5,6 +5,7 @@ import { XMarkIcon, PrinterIcon, ReceiptPercentIcon, UserIcon, CheckCircleIcon }
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatTaxRateLabel, calculateTaxBreakdown } from '@/lib/tax-utils';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface SaleDetailModalProps {
   saleId: string | null;
@@ -356,7 +357,7 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
                           <p className="text-xs text-muted-foreground mb-1">Mascota</p>
                           <p className="text-sm font-medium text-foreground">{sale.pet.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {sale.pet.species}{sale.pet.breed && ` - ${sale.pet.breed}`}
+                            {mapSpeciesToSpanish(sale.pet.species)}{sale.pet.breed && ` - ${sale.pet.breed}`}
                           </p>
                         </div>
                       )}
