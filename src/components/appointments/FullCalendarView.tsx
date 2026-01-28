@@ -105,6 +105,20 @@ export function FullCalendarView({
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // Switch to day view on mobile for better readability
+  // Week view shows all 7 days compressed, making content unreadable on small screens
+  useEffect(() => {
+    if (calendarRef.current) {
+      const api = calendarRef.current.getApi();
+      const targetView = isMobile ? 'timeGridDay' : defaultView;
+      // Only change if on mobile and not already in day view
+      if (isMobile && api.view.type !== 'timeGridDay') {
+        api.changeView('timeGridDay');
+        setCurrentView('timeGridDay');
+      }
+    }
+  }, [isMobile, defaultView, setCurrentView]);
+
   const calendarConfig = useCalendarConfig();
 
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
