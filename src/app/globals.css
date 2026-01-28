@@ -591,3 +591,28 @@
 .dark .fc-timegrid-axis {
   border-color: hsl(var(--border));
 }
+
+/* =============================================================================
+   iOS Mobile Menu Scroll Prevention
+   ============================================================================= */
+
+/* iOS-safe scroll prevention when menu is open */
+body.menu-open {
+  position: fixed;
+  width: 100%;
+  overflow: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe area padding for notched devices (iPhone X and later) */
+.mobile-menu-safe-area {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Prevent iOS rubber-band scrolling on fixed elements */
+@supports (-webkit-touch-callout: none) {
+  .mobile-menu-panel {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}

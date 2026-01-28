@@ -13,6 +13,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
 import LocationSelector from '@/components/locations/LocationSelector';
+import { POSITION_LABELS_ES, StaffPositionType } from '@/lib/staff-positions';
 
 interface Customer {
   id: string;
@@ -404,7 +405,7 @@ export function AppointmentForm({
                 <option value="">Seleccionar veterinario (opcional)</option>
                 {staff.map((member) => (
                   <option key={member.id} value={member.id}>
-                    {member.name} - {member.position}
+                    {member.name} - {POSITION_LABELS_ES[member.position as StaffPositionType] || member.position}
                   </option>
                 ))}
               </select>

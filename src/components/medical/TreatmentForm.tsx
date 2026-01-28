@@ -7,6 +7,7 @@ import { treatmentSchema, COMMON_MEDICATIONS, type TreatmentFormData } from '../
 import { TreatmentType } from '@prisma/client';
 import { getThemeClasses } from '../../utils/theme-colors';
 import { InlineVeterinarianCreator } from './InlineVeterinarianCreator';
+import { POSITION_LABELS_ES, StaffPositionType } from '@/lib/staff-positions';
 
 interface TreatmentFormProps {
   petId: string;
@@ -273,8 +274,8 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
             <option value="">Seleccionar veterinario</option>
             {staff.map((member) => (
               <option key={member.id} value={member.id}>
-                {member.name} - {member.position}
-                {member.licenseNumber && ` (Lic: ${member.licenseNumber})`}
+                {member.name} - {POSITION_LABELS_ES[member.position as StaffPositionType] || member.position}
+                {member.licenseNumber && ` (Lic. ${member.licenseNumber})`}
               </option>
             ))}
           </select>

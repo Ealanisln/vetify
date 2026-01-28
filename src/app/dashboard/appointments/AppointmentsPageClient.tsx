@@ -12,6 +12,7 @@ import { PlusIcon, Calendar, Clock, Users, Loader2 } from 'lucide-react';
 import { useStaffPermissions } from '../../../hooks/useStaffPermissions';
 import { DateSelectArg } from '@fullcalendar/core';
 import { formatDate, formatTime } from '../../../lib/utils/date-format';
+import { POSITION_LABELS_ES, StaffPositionType } from '../../../lib/staff-positions';
 
 // PERFORMANCE FIX: Lazy load FullCalendar to reduce initial bundle size
 // FullCalendar with 4 plugins adds significant weight to the JavaScript bundle
@@ -341,7 +342,7 @@ function AppointmentsPageContent({
                 <div key={member.id} className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">{member.name}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{member.position}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{POSITION_LABELS_ES[member.position as StaffPositionType] || member.position}</p>
                   </div>
                   <Badge variant="secondary">Activo</Badge>
                 </div>

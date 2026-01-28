@@ -31,7 +31,7 @@ interface StaffInfo {
 const ADMIN_POSITIONS = ['MANAGER', 'Administrador'];
 
 // Componente separado para la información del usuario que se hidrata después
-function UserSection({ onNavigate }: { onNavigate?: () => void }) {
+function UserSection({ onNavigate, isMobile = false }: { onNavigate?: () => void; isMobile?: boolean }) {
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
@@ -123,16 +123,70 @@ function UserSection({ onNavigate }: { onNavigate?: () => void }) {
 
   // No renderizar hasta que esté montado
   if (!mounted) {
+    // Mobile skeleton - matches inline layout
+    if (isMobile) {
+      return (
+        <div className="space-y-1">
+          <div className="flex items-center px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse">
+            <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+            <div className="ml-3 space-y-1.5">
+              <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              <div className="h-3 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            </div>
+          </div>
+          <div className="h-11 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+          <div className="h-11 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+        </div>
+      );
+    }
     return <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>;
   }
 
   // Si está cargando
   if (isLoading) {
+    // Mobile skeleton - matches inline layout
+    if (isMobile) {
+      return (
+        <div className="space-y-1">
+          <div className="flex items-center px-4 py-3 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse">
+            <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+            <div className="ml-3 space-y-1.5">
+              <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded"></div>
+              <div className="h-3 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+            </div>
+          </div>
+          <div className="h-11 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+          <div className="h-11 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"></div>
+        </div>
+      );
+    }
     return <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>;
   }
 
   // Si no hay usuario autenticado, mostrar botones de auth
   if (!user) {
+    // Mobile layout - stack buttons vertically
+    if (isMobile) {
+      return (
+        <div className="space-y-1">
+          <Link
+            href="/api/auth/login"
+            onClick={onNavigate}
+            className="flex items-center px-4 py-3 text-base font-medium text-gray-800 dark:text-gray-100 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
+          >
+            Iniciar sesión
+          </Link>
+          <Link
+            href="/api/auth/register"
+            onClick={onNavigate}
+            className="flex items-center justify-center px-4 py-3 text-base font-semibold text-white bg-gradient-to-r from-[#4DB8A3] to-[#45635C] hover:from-[#45635C] hover:to-[#4DB8A3] rounded-lg transition-all duration-300 shadow-md"
+          >
+            Comenzar gratis
+            <Sparkles className="ml-2 h-4 w-4" />
+          </Link>
+        </div>
+      );
+    }
     return (
       <div className="flex items-center space-x-3">
         <Link
@@ -161,6 +215,69 @@ function UserSection({ onNavigate }: { onNavigate?: () => void }) {
   // Si hay usuario autenticado, mostrar dropdown
   const displayName = user.given_name || user.email?.split('@')[0] || 'Usuario';
   const clinicName = tenant?.name || 'Sin clínica';
+
+  // Mobile inline layout - no dropdown, items displayed inline
+  if (isMobile) {
+    return (
+      <div className="space-y-1">
+        {/* User Info Header */}
+        <div className="flex items-center px-4 py-3 bg-gradient-to-br from-[#4DB8A3]/5 to-transparent dark:from-[#4DB8A3]/10 dark:to-transparent rounded-lg">
+          {user.picture ? (
+            <div className="relative">
+              <Image
+                src={user.picture}
+                alt={displayName}
+                width={40}
+                height={40}
+                className="rounded-full ring-2 ring-[#4DB8A3]/30"
+              />
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#4DB8A3]/20 to-transparent"></div>
+            </div>
+          ) : (
+            <div className="w-10 h-10 bg-gradient-to-br from-[#4DB8A3] to-[#45635C] rounded-full flex items-center justify-center shadow-md">
+              <User className="h-5 w-5 text-white" />
+            </div>
+          )}
+          <div className="ml-3">
+            <div className="font-semibold text-gray-900 dark:text-gray-100">{displayName}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
+            <div className="text-xs text-[#4DB8A3] flex items-center mt-0.5 font-medium">
+              <Building2 className="h-3 w-3 mr-1" />
+              {clinicName}
+            </div>
+          </div>
+        </div>
+
+        {/* Menu Items - Inline */}
+        <Link
+          href="/dashboard"
+          onClick={onNavigate}
+          className="flex items-center px-4 py-3 text-base font-medium text-gray-800 dark:text-gray-100 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
+        >
+          <User className="h-5 w-5 mr-3 text-gray-500 dark:text-gray-400" />
+          Dashboard
+        </Link>
+
+        {canAccessSettings && (
+          <Link
+            href="/dashboard/settings"
+            onClick={onNavigate}
+            className="flex items-center px-4 py-3 text-base font-medium text-gray-800 dark:text-gray-100 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
+          >
+            <Settings className="h-5 w-5 mr-3 text-gray-500 dark:text-gray-400" />
+            Configuración
+          </Link>
+        )}
+
+        <LogoutLink
+          className="flex items-center px-4 py-3 text-base font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200 w-full"
+        >
+          <LogOut className="h-5 w-5 mr-3" />
+          Cerrar sesión
+        </LogoutLink>
+      </div>
+    );
+  }
 
   return (
     <div className="relative" ref={userDropdownRef}>
@@ -314,15 +431,36 @@ export default function Nav() {
       // Use both mouse and touch events for better mobile support
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('touchstart', handleClickOutside, { passive: true });
+      // iOS-safe scroll prevention
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
       document.body.style.overflow = 'hidden';
     } else {
-      document.body.style.overflow = 'unset';
+      // Restore scroll position after closing menu
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
-      document.body.style.overflow = 'unset';
+      // Cleanup: restore body styles
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }
     };
   }, [mobileMenuOpen]);
 
@@ -358,7 +496,7 @@ export default function Nav() {
   // Don't render theme-dependent content until mounted
   if (!mounted) {
     return (
-      <nav className="sticky top-0 z-[100] bg-white/95 backdrop-blur-lg border-b border-gray-100 shadow-sm min-h-[4rem] transition-all duration-300">
+      <nav className="sticky top-0 z-[100] bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-100 dark:border-gray-700 shadow-sm min-h-[4rem] transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="hidden sm:grid sm:grid-cols-3 sm:items-center h-20">
             {/* Left section - Logo */}
@@ -667,65 +805,56 @@ export default function Nav() {
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-50 sm:hidden"
+          className="fixed inset-x-0 top-16 bottom-0 z-[110] sm:hidden"
           aria-hidden={!mobileMenuOpen}
         >
-          {/* Backdrop with enhanced blur */}
+          {/* Backdrop - starts below navbar */}
           <div
-            className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/20 to-black/30 dark:from-black/50 dark:via-black/40 dark:to-black/50 backdrop-blur-md animate-in fade-in duration-300"
+            className="absolute inset-0 bg-black/40 dark:bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={closeMobileMenu}
           />
 
-          {/* Mobile Navigation Panel */}
+          {/* Mobile Navigation Panel - solid background */}
           <div
             ref={mobileMenuRef}
-            className={`absolute top-16 left-0 right-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 shadow-2xl transform transition-all duration-500 ease-out ${
+            className={`absolute top-0 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-xl transform transition-all duration-300 ease-out mobile-menu-panel ${
               mobileMenuOpen
                 ? 'translate-y-0 opacity-100'
                 : '-translate-y-4 opacity-0'
             }`}
           >
-            <div className="px-4 pt-6 pb-8 space-y-2">
+            <div className="px-5 pt-4 pb-6 space-y-1 mobile-menu-safe-area">
               {/* Navigation Links */}
               <Link
                 href="/funcionalidades"
-                className="flex items-center px-5 py-3.5 text-base font-medium text-gray-700 dark:text-gray-200 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gradient-to-r hover:from-[#4DB8A3]/10 hover:to-[#4DB8A3]/5 dark:hover:from-[#4DB8A3]/20 dark:hover:to-[#4DB8A3]/10 rounded-xl transition-all duration-300 group relative overflow-hidden"
+                className="flex items-center px-4 py-3 text-base font-medium text-gray-800 dark:text-gray-100 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
                 onClick={closeMobileMenu}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#4DB8A3]/0 via-[#4DB8A3]/10 to-[#4DB8A3]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                <span className="transform group-hover:translate-x-2 transition-transform duration-300 relative z-10">
-                  Funcionalidades
-                </span>
+                Funcionalidades
               </Link>
               <Link
                 href="/precios"
-                className="flex items-center px-5 py-3.5 text-base font-medium text-gray-700 dark:text-gray-200 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gradient-to-r hover:from-[#4DB8A3]/10 hover:to-[#4DB8A3]/5 dark:hover:from-[#4DB8A3]/20 dark:hover:to-[#4DB8A3]/10 rounded-xl transition-all duration-300 group relative overflow-hidden"
+                className="flex items-center px-4 py-3 text-base font-medium text-gray-800 dark:text-gray-100 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
                 onClick={closeMobileMenu}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#4DB8A3]/0 via-[#4DB8A3]/10 to-[#4DB8A3]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                <span className="transform group-hover:translate-x-2 transition-transform duration-300 relative z-10">
-                  Precios
-                </span>
+                Precios
               </Link>
               {/* TODO: Uncomment when blog is ready for production
               <Link
                 href="/blog"
-                className="flex items-center px-5 py-3.5 text-base font-medium text-gray-700 dark:text-gray-200 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gradient-to-r hover:from-[#4DB8A3]/10 hover:to-[#4DB8A3]/5 dark:hover:from-[#4DB8A3]/20 dark:hover:to-[#4DB8A3]/10 rounded-xl transition-all duration-300 group relative overflow-hidden"
+                className="flex items-center px-4 py-3 text-base font-medium text-gray-800 dark:text-gray-100 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
                 onClick={closeMobileMenu}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#4DB8A3]/0 via-[#4DB8A3]/10 to-[#4DB8A3]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                <span className="transform group-hover:translate-x-2 transition-transform duration-300 relative z-10">
-                  Blog
-                </span>
+                Blog
               </Link>
               */}
 
-              {/* Divider with gradient */}
-              <div className="h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent my-4"></div>
+              {/* Divider */}
+              <div className="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
 
               {/* User Section for Mobile */}
-              <div className="pt-2">
-                <UserSection onNavigate={closeMobileMenu} />
+              <div className="pb-4">
+                <UserSection onNavigate={closeMobileMenu} isMobile={true} />
               </div>
             </div>
           </div>
