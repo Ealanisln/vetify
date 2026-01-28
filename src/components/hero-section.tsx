@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Check, Calendar, Syringe, ClipboardList } from "lucide-react"
+import { Check } from "lucide-react"
 import { EarlyAdopterBanner } from "@/components/marketing/EarlyAdopterBanner"
 import { getActivePromotionFromDB } from "@/lib/pricing-config"
 import Link from "next/link"
@@ -26,49 +25,37 @@ export async function HeroSection() {
           )}
 
           <h1 className="text-balance text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-7xl">
-            Software veterinario completo con <span className="text-primary">30 días gratis</span>
+            El sistema sencillo para <span className="text-primary">veterinarias pequeñas</span>
           </h1>
           <p className="mx-auto mt-4 sm:mt-6 max-w-2xl text-pretty text-base text-muted-foreground sm:text-lg md:text-xl">
-            Gestiona citas, historiales y clientes en un solo lugar. Todo lo que necesitas para administrar tu clínica
-            veterinaria de manera profesional.
+            Gestiona pacientes, citas y recordatorios sin Excel, sin complicarte y sin perder tiempo.
           </p>
 
-          <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-3 sm:gap-4 sm:flex-row">
+          <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-4">
             <Link href="/api/auth/register" data-testid="signup-button">
               <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold">
-                Probar 30 días gratis
+                Comienza tu prueba gratis
               </Button>
             </Link>
-            <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
-              <div className="flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
-                <span>Setup en 15 minutos</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
-                <span>30 días de prueba</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
-                <span>Soporte incluido</span>
-              </div>
+            <p className="text-sm text-muted-foreground">
+              30 días gratis, sin tarjeta de crédito
+            </p>
+          </div>
+
+          <div className="mt-6 sm:mt-8 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Check className="h-4 w-4 text-primary" />
+              <span>Fácil de usar</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Check className="h-4 w-4 text-primary" />
+              <span>Soporte incluido</span>
             </div>
           </div>
 
-          <div className="mt-6 sm:mt-12 flex flex-wrap items-center justify-center gap-2 sm:gap-6 text-xs sm:text-sm">
-            <Badge variant="secondary" className="gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2">
-              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              Sistema de recordatorios
-            </Badge>
-            <Badge variant="secondary" className="gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2">
-              <Syringe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              Seguimiento de vacunas
-            </Badge>
-            <Badge variant="secondary" className="gap-1.5 sm:gap-2 px-3 py-1.5 sm:px-4 sm:py-2">
-              <ClipboardList className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              Gestión completa
-            </Badge>
-          </div>
+          <p className="mt-8 sm:mt-10 text-sm sm:text-base text-muted-foreground max-w-xl mx-auto">
+            Pensado para clínicas veterinarias pequeñas que quieren enfocarse en atender mejor, no en tareas administrativas.
+          </p>
         </div>
 
         {/* Dashboard Preview */}
