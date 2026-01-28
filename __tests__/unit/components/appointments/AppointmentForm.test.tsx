@@ -340,11 +340,12 @@ describe('AppointmentForm Component', () => {
       expect(staffSelect).toHaveValue('');
     });
 
-    it('should show staff with their positions', () => {
+    it('should show staff with their positions in Spanish', () => {
       render(<AppointmentForm {...defaultProps} />);
 
       const staffSelect = screen.getByTestId('appointment-staff-select');
-      expect(staffSelect).toContainHTML('Dr. Smith - VETERINARIAN');
+      // Positions should be displayed in Spanish
+      expect(staffSelect).toContainHTML('Dr. Smith - Veterinario');
     });
   });
 

@@ -7,6 +7,7 @@ import { vaccinationSchema, COMMON_VACCINES, type VaccinationFormData } from '..
 import { TreatmentType, VaccinationStage } from '@prisma/client';
 import { getThemeClasses } from '../../utils/theme-colors';
 import { InlineVeterinarianCreator } from './InlineVeterinarianCreator';
+import { POSITION_LABELS_ES, StaffPositionType } from '../../lib/staff-positions';
 
 interface VaccinationFormProps {
   petId: string;
@@ -282,7 +283,7 @@ export function VaccinationForm({ petId, tenantId, onSuccess, onCancel }: Vaccin
             <option value="">Selecciona un veterinario...</option>
             {staff.map((member) => (
               <option key={member.id} value={member.id}>
-                {member.name} - {member.position}
+                {member.name} - {POSITION_LABELS_ES[member.position as StaffPositionType] || member.position}
                 {member.licenseNumber && ` (Lic. ${member.licenseNumber})`}
               </option>
             ))}

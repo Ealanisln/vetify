@@ -706,7 +706,7 @@ export default function Nav() {
                 : '-translate-y-4 opacity-0'
             }`}
           >
-            <div className="px-5 py-4 space-y-1 mobile-menu-safe-area">
+            <div className="px-5 pt-4 pb-2 space-y-1 mobile-menu-safe-area">
               {/* Navigation Links */}
               <Link
                 href="/funcionalidades"
@@ -733,10 +733,10 @@ export default function Nav() {
               */}
 
               {/* Divider */}
-              <div className="h-px bg-gray-200 dark:bg-gray-700 my-3"></div>
+              <div className="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
 
               {/* User Section for Mobile */}
-              <div className="pt-1">
+              <div>
                 <UserSection onNavigate={closeMobileMenu} />
               </div>
             </div>

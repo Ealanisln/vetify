@@ -8,6 +8,7 @@ import { MedicalHistory } from '@prisma/client';
 import { getThemeClasses } from '../../utils/theme-colors';
 import { type ApiErrorResponse, getApiErrorMessage } from '@/types/api';
 import { InlineVeterinarianCreator } from './InlineVeterinarianCreator';
+import { POSITION_LABELS_ES, StaffPositionType } from '../../lib/staff-positions';
 
 interface ConsultationFormProps {
   petId: string;
@@ -332,7 +333,7 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
             <option value="">Selecciona un veterinario...</option>
             {staff.map((member) => (
               <option key={member.id} value={member.id}>
-                {member.name} - {member.position}
+                {member.name} - {POSITION_LABELS_ES[member.position as StaffPositionType] || member.position}
                 {member.licenseNumber && ` (Lic. ${member.licenseNumber})`}
               </option>
             ))}
