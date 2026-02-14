@@ -451,10 +451,13 @@ export interface ActivePromotion {
 let cachedPromotion: ActivePromotion | null | undefined = undefined;
 let cacheTimestamp = 0;
 const CACHE_TTL_MS = 60 * 1000; // 1 minute cache
+const ERROR_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minute cache on error to avoid hammering a failing DB
+let lastErrorTimestamp = 0;
 
 /**
  * Get active promotion from database (async, for server components)
- * Returns cached result for 1 minute to reduce database queries
+ * Returns cached result for 1 minute to reduce database queries.
+ * On DB connection errors, caches null for 5 minutes to avoid repeated failed connections.
  */
 export async function getActivePromotionFromDB(): Promise<ActivePromotion | null> {
   const now = Date.now();
@@ -464,6 +467,11 @@ export async function getActivePromotionFromDB(): Promise<ActivePromotion | null
     return cachedPromotion;
   }
 
+  // If we recently had a DB error, don't retry yet (back off for 5 minutes)
+  if (lastErrorTimestamp > 0 && (now - lastErrorTimestamp) < ERROR_CACHE_TTL_MS) {
+    return null;
+  }
+
   try {
     // Dynamic import to avoid bundling prisma in client code
     const { getActivePromotion } = await import('@/lib/promotions/queries');
@@ -471,11 +479,15 @@ export async function getActivePromotionFromDB(): Promise<ActivePromotion | null
 
     cachedPromotion = promo;
     cacheTimestamp = now;
+    lastErrorTimestamp = 0; // Clear error state on success
 
     return promo;
   } catch (error) {
-    console.error('Error fetching active promotion from DB:', error);
-    // Return null on error (no promo active)
+    // Cache the error state to avoid repeated failing DB connections
+    cachedPromotion = null;
+    cacheTimestamp = now;
+    lastErrorTimestamp = now;
+    console.warn('Failed to fetch active promotion from DB (will retry in 5 min):', error instanceof Error ? error.message : error);
     return null;
   }
 }
@@ -486,6 +498,7 @@ export async function getActivePromotionFromDB(): Promise<ActivePromotion | null
 export function clearPromotionCache(): void {
   cachedPromotion = undefined;
   cacheTimestamp = 0;
+  lastErrorTimestamp = 0;
 }
 
 /**
