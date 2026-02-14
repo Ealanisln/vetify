@@ -1,0 +1,17 @@
+name: Keep Dev DB Alive
+
+on:
+  schedule:
+    # Run every 5 days at 08:00 UTC to prevent Supabase free tier pause (7-day inactivity limit)
+    - cron: '0 8 */5 * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  ping-db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping dev database
+        env:
+          DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+        run: |
+          psql "$DATABASE_URL" -c "SELECT 1;" && echo "Dev DB is alive" || echo "Failed to ping dev DB"
