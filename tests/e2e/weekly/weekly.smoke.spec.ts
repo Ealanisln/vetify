@@ -81,7 +81,7 @@ test.describe('P0 - Dashboard Accessibility @weekly @p0', () => {
   // For full auth tests, set TEST_AUTH_ENABLED=true
 
   test('Dashboard redirects to login when not authenticated @weekly @p0', async ({ page }) => {
-    const response = await page.goto('/dashboard')
+    await page.goto('/dashboard')
     // Should either redirect to login or show auth prompt
     const isAuthPage = page.url().includes('kinde') ||
                        page.url().includes('login') ||
@@ -370,9 +370,9 @@ test.describe('P0 - Mascotas @weekly @p0', () => {
     await page.waitForLoadState('networkidle')
     // El indicador de límite puede estar visible dependiendo del plan
     const limitIndicator = page.locator('[data-testid="pets-limit-indicator"]')
-    const hasLimit = await limitIndicator.isVisible().catch(() => false)
-    // No falla si no hay límite visible, solo verifica que la página cargó
-    expect(true).toBeTruthy()
+    await limitIndicator.isVisible().catch(() => false)
+    // Just verify the page loaded correctly
+    await expect(page.locator('h1:has-text("Mascotas")')).toBeVisible()
   })
 })
 
@@ -419,7 +419,7 @@ test.describe('P0 - Clientes @weekly @p0', () => {
     const hasStats = await statsSection.isVisible().catch(() => false)
     // También puede haber total-customers o active-customers
     const hasTotalCustomers = await page.locator('[data-testid="total-customers"]').isVisible().catch(() => false)
-    expect(hasStats || hasTotalCustomers || true).toBeTruthy()
+    expect(hasStats || hasTotalCustomers).toBeTruthy()
   })
 })
 
@@ -448,8 +448,8 @@ test.describe('P1 - Citas @weekly @p1', () => {
     const statsSection = page.locator('[data-testid="appointment-stats"]')
     const hasStats = await statsSection.isVisible().catch(() => false)
     const hasTodayCount = await page.locator('[data-testid="today-count"]').isVisible().catch(() => false)
-    // Si no hay stats dedicados, al menos la página cargó
-    expect(hasStats || hasTodayCount || true).toBeTruthy()
+    // Stats or count indicators should be visible
+    expect(hasStats || hasTodayCount).toBeTruthy()
   })
 
   test('Sección de citas de hoy visible @weekly @p1', async ({ page }) => {
@@ -459,7 +459,7 @@ test.describe('P1 - Citas @weekly @p1', () => {
     const todaySection = page.locator('[data-testid="today-appointments"]')
     const hasTodaySection = await todaySection.isVisible().catch(() => false)
     const hasNoAppointments = await page.locator('[data-testid="no-today-appointments"]').isVisible().catch(() => false)
-    expect(hasTodaySection || hasNoAppointments || true).toBeTruthy()
+    expect(hasTodaySection || hasNoAppointments).toBeTruthy()
   })
 
   test('Botón nueva cita funciona @weekly @p1', async ({ page }) => {
@@ -475,7 +475,7 @@ test.describe('P1 - Citas @weekly @p1', () => {
       await page.waitForTimeout(500)
     }
     const modalVisible = await page.locator('[data-testid="appointment-modal"]').isVisible().catch(() => false)
-    expect(modalVisible || true).toBeTruthy() // Permisivo si el modal tiene otro testid
+    expect(modalVisible).toBeTruthy()
   })
 
   test('Controles de navegación del calendario funcionan @weekly @p1', async ({ page }) => {
@@ -486,7 +486,7 @@ test.describe('P1 - Citas @weekly @p1', () => {
     const nextButton = page.locator('[data-testid="calendar-next"]')
     const hasPrev = await prevButton.isVisible().catch(() => false)
     const hasNext = await nextButton.isVisible().catch(() => false)
-    expect(hasPrev || hasNext || true).toBeTruthy()
+    expect(hasPrev || hasNext).toBeTruthy()
   })
 })
 
@@ -515,7 +515,7 @@ test.describe('P1 - Inventario @weekly @p1', () => {
     const hasStats = await statsSection.isVisible().catch(() => false)
     const hasTotalProducts = await page.locator('[data-testid="total-products"]').isVisible().catch(() => false)
     const hasTotalValue = await page.locator('[data-testid="total-value"]').isVisible().catch(() => false)
-    expect(hasStats || hasTotalProducts || hasTotalValue || true).toBeTruthy()
+    expect(hasStats || hasTotalProducts || hasTotalValue).toBeTruthy()
   })
 
   test('Búsqueda de productos funciona @weekly @p1', async ({ page }) => {
@@ -540,7 +540,7 @@ test.describe('P1 - Inventario @weekly @p1', () => {
     await page.waitForLoadState('networkidle')
     const categoryFilter = page.locator('[data-testid="category-filter"]')
     const hasFilter = await categoryFilter.isVisible().catch(() => false)
-    expect(hasFilter || true).toBeTruthy()
+    expect(hasFilter).toBeTruthy()
   })
 
   test('Alertas de stock bajo visibles @weekly @p1', async ({ page }) => {
@@ -549,7 +549,7 @@ test.describe('P1 - Inventario @weekly @p1', () => {
     const lowStockSection = page.locator('[data-testid="low-stock-alerts"]')
     const hasLowStock = await lowStockSection.isVisible().catch(() => false)
     const hasLowStockCount = await page.locator('[data-testid="low-stock-count"]').isVisible().catch(() => false)
-    expect(hasLowStock || hasLowStockCount || true).toBeTruthy()
+    expect(hasLowStock || hasLowStockCount).toBeTruthy()
   })
 })
 
@@ -579,7 +579,7 @@ test.describe('P1 - Punto de Venta @weekly @p1', () => {
       await page.waitForTimeout(300)
       await expect(customerSearch).toHaveValue('test')
     }
-    expect(hasSearch || true).toBeTruthy()
+    expect(hasSearch).toBeTruthy()
   })
 
   test('Búsqueda de producto funciona @weekly @p1', async ({ page }) => {
@@ -592,7 +592,7 @@ test.describe('P1 - Punto de Venta @weekly @p1', () => {
       await page.waitForTimeout(300)
       await expect(productSearch).toHaveValue('vacuna')
     }
-    expect(hasSearch || true).toBeTruthy()
+    expect(hasSearch).toBeTruthy()
   })
 
   test('Carrito de compras visible @weekly @p1', async ({ page }) => {
@@ -600,7 +600,7 @@ test.describe('P1 - Punto de Venta @weekly @p1', () => {
     await page.waitForLoadState('networkidle')
     const cart = page.locator('[data-testid="sales-cart"]')
     const hasCart = await cart.isVisible().catch(() => false)
-    expect(hasCart || true).toBeTruthy()
+    expect(hasCart).toBeTruthy()
   })
 
   test('Estado de caja visible @weekly @p1', async ({ page }) => {
@@ -611,7 +611,7 @@ test.describe('P1 - Punto de Venta @weekly @p1', () => {
     // También puede haber botones de abrir/cerrar caja
     const hasOpenButton = await page.locator('[data-testid="open-register-button"]').isVisible().catch(() => false)
     const hasCloseButton = await page.locator('[data-testid="close-register-button"]').isVisible().catch(() => false)
-    expect(hasStatus || hasOpenButton || hasCloseButton || true).toBeTruthy()
+    expect(hasStatus || hasOpenButton || hasCloseButton).toBeTruthy()
   })
 })
 
@@ -640,7 +640,7 @@ test.describe('P1 - Caja @weekly @p1', () => {
     const hasOperacion = await page.locator('text=/Operación|Caja/i').first().isVisible().catch(() => false)
     const hasTurnos = await page.locator('text=/Turnos|Turno/i').first().isVisible().catch(() => false)
     const hasReportes = await page.locator('text=/Reportes|Reporte/i').first().isVisible().catch(() => false)
-    expect(hasTabs || hasOperacion || hasTurnos || hasReportes || true).toBeTruthy()
+    expect(hasTabs || hasOperacion || hasTurnos || hasReportes).toBeTruthy()
   })
 
   test('Estado de caja indicado @weekly @p1', async ({ page }) => {
@@ -654,7 +654,7 @@ test.describe('P1 - Caja @weekly @p1', () => {
     // También puede ser un badge o indicador visual
     const statusBadge = page.locator('[data-testid="cash-drawer-status"]')
     const hasStatusBadge = await statusBadge.isVisible().catch(() => false)
-    expect(hasOpen || hasClosed || hasStatusBadge || true).toBeTruthy()
+    expect(hasOpen || hasClosed || hasStatusBadge).toBeTruthy()
   })
 
   test('Acciones de caja disponibles @weekly @p1', async ({ page }) => {
@@ -670,7 +670,7 @@ test.describe('P1 - Caja @weekly @p1', () => {
       await closeShift.first().isVisible().catch(() => false) ||
       await income.first().isVisible().catch(() => false) ||
       await expense.first().isVisible().catch(() => false)
-    expect(hasActions || true).toBeTruthy()
+    expect(hasActions).toBeTruthy()
   })
 })
 
@@ -1016,7 +1016,7 @@ test.describe('P1 - CRUD Citas @weekly @p1 @crud', () => {
           const successToast = page.locator('text=/cita.*actualizada|guardada|éxito/i')
           const hasSuccess = await successToast.isVisible({ timeout: 5000 }).catch(() => false)
 
-          expect(hasSuccess || true).toBeTruthy()
+          expect(hasSuccess).toBeTruthy()
         }
       }
     }
@@ -1038,7 +1038,7 @@ test.describe('P1 - CRUD Citas @weekly @p1 @crud', () => {
         const hasComplete = await completeBtn.isVisible().catch(() => false)
         const hasWhatsapp = await whatsappBtn.isVisible().catch(() => false)
 
-        expect(hasComplete || hasWhatsapp || true).toBeTruthy()
+        expect(hasComplete || hasWhatsapp).toBeTruthy()
       }
     }
   })
@@ -1140,7 +1140,7 @@ test.describe('P1 - CRUD Inventario @weekly @p1 @crud', () => {
           const successToast = page.locator('text=/producto.*actualizado|guardado|éxito/i')
           const hasSuccess = await successToast.isVisible({ timeout: 5000 }).catch(() => false)
 
-          expect(hasSuccess || true).toBeTruthy()
+          expect(hasSuccess).toBeTruthy()
         }
       }
     }
@@ -1178,7 +1178,7 @@ test.describe('P1 - CRUD Inventario @weekly @p1 @crud', () => {
             const successToast = page.locator('text=/stock.*actualizado|ajustado|éxito/i')
             const hasSuccess = await successToast.isVisible({ timeout: 5000 }).catch(() => false)
 
-            expect(hasSuccess || true).toBeTruthy()
+            expect(hasSuccess).toBeTruthy()
           }
         }
       }
@@ -1216,7 +1216,7 @@ test.describe('P1 - CRUD Ventas @weekly @p1 @crud', () => {
         const cartTotal = page.locator('[data-testid="cart-total"]')
         const hasTotal = await cartTotal.isVisible().catch(() => false)
 
-        expect(hasCartItem || hasTotal || true).toBeTruthy()
+        expect(hasCartItem || hasTotal).toBeTruthy()
       }
     }
   })
@@ -1240,7 +1240,7 @@ test.describe('P1 - CRUD Ventas @weekly @p1 @crud', () => {
         const selectedCustomer = page.locator('[data-testid="selected-customer"]')
         const hasSelected = await selectedCustomer.isVisible({ timeout: 3000 }).catch(() => false)
 
-        expect(hasSelected || true).toBeTruthy()
+        expect(hasSelected).toBeTruthy()
       }
     }
   })
@@ -1259,6 +1259,6 @@ test.describe('P1 - CRUD Ventas @weekly @p1 @crud', () => {
     const hasCloseBtn = await closeButton.isVisible().catch(() => false)
 
     // At least one indicator should be present
-    expect(hasStatus || hasOpenBtn || hasCloseBtn || true).toBeTruthy()
+    expect(hasStatus || hasOpenBtn || hasCloseBtn).toBeTruthy()
   })
 })
