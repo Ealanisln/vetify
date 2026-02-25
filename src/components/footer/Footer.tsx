@@ -105,13 +105,6 @@ export default function Footer() {
                   Sobre nosotros
                 </Link>
               </li>
-              {/* TODO: Uncomment when blog is ready for production
-              <li>
-                <Link href="/blog" className="text-base text-vetify-primary-700 dark:text-vetify-surface-light hover:text-vetify-accent-600 dark:hover:text-vetify-accent-300 transition-colors">
-                  Blog
-                </Link>
-              </li>
-              */}
               <li>
                 <Link href="/privacidad" className="text-base text-vetify-primary-700 dark:text-vetify-surface-light hover:text-vetify-accent-600 dark:hover:text-vetify-accent-300 transition-colors">
                   Política de privacidad

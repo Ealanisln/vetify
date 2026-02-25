@@ -93,29 +93,6 @@ export interface WebSite {
   };
 }
 
-export interface Article {
-  '@context': 'https://schema.org';
-  '@type': 'Article' | 'BlogPosting' | 'NewsArticle';
-  headline: string;
-  description: string;
-  image?: string;
-  datePublished: string;
-  dateModified?: string;
-  author: {
-    '@type': 'Person' | 'Organization';
-    name: string;
-  };
-  publisher: {
-    '@type': 'Organization';
-    name: string;
-    logo?: {
-      '@type': 'ImageObject';
-      url: string;
-    };
-  };
-  inLanguage: string;
-}
-
 /**
  * Generate organization structured data for veterinary SaaS
  */
@@ -263,50 +240,6 @@ export function generateWebPageSchema(
       name: siteName,
       url: baseUrl,
     },
-  };
-}
-
-/**
- * Generate Article structured data for blog posts
- */
-export function generateArticleSchema(
-  title: string,
-  description: string,
-  url: string,
-  publishedDate: string,
-  options: {
-    modifiedDate?: string;
-    image?: string;
-    authorName?: string;
-    lang?: SupportedLanguage;
-  } = {}
-): Article {
-  const lang = options.lang || 'es';
-  const baseUrl = getBaseUrl();
-  const siteName = getLocalizedContent(SITE_METADATA.siteName, lang);
-  const locale = getLocaleForLanguage(lang);
-
-  return {
-    '@context': 'https://schema.org',
-    '@type': 'BlogPosting',
-    headline: title,
-    description,
-    image: options.image,
-    datePublished: publishedDate,
-    dateModified: options.modifiedDate || publishedDate,
-    author: {
-      '@type': 'Person',
-      name: options.authorName || 'Vetify',
-    },
-    publisher: {
-      '@type': 'Organization',
-      name: siteName,
-      logo: {
-        '@type': 'ImageObject',
-        url: `${baseUrl}/images/logo.png`,
-      },
-    },
-    inLanguage: locale,
   };
 }
 
@@ -810,7 +743,7 @@ export function generateCommonVeterinaryServices(
  * Combine multiple structured data schemas
  */
 export function combineSchemas(
-  ...schemas: (Organization | SoftwareApplication | WebPage | Article)[]
+  ...schemas: (Organization | SoftwareApplication | WebPage)[]
 ): string {
   return JSON.stringify(schemas.length === 1 ? schemas[0] : schemas);
 }
@@ -819,14 +752,12 @@ type StructuredDataType =
   | Organization
   | SoftwareApplication
   | WebPage
-  | Article
   | Product
   | LocalBusiness
   | Service
   | Organization[]
   | SoftwareApplication[]
   | WebPage[]
-  | Article[]
   | Product[]
   | LocalBusiness[]
   | Service[];
