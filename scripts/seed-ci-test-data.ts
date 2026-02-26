@@ -81,6 +81,7 @@ async function main() {
         userId: TEST_KINDE_ID,
         name: 'E2E Test User',
         email: TEST_EMAIL,
+        position: 'Veterinario',
         role: 'ADMIN',
       },
     });
