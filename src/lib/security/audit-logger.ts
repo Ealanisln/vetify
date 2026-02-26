@@ -113,7 +113,35 @@ export function calculateRiskLevel(
 }
 
 /**
- * Log audit event to console (in production, this should go to a proper logging service)
+ * Persist audit event to the database via internal API endpoint.
+ * Fire-and-forget: does not block the caller, silently handles errors.
+ */
+function persistAuditEvent(event: AuditEvent): void {
+  const baseUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+  const secret = process.env.INTERNAL_API_SECRET;
+  if (!secret) return;
+
+  try {
+    fetch(`${baseUrl}/api/internal/audit-log`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-internal-secret': secret,
+      },
+      body: JSON.stringify(event),
+    }).catch(() => {
+      // Silently ignore - audit logging should never break the app
+    });
+  } catch {
+    // Silently ignore
+  }
+}
+
+/**
+ * Log audit event and persist to database
  */
 export async function logAuditEvent(event: Omit<AuditEvent, 'id' | 'timestamp'>): Promise<void> {
   const auditEvent: AuditEvent = {
@@ -128,31 +156,23 @@ export async function logAuditEvent(event: Omit<AuditEvent, 'id' | 'timestamp'>)
     console.log('🔍 AUDIT LOG:', JSON.stringify(auditEvent, null, 2));
   }
 
-  // In production, you would send this to:
-  // - Supabase audit table
-  // - External logging service (DataDog, LogRocket, etc.)
-  // - SIEM system
-  // - Compliance logging system
-
-  try {
-    // TODO: Implement actual audit log storage
-    // For now, we'll just log critical events to console even in production
-    if (auditEvent.riskLevel === 'critical' || auditEvent.riskLevel === 'high') {
-      console.warn('🚨 SECURITY AUDIT:', {
-        id: auditEvent.id,
-        timestamp: auditEvent.timestamp,
-        eventType: auditEvent.eventType,
-        userId: auditEvent.userId,
-        ipAddress: auditEvent.ipAddress,
-        endpoint: auditEvent.endpoint,
-        riskLevel: auditEvent.riskLevel,
-        success: auditEvent.success,
-        details: auditEvent.details,
-      });
-    }
-  } catch (error) {
-    console.error('Failed to log audit event:', error);
+  // Always log critical/high events to console for immediate visibility
+  if (auditEvent.riskLevel === 'critical' || auditEvent.riskLevel === 'high') {
+    console.warn('🚨 SECURITY AUDIT:', {
+      id: auditEvent.id,
+      timestamp: auditEvent.timestamp,
+      eventType: auditEvent.eventType,
+      userId: auditEvent.userId,
+      ipAddress: auditEvent.ipAddress,
+      endpoint: auditEvent.endpoint,
+      riskLevel: auditEvent.riskLevel,
+      success: auditEvent.success,
+      details: auditEvent.details,
+    });
   }
+
+  // Persist to database (fire-and-forget)
+  persistAuditEvent(auditEvent);
 }
 
 /**
@@ -283,11 +303,12 @@ export function createAuditMiddleware() {
     userId?: string,
     tenantId?: string
   ): Promise<void> => {
-    // Don't log static files, health checks, etc.
+    // Don't log static files, health checks, or internal audit endpoint (prevents infinite loop)
     if (
       request.nextUrl.pathname.startsWith('/_next/') ||
       request.nextUrl.pathname.startsWith('/favicon') ||
-      request.nextUrl.pathname === '/health'
+      request.nextUrl.pathname === '/health' ||
+      request.nextUrl.pathname.startsWith('/api/internal/audit-log')
     ) {
       return;
     }

@@ -415,22 +415,25 @@ test.describe('Pets Management', () => {
 
       // At least one sort option should be visible
       const hasSort = await sortButtons.first().isVisible().catch(() => false);
-      expect(hasSort || true).toBeTruthy(); // Allow test to pass if sorting UI is different
+      if (!hasSort) {
+        test.info().annotations.push({ type: 'info', description: 'Sort UI not found - implementation may differ' });
+        return;
+      }
+      expect(hasSort).toBeTruthy();
     });
 
     test('should sort by name when clicking name button', async ({ page }) => {
       const nameSort = page.locator('button:has-text("Nombre")').first();
 
       if (await nameSort.isVisible()) {
-        // Get first pet name before sort
-        const firstPetBefore = await page.locator('[data-testid="pet-name"]').first().textContent();
+        // Click to sort
 
         // Click to sort
         await nameSort.click();
         await page.waitForLoadState('networkidle');
 
-        // Verify the action worked
-        expect(firstPetBefore || true).toBeTruthy();
+        // Verify the page loaded with pet data
+        await expect(page.locator('[data-testid="pet-card"]').first().or(page.locator('[data-testid="empty-pets-state"]'))).toBeVisible();
       }
     });
 
@@ -467,7 +470,9 @@ test.describe('Pets Management', () => {
 
         // Look for chevron icon in the button
         const hasIcon = await sortButton.locator('svg').isVisible().catch(() => false);
-        expect(hasIcon || true).toBeTruthy();
+        if (!hasIcon) {
+          test.info().annotations.push({ type: 'info', description: 'Sort direction icon not found in button' });
+        }
       }
     });
 
@@ -497,7 +502,7 @@ test.describe('Pets Management', () => {
 
         // Active button should have different styling (bg-white or similar)
         const buttonClass = await sortButton.getAttribute('class');
-        expect(buttonClass || true).toBeTruthy();
+        expect(buttonClass).toBeTruthy();
       }
     });
 
@@ -514,8 +519,8 @@ test.describe('Pets Management', () => {
         await searchInput.fill('test');
         await page.waitForTimeout(500);
 
-        // Sort should still be applied (button should remain active)
-        expect(true).toBeTruthy();
+        // Sort should still be applied - verify page still functional
+        await expect(page.locator('[data-testid="pet-card"]').first().or(page.locator('[data-testid="empty-pets-state"]'))).toBeVisible();
       }
     });
   });
@@ -628,8 +633,9 @@ test.describe('Pets Management', () => {
         const instructions = page.locator('text=/JPG.*PNG.*WebP/i');
         const hasInstructions = await instructions.isVisible().catch(() => false);
 
-        // This may not be visible if there's already an image
-        expect(hasInstructions || true).toBeTruthy();
+        if (!hasInstructions) {
+          test.info().annotations.push({ type: 'info', description: 'File type instructions not visible - pet may already have image' });
+        }
       }
     });
 
@@ -646,8 +652,9 @@ test.describe('Pets Management', () => {
         const sizeLimit = page.locator('text=/5MB/i');
         const hasSizeLimit = await sizeLimit.isVisible().catch(() => false);
 
-        // This may not be visible if there's already an image
-        expect(hasSizeLimit || true).toBeTruthy();
+        if (!hasSizeLimit) {
+          test.info().annotations.push({ type: 'info', description: 'Size limit text not visible - pet may already have image' });
+        }
       }
     });
 
@@ -778,8 +785,8 @@ test.describe('Pets Management', () => {
           // If no image, there should be an emoji or placeholder
           const hasEmoji = await petHeader.locator('text=/🐕|🐈|🐦|🐇|🐾/').isVisible().catch(() => false);
 
-          // One or the other should be present
-          expect(hasImage || hasEmoji || true).toBeTruthy();
+          // Pet header should have either image or emoji fallback
+          expect(hasImage || hasEmoji).toBeTruthy();
         }
       }
     });
@@ -887,8 +894,9 @@ test.describe('Pets Management', () => {
           const emptyState = historyCard.locator('text=/Sin historial médico/i');
           const hasEmptyState = await emptyState.isVisible().catch(() => false);
 
-          // Either has empty state or has consultation entries
-          expect(hasEmptyState || true).toBeTruthy();
+          // Either has empty state or has consultation entries - both are valid
+          const hasEntries = await historyCard.locator('time').first().isVisible().catch(() => false);
+          expect(hasEmptyState || hasEntries).toBeTruthy();
         }
       }
     });
@@ -908,7 +916,9 @@ test.describe('Pets Management', () => {
             // Diagnosis section should have blue styling
             const diagnosisContainer = diagnosisSection.locator('xpath=ancestor::div[contains(@class, "bg-blue")]');
             const hasBlueStyle = await diagnosisContainer.isVisible().catch(() => false);
-            expect(hasBlueStyle || true).toBeTruthy();
+            if (!hasBlueStyle) {
+              test.info().annotations.push({ type: 'info', description: 'Diagnosis section lacks blue bg styling' });
+            }
           }
         }
       }
@@ -929,7 +939,9 @@ test.describe('Pets Management', () => {
             // Treatment section should have emerald/green styling
             const treatmentContainer = treatmentSection.locator('xpath=ancestor::div[contains(@class, "bg-emerald") or contains(@class, "bg-green")]');
             const hasGreenStyle = await treatmentContainer.isVisible().catch(() => false);
-            expect(hasGreenStyle || true).toBeTruthy();
+            if (!hasGreenStyle) {
+              test.info().annotations.push({ type: 'info', description: 'Treatment section lacks green bg styling' });
+            }
           }
         }
       }
@@ -950,7 +962,9 @@ test.describe('Pets Management', () => {
             // Notes section should have amber styling
             const notesContainer = notesSection.locator('xpath=ancestor::div[contains(@class, "bg-amber")]');
             const hasAmberStyle = await notesContainer.isVisible().catch(() => false);
-            expect(hasAmberStyle || true).toBeTruthy();
+            if (!hasAmberStyle) {
+              test.info().annotations.push({ type: 'info', description: 'Notes section lacks amber bg styling' });
+            }
           }
         }
       }
@@ -1006,7 +1020,9 @@ test.describe('Pets Management', () => {
         // Treatment card might be visible
         const treatmentCard = page.locator('text=/Tratamientos y Vacunas/i').first();
         const isVisible = await treatmentCard.isVisible().catch(() => false);
-        expect(isVisible || true).toBeTruthy();
+        if (!isVisible) {
+          test.info().annotations.push({ type: 'info', description: 'Treatment timeline card not found on pet detail' });
+        }
       }
     });
 
@@ -1025,7 +1041,9 @@ test.describe('Pets Management', () => {
           // Should show new treatment button nearby
           const newTreatmentBtn = page.locator('text=/Nuevo Tratamiento/i').first();
           const hasBtn = await newTreatmentBtn.isVisible().catch(() => false);
-          expect(hasBtn || true).toBeTruthy();
+          if (!hasBtn) {
+            test.info().annotations.push({ type: 'info', description: 'New treatment button not found near title' });
+          }
         }
       }
     });
@@ -1040,7 +1058,9 @@ test.describe('Pets Management', () => {
         // Should show treatment count
         const countText = page.locator('text=/\\d+ tratamientos? registrados/i');
         const hasCount = await countText.isVisible().catch(() => false);
-        expect(hasCount || true).toBeTruthy();
+        if (!hasCount) {
+          test.info().annotations.push({ type: 'info', description: 'Treatment count not found in header' });
+        }
       }
     });
 
@@ -1074,11 +1094,13 @@ test.describe('Pets Management', () => {
         const dewormingBadge = page.locator('text=/Desparasitación/i');
         const fleaBadge = page.locator('text=/Antipulgas/i');
 
-        // At least verify the page loaded - treatments may or may not exist
-        expect(await vaccinationBadge.isVisible().catch(() => false) ||
+        // Check if any treatment badges are visible (optional - pet may not have treatments)
+        const hasBadges = await vaccinationBadge.isVisible().catch(() => false) ||
                await dewormingBadge.isVisible().catch(() => false) ||
-               await fleaBadge.isVisible().catch(() => false) ||
-               true).toBeTruthy();
+               await fleaBadge.isVisible().catch(() => false);
+        if (!hasBadges) {
+          test.info().annotations.push({ type: 'info', description: 'No treatment badges found - pet may not have treatments' });
+        }
       }
     });
 
@@ -1093,10 +1115,12 @@ test.describe('Pets Management', () => {
         const batchField = page.locator('text=/Lote:/i');
         const manufacturerField = page.locator('text=/Lab:/i');
 
-        // These are optional, so just verify page loaded
-        expect(await batchField.isVisible().catch(() => false) ||
-               await manufacturerField.isVisible().catch(() => false) ||
-               true).toBeTruthy();
+        // These are optional detail fields
+        const hasDetails = await batchField.isVisible().catch(() => false) ||
+               await manufacturerField.isVisible().catch(() => false);
+        if (!hasDetails) {
+          test.info().annotations.push({ type: 'info', description: 'Batch/manufacturer fields not present' });
+        }
       }
     });
 

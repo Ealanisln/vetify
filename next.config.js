@@ -128,11 +128,6 @@ const nextConfig = {
         hostname: 'res.cloudinary.com',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: 'a.storyblok.com',
-        pathname: '/**',
-      },
     ],
   },
   typescript: {

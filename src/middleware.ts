@@ -405,6 +405,6 @@ export const config = {
     '/dashboard/:path*',
     '/onboarding',
     '/admin/:path*',
-    '/api/((?!public/|auth/|invitations/).*)',
+    '/api/((?!public/|auth/|invitations/|internal/).*)',
   ],
 };

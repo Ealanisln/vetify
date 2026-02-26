@@ -14,6 +14,8 @@ export default defineConfig({
   timeout: 30 * 1000,
   // Global timeout for the entire test run (10 minutes max)
   globalTimeout: isCI ? 10 * 60 * 1000 : undefined,
+  // Clean up test data after all tests complete (CI only)
+  globalTeardown: isCI ? './tests/global-teardown.ts' : undefined,
   reporter: isCI
     ? [['github'], ['json', { outputFile: 'test-results/results.json' }]]
     : [['html'], ['json', { outputFile: 'test-results/results.json' }]],

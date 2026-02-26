@@ -15,6 +15,7 @@
 /playwright-report/
 /playwright-report-weekly/
 /test-results/
+tests/.auth/
 
 # next.js
 /.next/

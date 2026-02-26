@@ -3,7 +3,7 @@ import { getBaseUrl } from '@/lib/seo/config';
 import { SUPPORTED_LANGUAGES } from '@/lib/seo/language';
 import { prisma } from '@/lib/prisma';
 import * as Sentry from '@sentry/nextjs';
-import { getBlogSitemapUrls } from '@/lib/storyblok/api';
+
 
 // Force dynamic rendering to prevent build-time database access
 // Sitemap will be generated on-demand at runtime
@@ -42,11 +42,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
       changeFrequency: 'monthly' as const,
     },
-    {
-      path: '/blog',
-      priority: 0.9,
-      changeFrequency: 'daily' as const,
-    },
   ];
 
   // Generate sitemap entries for static pages
@@ -73,17 +68,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   }));
 
-  // Fetch dynamic routes in parallel
-  const [clinicEntries, blogEntries] = await Promise.all([
-    fetchPublicClinicRoutes(baseUrl, defaultLanguage),
-    fetchBlogRoutes(baseUrl, defaultLanguage),
-  ]);
+  // Fetch dynamic routes
+  const clinicEntries = await fetchPublicClinicRoutes(baseUrl, defaultLanguage);
 
   // Combine all entries
   return [
     ...staticEntries,
     ...clinicEntries,
-    ...blogEntries,
   ];
 }
 
@@ -184,51 +175,3 @@ async function fetchPublicClinicRoutes(
   }
 }
 
-/**
- * Fetch blog posts, categories, authors, and tags for sitemap
- * Data fetched from Storyblok CMS
- */
-async function fetchBlogRoutes(
-  baseUrl: string,
-  defaultLanguage: string
-): Promise<MetadataRoute.Sitemap> {
-  try {
-    const blogUrls = await getBlogSitemapUrls();
-
-    return blogUrls.map((item) => ({
-      url: `${baseUrl}${item.url}`,
-      lastModified: item.lastModified,
-      changeFrequency: item.changeFrequency as 'daily' | 'weekly' | 'monthly',
-      priority: item.priority,
-      alternates: {
-        languages: SUPPORTED_LANGUAGES.reduce(
-          (acc, lang) => {
-            if (lang === defaultLanguage) {
-              acc[lang] = `${baseUrl}${item.url}`;
-            }
-            return acc;
-          },
-          {} as Record<string, string>
-        ),
-      },
-    }));
-  } catch (error) {
-    // Track error in Sentry
-    Sentry.captureException(error, {
-      level: 'warning',
-      tags: {
-        context: 'sitemap-generation',
-        source: 'storyblok',
-        impact: 'seo',
-      },
-      extra: {
-        message: 'Failed to fetch blog routes for sitemap',
-      },
-    });
-
-    console.error('[WARN] Sitemap blog fetch failed:', error);
-
-    // Return empty array on error to prevent sitemap generation failure
-    return [];
-  }
-}

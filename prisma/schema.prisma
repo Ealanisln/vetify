@@ -1573,3 +1573,28 @@ enum WebhookDeliveryStatus {
   FAILED
   SKIPPED
 }
+
+model SecurityAuditLog {
+  id           String   @id @default(uuid())
+  timestamp    DateTime @default(now())
+  eventType    String
+  userId       String?
+  tenantId     String?
+  ipAddress    String
+  userAgent    String   @db.Text
+  endpoint     String
+  method       String
+  resource     String?
+  resourceId   String?
+  details      Json?
+  riskLevel    String
+  success      Boolean
+  errorMessage String?  @db.Text
+
+  @@index([eventType])
+  @@index([userId])
+  @@index([tenantId])
+  @@index([timestamp])
+  @@index([riskLevel])
+  @@index([tenantId, timestamp])
+}

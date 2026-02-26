@@ -98,9 +98,6 @@ export function QuickActions({
     return actions[status as keyof typeof actions];
   };
 
-  // const formatWhatsAppMessage = (appointment: AppointmentWithDetails) => {
-  //   return `Hola ${appointment.customer.name}, recordamos tu cita para ${appointment.pet.name} el ${format(appointment.dateTime, 'PPP', { locale: es })} a las ${format(appointment.dateTime, 'HH:mm')}. Motivo: ${appointment.reason}`;
-  // };
 
   if (variant === 'compact') {
     return (
@@ -196,28 +193,22 @@ export function QuickActions({
                   </Menu.Item>
                 )}
                 
-                {/* TODO: WhatsApp button temporarily disabled due to "Maximum update depth exceeded" error
-                    when clicking this menu item. The error occurs during HeadlessUI Menu close
-                    and needs further investigation. See issue for tracking.
-
                 {showWhatsApp && appointment.customer.phone && onWhatsApp && (
                   <Menu.Item>
-                    {({ active, close }) => (
+                    {({ active }) => (
                       <button
                         onClick={() => {
-                          setLoading('whatsapp');
                           const phone = appointment.customer.phone!;
                           const apt = appointment;
-                          close();
                           setTimeout(() => {
                             onWhatsApp(phone, apt);
-                            setLoading(null);
-                          }, 150);
+                          }, 0);
                         }}
                         className={cn(
                           'flex w-full items-center px-4 py-2 text-sm',
                           active ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
                         )}
+                        data-testid="quick-action-whatsapp"
                       >
                         <Phone className="h-4 w-4 mr-2" />
                         WhatsApp
@@ -225,7 +216,6 @@ export function QuickActions({
                     )}
                   </Menu.Item>
                 )}
-                */}
                 
                 {onDelete && (
                   <>
@@ -301,7 +291,6 @@ export function QuickActions({
 
       {/* Secondary Actions */}
       <div className="flex gap-2">
-        {/* TODO: WhatsApp button temporarily disabled - see comment in compact variant above
         {showWhatsApp && appointment.customer.phone && onWhatsApp && (
           <Button
             variant="outline"
@@ -312,12 +301,12 @@ export function QuickActions({
               }, 0);
             }}
             className="flex-1"
+            data-testid="quick-action-whatsapp-full"
           >
             <Phone className="h-4 w-4 mr-2" />
             WhatsApp
           </Button>
         )}
-        */}
         
         {canEdit && onEdit && (
           <Button

@@ -529,14 +529,6 @@ export default function Nav() {
               >
                 Precios
               </Link>
-              {/* TODO: Uncomment when blog is ready for production
-              <Link
-                href="/blog"
-                className="text-gray-700 hover:text-[#4DB8A3] px-4 py-2.5 text-base font-medium transition-all duration-200 rounded-lg hover:bg-[#4DB8A3]/5"
-              >
-                Blog
-              </Link>
-              */}
             </div>
 
             {/* Right section - User section placeholder */}
@@ -625,15 +617,6 @@ export default function Nav() {
                 Precios
                 <span className="absolute bottom-1 left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-[#4DB8A3] to-transparent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
               </Link>
-              {/* TODO: Uncomment when blog is ready for production
-              <Link
-                href="/blog"
-                className="text-gray-700 hover:text-[#4DB8A3] dark:text-gray-200 dark:hover:text-[#4DB8A3] px-4 py-2.5 text-base font-medium transition-all duration-300 rounded-lg hover:bg-[#4DB8A3]/10 dark:hover:bg-[#4DB8A3]/20 relative group"
-              >
-                Blog
-                <span className="absolute bottom-1 left-4 right-4 h-0.5 bg-gradient-to-r from-transparent via-[#4DB8A3] to-transparent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300"></span>
-              </Link>
-              */}
             </div>
 
             {/* Right section - User section */}
@@ -839,15 +822,6 @@ export default function Nav() {
               >
                 Precios
               </Link>
-              {/* TODO: Uncomment when blog is ready for production
-              <Link
-                href="/blog"
-                className="flex items-center px-4 py-3 text-base font-medium text-gray-800 dark:text-gray-100 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
-                onClick={closeMobileMenu}
-              >
-                Blog
-              </Link>
-              */}
 
               {/* Divider */}
               <div className="h-px bg-gray-200 dark:bg-gray-700 my-2"></div>
