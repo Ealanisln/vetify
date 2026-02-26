@@ -530,9 +530,6 @@ test.describe('Customers Management', () => {
         // Look for sort indicator (chevron up/down icon or text)
         const sortIndicator = page.locator('[data-testid="sort-indicator"], .sort-indicator, [class*="ChevronUp"], [class*="ChevronDown"]');
         const hasIndicator = await sortIndicator.isVisible().catch(() => false);
-
-        // Sort indicator check - implementation may vary
-        const hasIndicator = await sortIndicator.isVisible().catch(() => false);
         if (!hasIndicator) {
           test.info().annotations.push({ type: 'info', description: 'Sort indicator not found - UI may differ' });
         }
