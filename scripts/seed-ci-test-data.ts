@@ -82,7 +82,6 @@ async function main() {
         name: 'E2E Test User',
         email: TEST_EMAIL,
         position: 'Veterinario',
-        role: 'ADMIN',
       },
     });
     console.log('  ✓ Created test staff member');
