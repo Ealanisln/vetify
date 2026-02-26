@@ -18,6 +18,9 @@ const customJestConfig = {
     '<rootDir>/.next/',
     '<rootDir>/node_modules/',
     '<rootDir>/tests/e2e/',
+    '<rootDir>/tests/contracts/',
+    '<rootDir>/tests/performance/',
+    '<rootDir>/tests/visual/',
     '<rootDir>/__tests__/integration/',
   ],
   collectCoverageFrom: [

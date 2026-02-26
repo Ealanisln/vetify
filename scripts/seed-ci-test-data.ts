@@ -39,13 +39,34 @@ async function main() {
         id: TEST_TENANT_ID,
         name: 'CI Test Clinic',
         slug: 'ci-test-clinic',
-        planId: plan.id,
+        planType: 'PROFESIONAL',
+        isTrialPeriod: true,
         trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       },
     });
     console.log('  ✓ Created test tenant');
   } else {
     console.log('  ✓ Test tenant already exists');
+  }
+
+  // 2b. Create tenant subscription linking to plan
+  const existingSubscription = await prisma.tenantSubscription.findUnique({
+    where: { tenantId: TEST_TENANT_ID },
+  });
+
+  if (!existingSubscription) {
+    await prisma.tenantSubscription.create({
+      data: {
+        tenantId: TEST_TENANT_ID,
+        planId: plan.id,
+        status: 'TRIALING',
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      },
+    });
+    console.log('  ✓ Created tenant subscription');
+  } else {
+    console.log('  ✓ Tenant subscription already exists');
   }
 
   // 3. Create test staff/user
