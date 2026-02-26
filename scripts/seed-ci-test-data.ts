@@ -125,7 +125,8 @@ async function main() {
         name: 'CI Test Pet',
         species: 'DOG',
         breed: 'Labrador',
-        ownerId: customerId,
+        gender: 'MALE',
+        customerId,
         dateOfBirth: new Date('2022-01-01'),
       },
     });
@@ -144,7 +145,7 @@ async function main() {
   const existingAppointment = await prisma.appointment.findFirst({
     where: {
       tenantId: TEST_TENANT_ID,
-      title: 'CI Test Appointment',
+      reason: 'CI Test Appointment',
     },
   });
 
@@ -152,9 +153,9 @@ async function main() {
     await prisma.appointment.create({
       data: {
         tenantId: TEST_TENANT_ID,
-        title: 'CI Test Appointment',
-        startTime: tomorrow,
-        endTime: new Date(tomorrow.getTime() + 60 * 60 * 1000), // +1 hour
+        dateTime: tomorrow,
+        duration: 30,
+        reason: 'CI Test Appointment',
         status: 'SCHEDULED',
         petId,
         customerId,
