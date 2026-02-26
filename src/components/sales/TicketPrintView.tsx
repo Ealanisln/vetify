@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { SaleDetail } from './SaleDetailModal';
 import { formatTaxRateLabel } from '@/lib/tax-utils';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface TicketPrintViewProps {
   sale: SaleDetail;
@@ -48,7 +49,7 @@ export function TicketPrintView({ sale }: TicketPrintViewProps) {
         <p><strong>Cliente:</strong> {sale.customer?.name || 'General'}</p>
         {sale.customer?.phone && <p><strong>Tel:</strong> {sale.customer.phone}</p>}
         {sale.pet && (
-          <p><strong>Mascota:</strong> {sale.pet.name} ({sale.pet.species})</p>
+          <p><strong>Mascota:</strong> {sale.pet.name} ({mapSpeciesToSpanish(sale.pet.species)})</p>
         )}
       </div>
 

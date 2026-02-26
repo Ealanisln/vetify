@@ -12,6 +12,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface MedicalHistoryDetailProps {
   tenantId: string;
@@ -128,7 +129,7 @@ export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHisto
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Especie:</span>
-                  <span className="font-medium">{history.pet.species}</span>
+                  <span className="font-medium">{mapSpeciesToSpanish(history.pet.species)}</span>
                 </div>
                 {history.pet.breed && (
                   <div className="flex justify-between">

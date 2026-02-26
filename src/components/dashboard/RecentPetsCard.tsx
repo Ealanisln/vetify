@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { PetWithOwner } from '@/types';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface RecentPetsCardProps {
   pets: PetWithOwner[];
@@ -49,7 +50,7 @@ export function RecentPetsCard({ pets }: RecentPetsCardProps) {
                         {pet.name}
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                        {pet.species} • {pet.breed}
+                        {mapSpeciesToSpanish(pet.species)} • {pet.breed}
                       </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500">
                         Dueño: {pet.customer.firstName || pet.customer.name}

@@ -162,6 +162,34 @@ Todos los cambios notables en este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
+## [1.4.0] - 2026-02-14
+
+### Agregado
+- **Rediseño de Landing Page**
+  - Nuevas secciones: HeroSection, ProblemSection, SolutionSection, BenefitsSection, AudienceSection, ClosingSection
+  - Diseño enfocado en clínicas veterinarias pequeñas
+  - Tests unitarios y E2E completos para todas las secciones
+
+- **Mejoras de UX Móvil**
+  - Vista de día por defecto en calendario móvil
+  - Modal de citas cerrable en orientación portrait/landscape
+  - Rediseño del menú móvil con layout consistente
+  - Corrección de backdrop cubriendo navbar
+
+- **Internacionalización (i18n)**
+  - Traducción de especies de mascotas al español en toda la UI
+  - Traducción de posiciones de staff al español en formularios
+
+### Corregido
+- **fix(promotions):** cache con backoff de 5 minutos en errores de conexión a DB para evitar logs repetitivos cuando Supabase Supavisor falla transitoriamente
+- **fix(appointments):** preservar estado de selección de horario al cambiar entre vistas
+- **fix(mobile):** prevenir que el backdrop cubra la barra de navegación
+
+### Infraestructura
+- **ci:** cron job para mantener activa la DB de desarrollo en Supabase free tier (cada 5 días)
+
+---
+
 ## [1.3.0] - 2026-01-24
 
 ### Agregado

@@ -14,6 +14,7 @@ import { es } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
 import LocationSelector from '@/components/locations/LocationSelector';
 import { POSITION_LABELS_ES, StaffPositionType } from '@/lib/staff-positions';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface Customer {
   id: string;
@@ -67,6 +68,8 @@ export function AppointmentForm({
   );
   const [locationId, setLocationId] = useState<string>('');
   const [availablePets, setAvailablePets] = useState<Pet[]>([]);
+  // Store the selected time slot string for comparison (matches API format)
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
   // Time slots are shown based on availability data
   
   const { checkAvailability, availability, loading: availabilityLoading } = useAvailability();
@@ -126,12 +129,17 @@ export function AppointmentForm({
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
+    // Clear selected time slot when date changes (slots will be different)
+    setSelectedTimeSlot(null);
   };
 
   const handleTimeSlotSelect = (dateTime: string) => {
     const selectedDateTime = new Date(dateTime);
     setValue('dateTime', selectedDateTime);
-    setSelectedDate(selectedDateTime);
+    // Store the original slot string for comparison (avoids ISO format mismatch)
+    setSelectedTimeSlot(dateTime);
+    // Note: Don't update selectedDate here - it would trigger another availability check
+    // The date is already selected, we just need to store the full datetime in the form
   };
 
   const handleFormSubmit = async (data: Parameters<typeof onSubmit>[0]) => {
@@ -198,7 +206,7 @@ export function AppointmentForm({
                 </option>
                 {availablePets.map((pet) => (
                   <option key={pet.id} value={pet.id}>
-                    {pet.name} - {pet.species} {pet.breed && `(${pet.breed})`}
+                    {pet.name} - {mapSpeciesToSpanish(pet.species)} {pet.breed && `(${pet.breed})`}
                   </option>
                 ))}
               </select>
@@ -304,7 +312,7 @@ export function AppointmentForm({
                           <Button
                             key={slot.dateTime}
                             type="button"
-                            variant={watch('dateTime')?.toISOString() === slot.dateTime ? 'default' : 'outline'}
+                            variant={selectedTimeSlot === slot.dateTime ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => handleTimeSlotSelect(slot.dateTime)}
                             className="time-slot-button h-9 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-[1.02] border-gray-200 hover:border-primary"
@@ -315,7 +323,7 @@ export function AppointmentForm({
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Afternoon slots */}
                   {availability.availableSlots.filter(slot => slot.period === 'afternoon').length > 0 && (
                     <div className="space-y-3">
@@ -334,7 +342,7 @@ export function AppointmentForm({
                           <Button
                             key={slot.dateTime}
                             type="button"
-                            variant={watch('dateTime')?.toISOString() === slot.dateTime ? 'default' : 'outline'}
+                            variant={selectedTimeSlot === slot.dateTime ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => handleTimeSlotSelect(slot.dateTime)}
                             className="time-slot-button h-9 text-xs font-medium hover:bg-primary hover:text-primary-foreground transition-all duration-200 hover:scale-[1.02] border-gray-200 hover:border-primary"

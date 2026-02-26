@@ -20,6 +20,7 @@ import { getAppointmentStatusLabel, getAppointmentStatusColor } from '../../lib/
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface FullCalendarViewProps {
   onEventClick?: (appointmentId: string) => void;
@@ -103,6 +104,20 @@ export function FullCalendarView({
 
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Switch to day view on mobile for better readability
+  // Week view shows all 7 days compressed, making content unreadable on small screens
+  useEffect(() => {
+    if (calendarRef.current) {
+      const api = calendarRef.current.getApi();
+      const targetView = isMobile ? 'timeGridDay' : defaultView;
+      // Only change if on mobile and not already in day view
+      if (isMobile && api.view.type !== 'timeGridDay') {
+        api.changeView('timeGridDay');
+        setCurrentView('timeGridDay');
+      }
+    }
+  }, [isMobile, defaultView, setCurrentView]);
 
   const calendarConfig = useCalendarConfig();
 
@@ -611,23 +626,37 @@ function EventDetailsModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-md m-4">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4"
+      onClick={(e) => {
+        // Close when clicking the backdrop (not the modal itself)
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <Card className="w-full max-w-md max-h-[90vh] flex flex-col">
+        <CardHeader className="flex-shrink-0 pb-2">
+          <CardTitle className="flex items-center justify-between text-base sm:text-lg">
             <span>Detalles de la Cita</span>
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="h-8 w-8 p-0 text-lg"
+              aria-label="Cerrar"
+            >
               ×
             </Button>
           </CardTitle>
         </CardHeader>
-        
-        <CardContent className="space-y-4">
+
+        <CardContent className="space-y-4 overflow-y-auto flex-1">
           <div className="flex items-center gap-2">
             <User className="h-4 w-4" />
             <div>
               <p className="font-medium">{appointment.customer.name}</p>
-              <p className="text-sm text-gray-600">{appointment.pet.name} ({appointment.pet.species})</p>
+              <p className="text-sm text-gray-600">{appointment.pet.name} ({mapSpeciesToSpanish(appointment.pet.species)})</p>
             </div>
           </div>
           

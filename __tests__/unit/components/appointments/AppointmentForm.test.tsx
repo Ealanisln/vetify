@@ -491,7 +491,7 @@ describe('AppointmentForm Component', () => {
       await user.selectOptions(customerSelect, 'cust-1');
 
       const petSelect = screen.getByTestId('appointment-pet-select');
-      expect(petSelect).toContainHTML('DOG');
+      expect(petSelect).toContainHTML('Perro');
       expect(petSelect).toContainHTML('Golden Retriever');
     });
   });

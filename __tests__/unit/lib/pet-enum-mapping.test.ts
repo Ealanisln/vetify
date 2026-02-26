@@ -2,7 +2,7 @@
  * Unit tests for pet enum mapping utilities
  */
 
-import { mapSpeciesToEnglish, mapGenderToEnglish, VALID_SPECIES, VALID_GENDERS } from '@/lib/utils/pet-enum-mapping';
+import { mapSpeciesToEnglish, mapGenderToEnglish, mapSpeciesToSpanish, mapGenderToSpanish, VALID_SPECIES, VALID_GENDERS } from '@/lib/utils/pet-enum-mapping';
 
 describe('Pet Enum Mapping', () => {
   // Mock console.error to test error logging
@@ -173,6 +173,79 @@ describe('Pet Enum Mapping', () => {
         input: 'Invalid',
         output: 'male',
         level: 'ERROR'
+      });
+    });
+  });
+
+  describe('mapSpeciesToSpanish', () => {
+    describe('Valid English species values', () => {
+      it('should map "dog" to "Perro"', () => {
+        expect(mapSpeciesToSpanish('dog')).toBe('Perro');
+      });
+
+      it('should map "cat" to "Gato"', () => {
+        expect(mapSpeciesToSpanish('cat')).toBe('Gato');
+      });
+
+      it('should map "bird" to "Ave"', () => {
+        expect(mapSpeciesToSpanish('bird')).toBe('Ave');
+      });
+
+      it('should map "rabbit" to "Conejo"', () => {
+        expect(mapSpeciesToSpanish('rabbit')).toBe('Conejo');
+      });
+
+      it('should map "other" to "Otro"', () => {
+        expect(mapSpeciesToSpanish('other')).toBe('Otro');
+      });
+    });
+
+    describe('Case handling', () => {
+      it('should handle uppercase input', () => {
+        expect(mapSpeciesToSpanish('DOG')).toBe('Perro');
+        expect(mapSpeciesToSpanish('CAT')).toBe('Gato');
+      });
+
+      it('should handle mixed case input', () => {
+        expect(mapSpeciesToSpanish('Dog')).toBe('Perro');
+        expect(mapSpeciesToSpanish('Cat')).toBe('Gato');
+      });
+    });
+
+    describe('Unknown values', () => {
+      it('should return the original value for unknown species', () => {
+        expect(mapSpeciesToSpanish('unknown')).toBe('unknown');
+        expect(mapSpeciesToSpanish('hamster')).toBe('hamster');
+      });
+    });
+  });
+
+  describe('mapGenderToSpanish', () => {
+    describe('Valid English gender values', () => {
+      it('should map "male" to "Macho"', () => {
+        expect(mapGenderToSpanish('male')).toBe('Macho');
+      });
+
+      it('should map "female" to "Hembra"', () => {
+        expect(mapGenderToSpanish('female')).toBe('Hembra');
+      });
+    });
+
+    describe('Case handling', () => {
+      it('should handle uppercase input', () => {
+        expect(mapGenderToSpanish('MALE')).toBe('Macho');
+        expect(mapGenderToSpanish('FEMALE')).toBe('Hembra');
+      });
+
+      it('should handle mixed case input', () => {
+        expect(mapGenderToSpanish('Male')).toBe('Macho');
+        expect(mapGenderToSpanish('Female')).toBe('Hembra');
+      });
+    });
+
+    describe('Unknown values', () => {
+      it('should return the original value for unknown gender', () => {
+        expect(mapGenderToSpanish('unknown')).toBe('unknown');
       });
     });
   });

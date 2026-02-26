@@ -16,6 +16,7 @@ import {
   MapPin,
   Clock
 } from 'lucide-react';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface CustomerDuplicate {
   id: string;
@@ -289,7 +290,7 @@ export function DuplicateCustomersManager() {
                             <ul className="list-disc list-inside ml-2">
                               {duplicate.pets.map(pet => (
                                 <li key={pet.id}>
-                                  {pet.name} ({pet.species})
+                                  {pet.name} ({mapSpeciesToSpanish(pet.species)})
                                 </li>
                               ))}
                             </ul>

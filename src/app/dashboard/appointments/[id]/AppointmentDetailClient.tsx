@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface Customer {
   id: string;
@@ -264,7 +265,7 @@ export default function AppointmentDetailClient({
               <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Mascota</p>
               <p className="text-base font-semibold text-gray-900 dark:text-gray-100">{appointment.pet.name}</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {appointment.pet.species} {appointment.pet.breed && `· ${appointment.pet.breed}`}
+                {mapSpeciesToSpanish(appointment.pet.species)} {appointment.pet.breed && `· ${appointment.pet.breed}`}
               </p>
             </div>
           </CardContent>

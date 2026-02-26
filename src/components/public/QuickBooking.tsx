@@ -10,6 +10,7 @@ import { formatDate } from '../../lib/utils/date-format';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
 import { getSessionId, trackConversion } from '@/lib/analytics/landing-tracker';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface Pet {
   id: string;
@@ -347,7 +348,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                         <div className="flex flex-wrap gap-2">
                           {data.existingPets.map((pet: Pet) => (
                             <span key={pet.id} className="bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs">
-                              {pet.name} ({pet.species})
+                              {pet.name} ({mapSpeciesToSpanish(pet.species)})
                             </span>
                           ))}
                         </div>
@@ -600,7 +601,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                           <span>{pet.name}</span>
                           {pet.species && (
                             <span className={`text-xs ${formData.petId === pet.id ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
-                              ({pet.species})
+                              ({mapSpeciesToSpanish(pet.species)})
                             </span>
                           )}
                         </button>

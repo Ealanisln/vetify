@@ -18,6 +18,7 @@ import {
 import { getThemeClasses } from '../../utils/theme-colors';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface Pet {
   id: string;
@@ -412,7 +413,7 @@ export function CustomerDetail({ customer, onUpdate, onArchive, initialEditMode 
                           {pet.name}
                         </p>
                         <p className={`text-sm ${getThemeClasses('text.secondary')}`}>
-                          {pet.species} • {pet.breed}
+                          {mapSpeciesToSpanish(pet.species)} • {pet.breed}
                         </p>
                       </div>
                       {pet.isDeceased && (
