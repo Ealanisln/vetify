@@ -489,7 +489,11 @@ test.describe('Customers Management', () => {
       const hasSortButtons = await sortControls.isVisible().catch(() => false);
 
       // Either table headers are clickable for sort, or there's a sort control area
-      expect(hasTableSort || hasSortButtons || true).toBeTruthy(); // Allow test to pass if sorting UI is different
+      if (!hasTableSort && !hasSortButtons) {
+        test.skip();
+        return;
+      }
+      expect(hasTableSort || hasSortButtons).toBeTruthy();
     });
 
     test('should sort by name when clicking name header', async ({ page }) => {
@@ -510,8 +514,9 @@ test.describe('Customers Management', () => {
         await nameHeader.click();
         await page.waitForLoadState('networkidle');
 
-        // Verify the list updated
-        expect(firstRowBefore || firstRowAfter).toBeTruthy();
+        // Verify that sorting produced customer names
+        expect(firstRowBefore).toBeTruthy();
+        expect(firstRowAfter).toBeTruthy();
       }
     });
 
@@ -525,9 +530,9 @@ test.describe('Customers Management', () => {
         // Look for sort indicator (chevron up/down icon or text)
         const sortIndicator = page.locator('[data-testid="sort-indicator"], .sort-indicator, [class*="ChevronUp"], [class*="ChevronDown"]');
         const hasIndicator = await sortIndicator.isVisible().catch(() => false);
-
-        // This is informational - sort indicator may have different implementation
-        expect(true).toBeTruthy();
+        if (!hasIndicator) {
+          test.info().annotations.push({ type: 'info', description: 'Sort indicator not found - UI may differ' });
+        }
       }
     });
 
@@ -547,8 +552,9 @@ test.describe('Customers Management', () => {
 
         const firstNameDesc = await page.locator('[data-testid="customer-name"]').first().textContent();
 
-        // Names might be different (if there are multiple customers with different names)
-        expect(firstNameAsc || firstNameDesc).toBeTruthy();
+        // Names should exist after sorting
+        expect(firstNameAsc).toBeTruthy();
+        expect(firstNameDesc).toBeTruthy();
       }
     });
 
@@ -566,9 +572,8 @@ test.describe('Customers Management', () => {
           await nextButton.click();
           await page.waitForLoadState('networkidle');
 
-          // Sort order should be maintained (visual verification)
-          // Check that we're still on page 2 with sorted data
-          expect(true).toBeTruthy();
+          // Verify we're still on sorted page 2
+          await expect(page.locator('[data-testid="customer-name"]').first()).toBeVisible();
         }
       }
     });

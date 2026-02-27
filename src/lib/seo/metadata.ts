@@ -163,45 +163,6 @@ export function createPageSEO(
 }
 
 /**
- * Create SEO configuration for article/blog pages
- */
-export function createArticleSEO(
-  title: string,
-  description: string,
-  options: {
-    path?: string;
-    keywords?: string[];
-    ogImage?: string;
-    publishedTime?: string;
-    modifiedTime?: string;
-    author?: string;
-    lang?: SupportedLanguage;
-  } = {}
-): SEOConfig {
-  const baseUrl = getBaseUrl();
-  const canonical = options.path ? `${baseUrl}${options.path}` : undefined;
-
-  return {
-    title,
-    description,
-    keywords: options.keywords,
-    canonical,
-    ogTitle: title,
-    ogDescription: description,
-    ogType: 'article',
-    ogImage: options.ogImage
-      ? {
-          url: options.ogImage,
-          width: OG_IMAGE_WIDTH,
-          height: OG_IMAGE_HEIGHT,
-          alt: title,
-        }
-      : undefined,
-    twitterCard: 'summary_large_image',
-  };
-}
-
-/**
  * Get current language from request or default
  * Can be extended to read from cookies, headers, or URL
  */

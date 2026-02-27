@@ -1,7 +1,8 @@
 import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { stripe, handleSubscriptionChange } from '../../../../lib/payments/stripe';
-import { notifyNewSubscriptionPayment } from '../../../../lib/email/admin-notifications';
+import { notifyNewSubscriptionPayment, notifyPaymentFailed } from '../../../../lib/email/admin-notifications';
 import { prisma } from '../../../../lib/prisma';
 import Stripe from 'stripe';
 
@@ -193,7 +194,7 @@ export async function POST(request: NextRequest) {
       case 'invoice.payment_failed': {
         console.log('Webhook: Processing invoice.payment_failed');
         const invoice = event.data.object as Stripe.Invoice;
-        
+
         console.log('Webhook: Failed invoice details:', {
           id: invoice.id,
           subscription: invoice.subscription,
@@ -201,7 +202,77 @@ export async function POST(request: NextRequest) {
           customer: invoice.customer
         });
 
-        // Could handle failed payments here if needed
+        // Capture in Sentry
+        Sentry.captureMessage('Stripe invoice.payment_failed', {
+          level: 'error',
+          tags: {
+            category: 'payments',
+            invoiceId: invoice.id,
+            customerId: invoice.customer as string,
+          },
+          contexts: {
+            invoice: {
+              id: invoice.id,
+              subscription: invoice.subscription as string,
+              status: invoice.status,
+              amount_due: invoice.amount_due,
+              currency: invoice.currency,
+              customer: invoice.customer as string,
+            },
+          },
+        });
+
+        // Send admin notification (non-blocking)
+        try {
+          const customer = await stripe.customers.retrieve(
+            invoice.customer as string
+          ) as Stripe.Customer;
+
+          const tenantId = customer.metadata?.tenantId;
+          let tenantName = customer.name || customer.email || 'Desconocido';
+          let tenantSlug = '';
+          let ownerName: string | undefined;
+          let ownerEmail: string | undefined;
+
+          if (tenantId) {
+            const tenant = await prisma.tenant.findUnique({
+              where: { id: tenantId },
+              include: {
+                staff: {
+                  where: { role: 'OWNER' },
+                  take: 1,
+                },
+              },
+            });
+
+            if (tenant) {
+              tenantName = tenant.name;
+              tenantSlug = tenant.slug;
+              if (tenant.staff[0]) {
+                ownerName = tenant.staff[0].name || undefined;
+                ownerEmail = tenant.staff[0].email;
+              }
+            }
+          }
+
+          notifyPaymentFailed({
+            tenantName,
+            tenantSlug,
+            userName: ownerName,
+            userEmail: ownerEmail,
+            failureReason: 'Pago de factura fallido en Stripe',
+            invoiceId: invoice.id,
+            amountDue: invoice.amount_due,
+            currency: invoice.currency,
+            stripeCustomerId: customer.id,
+            stripeSubscriptionId: invoice.subscription as string | undefined,
+          }).catch(notifError => {
+            console.error('[WEBHOOK] Failed to send payment failed notification:', notifError);
+          });
+        } catch (notifError) {
+          console.error('[WEBHOOK] Error preparing payment failed notification:', notifError);
+        }
+
         break;
       }
       default: {

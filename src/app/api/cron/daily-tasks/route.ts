@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 import { checkAllTenantsInventory } from '@/lib/email/inventory-alerts';
 import { processAppointmentReminders, processTreatmentReminders } from '@/lib/email/reminder-alerts';
 
@@ -92,6 +93,19 @@ export async function GET(request: NextRequest) {
 
   const allSuccess = errors.length === 0;
   console.log(`[CRON] Daily tasks complete. Success: ${allSuccess}, Errors: ${errors.length}`);
+
+  if (errors.length > 0) {
+    Sentry.captureMessage(`Daily cron: ${errors.length}/3 tasks failed`, {
+      level: errors.length === 3 ? 'fatal' : 'error',
+      tags: { category: 'cron', failedTasks: errors.length },
+      contexts: {
+        cron: {
+          errors,
+          results: JSON.stringify(results),
+        },
+      },
+    });
+  }
 
   return NextResponse.json({
     success: allSuccess,

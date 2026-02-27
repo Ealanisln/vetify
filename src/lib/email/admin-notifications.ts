@@ -8,6 +8,7 @@ import { sendEmail } from './email-service';
 import type {
   NewUserRegistrationData,
   NewSubscriptionPaymentData,
+  PaymentFailedAlertData,
   EmailSendResult,
 } from './types';
 
@@ -163,6 +164,79 @@ export async function notifyNewSubscriptionPayment(data: {
     return result;
   } catch (error) {
     console.error('[ADMIN_NOTIFICATIONS] Error sending subscription payment notification:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
+/**
+ * Send notification when a payment fails or a critical subscription issue occurs
+ */
+export async function notifyPaymentFailed(data: {
+  tenantName: string;
+  tenantSlug: string;
+  userName?: string;
+  userEmail?: string;
+  failureReason: string;
+  invoiceId?: string;
+  amountDue?: number;
+  currency?: string;
+  stripeCustomerId?: string;
+  stripeSubscriptionId?: string;
+  subject?: string;
+}): Promise<EmailSendResult> {
+  if (!data.tenantName || !data.failureReason) {
+    console.warn('[ADMIN_NOTIFICATIONS] Missing required data for payment failed notification, skipping:', {
+      hasTenantName: !!data.tenantName,
+      hasFailureReason: !!data.failureReason,
+    });
+    return {
+      success: false,
+      error: 'Missing required notification data',
+    };
+  }
+
+  const emailData: PaymentFailedAlertData = {
+    template: 'payment-failed-alert',
+    to: {
+      email: ADMIN_EMAIL,
+      name: ADMIN_NAME,
+    },
+    subject: data.subject || `ALERTA: Pago Fallido - ${data.tenantName}`,
+    tenantId: 'system',
+    data: {
+      tenantName: data.tenantName,
+      tenantSlug: data.tenantSlug,
+      userName: data.userName,
+      userEmail: data.userEmail,
+      failureReason: data.failureReason,
+      invoiceId: data.invoiceId,
+      amountDue: data.amountDue,
+      currency: data.currency,
+      stripeCustomerId: data.stripeCustomerId,
+      stripeSubscriptionId: data.stripeSubscriptionId,
+      failureDate: new Date(),
+    },
+  };
+
+  try {
+    const result = await sendEmail(emailData);
+
+    if (result.success) {
+      console.log('[ADMIN_NOTIFICATIONS] Payment failed notification sent:', {
+        messageId: result.messageId,
+        tenant: data.tenantName,
+        reason: data.failureReason,
+      });
+    } else {
+      console.error('[ADMIN_NOTIFICATIONS] Failed to send payment failed notification:', result.error);
+    }
+
+    return result;
+  } catch (error) {
+    console.error('[ADMIN_NOTIFICATIONS] Error sending payment failed notification:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

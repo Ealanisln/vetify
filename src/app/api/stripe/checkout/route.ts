@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { redirect } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { stripe, handleSubscriptionChange } from '../../../../lib/payments/stripe';
 import { prisma } from '../../../../lib/prisma';
 import Stripe from 'stripe';
@@ -177,12 +178,36 @@ export async function GET(request: NextRequest) {
           redirect(`/dashboard?success=${successParam}&info=manual_sync`);
         } else {
           console.warn('Checkout: Manual sync failed, but session is complete - redirecting with warning');
+          Sentry.captureMessage('Checkout sync_pending: manual sync failed after webhook timeout', {
+            level: 'warning',
+            tags: { category: 'payments', issue: 'sync_pending' },
+            contexts: {
+              checkout: {
+                sessionId,
+                customerId: session.customer as string,
+                subscriptionId: session.subscription as string,
+                paymentStatus: session.payment_status,
+              },
+            },
+          });
           const encodedSessionId = encodeURIComponent(sessionId);
           redirect(`/dashboard?success=subscription_created&warning=sync_pending&session_id=${encodedSessionId}`);
         }
       } else {
         // Complete fallback - redirect with warning
         console.warn('Checkout: All sync attempts failed, but session is complete - redirecting with warning');
+        Sentry.captureMessage('Checkout sync_pending: all sync attempts failed', {
+          level: 'warning',
+          tags: { category: 'payments', issue: 'sync_pending' },
+          contexts: {
+            checkout: {
+              sessionId,
+              customerId: session.customer as string,
+              subscriptionId: session.subscription as string,
+              paymentStatus: session.payment_status,
+            },
+          },
+        });
         const isTrial = session.payment_status === 'no_payment_required' || session.payment_status === null;
         const successParam = isTrial ? 'trial_started' : 'subscription_created';
         const encodedSessionId = encodeURIComponent(sessionId);

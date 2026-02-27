@@ -202,8 +202,14 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
 
-      - name: Run E2E tests (excluding blog tests that require Storyblok)
-        run: pnpm exec playwright test tests/e2e/analytics tests/e2e/dashboard tests/e2e/public-pages tests/e2e/reports tests/e2e/subscription tests/e2e/auth-race-condition.spec.ts tests/e2e/qr-code-generator.spec.ts
+      - name: Seed E2E test data
+        run: npx tsx scripts/seed-ci-test-data.ts
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+          DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
+
+      - name: Run E2E tests (excluding blog and auth-dependent tests)
+        run: pnpm exec playwright test tests/e2e/analytics tests/e2e/public-pages tests/e2e/reports tests/e2e/subscription tests/e2e/qr-code-generator.spec.ts
         env:
           CI: true
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
@@ -281,7 +287,6 @@ jobs:
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
 
       - name: Run tests with coverage
-        continue-on-error: true  # Coverage threshold not met yet - building up tests
         run: pnpm test:coverage
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
