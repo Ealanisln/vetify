@@ -14,6 +14,7 @@ export type EmailTemplate =
   | 'treatment-reminder'
   | 'new-user-registration'
   | 'new-subscription-payment'
+  | 'payment-failed-alert'
   | 'testimonial-request'
   | 'staff-invitation';
 
@@ -168,6 +169,26 @@ export interface NewSubscriptionPaymentData extends BaseEmailData {
 }
 
 /**
+ * Payment Failed Alert Email Data
+ */
+export interface PaymentFailedAlertData extends BaseEmailData {
+  template: 'payment-failed-alert';
+  data: {
+    tenantName: string;
+    tenantSlug: string;
+    userName?: string;
+    userEmail?: string;
+    failureReason: string;
+    invoiceId?: string;
+    amountDue?: number;
+    currency?: string;
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+    failureDate: Date;
+  };
+}
+
+/**
  * Appointment Cancellation Email Data
  */
 export interface AppointmentCancellationData extends BaseEmailData {
@@ -272,6 +293,7 @@ export type EmailData =
   | TreatmentReminderData
   | NewUserRegistrationData
   | NewSubscriptionPaymentData
+  | PaymentFailedAlertData
   | TestimonialRequestData
   | StaffInvitationData;
 

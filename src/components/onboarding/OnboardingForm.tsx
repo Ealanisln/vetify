@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
+import { TRIAL_PERIOD_DAYS } from '@/lib/constants';
 import { UserWithTenant } from '@/types';
 import { PlanSelection } from '../../app/onboarding/steps/PlanSelection';
 import { ClinicInfo } from '../../app/onboarding/steps/ClinicInfo';
@@ -102,10 +103,10 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
         trackStartTrial({
           plan_name: state.selectedPlan.name,
           plan_key: state.selectedPlan.key,
-          trial_end_date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days trial
+          trial_end_date: new Date(Date.now() + TRIAL_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString(),
           currency: 'MXN',
           value: state.selectedPlan.priceMonthly,
-          trial_duration_days: 14
+          trial_duration_days: TRIAL_PERIOD_DAYS
         });
       } catch (error) {
         // Log tracking errors but don't block the user experience

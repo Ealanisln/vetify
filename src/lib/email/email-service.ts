@@ -19,6 +19,7 @@ import type {
   AppointmentStaffNotificationData,
   LowStockAlertData,
   TreatmentReminderData,
+  PaymentFailedAlertData,
   TestimonialRequestData,
   StaffInvitationData,
 } from './types';
@@ -33,6 +34,7 @@ import {
   TreatmentReminderEmail,
   NewUserRegistrationEmail,
   NewSubscriptionPaymentEmail,
+  PaymentFailedAlertEmail,
   TestimonialRequestEmail,
   StaffInvitationEmail,
 } from './templates';
@@ -376,6 +378,28 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
           paymentDate: paymentDateStr,
           stripeCustomerId: d.stripeCustomerId,
           stripeSubscriptionId: d.stripeSubscriptionId,
+        })
+      );
+    }
+
+    case 'payment-failed-alert': {
+      const d = (emailData as PaymentFailedAlertData).data;
+      const failureDateStr = formatDateTimeLong(d.failureDate);
+      const formattedAmount = d.amountDue && d.currency
+        ? formatCurrency(d.amountDue / 100, d.currency.toUpperCase())
+        : undefined;
+      return await render(
+        PaymentFailedAlertEmail({
+          tenantName: d.tenantName,
+          tenantSlug: d.tenantSlug,
+          userName: d.userName,
+          userEmail: d.userEmail,
+          failureReason: d.failureReason,
+          invoiceId: d.invoiceId,
+          formattedAmount,
+          stripeCustomerId: d.stripeCustomerId,
+          stripeSubscriptionId: d.stripeSubscriptionId,
+          failureDate: failureDateStr,
         })
       );
     }

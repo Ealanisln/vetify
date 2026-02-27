@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 import { redirect } from 'next/navigation';
+import * as Sentry from '@sentry/nextjs';
 import { prisma } from '../prisma';
 import { isLaunchPromotionActive, PRICING_CONFIG, isStripeInLiveMode } from '../pricing-config';
 
@@ -634,8 +635,21 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
     }
 
     if (!planKey) {
-      console.error('updateTenantSubscription: No plan mapping found for product:', stripeProductId);
+      const errorMsg = `Subscription not activated: No plan mapping found for Stripe product ${stripeProductId}`;
+      console.error('updateTenantSubscription:', errorMsg);
       console.error('Available mappings:', Object.keys(planMapping));
+      Sentry.captureException(new Error(errorMsg), {
+        level: 'fatal',
+        tags: { category: 'payments', issue: 'plan_mapping_missing' },
+        contexts: {
+          subscription: {
+            subscriptionId,
+            stripeProductId,
+            tenantId: tenant.id,
+            availableMappings: Object.keys(planMapping),
+          },
+        },
+      });
       return;
     }
 
@@ -645,7 +659,19 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
     });
 
     if (!dbPlan) {
-      console.error('updateTenantSubscription: Plan not found in database:', planKey);
+      const errorMsg = `Subscription not activated: Plan "${planKey}" not found in database`;
+      console.error('updateTenantSubscription:', errorMsg);
+      Sentry.captureException(new Error(errorMsg), {
+        level: 'fatal',
+        tags: { category: 'payments', issue: 'plan_not_in_db' },
+        contexts: {
+          subscription: {
+            subscriptionId,
+            planKey,
+            tenantId: tenant.id,
+          },
+        },
+      });
       return;
     }
     
