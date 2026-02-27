@@ -4,28 +4,30 @@ A comprehensive, multi-tenant SaaS platform for veterinary practices built with 
 
 ## 🎉 Latest Release Highlights
 
-**Recent Updates (January 2026 - v1.2.0)**:
-- 📝 **SEO-Optimized Blog System**: Full-featured blog with Storyblok CMS integration
-  - Dynamic article pages with Table of Contents, FAQ sections, and related posts
-  - Category, author, and tag filtering with SEO-optimized URLs
-  - Rich text rendering with callout boxes, code blocks, and media support
-  - Comprehensive test coverage: 234 unit/integration tests + 80+ E2E tests
+**Current Version: v1.4.0 (February 2026)**:
+- 🏠 **Landing Page Redesign**: New sections (Hero, Problem, Solution, Benefits, Audience, Closing) focused on small veterinary clinics
+- 🔔 **Automated Monitoring Alerts**: Payment failure and critical error alerts
+- 🔒 **Audit Log Persistence**: Security audit logs stored in database
+- 📱 **Mobile UX Improvements**: Default day view on mobile calendar, closable appointment modal, redesigned mobile menu
+- 🌐 **i18n**: Pet species and staff positions translated to Spanish
+- 🧪 **E2E Phase 4**: Admin smoke tests, medical records tests, and teardown flows
+- 📄 **Funcionalidades Page**: New features page with components and tests
+- 🔧 **CI Fixes**: Seed data alignment, Playwright exclusion, E2E deduplication
+
+**v1.3.0 (January 2026)**:
+- 🔑 **API Key Management**: Scoped API keys for Corporativo plans with SHA-256 hashing
+- 🌐 **Versioned API v1**: RESTful endpoints with pagination, filtering, and OpenAPI 3.0 docs
+- 🔗 **Outbound Webhooks**: HMAC-SHA256 signed webhooks with exponential backoff retries
+- 📚 **Swagger UI**: Interactive API documentation at `/api/docs`
+- 🧪 **Advanced Testing Suite**: Contract tests, performance tests, visual snapshots, weekly smoke tests
+
+**v1.2.0 and earlier**:
 - 📱 **PWA Install Prompt**: Native app-like installation experience
-  - Platform-specific prompts for iOS (step-by-step) and Android/Chrome (native dialog)
-  - Smart timing with 3-second delay and 7-day dismissal persistence
-  - `usePWAInstall` hook for installation state management
 - 👥 **Staff Permissions System (RBAC)**: Granular role-based access control
-  - `PermissionGate` component and `useStaffPermissions` hook
-  - Read-only modes for non-administrative roles
-  - Permissions for: locations, services, inventory, sales, testimonials
 - 📧 **Staff Invitation System**: Secure email-based team onboarding
-  - Token-based invitation validation and acceptance
-  - Professional email templates for notifications
 - 📊 **Updates Page** (`/actualizaciones`): Public changelog with version timeline
 - 🐛 **Bug Report System**: Floating button with screenshot capture support
 - 📈 **Landing Page Analytics**: Anonymous conversion tracking with metrics dashboard
-
-**Previous Updates (v1.1.0 - v1.0.0)**:
 - 🏢 **Multi-Location Support**: Complete multi-clinic feature set for Corporativo plan
 - 📧 **Email System**: Professional transactional emails with Resend
 - ✨ **Public Pages**: Services, team, and testimonials pages for clinic websites
@@ -97,7 +99,6 @@ Visit `http://localhost:3000` to access the application.
 ### Content & Media
 | Technology | Purpose |
 |------------|---------|
-| **Storyblok CMS** | Headless CMS for blog content |
 | **Cloudinary** | Image optimization and storage |
 | **jsPDF** | PDF generation for reports |
 | **ExcelJS** | Excel export functionality |
@@ -245,7 +246,7 @@ vetify/
 - **CSRF Protection**: Token-based protection for state-changing operations
 - **Security Headers**: Comprehensive security headers via middleware
 - **Input Validation**: Zod schemas for all inputs
-- **Audit Logging**: Security event logging
+- **Audit Logging**: Security event logging with database persistence
 - **Multi-tenant Isolation**: Strict tenant data separation
 - **Row Level Security (RLS)**: PostgreSQL RLS policies enforce tenant isolation at the database level
   - Automatic tenant context setting via middleware
@@ -283,13 +284,14 @@ The project includes comprehensive test coverage across all layers:
 | **Component Tests** | UI components in isolation | `pnpm test:components` |
 
 ### Coverage Highlights
-- **Blog Feature**: 234 unit/integration tests + 80+ E2E test cases
-  - Component tests: TableOfContents, RichTextRenderer, RelatedPosts, FAQSection
-  - Page tests: Article, listing, category, author, tag pages
-  - E2E tests: Navigation, SEO, responsive design, filtering
+- **Landing Page**: Unit and E2E tests for all redesigned sections
 - **Dashboard**: Appointments, customers, inventory, pets, sales, settings
+- **API v1**: Contract tests for appointments, customers, pets, inventory, locations, reports
+- **Webhooks**: Integration + unit tests for CRUD, delivery, events, and signatures
+- **API Keys**: Full component and E2E coverage
 - **Subscription**: Feature gates, plan flows, upgrade/downgrade paths
-- **Public Pages**: Landing analytics, team page, testimonials
+- **E2E Phase 4**: Admin smoke tests, medical records, teardown flows
+- **Weekly Smoke Tests**: 65+ tests for critical business flows (P0/P1)
 
 ### Running Tests
 ```bash
