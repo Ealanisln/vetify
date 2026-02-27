@@ -1,25 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../lib/prisma';
-import { getAuthenticatedUser } from '../../../../../lib/auth';
+import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthenticatedUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const tenantId = searchParams.get('tenantId') || user.tenantId;
-
-    if (!tenantId) {
-      return NextResponse.json({ error: 'Tenant ID required' }, { status: 400 });
-    }
-
-    // Verificar que el usuario pertenece al tenant
-    if (user.tenantId !== tenantId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const { user, tenant } = await requireAuth();
+    const tenantId = tenant.id;
 
     // Obtener clientes que necesitan revisión
     const customersNeedingReview = await prisma.customer.findMany({
@@ -60,7 +46,7 @@ export async function GET(request: NextRequest) {
       customersNeedingReview.map(async (customer) => {
         const appointmentRequest = customer.appointmentRequests[0];
         const similarCustomerIds = appointmentRequest?.similarCustomerIds || [];
-        
+
         const similarCustomers = await prisma.customer.findMany({
           where: {
             id: { in: similarCustomerIds },
@@ -110,7 +96,7 @@ export async function GET(request: NextRequest) {
     const stats = {
       totalNeedingReview: reviewData.length,
       totalSimilarCustomers: reviewData.reduce((sum, item) => sum + item.totalSimilar, 0),
-      avgSimilarityScore: reviewData.length > 0 ? 
+      avgSimilarityScore: reviewData.length > 0 ?
         reviewData.reduce((sum, item) => sum + item.totalSimilar, 0) / reviewData.length : 0
     };
 
@@ -126,4 +112,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

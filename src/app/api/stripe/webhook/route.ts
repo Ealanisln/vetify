@@ -45,8 +45,6 @@ export async function POST(request: NextRequest) {
     console.log('Webhook: Event received and verified successfully:', event.type, event.id);
   } catch (error) {
     console.error('Webhook: Error verifying signature:', error);
-    console.log('Webhook: Signature:', signature?.substring(0, 20) + '...');
-    console.log('Webhook: Secret configured:', process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 20) + '...');
     return NextResponse.json(
       { error: 'Firma inválida' },
       { status: 400 }

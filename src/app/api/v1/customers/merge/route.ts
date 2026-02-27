@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../lib/prisma';
-import { getAuthenticatedUser } from '../../../../../lib/auth';
+import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/auth';
 import { z } from 'zod';
 
 const mergeRequestSchema = z.object({
@@ -16,10 +16,7 @@ const mergeRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthenticatedUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { user, tenant } = await requireAuth();
 
     const body = await request.json();
     const validatedData = mergeRequestSchema.parse(body);
@@ -36,21 +33,21 @@ export async function POST(request: NextRequest) {
     const result = await prisma.$transaction(async (tx) => {
       // 1. Obtener ambos clientes y verificar pertenencia al tenant
       const [primaryCustomer, duplicateCustomer] = await Promise.all([
-        tx.customer.findUnique({ 
-          where: { id: primaryId }, 
-          include: { 
+        tx.customer.findUnique({
+          where: { id: primaryId },
+          include: {
             pets: true,
             appointments: { orderBy: { dateTime: 'desc' }, take: 5 },
             appointmentRequests: { orderBy: { createdAt: 'desc' }, take: 5 }
-          } 
+          }
         }),
-        tx.customer.findUnique({ 
-          where: { id: duplicateId }, 
-          include: { 
+        tx.customer.findUnique({
+          where: { id: duplicateId },
+          include: {
             pets: true,
             appointments: { orderBy: { dateTime: 'desc' }, take: 5 },
             appointmentRequests: { orderBy: { createdAt: 'desc' }, take: 5 }
-          } 
+          }
         })
       ]);
 
@@ -59,7 +56,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Verificar que ambos clientes pertenecen al tenant del usuario
-      if (primaryCustomer.tenantId !== user.tenantId || duplicateCustomer.tenantId !== user.tenantId) {
+      if (primaryCustomer.tenantId !== tenant.id || duplicateCustomer.tenantId !== tenant.id) {
         throw new Error('Unauthorized access to customer data');
       }
 
@@ -88,13 +85,13 @@ export async function POST(request: NextRequest) {
           where: { customerId: duplicateId },
           data: { customerId: primaryId }
         }),
-        
+
         // Transferir citas
         tx.appointment.updateMany({
           where: { customerId: duplicateId },
           data: { customerId: primaryId }
         }),
-        
+
         // Transferir solicitudes de citas
         tx.appointmentRequest.updateMany({
           where: { customerId: duplicateId },
@@ -114,18 +111,18 @@ export async function POST(request: NextRequest) {
       const updatedPrimaryCustomer = await tx.customer.update({
         where: { id: primaryId },
         data: consolidatedData,
-        include: { 
+        include: {
           pets: true,
-          appointments: { 
-            orderBy: { dateTime: 'desc' }, 
+          appointments: {
+            orderBy: { dateTime: 'desc' },
             take: 10,
-            include: { 
+            include: {
               pet: { select: { name: true, species: true } }
             }
           },
-          appointmentRequests: { 
-            orderBy: { createdAt: 'desc' }, 
-            take: 5 
+          appointmentRequests: {
+            orderBy: { createdAt: 'desc' },
+            take: 5
           }
         }
       });
@@ -157,7 +154,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error merging customers:', error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid data provided', details: error.errors },
@@ -166,8 +163,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { 
-        error: error instanceof Error ? error.message : 'Internal server error' 
+      {
+        error: error instanceof Error ? error.message : 'Internal server error'
       },
       { status: 500 }
     );
@@ -177,10 +174,7 @@ export async function POST(request: NextRequest) {
 // API para obtener preview de merge (sin ejecutar)
 export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthenticatedUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { tenant } = await requireAuth();
 
     const { searchParams } = new URL(request.url);
     const primaryId = searchParams.get('primaryId');
@@ -218,7 +212,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar pertenencia al tenant
-    if (primaryCustomer.tenantId !== user.tenantId || duplicateCustomer.tenantId !== user.tenantId) {
+    if (primaryCustomer.tenantId !== tenant.id || duplicateCustomer.tenantId !== tenant.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -246,4 +240,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

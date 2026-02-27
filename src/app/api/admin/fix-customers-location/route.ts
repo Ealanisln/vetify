@@ -1,12 +1,25 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAuth } from '@/lib/auth';
+import { requireSuperAdmin } from '@/lib/super-admin';
 
 export async function POST() {
   try {
-    // Only allow authenticated users
-    await requireAuth();
+    await requireSuperAdmin();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('Access denied')) {
+      return NextResponse.json(
+        { success: false, message: 'Access denied' },
+        { status: 403 }
+      );
+    }
+    return NextResponse.json(
+      { success: false, message: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
 
+  try {
     console.log('🔧 Fixing customers and pets without location...\n');
 
     // Find all tenants with their primary location
