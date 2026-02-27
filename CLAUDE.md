@@ -113,10 +113,11 @@ Never create PRs directly to `main` unless explicitly instructed for hotfixes.
 
 #### 3. Security Layers
 - **Rate Limiting**: Upstash Redis-based rate limiting in middleware
-- **Audit Logging**: Security event logging via `src/lib/security/audit-logger.ts`
+- **Audit Logging**: Security event logging via `src/lib/security/audit-logger.ts` with database persistence
 - **Input Sanitization**: Zod schemas in `src/lib/security/validation-schemas.ts`
 - **CSRF Protection**: Token-based CSRF protection for state-changing operations
 - **Security Headers**: Applied via middleware for all responses
+- **Monitoring Alerts**: Automated alerts for payment failures and critical errors via `src/lib/monitoring/`
 
 #### 4. Middleware Chain
 The middleware (`src/middleware.ts`) handles:
@@ -134,11 +135,17 @@ src/
 │   ├── actions/
 │   │   └── subscription.ts    # Server actions for subscription management
 │   ├── api/                   # API route handlers
+│   │   ├── v1/               # Versioned REST API endpoints
 │   │   ├── webhooks/          # Stripe/external webhooks (public)
+│   │   ├── docs/              # Swagger UI for API documentation
+│   │   ├── openapi.json/      # OpenAPI 3.0 specification
 │   │   ├── trial/             # Trial management endpoints
 │   │   ├── version/           # Version info endpoint (public)
 │   │   ├── health/            # Health check endpoint (public)
+│   │   ├── cron/              # Scheduled tasks (DB keepalive)
 │   │   └── admin/             # Super admin endpoints
+│   ├── actualizaciones/       # Public changelog page (/actualizaciones)
+│   ├── funcionalidades/       # Features page (/funcionalidades)
 │   ├── dashboard/             # Main tenant dashboard (protected)
 │   ├── admin/                 # Super admin interface
 │   ├── layout.tsx             # Root layout with providers
@@ -146,6 +153,12 @@ src/
 ├── components/
 │   ├── ConditionalLayout.tsx  # Handles layout switching (Nav vs admin)
 │   ├── ErrorBoundary.tsx      # Global error boundary
+│   ├── hero-section.tsx       # Landing page hero section
+│   ├── problem-section.tsx    # Landing page problem section
+│   ├── solution-section.tsx   # Landing page solution section
+│   ├── benefits-section.tsx   # Landing page benefits section
+│   ├── audience-section.tsx   # Landing page audience section
+│   ├── closing-section.tsx    # Landing page closing section
 │   ├── features/
 │   │   └── FeatureGate.tsx    # Subscription-based feature gating
 │   ├── providers/
@@ -157,11 +170,14 @@ src/
 │   ├── auth.ts                # Authentication utilities
 │   ├── tenant.ts              # Tenant management
 │   ├── version.ts             # Version utilities and constants
+│   ├── changelog-parser.ts    # Parses CHANGELOG.md for /actualizaciones
 │   ├── security/              # Security utilities
 │   │   ├── rate-limiter.ts    # Upstash rate limiting
-│   │   ├── audit-logger.ts    # Security event logging
+│   │   ├── audit-logger.ts    # Security event logging (with DB persistence)
 │   │   ├── validation-schemas.ts # Zod validation schemas
 │   │   └── input-sanitization.ts # Input sanitization & security headers
+│   ├── monitoring/            # Automated alerts and monitoring
+│   ├── webhooks/              # Outbound webhook system (HMAC signing, retries)
 │   ├── trial/                 # Trial period management
 │   ├── payments/              # Stripe integration
 │   └── plan-limits.ts         # Subscription plan limits
@@ -243,11 +259,13 @@ The application uses semantic versioning (SemVer) with version information expos
 
 #### Key Files
 - **`src/lib/version.ts`** - Version utility library
+- **`src/lib/changelog-parser.ts`** - Parses CHANGELOG.md for the updates page
 - **`src/app/api/version/route.ts`** - Public API endpoint
+- **`src/app/actualizaciones/page.tsx`** - Public changelog page
 - **`CHANGELOG.md`** - Release notes following [Keep a Changelog](https://keepachangelog.com/) format
 
 #### How It Works
-1. Version is defined in `package.json` (`"version": "1.0.0"`)
+1. Version is defined in `package.json` (`"version": "1.4.0"`)
 2. At build time, `next.config.js` reads `package.json` and injects:
    - `NEXT_PUBLIC_APP_VERSION` - The version string
    - `NEXT_PUBLIC_BUILD_TIME` - ISO timestamp of the build
@@ -256,20 +274,21 @@ The application uses semantic versioning (SemVer) with version information expos
 #### Available Functions
 ```typescript
 import {
-  APP_VERSION,           // "1.0.0"
-  BUILD_TIME,            // "2026-01-08T..."
-  getVersionString,      // () => "v1.0.0"
-  parseVersion,          // () => { major: 1, minor: 0, patch: 0 }
+  APP_VERSION,           // "1.4.0"
+  BUILD_TIME,            // "2026-02-14T..."
+  getVersionString,      // () => "v1.4.0"
+  parseVersion,          // () => { major: 1, minor: 4, patch: 0 }
   getVersionInfo,        // () => { version, versionString, major, minor, patch, buildTime }
   isPrerelease,          // () => false
-  compareVersion         // ("0.9.0") => 1 (current is greater)
+  compareVersion         // ("1.3.0") => 1 (current is greater)
 } from '@/lib/version';
 ```
 
 #### Version Display
-- **Footer**: Shows version subtly next to copyright (e.g., "© 2026 Vetify. v1.0.0")
+- **Footer**: Shows version subtly next to copyright (e.g., "© 2026 Vetify. v1.4.0")
 - **API Endpoint**: `GET /api/version` returns JSON with full version info
 - **Health Check**: `GET /api/health` includes version in response
+- **Changelog Page**: `GET /actualizaciones` displays parsed CHANGELOG.md as a version timeline
 
 #### Updating the Version
 When releasing a new version:
@@ -288,8 +307,9 @@ Follow [Semantic Versioning](https://semver.org/):
 
 - **Unit Tests**: Pure functions, utilities, validation logic
 - **Integration Tests**: API routes, database operations
-- **E2E Tests**: User flows with Playwright
+- **E2E Tests**: User flows with Playwright (Phase 4: admin smoke, medical records, teardown)
 - **Security Tests**: Input validation, rate limiting, auth flows
+- **Weekly Smoke Tests**: Automated P0/P1 business flow tests (Sundays 6AM UTC via GitHub Actions)
 - Tests use environment configuration via `scripts/env-config.mjs`
 
 ## Testing & Auto-Fix Protocol
@@ -470,6 +490,8 @@ const pets = await prisma.pet.findMany({
 - **Next.js 15**: Uses force-dynamic rendering (`export const dynamic = 'force-dynamic'`) to prevent static generation issues with Kinde Auth
 - **Symlinks**: Root config files are symlinks to `/config/` directory for Next.js compatibility
 - **Sentry**: Integrated but can be noisy - use `pnpm sentry:quiet` to reduce logs
+- **i18n**: UI is primarily in Spanish (pet species, staff positions, public pages). Keep user-facing text in Spanish.
+- **Landing Page**: Redesigned for small veterinary clinics with section-based components in `src/components/`
 
 ### Dark Mode Design Guidelines
 
