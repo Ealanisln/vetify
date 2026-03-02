@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUserWithOptionalTenant } from '../../../lib/auth';
 import { createTenantWithDefaults, isSlugAvailable } from '../../../lib/tenant';
 import { notifyNewUserRegistration } from '../../../lib/email/admin-notifications';
+import { getActivePromotionFromDB } from '../../../lib/pricing-config';
 import { z } from 'zod';
 
 const onboardingSchema = z.object({
@@ -49,6 +50,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check for active FREE_TRIAL promotion to extend trial period
+    const promotion = await getActivePromotionFromDB();
+    const promoTrialDays = promotion?.promotionType === 'FREE_TRIAL' && promotion.trialDays
+      ? promotion.trialDays
+      : undefined;
+
     // Create tenant with selected plan
     const result = await createTenantWithDefaults({
       name: validatedData.clinicName,
@@ -58,6 +65,7 @@ export async function POST(request: NextRequest) {
       billingInterval: validatedData.billingInterval,
       phone: validatedData.phone,
       address: validatedData.address,
+      trialDays: promoTrialDays,
     });
 
     // Send admin notification (non-blocking)

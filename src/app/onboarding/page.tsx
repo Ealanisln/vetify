@@ -1,5 +1,6 @@
 import { getAuthenticatedUserWithOptionalTenant } from '../../lib/auth';
 import { redirect } from 'next/navigation';
+import { getActivePromotionFromDB } from '../../lib/pricing-config';
 import { OnboardingPageClient } from './OnboardingPageClient';
 
 // This page requires authentication, so it should not be prerendered
@@ -14,8 +15,14 @@ export default async function OnboardingPage() {
       console.log(`User ${user.id} already has tenant ${tenant.id}, redirecting to dashboard`);
       redirect('/dashboard');
     }
-    
-    return <OnboardingPageClient user={user} />;
+
+    // Check for active promotion to show in onboarding UI
+    const promotion = await getActivePromotionFromDB();
+    const promoInfo = promotion?.promotionType === 'FREE_TRIAL' && promotion.trialDays
+      ? { trialDays: promotion.trialDays, badgeText: promotion.badgeText, description: promotion.description }
+      : null;
+
+    return <OnboardingPageClient user={user} promoInfo={promoInfo} />;
   } catch (error) {
     console.error('Error loading user:', error);
     

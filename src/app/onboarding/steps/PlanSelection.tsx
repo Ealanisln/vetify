@@ -8,9 +8,10 @@ import { formatPrice } from '../../../lib/pricing-config';
 interface PlanSelectionProps {
   onNext: (selection: { key: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO'; billingInterval: 'monthly' | 'yearly' }) => void;
   initialSelection?: { key: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO'; billingInterval: 'monthly' | 'yearly' };
+  trialDays?: number;
 }
 
-export function PlanSelection({ onNext, initialSelection }: PlanSelectionProps) {
+export function PlanSelection({ onNext, initialSelection, trialDays = 30 }: PlanSelectionProps) {
   const [selectedPlan, setSelectedPlan] = useState<'BASICO' | 'PROFESIONAL' | 'CORPORATIVO'>(initialSelection?.key || 'PROFESIONAL');
   const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>(
     initialSelection?.billingInterval || 'monthly'
@@ -25,7 +26,7 @@ export function PlanSelection({ onNext, initialSelection }: PlanSelectionProps) 
           Elige tu plan
         </h2>
         <p className="mt-2 text-sm md:text-base lg:text-lg text-gray-600 dark:text-gray-400">
-          30 días gratis en todos los planes • Sin tarjeta de crédito
+          {trialDays} días gratis en todos los planes • Sin tarjeta de crédito
         </p>
       </div>
 

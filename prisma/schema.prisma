@@ -1420,6 +1420,10 @@ model SystemPromotion {
   badgeText       String // Display text like "🎉 Oferta de Lanzamiento"
   description     String   @db.Text // Full description shown to users
   applicablePlans String[] // ['BASICO', 'PROFESIONAL'] or empty for all
+  maxRedemptions      Int?              // null = ilimitado, ej: 50
+  currentRedemptions  Int      @default(0)
+  promotionType       String   @default("DISCOUNT")  // "DISCOUNT" | "FREE_TRIAL"
+  trialDays           Int?              // Para FREE_TRIAL: ej. 180 días
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   createdBy       String? // Admin user ID who created/modified

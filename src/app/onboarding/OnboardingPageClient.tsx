@@ -4,8 +4,15 @@ import { OnboardingForm } from '../../components/onboarding/OnboardingForm';
 import { useThemeAware } from '../../hooks/useThemeAware';
 import type { UserWithTenant } from '@/types';
 
+export interface PromoInfo {
+  trialDays: number;
+  badgeText: string;
+  description: string;
+}
+
 interface OnboardingPageClientProps {
   user: UserWithTenant;
+  promoInfo?: PromoInfo | null;
 }
 
 // Theme Toggle Component
@@ -33,7 +40,7 @@ function ThemeToggle() {
   );
 }
 
-export function OnboardingPageClient({ user }: OnboardingPageClientProps) {
+export function OnboardingPageClient({ user, promoInfo }: OnboardingPageClientProps) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors duration-200">
       {/* Theme Toggle - Fixed position */}
@@ -54,7 +61,7 @@ export function OnboardingPageClient({ user }: OnboardingPageClientProps) {
 
       <div className="mt-8 sm:mx-auto sm:w-full max-w-md lg:max-w-none lg:px-4 xl:px-8">
         <div className="bg-white dark:bg-gray-800 py-8 px-4 shadow-lg sm:rounded-lg lg:rounded-2xl sm:px-10 lg:px-8 xl:px-12 border border-gray-200 dark:border-gray-700 transition-colors duration-200">
-          <OnboardingForm user={user} />
+          <OnboardingForm user={user} promoInfo={promoInfo} />
         </div>
       </div>
     </div>

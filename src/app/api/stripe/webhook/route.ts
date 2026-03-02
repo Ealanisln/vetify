@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { stripe, handleSubscriptionChange } from '../../../../lib/payments/stripe';
 import { notifyNewSubscriptionPayment, notifyPaymentFailed } from '../../../../lib/email/admin-notifications';
 import { prisma } from '../../../../lib/prisma';
+import { incrementPromotionRedemptions } from '../../../../lib/promotions/queries';
 import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
@@ -98,6 +99,18 @@ export async function POST(request: NextRequest) {
 
           await handleSubscriptionChange(subscription);
           console.log('Webhook: Subscription processed successfully');
+
+          // Track promotion redemption if this checkout used a FREE_TRIAL promotion
+          try {
+            const promotionId = subscription.metadata?.promotionId;
+            if (promotionId) {
+              const success = await incrementPromotionRedemptions(promotionId);
+              console.log(`Webhook: Promotion redemption ${success ? 'recorded' : 'failed (sold out?)'} for ${promotionId}`);
+            }
+          } catch (promoError) {
+            // Log but don't fail the webhook
+            console.error('Webhook: Error tracking promotion redemption:', promoError);
+          }
         } else {
           console.log('Webhook: Session is not a subscription or missing subscription ID');
         }

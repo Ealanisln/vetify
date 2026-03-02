@@ -21,8 +21,11 @@ export function PromotionForm({ promotion, onClose, onSuccess }: PromotionFormPr
   const [formData, setFormData] = useState({
     name: promotion?.name || '',
     code: promotion?.code || '',
+    promotionType: promotion?.promotionType || 'DISCOUNT',
     discountPercent: promotion?.discountPercent || 25,
     durationMonths: promotion?.durationMonths || 6,
+    trialDays: promotion?.trialDays || 180,
+    maxRedemptions: promotion?.maxRedemptions ?? '',
     startDate: promotion?.startDate
       ? new Date(promotion.startDate).toISOString().split('T')[0]
       : new Date().toISOString().split('T')[0],
@@ -78,10 +81,16 @@ export function PromotionForm({ promotion, onClose, onSuccess }: PromotionFormPr
 
       const method = isEditing ? 'PATCH' : 'POST';
 
+      const payload = {
+        ...formData,
+        maxRedemptions: formData.maxRedemptions === '' ? null : Number(formData.maxRedemptions),
+        trialDays: formData.promotionType === 'FREE_TRIAL' ? Number(formData.trialDays) : null,
+      };
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -171,28 +180,85 @@ export function PromotionForm({ promotion, onClose, onSuccess }: PromotionFormPr
               </div>
             </div>
 
-            {/* Discount Settings */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Porcentaje de descuento *
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    name="discountPercent"
-                    value={formData.discountPercent}
-                    onChange={handleChange}
-                    required
-                    min="1"
-                    max="100"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                  />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
-                    %
-                  </span>
-                </div>
+            {/* Promotion Type */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Tipo de Promoción *
+              </label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, promotionType: 'DISCOUNT' }))}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                    formData.promotionType === 'DISCOUNT'
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-200 dark:border-emerald-700'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
+                  }`}
+                >
+                  Descuento (%)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, promotionType: 'FREE_TRIAL' }))}
+                  className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
+                    formData.promotionType === 'FREE_TRIAL'
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-900 dark:text-emerald-200 dark:border-emerald-700'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600'
+                  }`}
+                >
+                  Prueba Gratuita
+                </button>
               </div>
+            </div>
+
+            {/* Discount/Trial Settings */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {formData.promotionType === 'DISCOUNT' ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Porcentaje de descuento *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      name="discountPercent"
+                      value={formData.discountPercent}
+                      onChange={handleChange}
+                      required
+                      min="1"
+                      max="100"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                      %
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Días de prueba gratuita *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      name="trialDays"
+                      value={formData.trialDays}
+                      onChange={handleChange}
+                      required
+                      min="1"
+                      max="365"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">
+                      días
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Stripe creará un trial extendido. Ej: 180 = 6 meses
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -214,6 +280,25 @@ export function PromotionForm({ promotion, onClose, onSuccess }: PromotionFormPr
                   </span>
                 </div>
               </div>
+            </div>
+
+            {/* Max Redemptions */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Máximo de canjes
+              </label>
+              <input
+                type="number"
+                name="maxRedemptions"
+                value={formData.maxRedemptions}
+                onChange={handleChange}
+                min="1"
+                placeholder="Vacío = ilimitado"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Deja vacío para canjes ilimitados. Ej: 50 para las primeras 50 clínicas.
+              </p>
             </div>
 
             {/* Date Range */}

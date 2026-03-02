@@ -17,6 +17,14 @@ export async function GET() {
       });
     }
 
+    // Calculate spots remaining
+    const spotsRemaining = promotion.maxRedemptions !== null
+      ? Math.max(0, promotion.maxRedemptions - promotion.currentRedemptions)
+      : null;
+    const isSoldOut = promotion.maxRedemptions !== null
+      ? promotion.currentRedemptions >= promotion.maxRedemptions
+      : false;
+
     // Return only public-facing promotion data
     return NextResponse.json({
       success: true,
@@ -29,6 +37,10 @@ export async function GET() {
         description: promotion.description,
         applicablePlans: promotion.applicablePlans,
         stripeCouponId: promotion.stripeCouponId,
+        promotionType: promotion.promotionType,
+        trialDays: promotion.trialDays,
+        spotsRemaining,
+        isSoldOut,
       },
     });
   } catch (error) {

@@ -17,9 +17,10 @@ interface ConfirmationProps {
   onBack: () => void;
   isSubmitting: boolean;
   onSubmit: () => Promise<void>;
+  trialDays?: number;
 }
 
-export function Confirmation({ plan, clinicInfo, onBack, isSubmitting, onSubmit }: ConfirmationProps) {
+export function Confirmation({ plan, clinicInfo, onBack, isSubmitting, onSubmit, trialDays = 30 }: ConfirmationProps) {
   const selectedPlan = COMPLETE_PLANS[plan.key];
   const price = plan.billingInterval === 'yearly' ? selectedPlan.yearlyPrice : selectedPlan.monthlyPrice;
 
@@ -60,7 +61,7 @@ export function Confirmation({ plan, clinicInfo, onBack, isSubmitting, onSubmit 
             </div>
             <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
               <div className="text-sm text-green-600 dark:text-green-400 font-medium">
-                ✅ 30 días gratis • Sin tarjeta de crédito
+                ✅ {trialDays} días gratis • Sin tarjeta de crédito
               </div>
             </div>
           </div>
@@ -108,7 +109,7 @@ export function Confirmation({ plan, clinicInfo, onBack, isSubmitting, onSubmit 
               <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
                 <ul className="list-disc list-inside space-y-1">
                   <li>Acceso completo a todas las funciones del plan {selectedPlan.name}</li>
-                  <li>30 días sin costo y sin compromiso</li>
+                  <li>{trialDays} días sin costo y sin compromiso</li>
                   <li>Sin tarjeta de crédito requerida</li>
                   <li>Puedes cancelar en cualquier momento</li>
                 </ul>

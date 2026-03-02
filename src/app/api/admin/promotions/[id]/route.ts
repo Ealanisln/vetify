@@ -32,6 +32,9 @@ const updatePromotionSchema = z.object({
   badgeText: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
   applicablePlans: z.array(z.string()).optional(),
+  promotionType: z.enum(['DISCOUNT', 'FREE_TRIAL']).optional(),
+  maxRedemptions: z.number().int().min(1).optional().nullable(),
+  trialDays: z.number().int().min(1).max(365).optional().nullable(),
 });
 
 interface RouteParams {

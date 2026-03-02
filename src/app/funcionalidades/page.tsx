@@ -76,6 +76,10 @@ export default async function FunctionalitiesPage() {
   // Fetch active promotion from database
   const promotion = await getActivePromotionFromDB()
   const promoActive = promotion !== null
+  const spotsRemaining = promotion?.maxRedemptions
+    ? Math.max(0, promotion.maxRedemptions - promotion.currentRedemptions)
+    : null
+  const isSoldOut = spotsRemaining !== null && spotsRemaining <= 0
 
   // Generate breadcrumb structured data
   const breadcrumbSchema = createBreadcrumbsFromPath(
@@ -102,13 +106,14 @@ export default async function FunctionalitiesPage() {
       <StructuredData data={[breadcrumbSchema, faqSchema, ...serviceSchemas]} />
       <div className="min-h-screen">
         <Navigation />
-        {/* Promotional Banner - only shows when promo is active */}
-        {promoActive && promotion && (
+        {/* Promotional Banner - only shows when promo is active and not sold out */}
+        {promoActive && promotion && !isSoldOut && (
           <div className="flex justify-center pt-24 sm:pt-28 pb-2">
             <EarlyAdopterBanner
               variant="hero"
               badgeText={promotion.badgeText}
               description={promotion.description}
+              spotsRemaining={spotsRemaining}
             />
           </div>
         )}

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { prisma } from '../prisma';
 import { isLaunchPromotionActive, PRICING_CONFIG, isStripeInLiveMode } from '../pricing-config';
+import { getActivePromotion, checkPromotionAvailability } from '../promotions/queries';
 
 import type { Tenant, SubscriptionStatus, PlanType } from '@prisma/client';
 
@@ -13,6 +14,8 @@ interface StripeSubscriptionData {
     planKey: string;
     userId: string;
     hadLocalTrial: string;
+    promotionId?: string;
+    promotionCode?: string;
   };
   trial_period_days?: number;
 }
@@ -54,6 +57,67 @@ function shouldGiveStripeTrial(tenant: Tenant): boolean {
   
   // Si ya tuvo trial local (existe trialEndsAt), NO dar trial en Stripe
   return false;
+}
+
+/**
+ * Resolve the active promotion for a checkout session.
+ * Checks DB for active promotions and determines what to apply.
+ */
+type CheckoutPromotionResult =
+  | { type: 'FREE_TRIAL'; trialDays: number; promotionId: string; promotionCode: string }
+  | { type: 'DISCOUNT'; discountCoupon: string }
+  | { type: 'NONE'; allowPromoCodes: true };
+
+async function resolveCheckoutPromotion(
+  planKey?: string
+): Promise<CheckoutPromotionResult> {
+  try {
+    const promo = await getActivePromotion();
+    if (!promo) {
+      return { type: 'NONE', allowPromoCodes: true };
+    }
+
+    // Check if this plan is applicable
+    if (promo.applicablePlans.length > 0 && planKey) {
+      const normalizedPlanKey = planKey.toUpperCase();
+      if (!promo.applicablePlans.includes(normalizedPlanKey)) {
+        return { type: 'NONE', allowPromoCodes: true };
+      }
+    }
+
+    if (promo.promotionType === 'FREE_TRIAL' && promo.trialDays) {
+      // Check availability (spots remaining)
+      const { available } = await checkPromotionAvailability(promo.id);
+      if (available) {
+        return {
+          type: 'FREE_TRIAL',
+          trialDays: promo.trialDays,
+          promotionId: promo.id,
+          promotionCode: promo.code,
+        };
+      }
+      // Sold out — fall through to no promo
+      return { type: 'NONE', allowPromoCodes: true };
+    }
+
+    if (promo.promotionType === 'DISCOUNT' && promo.stripeCouponId) {
+      return { type: 'DISCOUNT', discountCoupon: promo.stripeCouponId };
+    }
+
+    // Legacy: check static launch promotion
+    if (isLaunchPromotionActive()) {
+      return { type: 'DISCOUNT', discountCoupon: PRICING_CONFIG.LAUNCH_PROMOTION.couponCode };
+    }
+
+    return { type: 'NONE', allowPromoCodes: true };
+  } catch (error) {
+    console.error('Error resolving checkout promotion:', error);
+    // Fallback to legacy
+    if (isLaunchPromotionActive()) {
+      return { type: 'DISCOUNT', discountCoupon: PRICING_CONFIG.LAUNCH_PROMOTION.couponCode };
+    }
+    return { type: 'NONE', allowPromoCodes: true };
+  }
 }
 
 /**
@@ -263,9 +327,8 @@ export async function createCheckoutSession({
     }
   }
 
-  // Determinar si debe tener trial en Stripe
-  // Solo dar trial si nunca ha tenido trial local o el trial local aún está activo
-  const shouldHaveStripeTrial = shouldGiveStripeTrial(tenant);
+  // Resolve active promotion from DB
+  const promoResult = await resolveCheckoutPromotion(planKey);
 
   const subscriptionData: StripeSubscriptionData = {
     metadata: {
@@ -276,8 +339,14 @@ export async function createCheckoutSession({
     }
   };
 
-  // Solo agregar trial_period_days si nunca tuvo trial local
-  if (shouldHaveStripeTrial) {
+  // Determine trial days based on promotion or default behavior
+  if (promoResult.type === 'FREE_TRIAL') {
+    // Promo trial overrides any default trial logic
+    subscriptionData.trial_period_days = promoResult.trialDays;
+    subscriptionData.metadata.promotionId = promoResult.promotionId;
+    subscriptionData.metadata.promotionCode = promoResult.promotionCode;
+  } else if (shouldGiveStripeTrial(tenant)) {
+    // Default: 30-day trial for new users without local trial
     subscriptionData.trial_period_days = 30;
   }
 
@@ -295,18 +364,7 @@ export async function createCheckoutSession({
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`,
     subscription_data: subscriptionData,
-    // Configuración para México - SIN automatic tax ya que no está soportado en todos los países
     locale: 'es-419',
-    // tax_id_collection: {
-    //   enabled: true,
-    // },
-    // customer_update: {
-    //   name: 'auto', // Permite a Stripe actualizar el nombre del cliente automáticamente
-    //   address: 'auto' // También permite actualizar la dirección para cálculos de impuestos
-    // },
-    // automatic_tax: {
-    //   enabled: true, // Habilita el cálculo automático de impuestos (IVA 16% en México)
-    // },
     metadata: {
       tenantId: tenant.id,
       planKey: planKey || 'unknown',
@@ -315,16 +373,13 @@ export async function createCheckoutSession({
     }
   };
 
-  // 🎉 Aplicar cupón de lanzamiento automáticamente si está activo
-  // NOTA: Si aplicamos cupón automático, NO podemos usar allow_promotion_codes
-  if (isLaunchPromotionActive()) {
-    sessionConfig.discounts = [{
-      coupon: PRICING_CONFIG.LAUNCH_PROMOTION.couponCode
-    }];
-  } else {
-    // Solo permitir códigos promocionales si NO hay promoción automática activa
+  // Apply promotion or allow manual promo codes
+  if (promoResult.type === 'DISCOUNT') {
+    sessionConfig.discounts = [{ coupon: promoResult.discountCoupon }];
+  } else if (promoResult.type === 'NONE') {
     sessionConfig.allow_promotion_codes = true;
   }
+  // For FREE_TRIAL, no discounts/promo codes needed (trial_period_days handles it)
 
   const session = await stripe.checkout.sessions.create(sessionConfig);
 
@@ -366,9 +421,8 @@ export async function createCheckoutSessionForAPI({
     }
   }
 
-  // Determinar si debe tener trial en Stripe
-  // Solo dar trial si nunca ha tenido trial local o el trial local aún está activo
-  const shouldHaveStripeTrial = shouldGiveStripeTrial(tenant);
+  // Resolve active promotion from DB
+  const promoResult = await resolveCheckoutPromotion(planKey);
 
   const subscriptionData: StripeSubscriptionData = {
     metadata: {
@@ -379,8 +433,12 @@ export async function createCheckoutSessionForAPI({
     }
   };
 
-  // Solo agregar trial_period_days si nunca tuvo trial local
-  if (shouldHaveStripeTrial) {
+  // Determine trial days based on promotion or default behavior
+  if (promoResult.type === 'FREE_TRIAL') {
+    subscriptionData.trial_period_days = promoResult.trialDays;
+    subscriptionData.metadata.promotionId = promoResult.promotionId;
+    subscriptionData.metadata.promotionCode = promoResult.promotionCode;
+  } else if (shouldGiveStripeTrial(tenant)) {
     subscriptionData.trial_period_days = 30;
   }
 
@@ -398,18 +456,7 @@ export async function createCheckoutSessionForAPI({
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`,
     subscription_data: subscriptionData,
-    // Configuración para México - SIN automatic tax ya que no está soportado en todos los países
     locale: 'es-419',
-    // tax_id_collection: {
-    //   enabled: true,
-    // },
-    // customer_update: {
-    //   name: 'auto', // Permite a Stripe actualizar el nombre del cliente automáticamente
-    //   address: 'auto' // También permite actualizar la dirección para cálculos de impuestos
-    // },
-    // automatic_tax: {
-    //   enabled: true, // Habilita el cálculo automático de impuestos (IVA 16% en México)
-    // },
     metadata: {
       tenantId: tenant.id,
       planKey: planKey || 'unknown',
@@ -418,14 +465,10 @@ export async function createCheckoutSessionForAPI({
     }
   };
 
-  // 🎉 Aplicar cupón de lanzamiento automáticamente si está activo
-  // NOTA: Si aplicamos cupón automático, NO podemos usar allow_promotion_codes
-  if (isLaunchPromotionActive()) {
-    sessionConfig.discounts = [{
-      coupon: PRICING_CONFIG.LAUNCH_PROMOTION.couponCode
-    }];
-  } else {
-    // Solo permitir códigos promocionales si NO hay promoción automática activa
+  // Apply promotion or allow manual promo codes
+  if (promoResult.type === 'DISCOUNT') {
+    sessionConfig.discounts = [{ coupon: promoResult.discountCoupon }];
+  } else if (promoResult.type === 'NONE') {
     sessionConfig.allow_promotion_codes = true;
   }
 

@@ -25,6 +25,9 @@ const createPromotionSchema = z.object({
   badgeText: z.string().min(1, 'El texto del badge es requerido'),
   description: z.string().min(1, 'La descripción es requerida'),
   applicablePlans: z.array(z.string()).default([]),
+  promotionType: z.enum(['DISCOUNT', 'FREE_TRIAL']).default('DISCOUNT'),
+  maxRedemptions: z.number().int().min(1).optional().nullable(),
+  trialDays: z.number().int().min(1).max(365).optional().nullable(),
 });
 
 /**

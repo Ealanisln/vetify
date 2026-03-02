@@ -48,6 +48,10 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
     description: string;
     applicablePlans: string[];
     stripeCouponId: string | null;
+    promotionType?: string;
+    trialDays?: number | null;
+    spotsRemaining?: number | null;
+    isSoldOut?: boolean;
   } | null>(null);
   const [promotionLoading, setPromotionLoading] = useState(true);
 
@@ -109,7 +113,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
         const fromSettings = urlParams.get('from') === 'settings';
         setShowUpgradeInfo(fromSettings);
 
-        const response = await fetch('/api/user');
+        const response = await fetch('/api/auth/me');
         const authenticated = response.ok;
 
         setIsAuthenticated(authenticated);
@@ -587,6 +591,8 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               {showUpgradeInfo && isAuthenticated
                 ? 'Elige el plan que mejor se adapte al crecimiento de tu clínica'
+                : activePromotion?.promotionType === 'FREE_TRIAL' && !activePromotion?.isSoldOut
+                ? 'Gestiona tu clínica veterinaria de manera profesional. Usa Vetify gratis por 6 meses.'
                 : 'Gestiona tu clínica veterinaria de manera profesional. Todos los planes incluyen 30 días gratis.'}
             </p>
 
@@ -720,9 +726,54 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                             Precio personalizado según tus necesidades
                           </p>
                         </div>
-                      ) : activePromotion && !promotionLoading ? (
+                      ) : activePromotion && !promotionLoading && activePromotion.promotionType === 'FREE_TRIAL' && !activePromotion.isSoldOut ? (
                         <>
-                          {/* Promotional Pricing - Dynamic from DB */}
+                          {/* FREE_TRIAL Promotion — $0/mes */}
+                          {(() => {
+                            const originalPriceMonthly = product.id === 'basico' ? 599 : 1199
+
+                            return (
+                              <>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Sparkles className="h-4 w-4 text-green-500" />
+                                  <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20 text-xs font-semibold">
+                                    GRATIS
+                                  </Badge>
+                                </div>
+
+                                <div className="flex items-baseline gap-1">
+                                  <span className="text-4xl font-bold text-green-600">
+                                    $0
+                                  </span>
+                                  <span className="text-muted-foreground">/mes</span>
+                                </div>
+
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="text-muted-foreground line-through">
+                                    {formatPrice(originalPriceMonthly)}/mes
+                                  </span>
+                                </div>
+
+                                <p className="text-xs text-green-600 dark:text-green-400">
+                                  Por {activePromotion.durationMonths} meses • Luego {formatPrice(originalPriceMonthly)}/mes
+                                </p>
+
+                                {activePromotion.spotsRemaining !== null && activePromotion.spotsRemaining !== undefined && (
+                                  <p className="text-xs font-medium text-orange-500 mt-1">
+                                    Quedan {activePromotion.spotsRemaining} lugares
+                                  </p>
+                                )}
+
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Se requiere tarjeta de crédito
+                                </p>
+                              </>
+                            )
+                          })()}
+                        </>
+                      ) : activePromotion && !promotionLoading && activePromotion.promotionType !== 'FREE_TRIAL' ? (
+                        <>
+                          {/* DISCOUNT Promotion — percentage off */}
                           {(() => {
                             const originalPriceCents = isYearly ? price.unitAmount / 12 : price.unitAmount
                             const discountedPriceCents = Math.round(originalPriceCents * (1 - activePromotion.discountPercent / 100))
@@ -731,7 +782,6 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
                             return (
                               <>
-                                {/* Early Adopter Badge with dynamic discount */}
                                 <div className="flex items-center gap-2 mb-2">
                                   <Sparkles className="h-4 w-4 text-orange-500" />
                                   <Badge className="bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20 text-xs font-semibold">
@@ -739,7 +789,6 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                                   </Badge>
                                 </div>
 
-                                {/* Discounted Price */}
                                 <div className="flex items-baseline gap-1">
                                   <span className="text-4xl font-bold text-foreground">
                                     {formatPriceFromCents(discountedPriceCents)}
@@ -747,7 +796,6 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                                   <span className="text-muted-foreground">/mes</span>
                                 </div>
 
-                                {/* Original Price with Strikethrough */}
                                 <div className="flex items-center gap-2 text-sm">
                                   <span className="text-muted-foreground line-through">
                                     {formatPrice(originalPriceMonthly)}/mes
@@ -757,7 +805,6 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                                   </span>
                                 </div>
 
-                                {/* Promotion Duration Notice */}
                                 <p className="text-xs text-orange-600 dark:text-orange-400">
                                   Por {activePromotion.durationMonths} meses • Luego {formatPrice(originalPriceMonthly)}/mes
                                 </p>
@@ -860,7 +907,9 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                         className={`w-full ${isPopular ? 'bg-primary hover:bg-primary/90' : ''}`}
                         size="lg"
                       >
-                        Iniciar Prueba Gratuita
+                        {activePromotion?.promotionType === 'FREE_TRIAL' && !activePromotion?.isSoldOut
+                          ? 'Obtener 6 Meses Gratis'
+                          : 'Iniciar Prueba Gratuita'}
                       </Button>
                     ) : (
                       <Button
@@ -869,6 +918,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                         size="lg"
                       >
                         {isUpgrade ? `Actualizar a ${product.name}` :
+                         activePromotion?.promotionType === 'FREE_TRIAL' && !activePromotion?.isSoldOut ? 'Obtener 6 Meses Gratis' :
                          subscriptionData?.subscriptionStatus && !['ACTIVE', 'TRIALING'].includes(subscriptionData.subscriptionStatus) ? 'Suscribirse Ahora' : 'Iniciar Prueba Gratuita'}
                       </Button>
                     )}
@@ -887,12 +937,18 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
           {!isAuthenticated && (
             <div className="mb-8 p-4 bg-primary/10 border border-primary/20 rounded-lg">
               <p className="text-center text-foreground font-medium">
-                🚀 ¡Comienza tu prueba gratuita de 30 días! Solo necesitas crear una cuenta
+                {activePromotion?.promotionType === 'FREE_TRIAL' && !activePromotion?.isSoldOut
+                  ? '🚀 ¡Obtén 6 meses gratis! Solo necesitas crear una cuenta'
+                  : '🚀 ¡Comienza tu prueba gratuita de 30 días! Solo necesitas crear una cuenta'}
               </p>
             </div>
           )}
           <div className="text-center space-y-2 text-sm text-muted-foreground">
-            <p>✅ Todos los planes incluyen <strong className="text-foreground">30 días de prueba gratuita</strong></p>
+            <p>
+              {activePromotion?.promotionType === 'FREE_TRIAL' && !activePromotion?.isSoldOut
+                ? <>✅ <strong className="text-foreground">6 meses gratis</strong> para las primeras {activePromotion.spotsRemaining !== null ? `${activePromotion.spotsRemaining} clínicas` : 'clínicas'} • Se requiere tarjeta de crédito</>
+                : <>✅ Todos los planes incluyen <strong className="text-foreground">30 días de prueba gratuita</strong></>}
+            </p>
             <p>✅ Cancela en cualquier momento • Sin contratos • Soporte en español</p>
             <p>
               ¿Necesitas ayuda para elegir? <Link href="/contacto" className="text-primary hover:underline">Contacta con nosotros</Link>

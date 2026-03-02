@@ -445,6 +445,10 @@ export interface ActivePromotion {
   applicablePlans: string[];
   startDate: Date;
   endDate: Date;
+  maxRedemptions: number | null;
+  currentRedemptions: number;
+  promotionType: string;
+  trialDays: number | null;
 }
 
 // Cache for active promotion (server-side)

@@ -75,7 +75,10 @@ export function PromotionsList({
                 Promoción
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Descuento
+                Tipo / Descuento
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Canjes
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 Vigencia
@@ -125,12 +128,52 @@ export function PromotionsList({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm">
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                        {promotion.discountPercent}% OFF
-                      </span>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        por {promotion.durationMonths} {promotion.durationMonths === 1 ? 'mes' : 'meses'}
-                      </div>
+                      {promotion.promotionType === 'FREE_TRIAL' ? (
+                        <>
+                          <span className="font-semibold text-green-600 dark:text-green-400">
+                            Prueba Gratuita
+                          </span>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {promotion.trialDays} días ({promotion.durationMonths} {promotion.durationMonths === 1 ? 'mes' : 'meses'})
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                            {promotion.discountPercent}% OFF
+                          </span>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            por {promotion.durationMonths} {promotion.durationMonths === 1 ? 'mes' : 'meses'}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm">
+                      {promotion.maxRedemptions !== null ? (
+                        <>
+                          <span className="font-medium text-gray-900 dark:text-white">
+                            {promotion.currentRedemptions} / {promotion.maxRedemptions}
+                          </span>
+                          <div className="mt-1 w-full bg-gray-200 dark:bg-gray-600 rounded-full h-1.5">
+                            <div
+                              className={`h-1.5 rounded-full ${
+                                promotion.currentRedemptions >= promotion.maxRedemptions
+                                  ? 'bg-red-500'
+                                  : promotion.currentRedemptions / promotion.maxRedemptions > 0.8
+                                  ? 'bg-yellow-500'
+                                  : 'bg-emerald-500'
+                              }`}
+                              style={{
+                                width: `${Math.min(100, (promotion.currentRedemptions / promotion.maxRedemptions) * 100)}%`
+                              }}
+                            ></div>
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-gray-500 dark:text-gray-400">Ilimitado</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

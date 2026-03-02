@@ -134,6 +134,7 @@ export async function createTenantWithDefaults(data: {
   billingInterval: 'monthly' | 'yearly';
   phone?: string;
   address?: string;
+  trialDays?: number; // Override default 30-day trial (e.g., 180 for FREE_TRIAL promotions)
 }) {
   // Get the selected plan
   const plan = await prisma.plan.findFirst({
@@ -144,6 +145,8 @@ export async function createTenantWithDefaults(data: {
     throw new Error(`Plan ${data.planKey} no encontrado. Ejecute la migración B2B primero.`);
   }
 
+  const trialDays = data.trialDays ?? 30;
+
   return await prisma.$transaction(async (tx) => {
     // Create tenant with selected plan
     const tenant = await tx.tenant.create({
@@ -152,7 +155,7 @@ export async function createTenantWithDefaults(data: {
         slug: data.slug,
         planType: data.planKey,
         status: 'ACTIVE',
-        ...initializeTrialPeriod(30),
+        ...initializeTrialPeriod(trialDays),
       }
     });
 
@@ -163,7 +166,7 @@ export async function createTenantWithDefaults(data: {
         planId: plan.id,
         status: 'TRIALING',
         currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        currentPeriodEnd: new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000),
       }
     });
 

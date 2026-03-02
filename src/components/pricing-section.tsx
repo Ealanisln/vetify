@@ -57,17 +57,25 @@ const plans = [
 export async function PricingSection() {
   const promotion = await getActivePromotionFromDB()
   const promoActive = promotion !== null
+  const isFreeTrial = promotion?.promotionType === 'FREE_TRIAL'
+  const isSoldOut = promotion?.maxRedemptions !== null && promotion?.maxRedemptions !== undefined
+    ? promotion.currentRedemptions >= promotion.maxRedemptions
+    : false
+  const spotsRemaining = promotion?.maxRedemptions !== null && promotion?.maxRedemptions !== undefined
+    ? promotion.maxRedemptions - promotion.currentRedemptions
+    : null
 
   return (
     <section id="precios" className="py-12 sm:py-24 bg-secondary/30">
       <div className="container mx-auto px-4 sm:px-6">
         {/* Early Adopter Banner - only shows when promo is active */}
-        {promoActive && promotion && (
+        {promoActive && promotion && !isSoldOut && (
           <div className="flex justify-center mb-6 sm:mb-8">
             <EarlyAdopterBanner
               variant="hero"
               badgeText={promotion.badgeText}
               description={promotion.description}
+              spotsRemaining={spotsRemaining}
             />
           </div>
         )}
@@ -109,9 +117,32 @@ export async function PricingSection() {
                     <div className="mb-1 sm:mb-2 flex items-baseline gap-2">
                       <span className="text-3xl sm:text-5xl font-bold text-foreground">Cotización</span>
                     </div>
-                  ) : promoActive && promotion ? (
+                  ) : promoActive && promotion && isFreeTrial && !isSoldOut ? (
                     <>
-                      {/* Promotional Pricing - Dynamic from DB */}
+                      {/* FREE_TRIAL Promotion — $0/mes */}
+                      <div className="flex items-center gap-2 mb-1">
+                        <Sparkles className="h-4 w-4 text-green-500" />
+                        <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20 text-xs font-semibold">
+                          GRATIS
+                        </Badge>
+                      </div>
+                      <div className="mb-1 sm:mb-2 flex items-baseline gap-2">
+                        <span className="text-3xl sm:text-5xl font-bold text-green-600">$0</span>
+                        <span className="text-sm sm:text-base text-muted-foreground">{plan.period}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs sm:text-sm">
+                        <span className="text-muted-foreground line-through">{plan.price}/mes</span>
+                      </div>
+                      <p className="text-xs text-green-600 mt-1">Por {promotion.durationMonths} meses • Luego {plan.price}/mes</p>
+                      {spotsRemaining !== null && (
+                        <p className="text-xs font-medium text-orange-500 mt-1">
+                          Quedan {spotsRemaining} lugares
+                        </p>
+                      )}
+                    </>
+                  ) : promoActive && promotion && !isFreeTrial ? (
+                    <>
+                      {/* DISCOUNT Promotion — percentage off */}
                       {(() => {
                         const originalPrice = parseInt(plan.price.replace(/[^0-9]/g, ''))
                         const discountedPrice = Math.round(originalPrice * (1 - promotion.discountPercent / 100))
@@ -153,7 +184,11 @@ export async function PricingSection() {
               <CardContent className="p-4 sm:p-8 pt-0 flex flex-col flex-1">
                 <Link href={plan.isEnterprise ? "/contacto" : "/api/auth/register"}>
                   <Button className="mb-4 sm:mb-6 w-full text-xs sm:text-sm" variant={plan.popular ? "default" : "outline"} size="lg">
-                    {plan.isEnterprise ? "Contactar Ventas" : "Comenzar prueba gratis"}
+                    {plan.isEnterprise
+                      ? "Contactar Ventas"
+                      : isFreeTrial && !isSoldOut
+                      ? "Obtener 6 Meses Gratis"
+                      : "Comenzar prueba gratis"}
                   </Button>
                 </Link>
                 <ul className="space-y-2 sm:space-y-3 flex-1">
@@ -178,7 +213,9 @@ export async function PricingSection() {
             <ArrowRight className="h-4 w-4" />
           </Link>
           <p className="text-xs sm:text-sm text-muted-foreground">
-            ✨ Todos los planes incluyen 30 días de prueba gratis • Cancela en cualquier momento
+            {isFreeTrial && !isSoldOut
+              ? '✨ Obtén 6 meses gratis • Se requiere tarjeta de crédito • Cancela en cualquier momento'
+              : '✨ Todos los planes incluyen 30 días de prueba gratis • Cancela en cualquier momento'}
           </p>
         </div>
       </div>
