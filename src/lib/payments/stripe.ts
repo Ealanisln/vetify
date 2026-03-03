@@ -606,7 +606,7 @@ async function createOrRetrieveCustomer(tenant: Tenant, userId: string) {
 
 export async function handleSubscriptionChange(
   subscription: Stripe.Subscription
-) {
+): Promise<boolean> {
   const customerId = subscription.customer as string;
   const subscriptionId = subscription.id;
 
@@ -617,26 +617,26 @@ export async function handleSubscriptionChange(
 
     if (!tenant) {
       console.error('handleSubscriptionChange: Tenant not found for Stripe customer:', customerId);
-      
+
       // Try to find tenant by subscription ID in case of race condition
       const tenantBySubscription = await prisma.tenant.findFirst({
         where: { stripeSubscriptionId: subscriptionId }
       });
-      
+
       if (tenantBySubscription) {
         await prisma.tenant.update({
           where: { id: tenantBySubscription.id },
           data: { stripeCustomerId: customerId }
         });
         // Continue with the found tenant
-        await updateTenantSubscription(tenantBySubscription, subscription);
+        return await updateTenantSubscription(tenantBySubscription, subscription);
       } else {
         console.error('handleSubscriptionChange: No tenant found for subscription:', subscriptionId);
+        return false;
       }
-      return;
     }
 
-    await updateTenantSubscription(tenant, subscription);
+    return await updateTenantSubscription(tenant, subscription);
   } catch (error) {
     console.error('handleSubscriptionChange: Error processing subscription change:', error);
     throw error;
@@ -644,7 +644,7 @@ export async function handleSubscriptionChange(
 }
 
 // Helper function to update tenant subscription data
-async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Subscription) {
+async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Subscription): Promise<boolean> {
   const subscriptionId = subscription.id;
   const status = subscription.status;
 
@@ -653,7 +653,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
     
     if (!plan) {
       console.error('updateTenantSubscription: No plan found in subscription:', subscriptionId);
-      return;
+      return false;
     }
 
     // Validate that the product exists in Stripe
@@ -661,7 +661,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
       await stripe.products.retrieve(plan.product as string);
     } catch (error) {
       console.error('updateTenantSubscription: Error retrieving product:', error);
-      return;
+      return false;
     }
 
     // Map Stripe product ID to our Plan record
@@ -693,7 +693,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
           },
         },
       });
-      return;
+      return false;
     }
 
     // Get the Plan record from our database
@@ -715,7 +715,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
           },
         },
       });
-      return;
+      return false;
     }
     
     const updateData = {
@@ -759,6 +759,8 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
         }
       });
     });
+
+    return true;
   } else if (status === 'canceled' || status === 'unpaid' || status === 'past_due') {
     const updateData = {
       subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
@@ -789,7 +791,11 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
         });
       }
     });
+
+    return true;
   }
+
+  return false;
 }
 
 export async function getStripePrices() {

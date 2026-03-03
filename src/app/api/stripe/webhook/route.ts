@@ -97,7 +97,28 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          await handleSubscriptionChange(subscription);
+          const syncSuccess = await handleSubscriptionChange(subscription);
+          if (!syncSuccess) {
+            console.error('Webhook: handleSubscriptionChange returned false for checkout.session.completed', {
+              subscriptionId: subscription.id,
+              customerId,
+            });
+            Sentry.captureMessage('Webhook: subscription sync failed on checkout.session.completed', {
+              level: 'error',
+              tags: { category: 'payments', issue: 'sync_failed' },
+              contexts: {
+                subscription: {
+                  id: subscription.id,
+                  status: subscription.status,
+                  customer: customerId,
+                },
+              },
+            });
+            return NextResponse.json(
+              { error: 'Subscription sync failed', subscriptionId: subscription.id },
+              { status: 500 }
+            );
+          }
           console.log('Webhook: Subscription processed successfully');
 
           // Track promotion redemption if this checkout used a FREE_TRIAL promotion
@@ -130,7 +151,29 @@ export async function POST(request: NextRequest) {
           customer: subscription.customer
         });
 
-        await handleSubscriptionChange(subscription);
+        const updateSuccess = await handleSubscriptionChange(subscription);
+        if (!updateSuccess) {
+          console.error(`Webhook: handleSubscriptionChange returned false for ${event.type}`, {
+            subscriptionId: subscription.id,
+            status: subscription.status,
+            customer: subscription.customer,
+          });
+          Sentry.captureMessage(`Webhook: subscription sync failed on ${event.type}`, {
+            level: 'error',
+            tags: { category: 'payments', issue: 'sync_failed' },
+            contexts: {
+              subscription: {
+                id: subscription.id,
+                status: subscription.status,
+                customer: subscription.customer as string,
+              },
+            },
+          });
+          return NextResponse.json(
+            { error: 'Subscription sync failed', subscriptionId: subscription.id },
+            { status: 500 }
+          );
+        }
         console.log('Webhook: Subscription update processed successfully');
         break;
       }
