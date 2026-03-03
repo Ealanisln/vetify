@@ -15,7 +15,7 @@ const createMockTenant = (overrides: Partial<Tenant> = {}): Tenant => ({
   subscriptionStatus: 'ACTIVE',
   isTrialPeriod: false,
   trialEndsAt: null,
-  subscriptionEndsAt: new Date('2025-12-31'),
+  subscriptionEndsAt: new Date('2027-12-31'),
   stripeCustomerId: 'cus_123',
   stripeSubscriptionId: 'sub_123',
   stripeProductId: 'prod_123',
@@ -141,7 +141,7 @@ describe('useSubscription', () => {
     });
 
     it('should use subscriptionEndsAt when subscription is paid', () => {
-      const subscriptionEndDate = new Date('2025-12-31');
+      const subscriptionEndDate = new Date('2027-12-31');
       const tenant = createMockTenant({
         subscriptionStatus: 'ACTIVE',
         isTrialPeriod: false,
@@ -154,7 +154,7 @@ describe('useSubscription', () => {
     });
 
     it('should use subscriptionEndsAt when isTrialPeriod is true but trialEndsAt is null', () => {
-      const subscriptionEndDate = new Date('2025-12-31');
+      const subscriptionEndDate = new Date('2027-12-31');
       const tenant = createMockTenant({
         subscriptionStatus: 'TRIALING',
         isTrialPeriod: true,
@@ -368,6 +368,7 @@ describe('useSubscription', () => {
       expect(result.current).toHaveProperty('isCanceled');
       expect(result.current).toHaveProperty('planName');
       expect(result.current).toHaveProperty('subscriptionEndsAt');
+      expect(result.current).toHaveProperty('isPaidSubscriptionExpired');
       expect(result.current).toHaveProperty('hasActiveSubscription');
       expect(result.current).toHaveProperty('needsPayment');
       expect(result.current).toHaveProperty('isInTrial');
@@ -384,6 +385,128 @@ describe('useSubscription', () => {
       expect(typeof result.current.isCanceled).toBe('boolean');
       expect(typeof result.current.hasActiveSubscription).toBe('boolean');
       expect(typeof result.current.needsPayment).toBe('boolean');
+      expect(typeof result.current.isPaidSubscriptionExpired).toBe('boolean');
+    });
+  });
+
+  describe('Expired Paid Subscription Detection', () => {
+    it('should detect expired paid subscription beyond 7-day grace period', () => {
+      // subscriptionEndsAt is 30 days ago → well past the 7-day grace
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const tenant = createMockTenant({
+        subscriptionStatus: 'ACTIVE',
+        isTrialPeriod: false,
+        subscriptionEndsAt: thirtyDaysAgo,
+        stripeSubscriptionId: 'sub_123',
+      });
+      const { result } = renderHook(() => useSubscription(tenant));
+
+      expect(result.current.isPaidSubscriptionExpired).toBe(true);
+      expect(result.current.hasActiveSubscription).toBe(false);
+    });
+
+    it('should NOT mark as expired when within 7-day grace period', () => {
+      // subscriptionEndsAt is 3 days ago → still within 7-day grace
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+      const tenant = createMockTenant({
+        subscriptionStatus: 'ACTIVE',
+        isTrialPeriod: false,
+        subscriptionEndsAt: threeDaysAgo,
+        stripeSubscriptionId: 'sub_123',
+      });
+      const { result } = renderHook(() => useSubscription(tenant));
+
+      expect(result.current.isPaidSubscriptionExpired).toBe(false);
+      expect(result.current.hasActiveSubscription).toBe(true);
+    });
+
+    it('should NOT mark as expired when subscriptionEndsAt is in the future', () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 30);
+
+      const tenant = createMockTenant({
+        subscriptionStatus: 'ACTIVE',
+        isTrialPeriod: false,
+        subscriptionEndsAt: futureDate,
+        stripeSubscriptionId: 'sub_123',
+      });
+      const { result } = renderHook(() => useSubscription(tenant));
+
+      expect(result.current.isPaidSubscriptionExpired).toBe(false);
+      expect(result.current.hasActiveSubscription).toBe(true);
+    });
+
+    it('should NOT mark trial subscriptions as expired paid', () => {
+      // Even if trialEndsAt is past, isPaidSubscriptionExpired should be false
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 30);
+
+      const tenant = createMockTenant({
+        subscriptionStatus: 'TRIALING',
+        isTrialPeriod: true,
+        trialEndsAt: pastDate,
+        subscriptionEndsAt: null,
+        stripeSubscriptionId: null,
+      });
+      const { result } = renderHook(() => useSubscription(tenant));
+
+      expect(result.current.isPaidSubscriptionExpired).toBe(false);
+    });
+
+    it('should NOT mark as expired when subscriptionEndsAt is null', () => {
+      const tenant = createMockTenant({
+        subscriptionStatus: 'ACTIVE',
+        isTrialPeriod: false,
+        subscriptionEndsAt: null,
+        stripeSubscriptionId: 'sub_123',
+      });
+      const { result } = renderHook(() => useSubscription(tenant));
+
+      expect(result.current.isPaidSubscriptionExpired).toBe(false);
+      expect(result.current.hasActiveSubscription).toBe(true);
+    });
+
+    it('should NOT apply to non-ACTIVE statuses', () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 30);
+
+      const tenant = createMockTenant({
+        subscriptionStatus: 'CANCELED',
+        isTrialPeriod: false,
+        subscriptionEndsAt: pastDate,
+      });
+      const { result } = renderHook(() => useSubscription(tenant));
+
+      expect(result.current.isPaidSubscriptionExpired).toBe(false);
+    });
+
+    it('should handle exactly at grace period boundary (7 days after expiry)', () => {
+      // subscriptionEndsAt is exactly 7 days ago → should still be within grace
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      // Add 1 minute to ensure we're within grace (not exactly at boundary)
+      sevenDaysAgo.setMinutes(sevenDaysAgo.getMinutes() + 1);
+
+      const tenant = createMockTenant({
+        subscriptionStatus: 'ACTIVE',
+        isTrialPeriod: false,
+        subscriptionEndsAt: sevenDaysAgo,
+        stripeSubscriptionId: 'sub_123',
+      });
+      const { result } = renderHook(() => useSubscription(tenant));
+
+      expect(result.current.isPaidSubscriptionExpired).toBe(false);
+      expect(result.current.hasActiveSubscription).toBe(true);
+    });
+
+    it('should return false for null tenant', () => {
+      const { result } = renderHook(() => useSubscription(null));
+
+      expect(result.current.isPaidSubscriptionExpired).toBe(false);
     });
   });
 });

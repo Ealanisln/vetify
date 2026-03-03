@@ -155,7 +155,7 @@ export function SettingsPageClient({ tenant, isActiveSubscription }: SettingsPag
       case 'services':
         return <ServiceManagement tenantId={tenant.id} />;
       case 'subscription':
-        return <SubscriptionManager tenant={tenant} />;
+        return <SubscriptionManager tenant={tenant} isActiveSubscription={isActiveSubscription} />;
       case 'notifications':
         return <NotificationSettings tenantId={tenant.id} />;
       case 'api':
