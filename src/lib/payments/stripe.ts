@@ -482,57 +482,57 @@ export async function createCustomerPortalSession(tenant: Tenant) {
     redirect('/precios');
   }
 
-  let configuration: Stripe.BillingPortal.Configuration;
-  const configurations = await stripe.billingPortal.configurations.list();
+  // Use dynamic product/price IDs based on Stripe mode (live vs test)
+  const products = getStripeProductIds();
+  const prices = getStripePriceIds();
 
-  if (configurations.data.length > 0) {
-    configuration = configurations.data[0];
-  } else {
-    // Crear configuración predeterminada
-    configuration = await stripe.billingPortal.configurations.create({
-      business_profile: {
-        headline: 'Gestiona tu suscripción de Vetify'
+  const portalProducts = [
+    {
+      product: products.BASICO,
+      prices: Object.values(prices.BASICO)
+    },
+    {
+      product: products.PROFESIONAL,
+      prices: Object.values(prices.PROFESIONAL)
+    },
+    {
+      product: products.CORPORATIVO,
+      prices: Object.values(prices.CORPORATIVO)
+    }
+  ];
+
+  // Always create a fresh configuration to ensure correct product/price IDs
+  // for the current Stripe mode (live vs test)
+  const configuration = await stripe.billingPortal.configurations.create({
+    business_profile: {
+      headline: 'Gestiona tu suscripción de Vetify'
+    },
+    features: {
+      subscription_update: {
+        enabled: true,
+        default_allowed_updates: ['price', 'quantity', 'promotion_code'],
+        proration_behavior: 'create_prorations',
+        products: portalProducts
       },
-      features: {
-        subscription_update: {
+      subscription_cancel: {
+        enabled: true,
+        mode: 'at_period_end',
+        cancellation_reason: {
           enabled: true,
-          default_allowed_updates: ['price', 'quantity', 'promotion_code'],
-          proration_behavior: 'create_prorations',
-          products: [
-            {
-              product: STRIPE_PRODUCTS.BASICO,
-              prices: Object.values(STRIPE_PRICES.BASICO)
-            },
-            {
-              product: STRIPE_PRODUCTS.PROFESIONAL,
-              prices: Object.values(STRIPE_PRICES.PROFESIONAL)
-            },
-            {
-              product: STRIPE_PRODUCTS.CORPORATIVO,
-              prices: Object.values(STRIPE_PRICES.CORPORATIVO)
-            }
+          options: [
+            'too_expensive',
+            'missing_features',
+            'switched_service',
+            'unused',
+            'other'
           ]
-        },
-        subscription_cancel: {
-          enabled: true,
-          mode: 'at_period_end',
-          cancellation_reason: {
-            enabled: true,
-            options: [
-              'too_expensive',
-              'missing_features',
-              'switched_service',
-              'unused',
-              'other'
-            ]
-          }
-        },
-        payment_method_update: {
-          enabled: true
         }
+      },
+      payment_method_update: {
+        enabled: true
       }
-    });
-  }
+    }
+  });
 
   return stripe.billingPortal.sessions.create({
     customer: tenant.stripeCustomerId,
