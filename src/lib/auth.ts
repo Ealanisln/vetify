@@ -132,7 +132,17 @@ export function hasActiveSubscription(tenant: {
     return true;
   }
 
-  // In trial period - check if trial has expired
+  // Stripe trial period - subscription exists with TRIALING status and valid end date
+  // This handles Stripe-managed trials (e.g., 6-month free trial on a paid plan)
+  // which are different from Vetify's built-in trial (tracked by trialEndsAt)
+  if (tenant.subscriptionStatus === 'TRIALING' && tenant.subscriptionEndsAt) {
+    const endsAt = new Date(tenant.subscriptionEndsAt);
+    if (endsAt > new Date()) {
+      return true;
+    }
+  }
+
+  // Vetify built-in trial period - check if trial has expired
   if (tenant.isTrialPeriod && tenant.trialEndsAt) {
     const trialEnd = new Date(tenant.trialEndsAt);
     const now = new Date();

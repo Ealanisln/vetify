@@ -333,6 +333,60 @@ describe('Auth Subscription Functions', () => {
       });
     });
 
+    describe('Stripe Trial Period (subscriptionEndsAt)', () => {
+      it('should return true for TRIALING with future subscriptionEndsAt (Stripe-managed trial)', () => {
+        const futureDate = new Date();
+        futureDate.setMonth(futureDate.getMonth() + 6);
+
+        const tenant = {
+          subscriptionStatus: 'TRIALING',
+          isTrialPeriod: true,
+          trialEndsAt: new Date('2025-10-25'), // Vetify trial expired
+          subscriptionEndsAt: futureDate, // Stripe trial still active
+        };
+
+        expect(hasActiveSubscription(tenant)).toBe(true);
+      });
+
+      it('should return true for TRIALING with future subscriptionEndsAt and isTrialPeriod=false', () => {
+        const futureDate = new Date();
+        futureDate.setMonth(futureDate.getMonth() + 3);
+
+        const tenant = {
+          subscriptionStatus: 'TRIALING',
+          isTrialPeriod: false,
+          trialEndsAt: null,
+          subscriptionEndsAt: futureDate,
+        };
+
+        expect(hasActiveSubscription(tenant)).toBe(true);
+      });
+
+      it('should return false for TRIALING with expired subscriptionEndsAt', () => {
+        const pastDate = new Date();
+        pastDate.setDate(pastDate.getDate() - 10);
+
+        const tenant = {
+          subscriptionStatus: 'TRIALING',
+          isTrialPeriod: true,
+          trialEndsAt: new Date('2025-10-25'),
+          subscriptionEndsAt: pastDate,
+        };
+
+        expect(hasActiveSubscription(tenant)).toBe(false);
+      });
+
+      it('should return false for TRIALING with no subscriptionEndsAt and expired trialEndsAt', () => {
+        const tenant = {
+          subscriptionStatus: 'TRIALING',
+          isTrialPeriod: true,
+          trialEndsAt: new Date('2025-10-25'),
+        };
+
+        expect(hasActiveSubscription(tenant)).toBe(false);
+      });
+    });
+
     describe('Real-world Scenarios', () => {
       it('should correctly identify new user in trial period', () => {
         // New user just signed up - 14 day trial
