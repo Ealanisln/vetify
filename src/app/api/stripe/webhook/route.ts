@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { stripe, handleSubscriptionChange } from '../../../../lib/payments/stripe';
 import { notifyNewSubscriptionPayment, notifyPaymentFailed } from '../../../../lib/email/admin-notifications';
 import { prisma } from '../../../../lib/prisma';
+import { incrementPromotionRedemptions } from '../../../../lib/promotions/queries';
 import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
@@ -45,8 +46,6 @@ export async function POST(request: NextRequest) {
     console.log('Webhook: Event received and verified successfully:', event.type, event.id);
   } catch (error) {
     console.error('Webhook: Error verifying signature:', error);
-    console.log('Webhook: Signature:', signature?.substring(0, 20) + '...');
-    console.log('Webhook: Secret configured:', process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 20) + '...');
     return NextResponse.json(
       { error: 'Firma inválida' },
       { status: 400 }
@@ -98,8 +97,41 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          await handleSubscriptionChange(subscription);
+          const syncSuccess = await handleSubscriptionChange(subscription);
+          if (!syncSuccess) {
+            console.error('Webhook: handleSubscriptionChange returned false for checkout.session.completed', {
+              subscriptionId: subscription.id,
+              customerId,
+            });
+            Sentry.captureMessage('Webhook: subscription sync failed on checkout.session.completed', {
+              level: 'error',
+              tags: { category: 'payments', issue: 'sync_failed' },
+              contexts: {
+                subscription: {
+                  id: subscription.id,
+                  status: subscription.status,
+                  customer: customerId,
+                },
+              },
+            });
+            return NextResponse.json(
+              { error: 'Subscription sync failed', subscriptionId: subscription.id },
+              { status: 500 }
+            );
+          }
           console.log('Webhook: Subscription processed successfully');
+
+          // Track promotion redemption if this checkout used a FREE_TRIAL promotion
+          try {
+            const promotionId = subscription.metadata?.promotionId;
+            if (promotionId) {
+              const success = await incrementPromotionRedemptions(promotionId);
+              console.log(`Webhook: Promotion redemption ${success ? 'recorded' : 'failed (sold out?)'} for ${promotionId}`);
+            }
+          } catch (promoError) {
+            // Log but don't fail the webhook
+            console.error('Webhook: Error tracking promotion redemption:', promoError);
+          }
         } else {
           console.log('Webhook: Session is not a subscription or missing subscription ID');
         }
@@ -119,7 +151,29 @@ export async function POST(request: NextRequest) {
           customer: subscription.customer
         });
 
-        await handleSubscriptionChange(subscription);
+        const updateSuccess = await handleSubscriptionChange(subscription);
+        if (!updateSuccess) {
+          console.error(`Webhook: handleSubscriptionChange returned false for ${event.type}`, {
+            subscriptionId: subscription.id,
+            status: subscription.status,
+            customer: subscription.customer,
+          });
+          Sentry.captureMessage(`Webhook: subscription sync failed on ${event.type}`, {
+            level: 'error',
+            tags: { category: 'payments', issue: 'sync_failed' },
+            contexts: {
+              subscription: {
+                id: subscription.id,
+                status: subscription.status,
+                customer: subscription.customer as string,
+              },
+            },
+          });
+          return NextResponse.json(
+            { error: 'Subscription sync failed', subscriptionId: subscription.id },
+            { status: 500 }
+          );
+        }
         console.log('Webhook: Subscription update processed successfully');
         break;
       }

@@ -55,7 +55,16 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus | null
     const subscription = tenant.tenantSubscription;
 
     // Check if has active paid subscription
-    const hasActiveSubscription = tenant.subscriptionStatus === 'ACTIVE' && !tenant.isTrialPeriod;
+    // SECURITY FIX: Also check subscriptionEndsAt to catch stale status from failed webhooks
+    let hasActiveSubscription = tenant.subscriptionStatus === 'ACTIVE' && !tenant.isTrialPeriod;
+    if (hasActiveSubscription && tenant.subscriptionEndsAt) {
+      const endsAt = new Date(tenant.subscriptionEndsAt);
+      const now = new Date();
+      const gracePeriodMs = 7 * 24 * 60 * 60 * 1000; // 7 days
+      if (endsAt.getTime() + gracePeriodMs < now.getTime()) {
+        hasActiveSubscription = false;
+      }
+    }
 
     // Calculate trial status if in trial period
     let daysRemaining: number | null = null;

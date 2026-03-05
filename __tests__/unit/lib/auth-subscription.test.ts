@@ -61,6 +61,59 @@ describe('Auth Subscription Functions', () => {
 
         expect(hasActiveSubscription(tenant)).toBe(true);
       });
+
+      it('should return true for ACTIVE subscription with future subscriptionEndsAt', () => {
+        const futureDate = new Date();
+        futureDate.setDate(futureDate.getDate() + 30);
+
+        const tenant = {
+          subscriptionStatus: 'ACTIVE',
+          isTrialPeriod: false,
+          trialEndsAt: null,
+          subscriptionEndsAt: futureDate,
+        };
+
+        expect(hasActiveSubscription(tenant)).toBe(true);
+      });
+
+      it('should return true for ACTIVE subscription within 7-day grace period', () => {
+        const recentlyExpired = new Date();
+        recentlyExpired.setDate(recentlyExpired.getDate() - 3); // 3 days ago
+
+        const tenant = {
+          subscriptionStatus: 'ACTIVE',
+          isTrialPeriod: false,
+          trialEndsAt: null,
+          subscriptionEndsAt: recentlyExpired,
+        };
+
+        expect(hasActiveSubscription(tenant)).toBe(true);
+      });
+
+      it('should return false for ACTIVE subscription expired beyond grace period', () => {
+        const longExpired = new Date();
+        longExpired.setDate(longExpired.getDate() - 30); // 30 days ago
+
+        const tenant = {
+          subscriptionStatus: 'ACTIVE',
+          isTrialPeriod: false,
+          trialEndsAt: null,
+          subscriptionEndsAt: longExpired,
+        };
+
+        expect(hasActiveSubscription(tenant)).toBe(false);
+      });
+
+      it('should return false when subscriptionEndsAt is months in the past (stale webhook)', () => {
+        const tenant = {
+          subscriptionStatus: 'ACTIVE',
+          isTrialPeriod: false,
+          trialEndsAt: null,
+          subscriptionEndsAt: new Date('2025-12-01'), // Dec 2025 - stale data
+        };
+
+        expect(hasActiveSubscription(tenant)).toBe(false);
+      });
     });
 
     describe('Active Trial Period', () => {
@@ -277,6 +330,60 @@ describe('Auth Subscription Functions', () => {
         };
 
         expect(hasActiveSubscription(tenant)).toBe(true);
+      });
+    });
+
+    describe('Stripe Trial Period (subscriptionEndsAt)', () => {
+      it('should return true for TRIALING with future subscriptionEndsAt (Stripe-managed trial)', () => {
+        const futureDate = new Date();
+        futureDate.setMonth(futureDate.getMonth() + 6);
+
+        const tenant = {
+          subscriptionStatus: 'TRIALING',
+          isTrialPeriod: true,
+          trialEndsAt: new Date('2025-10-25'), // Vetify trial expired
+          subscriptionEndsAt: futureDate, // Stripe trial still active
+        };
+
+        expect(hasActiveSubscription(tenant)).toBe(true);
+      });
+
+      it('should return true for TRIALING with future subscriptionEndsAt and isTrialPeriod=false', () => {
+        const futureDate = new Date();
+        futureDate.setMonth(futureDate.getMonth() + 3);
+
+        const tenant = {
+          subscriptionStatus: 'TRIALING',
+          isTrialPeriod: false,
+          trialEndsAt: null,
+          subscriptionEndsAt: futureDate,
+        };
+
+        expect(hasActiveSubscription(tenant)).toBe(true);
+      });
+
+      it('should return false for TRIALING with expired subscriptionEndsAt', () => {
+        const pastDate = new Date();
+        pastDate.setDate(pastDate.getDate() - 10);
+
+        const tenant = {
+          subscriptionStatus: 'TRIALING',
+          isTrialPeriod: true,
+          trialEndsAt: new Date('2025-10-25'),
+          subscriptionEndsAt: pastDate,
+        };
+
+        expect(hasActiveSubscription(tenant)).toBe(false);
+      });
+
+      it('should return false for TRIALING with no subscriptionEndsAt and expired trialEndsAt', () => {
+        const tenant = {
+          subscriptionStatus: 'TRIALING',
+          isTrialPeriod: true,
+          trialEndsAt: new Date('2025-10-25'),
+        };
+
+        expect(hasActiveSubscription(tenant)).toBe(false);
       });
     });
 

@@ -94,7 +94,7 @@ export default withAuth(
     // SECURITY FIX: Initialize CSRF middleware for state-changing requests
     const csrfMiddleware = createCSRFMiddleware({
       skipForMethods: ['GET', 'HEAD', 'OPTIONS'],
-      skipForPaths: ['/api/webhooks/', '/api/auth/', '/api/public/'],
+      skipForPaths: ['/api/webhooks/', '/api/stripe/webhook', '/api/auth/', '/api/public/'],
     });
 
     // Get user info for authenticated requests (for logging and audit purposes)
@@ -157,7 +157,8 @@ export default withAuth(
     }
 
     // Allow public access to webhook routes (bypass auth protection but still apply rate limiting)
-    if (pathname.startsWith('/api/webhooks/')) {
+    // Includes /api/webhooks/* and /api/stripe/webhook (Stripe verifies via signature)
+    if (pathname.startsWith('/api/webhooks/') || pathname === '/api/stripe/webhook') {
       const response = NextResponse.next();
 
       // SECURITY FIX: Remove CORS wildcard - webhooks are server-to-server calls
@@ -401,10 +402,13 @@ export const config = {
      *
      * NOTE: /api/invitations/* is excluded to allow invitation validation and
      * acceptance without requiring authentication first
+     *
+     * NOTE: /api/stripe/webhook is excluded to allow Stripe webhook delivery
+     * without auth redirect. Stripe verifies requests via signature (STRIPE_WEBHOOK_SECRET).
      */
     '/dashboard/:path*',
     '/onboarding',
     '/admin/:path*',
-    '/api/((?!public/|auth/|invitations/|internal/).*)',
+    '/api/((?!public/|auth/|invitations/|internal/|pricing|stripe/webhook).*)',
   ],
 };

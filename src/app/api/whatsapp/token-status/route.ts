@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireSuperAdmin } from '@/lib/super-admin';
 import { whatsappService } from '../../../../lib/whatsapp';
 
 interface TokenStatusResponse {
@@ -7,8 +8,6 @@ interface TokenStatusResponse {
   data?: Record<string, unknown>;
   tokenInfo?: {
     configured: boolean;
-    length: number;
-    prefix: string;
     expires_at?: string;
     expires_in_days?: number;
     app_id?: string;
@@ -16,32 +15,35 @@ interface TokenStatusResponse {
   autoRefresh?: {
     attempted: boolean;
     successful: boolean;
-    newToken?: string;
     error?: string;
   };
 }
 
 export async function GET(): Promise<NextResponse<TokenStatusResponse>> {
   try {
+    await requireSuperAdmin();
+  } catch {
+    return NextResponse.json(
+      { valid: false, error: 'Access denied' },
+      { status: 403 }
+    );
+  }
+
+  try {
     const token = process.env.WHATSAPP_ACCESS_TOKEN;
-    
+
     if (!token) {
       return NextResponse.json({
         valid: false,
         error: 'WHATSAPP_ACCESS_TOKEN not configured in environment variables',
         tokenInfo: {
-          configured: false,
-          length: 0,
-          prefix: ''
+          configured: false
         }
       });
     }
 
-    // Información del token (sin exponer el token completo)
     const tokenInfo = {
-      configured: true,
-      length: token.length,
-      prefix: token.substring(0, 10) + '...'
+      configured: true
     };
 
     console.log('🔍 Checking WhatsApp token status...');
@@ -51,7 +53,7 @@ export async function GET(): Promise<NextResponse<TokenStatusResponse>> {
 
     if (detailedInfo.valid) {
       console.log('✅ WhatsApp token is valid');
-      
+
       // Calculate days until expiration
       let expiresInDays: number | undefined;
       if (detailedInfo.expires_at) {
@@ -77,7 +79,7 @@ export async function GET(): Promise<NextResponse<TokenStatusResponse>> {
       });
     } else {
       console.error('❌ WhatsApp token is invalid:', detailedInfo.error);
-      
+
       return NextResponse.json({
         valid: false,
         error: detailedInfo.error || 'Token validation failed',
@@ -87,14 +89,12 @@ export async function GET(): Promise<NextResponse<TokenStatusResponse>> {
 
   } catch (error) {
     console.error('❌ Error checking token status:', error);
-    
+
     return NextResponse.json({
       valid: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       tokenInfo: {
-        configured: !!process.env.WHATSAPP_ACCESS_TOKEN,
-        length: process.env.WHATSAPP_ACCESS_TOKEN?.length || 0,
-        prefix: process.env.WHATSAPP_ACCESS_TOKEN?.substring(0, 10) + '...' || ''
+        configured: !!process.env.WHATSAPP_ACCESS_TOKEN
       }
     }, { status: 500 });
   }
@@ -102,19 +102,26 @@ export async function GET(): Promise<NextResponse<TokenStatusResponse>> {
 
 export async function POST(): Promise<NextResponse<TokenStatusResponse>> {
   try {
+    await requireSuperAdmin();
+  } catch {
+    return NextResponse.json(
+      { valid: false, error: 'Access denied' },
+      { status: 403 }
+    );
+  }
+
+  try {
     console.log('🔄 Checking token status with auto-refresh...');
 
     // Attempt auto-refresh
     const refreshResult = await whatsappService.autoRefreshToken();
-    
+
     // Get current token status
     const detailedInfo = await whatsappService.getTokenInfo();
-    
+
     const token = process.env.WHATSAPP_ACCESS_TOKEN;
     const tokenInfo = {
-      configured: !!token,
-      length: token?.length || 0,
-      prefix: token ? token.substring(0, 10) + '...' : ''
+      configured: !!token
     };
 
     if (detailedInfo.valid) {
@@ -142,7 +149,6 @@ export async function POST(): Promise<NextResponse<TokenStatusResponse>> {
         autoRefresh: {
           attempted: true,
           successful: refreshResult.refreshed,
-          newToken: refreshResult.refreshed ? 'Token was refreshed (check logs for new token)' : undefined,
           error: refreshResult.error
         }
       });
@@ -161,14 +167,12 @@ export async function POST(): Promise<NextResponse<TokenStatusResponse>> {
 
   } catch (error) {
     console.error('❌ Error in auto-refresh token check:', error);
-    
+
     return NextResponse.json({
       valid: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
       tokenInfo: {
-        configured: !!process.env.WHATSAPP_ACCESS_TOKEN,
-        length: process.env.WHATSAPP_ACCESS_TOKEN?.length || 0,
-        prefix: process.env.WHATSAPP_ACCESS_TOKEN?.substring(0, 10) + '...' || ''
+        configured: !!process.env.WHATSAPP_ACCESS_TOKEN
       },
       autoRefresh: {
         attempted: true,
@@ -177,4 +181,4 @@ export async function POST(): Promise<NextResponse<TokenStatusResponse>> {
       }
     }, { status: 500 });
   }
-} 
+}

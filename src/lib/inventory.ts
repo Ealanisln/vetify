@@ -233,18 +233,11 @@ export async function deleteInventoryItem(
  * Obtener productos con stock bajo
  */
 export async function getLowStockItems(tenantId: string): Promise<InventoryItemWithStock[]> {
-  const items = await prisma.inventoryItem.findMany({
+  const candidates = await prisma.inventoryItem.findMany({
     where: {
       tenantId,
       status: 'ACTIVE',
-      AND: [
-        { minStock: { not: null } },
-        {
-          quantity: {
-            lte: prisma.inventoryItem.fields.minStock
-          }
-        }
-      ]
+      minStock: { not: null }
     },
     include: {
       _count: {
@@ -256,7 +249,9 @@ export async function getLowStockItems(tenantId: string): Promise<InventoryItemW
     orderBy: { name: 'asc' }
   });
 
-  return items as InventoryItemWithStock[];
+  const lowStock = candidates.filter(item => Number(item.quantity) <= Number(item.minStock));
+
+  return lowStock as InventoryItemWithStock[];
 }
 
 /**
@@ -275,20 +270,14 @@ export async function getInventoryStats(tenantId: string) {
     }),
     
     // Stock bajo
-    prisma.inventoryItem.count({
+    prisma.inventoryItem.findMany({
       where: {
         tenantId,
         status: 'ACTIVE',
-        AND: [
-          { minStock: { not: null } },
-          {
-            quantity: {
-              lte: prisma.inventoryItem.fields.minStock
-            }
-          }
-        ]
-      }
-    }),
+        minStock: { not: null }
+      },
+      select: { quantity: true, minStock: true }
+    }).then(items => items.filter(item => Number(item.quantity) <= Number(item.minStock)).length),
     
     // Sin stock
     prisma.inventoryItem.count({

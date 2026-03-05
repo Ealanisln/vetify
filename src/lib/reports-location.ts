@@ -287,15 +287,15 @@ export async function getLocationInventoryAnalytics(
     }),
 
     // Low stock items count
-    prisma.inventoryItem.count({
+    prisma.inventoryItem.findMany({
       where: {
         tenantId,
         status: 'ACTIVE',
         ...locationFilter,
-        quantity: { lte: prisma.inventoryItem.fields.minStock },
         minStock: { not: null },
       },
-    }),
+      select: { quantity: true, minStock: true }
+    }).then(items => items.filter(item => Number(item.quantity) <= Number(item.minStock)).length),
 
     // Top selling products this month
     prisma.saleItem.groupBy({

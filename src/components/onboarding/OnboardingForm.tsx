@@ -11,12 +11,15 @@ import { Confirmation } from '../../app/onboarding/steps/Confirmation';
 import { OnboardingProgress } from './OnboardingProgress';
 import type { OnboardingState } from '../../types/onboarding';
 import { trackCompleteRegistration, trackStartTrial } from '@/lib/analytics/meta-events';
+import type { PromoInfo } from '../../app/onboarding/OnboardingPageClient';
 
 interface OnboardingFormProps {
   user: UserWithTenant;
+  promoInfo?: PromoInfo | null;
 }
 
-export function OnboardingForm({ user }: OnboardingFormProps) {
+export function OnboardingForm({ user, promoInfo }: OnboardingFormProps) {
+  const trialDays = promoInfo?.trialDays ?? TRIAL_PERIOD_DAYS;
   const router = useRouter();
   const [state, setState] = useState<OnboardingState>({
     currentStep: 'plan',
@@ -103,10 +106,10 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
         trackStartTrial({
           plan_name: state.selectedPlan.name,
           plan_key: state.selectedPlan.key,
-          trial_end_date: new Date(Date.now() + TRIAL_PERIOD_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+          trial_end_date: new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString(),
           currency: 'MXN',
           value: state.selectedPlan.priceMonthly,
-          trial_duration_days: TRIAL_PERIOD_DAYS
+          trial_duration_days: trialDays
         });
       } catch (error) {
         // Log tracking errors but don't block the user experience
@@ -134,9 +137,10 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
       <OnboardingProgress currentStep={state.currentStep} />
       
       {state.currentStep === 'plan' && (
-        <PlanSelection 
+        <PlanSelection
           onNext={handlePlanSelect}
           initialSelection={state.selectedPlan}
+          trialDays={trialDays}
         />
       )}
       
@@ -160,6 +164,7 @@ export function OnboardingForm({ user }: OnboardingFormProps) {
           onBack={handleBack}
           isSubmitting={state.isSubmitting}
           onSubmit={handleSubmit}
+          trialDays={trialDays}
         />
       )}
     </div>

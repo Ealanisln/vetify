@@ -64,7 +64,7 @@ const createMockTenant = (overrides = {}) => ({
   trialEndsAt: null,
   planType: 'PROFESIONAL',
   planName: 'Plan Profesional',
-  subscriptionEndsAt: new Date('2025-02-01'),
+  subscriptionEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
   tenantSubscription: createMockTenantSubscription(),
   ...overrides,
 });

@@ -113,13 +113,36 @@ export function hasActiveSubscription(tenant: {
   subscriptionStatus: string;
   isTrialPeriod: boolean;
   trialEndsAt: Date | string | null;
+  subscriptionEndsAt?: Date | string | null;
 }): boolean {
   // Has active paid subscription (not in trial)
   if (tenant.subscriptionStatus === 'ACTIVE' && !tenant.isTrialPeriod) {
+    // SECURITY FIX: Also verify the subscription period hasn't expired.
+    // If webhooks fail, subscriptionStatus stays ACTIVE in the DB even after
+    // the subscription expires in Stripe. Adding a 7-day grace period to
+    // account for Stripe retry cycles before cutting access.
+    if (tenant.subscriptionEndsAt) {
+      const endsAt = new Date(tenant.subscriptionEndsAt);
+      const now = new Date();
+      const gracePeriodMs = 7 * 24 * 60 * 60 * 1000; // 7 days
+      if (endsAt.getTime() + gracePeriodMs < now.getTime()) {
+        return false;
+      }
+    }
     return true;
   }
 
-  // In trial period - check if trial has expired
+  // Stripe trial period - subscription exists with TRIALING status and valid end date
+  // This handles Stripe-managed trials (e.g., 6-month free trial on a paid plan)
+  // which are different from Vetify's built-in trial (tracked by trialEndsAt)
+  if (tenant.subscriptionStatus === 'TRIALING' && tenant.subscriptionEndsAt) {
+    const endsAt = new Date(tenant.subscriptionEndsAt);
+    if (endsAt > new Date()) {
+      return true;
+    }
+  }
+
+  // Vetify built-in trial period - check if trial has expired
   if (tenant.isTrialPeriod && tenant.trialEndsAt) {
     const trialEnd = new Date(tenant.trialEndsAt);
     const now = new Date();

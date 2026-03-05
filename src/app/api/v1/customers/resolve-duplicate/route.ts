@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../../../lib/prisma';
-import { getAuthenticatedUser } from '../../../../../lib/auth';
+import { prisma } from '@/lib/prisma';
+import { requireAuth } from '@/lib/auth';
 import { z } from 'zod';
 
 const resolveDuplicateSchema = z.object({
@@ -11,10 +11,7 @@ const resolveDuplicateSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await getAuthenticatedUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { user, tenant } = await requireAuth();
 
     const body = await request.json();
     const validatedData = resolveDuplicateSchema.parse(body);
@@ -34,7 +31,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
     }
 
-    if (customer.tenantId !== user.tenantId) {
+    if (customer.tenantId !== tenant.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -48,7 +45,7 @@ export async function POST(request: NextRequest) {
           reviewedAt: new Date(),
           reviewedBy: user.id,
           // Agregar notas si se proporcionan
-          ...(notes && { 
+          ...(notes && {
             address: customer.address ? `${customer.address}\n\nNotas de revisión: ${notes}` : `Notas de revisión: ${notes}`
           })
         }
@@ -83,8 +80,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: action === 'not_duplicate' 
-        ? 'Customer marked as not duplicate' 
+      message: action === 'not_duplicate'
+        ? 'Customer marked as not duplicate'
         : 'Customer kept for further review',
       data: {
         customer: updatedCustomer,
@@ -94,7 +91,7 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error resolving duplicate:', error);
-    
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid data provided', details: error.errors },
@@ -107,4 +104,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}

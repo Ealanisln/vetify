@@ -30,8 +30,29 @@ async function manualSubscriptionSync(subscription: Stripe.Subscription) {
   console.log('Manual sync: Processing subscription manually:', subscription.id);
   try {
     const stripeSubscription = await stripe.subscriptions.retrieve(subscription.id);
-    await handleSubscriptionChange(stripeSubscription);
-    console.log('Manual sync: Successfully processed subscription');
+    const syncSuccess = await handleSubscriptionChange(stripeSubscription);
+
+    if (!syncSuccess) {
+      console.error('Manual sync: handleSubscriptionChange returned false — DB was not updated');
+      return false;
+    }
+
+    // Verify the DB was actually updated
+    const customerId = stripeSubscription.customer as string;
+    const tenant = await prisma.tenant.findUnique({
+      where: { stripeCustomerId: customerId },
+      select: { stripeSubscriptionId: true }
+    });
+
+    if (tenant?.stripeSubscriptionId !== stripeSubscription.id) {
+      console.error('Manual sync: DB verification failed — stripeSubscriptionId mismatch', {
+        expected: stripeSubscription.id,
+        actual: tenant?.stripeSubscriptionId
+      });
+      return false;
+    }
+
+    console.log('Manual sync: Successfully processed and verified subscription');
     return true;
   } catch (error) {
     console.error('Manual sync: Error processing subscription:', error);

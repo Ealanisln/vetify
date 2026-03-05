@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { prisma } from '../prisma';
 import { isLaunchPromotionActive, PRICING_CONFIG, isStripeInLiveMode } from '../pricing-config';
+import { getActivePromotion, checkPromotionAvailability } from '../promotions/queries';
 
 import type { Tenant, SubscriptionStatus, PlanType } from '@prisma/client';
 
@@ -13,6 +14,8 @@ interface StripeSubscriptionData {
     planKey: string;
     userId: string;
     hadLocalTrial: string;
+    promotionId?: string;
+    promotionCode?: string;
   };
   trial_period_days?: number;
 }
@@ -54,6 +57,67 @@ function shouldGiveStripeTrial(tenant: Tenant): boolean {
   
   // Si ya tuvo trial local (existe trialEndsAt), NO dar trial en Stripe
   return false;
+}
+
+/**
+ * Resolve the active promotion for a checkout session.
+ * Checks DB for active promotions and determines what to apply.
+ */
+type CheckoutPromotionResult =
+  | { type: 'FREE_TRIAL'; trialDays: number; promotionId: string; promotionCode: string }
+  | { type: 'DISCOUNT'; discountCoupon: string }
+  | { type: 'NONE'; allowPromoCodes: true };
+
+async function resolveCheckoutPromotion(
+  planKey?: string
+): Promise<CheckoutPromotionResult> {
+  try {
+    const promo = await getActivePromotion();
+    if (!promo) {
+      return { type: 'NONE', allowPromoCodes: true };
+    }
+
+    // Check if this plan is applicable
+    if (promo.applicablePlans.length > 0 && planKey) {
+      const normalizedPlanKey = planKey.toUpperCase();
+      if (!promo.applicablePlans.includes(normalizedPlanKey)) {
+        return { type: 'NONE', allowPromoCodes: true };
+      }
+    }
+
+    if (promo.promotionType === 'FREE_TRIAL' && promo.trialDays) {
+      // Check availability (spots remaining)
+      const { available } = await checkPromotionAvailability(promo.id);
+      if (available) {
+        return {
+          type: 'FREE_TRIAL',
+          trialDays: promo.trialDays,
+          promotionId: promo.id,
+          promotionCode: promo.code,
+        };
+      }
+      // Sold out — fall through to no promo
+      return { type: 'NONE', allowPromoCodes: true };
+    }
+
+    if (promo.promotionType === 'DISCOUNT' && promo.stripeCouponId) {
+      return { type: 'DISCOUNT', discountCoupon: promo.stripeCouponId };
+    }
+
+    // Legacy: check static launch promotion
+    if (isLaunchPromotionActive()) {
+      return { type: 'DISCOUNT', discountCoupon: PRICING_CONFIG.LAUNCH_PROMOTION.couponCode };
+    }
+
+    return { type: 'NONE', allowPromoCodes: true };
+  } catch (error) {
+    console.error('Error resolving checkout promotion:', error);
+    // Fallback to legacy
+    if (isLaunchPromotionActive()) {
+      return { type: 'DISCOUNT', discountCoupon: PRICING_CONFIG.LAUNCH_PROMOTION.couponCode };
+    }
+    return { type: 'NONE', allowPromoCodes: true };
+  }
 }
 
 /**
@@ -263,9 +327,8 @@ export async function createCheckoutSession({
     }
   }
 
-  // Determinar si debe tener trial en Stripe
-  // Solo dar trial si nunca ha tenido trial local o el trial local aún está activo
-  const shouldHaveStripeTrial = shouldGiveStripeTrial(tenant);
+  // Resolve active promotion from DB
+  const promoResult = await resolveCheckoutPromotion(planKey);
 
   const subscriptionData: StripeSubscriptionData = {
     metadata: {
@@ -276,8 +339,14 @@ export async function createCheckoutSession({
     }
   };
 
-  // Solo agregar trial_period_days si nunca tuvo trial local
-  if (shouldHaveStripeTrial) {
+  // Determine trial days based on promotion or default behavior
+  if (promoResult.type === 'FREE_TRIAL') {
+    // Promo trial overrides any default trial logic
+    subscriptionData.trial_period_days = promoResult.trialDays;
+    subscriptionData.metadata.promotionId = promoResult.promotionId;
+    subscriptionData.metadata.promotionCode = promoResult.promotionCode;
+  } else if (shouldGiveStripeTrial(tenant)) {
+    // Default: 30-day trial for new users without local trial
     subscriptionData.trial_period_days = 30;
   }
 
@@ -295,18 +364,7 @@ export async function createCheckoutSession({
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`,
     subscription_data: subscriptionData,
-    // Configuración para México - SIN automatic tax ya que no está soportado en todos los países
     locale: 'es-419',
-    // tax_id_collection: {
-    //   enabled: true,
-    // },
-    // customer_update: {
-    //   name: 'auto', // Permite a Stripe actualizar el nombre del cliente automáticamente
-    //   address: 'auto' // También permite actualizar la dirección para cálculos de impuestos
-    // },
-    // automatic_tax: {
-    //   enabled: true, // Habilita el cálculo automático de impuestos (IVA 16% en México)
-    // },
     metadata: {
       tenantId: tenant.id,
       planKey: planKey || 'unknown',
@@ -315,16 +373,13 @@ export async function createCheckoutSession({
     }
   };
 
-  // 🎉 Aplicar cupón de lanzamiento automáticamente si está activo
-  // NOTA: Si aplicamos cupón automático, NO podemos usar allow_promotion_codes
-  if (isLaunchPromotionActive()) {
-    sessionConfig.discounts = [{
-      coupon: PRICING_CONFIG.LAUNCH_PROMOTION.couponCode
-    }];
-  } else {
-    // Solo permitir códigos promocionales si NO hay promoción automática activa
+  // Apply promotion or allow manual promo codes
+  if (promoResult.type === 'DISCOUNT') {
+    sessionConfig.discounts = [{ coupon: promoResult.discountCoupon }];
+  } else if (promoResult.type === 'NONE') {
     sessionConfig.allow_promotion_codes = true;
   }
+  // For FREE_TRIAL, no discounts/promo codes needed (trial_period_days handles it)
 
   const session = await stripe.checkout.sessions.create(sessionConfig);
 
@@ -366,9 +421,8 @@ export async function createCheckoutSessionForAPI({
     }
   }
 
-  // Determinar si debe tener trial en Stripe
-  // Solo dar trial si nunca ha tenido trial local o el trial local aún está activo
-  const shouldHaveStripeTrial = shouldGiveStripeTrial(tenant);
+  // Resolve active promotion from DB
+  const promoResult = await resolveCheckoutPromotion(planKey);
 
   const subscriptionData: StripeSubscriptionData = {
     metadata: {
@@ -379,8 +433,12 @@ export async function createCheckoutSessionForAPI({
     }
   };
 
-  // Solo agregar trial_period_days si nunca tuvo trial local
-  if (shouldHaveStripeTrial) {
+  // Determine trial days based on promotion or default behavior
+  if (promoResult.type === 'FREE_TRIAL') {
+    subscriptionData.trial_period_days = promoResult.trialDays;
+    subscriptionData.metadata.promotionId = promoResult.promotionId;
+    subscriptionData.metadata.promotionCode = promoResult.promotionCode;
+  } else if (shouldGiveStripeTrial(tenant)) {
     subscriptionData.trial_period_days = 30;
   }
 
@@ -398,18 +456,7 @@ export async function createCheckoutSessionForAPI({
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/api/stripe/checkout?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard`,
     subscription_data: subscriptionData,
-    // Configuración para México - SIN automatic tax ya que no está soportado en todos los países
     locale: 'es-419',
-    // tax_id_collection: {
-    //   enabled: true,
-    // },
-    // customer_update: {
-    //   name: 'auto', // Permite a Stripe actualizar el nombre del cliente automáticamente
-    //   address: 'auto' // También permite actualizar la dirección para cálculos de impuestos
-    // },
-    // automatic_tax: {
-    //   enabled: true, // Habilita el cálculo automático de impuestos (IVA 16% en México)
-    // },
     metadata: {
       tenantId: tenant.id,
       planKey: planKey || 'unknown',
@@ -418,14 +465,10 @@ export async function createCheckoutSessionForAPI({
     }
   };
 
-  // 🎉 Aplicar cupón de lanzamiento automáticamente si está activo
-  // NOTA: Si aplicamos cupón automático, NO podemos usar allow_promotion_codes
-  if (isLaunchPromotionActive()) {
-    sessionConfig.discounts = [{
-      coupon: PRICING_CONFIG.LAUNCH_PROMOTION.couponCode
-    }];
-  } else {
-    // Solo permitir códigos promocionales si NO hay promoción automática activa
+  // Apply promotion or allow manual promo codes
+  if (promoResult.type === 'DISCOUNT') {
+    sessionConfig.discounts = [{ coupon: promoResult.discountCoupon }];
+  } else if (promoResult.type === 'NONE') {
     sessionConfig.allow_promotion_codes = true;
   }
 
@@ -439,57 +482,57 @@ export async function createCustomerPortalSession(tenant: Tenant) {
     redirect('/precios');
   }
 
-  let configuration: Stripe.BillingPortal.Configuration;
-  const configurations = await stripe.billingPortal.configurations.list();
+  // Use dynamic product/price IDs based on Stripe mode (live vs test)
+  const products = getStripeProductIds();
+  const prices = getStripePriceIds();
 
-  if (configurations.data.length > 0) {
-    configuration = configurations.data[0];
-  } else {
-    // Crear configuración predeterminada
-    configuration = await stripe.billingPortal.configurations.create({
-      business_profile: {
-        headline: 'Gestiona tu suscripción de Vetify'
+  const portalProducts = [
+    {
+      product: products.BASICO,
+      prices: Object.values(prices.BASICO)
+    },
+    {
+      product: products.PROFESIONAL,
+      prices: Object.values(prices.PROFESIONAL)
+    },
+    {
+      product: products.CORPORATIVO,
+      prices: Object.values(prices.CORPORATIVO)
+    }
+  ];
+
+  // Always create a fresh configuration to ensure correct product/price IDs
+  // for the current Stripe mode (live vs test)
+  const configuration = await stripe.billingPortal.configurations.create({
+    business_profile: {
+      headline: 'Gestiona tu suscripción de Vetify'
+    },
+    features: {
+      subscription_update: {
+        enabled: true,
+        default_allowed_updates: ['price', 'quantity', 'promotion_code'],
+        proration_behavior: 'create_prorations',
+        products: portalProducts
       },
-      features: {
-        subscription_update: {
+      subscription_cancel: {
+        enabled: true,
+        mode: 'at_period_end',
+        cancellation_reason: {
           enabled: true,
-          default_allowed_updates: ['price', 'quantity', 'promotion_code'],
-          proration_behavior: 'create_prorations',
-          products: [
-            {
-              product: STRIPE_PRODUCTS.BASICO,
-              prices: Object.values(STRIPE_PRICES.BASICO)
-            },
-            {
-              product: STRIPE_PRODUCTS.PROFESIONAL,
-              prices: Object.values(STRIPE_PRICES.PROFESIONAL)
-            },
-            {
-              product: STRIPE_PRODUCTS.CORPORATIVO,
-              prices: Object.values(STRIPE_PRICES.CORPORATIVO)
-            }
+          options: [
+            'too_expensive',
+            'missing_features',
+            'switched_service',
+            'unused',
+            'other'
           ]
-        },
-        subscription_cancel: {
-          enabled: true,
-          mode: 'at_period_end',
-          cancellation_reason: {
-            enabled: true,
-            options: [
-              'too_expensive',
-              'missing_features',
-              'switched_service',
-              'unused',
-              'other'
-            ]
-          }
-        },
-        payment_method_update: {
-          enabled: true
         }
+      },
+      payment_method_update: {
+        enabled: true
       }
-    });
-  }
+    }
+  });
 
   return stripe.billingPortal.sessions.create({
     customer: tenant.stripeCustomerId,
@@ -563,7 +606,7 @@ async function createOrRetrieveCustomer(tenant: Tenant, userId: string) {
 
 export async function handleSubscriptionChange(
   subscription: Stripe.Subscription
-) {
+): Promise<boolean> {
   const customerId = subscription.customer as string;
   const subscriptionId = subscription.id;
 
@@ -574,26 +617,26 @@ export async function handleSubscriptionChange(
 
     if (!tenant) {
       console.error('handleSubscriptionChange: Tenant not found for Stripe customer:', customerId);
-      
+
       // Try to find tenant by subscription ID in case of race condition
       const tenantBySubscription = await prisma.tenant.findFirst({
         where: { stripeSubscriptionId: subscriptionId }
       });
-      
+
       if (tenantBySubscription) {
         await prisma.tenant.update({
           where: { id: tenantBySubscription.id },
           data: { stripeCustomerId: customerId }
         });
         // Continue with the found tenant
-        await updateTenantSubscription(tenantBySubscription, subscription);
+        return await updateTenantSubscription(tenantBySubscription, subscription);
       } else {
         console.error('handleSubscriptionChange: No tenant found for subscription:', subscriptionId);
+        return false;
       }
-      return;
     }
 
-    await updateTenantSubscription(tenant, subscription);
+    return await updateTenantSubscription(tenant, subscription);
   } catch (error) {
     console.error('handleSubscriptionChange: Error processing subscription change:', error);
     throw error;
@@ -601,7 +644,7 @@ export async function handleSubscriptionChange(
 }
 
 // Helper function to update tenant subscription data
-async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Subscription) {
+async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Subscription): Promise<boolean> {
   const subscriptionId = subscription.id;
   const status = subscription.status;
 
@@ -610,7 +653,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
     
     if (!plan) {
       console.error('updateTenantSubscription: No plan found in subscription:', subscriptionId);
-      return;
+      return false;
     }
 
     // Validate that the product exists in Stripe
@@ -618,7 +661,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
       await stripe.products.retrieve(plan.product as string);
     } catch (error) {
       console.error('updateTenantSubscription: Error retrieving product:', error);
-      return;
+      return false;
     }
 
     // Map Stripe product ID to our Plan record
@@ -650,7 +693,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
           },
         },
       });
-      return;
+      return false;
     }
 
     // Get the Plan record from our database
@@ -672,7 +715,7 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
           },
         },
       });
-      return;
+      return false;
     }
     
     const updateData = {
@@ -716,6 +759,8 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
         }
       });
     });
+
+    return true;
   } else if (status === 'canceled' || status === 'unpaid' || status === 'past_due') {
     const updateData = {
       subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
@@ -746,7 +791,11 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
         });
       }
     });
+
+    return true;
   }
+
+  return false;
 }
 
 export async function getStripePrices() {

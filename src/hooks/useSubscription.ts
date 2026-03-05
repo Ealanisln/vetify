@@ -28,6 +28,18 @@ export function useSubscription(tenant: Tenant | null) {
     }
   }, [tenant]);
 
+  // Check if a paid subscription (status ACTIVE, not trial) has expired beyond the 7-day grace period.
+  // This mirrors the server-side check in auth.ts hasActiveSubscription().
+  const isPaidSubscriptionExpired = (() => {
+    if (!tenant || tenant.isTrialPeriod) return false;
+    if (tenant.subscriptionStatus !== 'ACTIVE') return false;
+    if (!tenant.subscriptionEndsAt) return false;
+    const endsAt = new Date(tenant.subscriptionEndsAt);
+    const now = new Date();
+    const gracePeriodMs = 7 * 24 * 60 * 60 * 1000; // 7 days
+    return endsAt.getTime() + gracePeriodMs < now.getTime();
+  })();
+
   return {
     isActive,
     isTrialing,
@@ -35,7 +47,8 @@ export function useSubscription(tenant: Tenant | null) {
     isCanceled,
     planName,
     subscriptionEndsAt,
-    hasActiveSubscription: isActive || isTrialing,
+    isPaidSubscriptionExpired,
+    hasActiveSubscription: (isActive && !isPaidSubscriptionExpired) || isTrialing,
     needsPayment: isPastDue || isCanceled,
     isInTrial: isTrialing && tenant?.isTrialPeriod,
     subscriptionStatus: tenant?.subscriptionStatus || 'INACTIVE'

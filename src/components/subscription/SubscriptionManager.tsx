@@ -24,9 +24,10 @@ import { toast } from 'sonner';
 
 interface SubscriptionManagerProps {
   tenant: Tenant;
+  isActiveSubscription?: boolean;
 }
 
-export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
+export function SubscriptionManager({ tenant, isActiveSubscription }: SubscriptionManagerProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -37,10 +38,16 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
     planName,
     subscriptionEndsAt,
     hasActiveSubscription,
+    isPaidSubscriptionExpired,
     needsPayment,
     isInTrial,
     subscriptionStatus
   } = useSubscription(tenant);
+
+  // Derive expired state: prefer server-computed prop, fall back to client-side hook detection
+  const isSubscriptionExpired = isActiveSubscription === false
+    ? (!tenant.isTrialPeriod && tenant.subscriptionStatus === 'ACTIVE' && !hasActiveSubscription)
+    : isPaidSubscriptionExpired;
 
   // Detect return from Stripe portal and show success message
   useEffect(() => {
@@ -97,8 +104,8 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
   };
 
   const handleUpgradePlan = async () => {
-    // CRITICAL FIX: If trial expired, go directly to Stripe checkout
-    if (isTrialExpired) {
+    // CRITICAL FIX: If trial or paid subscription expired, go directly to Stripe checkout
+    if (isTrialExpired || isSubscriptionExpired) {
       setIsCheckoutLoading(true);
       try {
         // Use the plan that the user selected during onboarding
@@ -180,6 +187,16 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
       };
     }
 
+    // Check if paid subscription has expired (webhooks failed, DB still says ACTIVE)
+    if (isSubscriptionExpired) {
+      return {
+        icon: XCircle,
+        color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-950/30 dark:text-red-300 dark:border-red-800',
+        text: 'Expirada',
+        description: 'Tu subscripción ha expirado. Suscríbete para recuperar el acceso.'
+      };
+    }
+
     switch (status) {
       case 'ACTIVE':
         return {
@@ -227,7 +244,7 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
       {/* Status Overview Card */}
       <div className={`
         relative overflow-hidden rounded-lg border p-6
-        ${isTrialExpired
+        ${isTrialExpired || isSubscriptionExpired
           ? 'bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-200 dark:border-red-800'
           : isInTrial
           ? 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200 dark:border-blue-800'
@@ -239,8 +256,8 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
         <div className="relative z-10">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-xl ${isTrialExpired ? 'bg-red-100 dark:bg-red-900/40' : isInTrial ? 'bg-blue-100 dark:bg-blue-900/40' : needsPayment ? 'bg-yellow-100 dark:bg-yellow-900/40' : 'bg-green-100 dark:bg-green-900/40'}`}>
-                <StatusIcon className={`h-6 w-6 ${isTrialExpired ? 'text-red-600 dark:text-red-400' : isInTrial ? 'text-blue-600 dark:text-blue-400' : needsPayment ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`} />
+              <div className={`p-3 rounded-xl ${isTrialExpired || isSubscriptionExpired ? 'bg-red-100 dark:bg-red-900/40' : isInTrial ? 'bg-blue-100 dark:bg-blue-900/40' : needsPayment ? 'bg-yellow-100 dark:bg-yellow-900/40' : 'bg-green-100 dark:bg-green-900/40'}`}>
+                <StatusIcon className={`h-6 w-6 ${isTrialExpired || isSubscriptionExpired ? 'text-red-600 dark:text-red-400' : isInTrial ? 'text-blue-600 dark:text-blue-400' : needsPayment ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`} />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Estado de la Subscripción</p>
@@ -273,7 +290,7 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
               {subscriptionEndsAt && (
                 <div>
                   <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
-                    {isCanceled ? 'Termina' : isInTrial ? 'Prueba termina' : 'Renueva'}
+                    {isSubscriptionExpired ? 'Expiró' : isCanceled ? 'Termina' : isInTrial ? 'Prueba termina' : 'Renueva'}
                   </p>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -353,6 +370,29 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
             </div>
           )}
 
+          {/* Expired Paid Subscription Banner */}
+          {isSubscriptionExpired && tenant.subscriptionEndsAt && (
+            <div className="mt-6 p-4 rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800">
+              <div className="flex items-start gap-3">
+                <div className="p-2 bg-red-100 dark:bg-red-900/50 rounded-lg">
+                  <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-red-900 dark:text-red-100">
+                    Subscripción Expirada
+                  </p>
+                  <p className="text-xs text-red-700 dark:text-red-300 mt-1">
+                    Tu subscripción expiró el{' '}
+                    <span className="font-semibold">
+                      {format(new Date(tenant.subscriptionEndsAt), 'dd MMMM yyyy', { locale: es })}
+                    </span>
+                    . Suscríbete nuevamente para recuperar el acceso completo a Vetify.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Warning Messages */}
           {needsPayment && (
             <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -381,7 +421,7 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
       <Card>
         <CardContent className="p-6">
           <div className="space-y-3">
-            {tenant.stripeCustomerId && (hasActiveSubscription || isPastDue) && !isTrialExpired ? (
+            {tenant.stripeCustomerId && (hasActiveSubscription || isPastDue) && !isTrialExpired && !isSubscriptionExpired ? (
               <Button
                 onClick={handleManageSubscription}
                 disabled={isLoading}
@@ -406,7 +446,7 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
                 onClick={handleUpgradePlan}
                 disabled={isCheckoutLoading}
                 className={`w-full h-12 text-base font-semibold ${
-                  isTrialExpired
+                  isTrialExpired || isSubscriptionExpired
                     ? 'bg-red-600 hover:bg-red-700 text-white'
                     : 'bg-primary hover:bg-primary/90'
                 }`}
@@ -419,12 +459,12 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    {isTrialExpired ? (
+                    {isTrialExpired || isSubscriptionExpired ? (
                       <AlertTriangle className="h-5 w-5" />
                     ) : (
                       <CreditCard className="h-5 w-5" />
                     )}
-                    {isTrialExpired ? 'Suscribirse Ahora' : isInTrial ? 'Actualizar Plan' : 'Ver Planes Disponibles'}
+                    {isTrialExpired || isSubscriptionExpired ? 'Suscribirse Ahora' : isInTrial ? 'Actualizar Plan' : 'Ver Planes Disponibles'}
                   </div>
                 )}
               </Button>
@@ -433,6 +473,8 @@ export function SubscriptionManager({ tenant }: SubscriptionManagerProps) {
             <p className="text-xs text-muted-foreground text-center pt-2">
               {isTrialExpired
                 ? 'Tu periodo de prueba ha terminado. Suscríbete para recuperar el acceso completo a Vetify.'
+                : isSubscriptionExpired
+                ? 'Tu subscripción ha expirado. Suscríbete para recuperar el acceso completo a Vetify.'
                 : isInTrial
                 ? 'Explora todos nuestros planes y elige el que mejor se adapte a tu clínica'
                 : needsPayment

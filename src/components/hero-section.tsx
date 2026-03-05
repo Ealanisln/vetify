@@ -8,18 +8,24 @@ import Image from "next/image"
 export async function HeroSection() {
   const promotion = await getActivePromotionFromDB()
   const promoActive = promotion !== null
+  const isFreeTrial = promotion?.promotionType === 'FREE_TRIAL'
+  const spotsRemaining = promotion?.maxRedemptions
+    ? Math.max(0, promotion.maxRedemptions - promotion.currentRedemptions)
+    : null
+  const isSoldOut = spotsRemaining !== null && spotsRemaining <= 0
 
   return (
     <section className="relative overflow-hidden pt-24 pb-12 sm:pt-32 sm:pb-20">
       <div className="container mx-auto px-4 sm:px-6">
         <div className="mx-auto max-w-4xl text-center">
-          {/* Early Adopter Banner - only shows when promo is active */}
-          {promoActive && promotion && (
+          {/* Early Adopter Banner - only shows when promo is active and not sold out */}
+          {promoActive && promotion && !isSoldOut && (
             <div className="flex justify-center mb-6 sm:mb-8">
               <EarlyAdopterBanner
                 variant="hero"
                 badgeText={promotion.badgeText}
                 description={promotion.description}
+                spotsRemaining={spotsRemaining}
               />
             </div>
           )}
@@ -34,11 +40,15 @@ export async function HeroSection() {
           <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-4">
             <Link href="/api/auth/register" data-testid="signup-button">
               <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold">
-                Comienza tu prueba gratis
+                {promoActive && isFreeTrial && !isSoldOut
+                  ? `Obtener ${promotion.trialDays ? Math.round(promotion.trialDays / 30) : 6} Meses Gratis`
+                  : 'Comienza tu prueba gratis'}
               </Button>
             </Link>
             <p className="text-sm text-muted-foreground">
-              30 días gratis, sin tarjeta de crédito
+              {promoActive && isFreeTrial && !isSoldOut
+                ? `${promotion.trialDays ?? 180} días gratis, sin tarjeta de crédito`
+                : '30 días gratis, sin tarjeta de crédito'}
             </p>
           </div>
 

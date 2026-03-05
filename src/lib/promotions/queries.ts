@@ -166,6 +166,77 @@ export async function togglePromotionStatus(id: string): Promise<SystemPromotion
 }
 
 /**
+ * Check if a promotion still has spots available for redemption.
+ * Returns true if maxRedemptions is null (unlimited) or currentRedemptions < maxRedemptions.
+ */
+export async function checkPromotionAvailability(promotionId: string): Promise<{
+  available: boolean;
+  spotsRemaining: number | null;
+}> {
+  const promotion = await prisma.systemPromotion.findUnique({
+    where: { id: promotionId },
+    select: { maxRedemptions: true, currentRedemptions: true },
+  });
+
+  if (!promotion) {
+    return { available: false, spotsRemaining: null };
+  }
+
+  if (promotion.maxRedemptions === null) {
+    return { available: true, spotsRemaining: null };
+  }
+
+  const spotsRemaining = promotion.maxRedemptions - promotion.currentRedemptions;
+  return {
+    available: spotsRemaining > 0,
+    spotsRemaining,
+  };
+}
+
+/**
+ * Atomically increment the redemption counter for a promotion.
+ * Uses a transaction with a WHERE guard to prevent race conditions.
+ * Returns true if the increment succeeded (spot was available), false if sold out.
+ */
+export async function incrementPromotionRedemptions(promotionId: string): Promise<boolean> {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const promotion = await tx.systemPromotion.findUnique({
+        where: { id: promotionId },
+        select: { maxRedemptions: true, currentRedemptions: true },
+      });
+
+      if (!promotion) return false;
+
+      // If unlimited, just increment
+      if (promotion.maxRedemptions === null) {
+        await tx.systemPromotion.update({
+          where: { id: promotionId },
+          data: { currentRedemptions: { increment: 1 } },
+        });
+        return true;
+      }
+
+      // Check availability before incrementing
+      if (promotion.currentRedemptions >= promotion.maxRedemptions) {
+        return false;
+      }
+
+      await tx.systemPromotion.update({
+        where: { id: promotionId },
+        data: { currentRedemptions: { increment: 1 } },
+      });
+      return true;
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Error incrementing promotion redemptions:', error);
+    return false;
+  }
+}
+
+/**
  * Check if a promotion is currently valid (within date range)
  */
 export function isPromotionValid(promotion: SystemPromotion): boolean {

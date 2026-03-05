@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
+import { requireSuperAdmin } from '@/lib/super-admin';
 import { whatsappService } from '../../../../lib/whatsapp';
 
 interface TokenGenerationResponse {
   success: boolean;
   message: string;
   tokenInfo?: {
-    access_token: string;
-    expires_in?: number;
     expires_in_days?: number;
     generated_at: string;
     token_type: string;
@@ -16,6 +15,15 @@ interface TokenGenerationResponse {
 }
 
 export async function POST(): Promise<NextResponse<TokenGenerationResponse>> {
+  try {
+    await requireSuperAdmin();
+  } catch {
+    return NextResponse.json(
+      { success: false, message: 'Access denied' },
+      { status: 403 }
+    );
+  }
+
   try {
     console.log('🔄 Generating long-lived WhatsApp token...');
 
@@ -28,17 +36,14 @@ export async function POST(): Promise<NextResponse<TokenGenerationResponse>> {
       success: true,
       message: 'Long-lived token generated successfully',
       tokenInfo: {
-        access_token: tokenInfo.access_token,
-        expires_in: tokenInfo.expires_in,
         expires_in_days: expiresInDays,
         generated_at: tokenInfo.generated_at,
         token_type: tokenInfo.token_type
       },
       instructions: [
         '🔑 Your new long-lived token has been generated',
-        '📋 Copy the access_token below',
-        '⚙️ Update WHATSAPP_ACCESS_TOKEN in your .env.local file',
-        '🔄 Restart your development server',
+        '⚙️ Update WHATSAPP_ACCESS_TOKEN in your environment variables',
+        '🔄 Restart your server',
         `📅 This token will expire in ${expiresInDays || 'unknown'} days`,
         '🔔 Set up automatic renewal before expiration'
       ]
@@ -46,17 +51,17 @@ export async function POST(): Promise<NextResponse<TokenGenerationResponse>> {
 
   } catch (error) {
     console.error('❌ Error generating long-lived token:', error);
-    
+
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    
+
     let instructions: string[] = [];
-    
+
     if (errorMessage.includes('App ID') || errorMessage.includes('App Secret')) {
       instructions = [
         '⚙️ Check your environment variables:',
-        '1. Ensure FACEBOOK_APP_ID is set in .env.local',
-        '2. Ensure FACEBOOK_APP_SECRET is set in .env.local',
-        '3. Restart your development server',
+        '1. Ensure FACEBOOK_APP_ID is set',
+        '2. Ensure FACEBOOK_APP_SECRET is set',
+        '3. Restart your server',
         '4. Get these values from developers.facebook.com'
       ];
     } else if (errorMessage.includes('exchange token')) {
@@ -76,7 +81,7 @@ export async function POST(): Promise<NextResponse<TokenGenerationResponse>> {
         '4. Check the console for detailed error logs'
       ];
     }
-    
+
     return NextResponse.json<TokenGenerationResponse>(
       {
         success: false,
@@ -89,9 +94,18 @@ export async function POST(): Promise<NextResponse<TokenGenerationResponse>> {
   }
 }
 
-export async function GET(): Promise<NextResponse<{ message: string; method: string }>> {
+export async function GET(): Promise<NextResponse<{ message: string; method: string } | { success: boolean; message: string }>> {
+  try {
+    await requireSuperAdmin();
+  } catch {
+    return NextResponse.json(
+      { success: false, message: 'Access denied' },
+      { status: 403 }
+    );
+  }
+
   return NextResponse.json({
     message: 'Use POST method to generate a new long-lived WhatsApp token',
     method: 'POST'
   });
-} 
+}

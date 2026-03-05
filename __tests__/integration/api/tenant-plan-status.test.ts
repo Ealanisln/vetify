@@ -26,7 +26,7 @@ const createTestTenant = (overrides = {}) => ({
   stripeProductId: 'prod_test123',
   planName: 'PROFESIONAL',
   subscriptionStatus: 'ACTIVE',
-  subscriptionEndsAt: new Date('2025-12-31'),
+  subscriptionEndsAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
   isTrialPeriod: false,
   trialEndsAt: null,
   status: 'ACTIVE',
@@ -71,6 +71,7 @@ const createTestTrialTenant = (overrides = {}) => {
     subscriptionStatus: 'TRIALING',
     isTrialPeriod: true,
     trialEndsAt,
+    subscriptionEndsAt: null, // Trials don't have a Stripe subscription end date
     tenantSubscription: null,
     stripeSubscriptionId: null,
     ...overrides,

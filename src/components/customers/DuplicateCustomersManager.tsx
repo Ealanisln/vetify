@@ -84,7 +84,7 @@ export function DuplicateCustomersManager() {
   const fetchDuplicates = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/customers/duplicates');
+      const response = await fetch('/api/v1/customers/duplicates');
       const data: ApiResponse = await response.json();
       
       if (data.customers) {
@@ -101,7 +101,7 @@ export function DuplicateCustomersManager() {
   const handleMarkAsNotDuplicate = async (customerId: string) => {
     try {
       setIsProcessing(true);
-      const response = await fetch('/api/admin/customers/resolve-duplicate', {
+      const response = await fetch('/api/v1/customers/resolve-duplicate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -126,7 +126,7 @@ export function DuplicateCustomersManager() {
   const handleMergeCustomers = async (primaryId: string, duplicateId: string) => {
     try {
       setIsProcessing(true);
-      const response = await fetch('/api/admin/customers/merge', {
+      const response = await fetch('/api/v1/customers/merge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

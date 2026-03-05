@@ -388,17 +388,19 @@ export async function getInventoryAnalytics(tenantId: string): Promise<Inventory
       where: {
         tenantId,
         status: 'ACTIVE',
-        minStock: { not: null },
-        quantity: { lte: prisma.inventoryItem.fields.minStock }
+        minStock: { not: null }
       },
       select: {
         id: true,
         name: true,
         quantity: true,
         minStock: true
-      },
-      take: 10
-    })
+      }
+    }).then(items =>
+      items
+        .filter(item => Number(item.quantity) <= Number(item.minStock))
+        .slice(0, 10)
+    )
   ]);
 
   // Get product details and calculate profit

@@ -43,6 +43,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
     isInTrial,
     isPastDue,
     isCanceled,
+    isPaidSubscriptionExpired,
     planName,
     subscriptionEndsAt
   } = useSubscription(tenant);
@@ -92,6 +93,19 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
         iconColor: 'text-red-600 dark:text-red-400',
         buttonColor: 'bg-red-600 hover:bg-red-700',
         buttonText: 'Suscribirse Ahora',
+        link: '/precios'
+      };
+    } else if (isPaidSubscriptionExpired && !isInTrial) {
+      return {
+        type: 'subscription-expired' as const,
+        icon: CalendarX,
+        title: 'Subscripción Expirada',
+        description: `Tu subscripción pagada ha expirado${subscriptionEndsAt ? ` el ${format(new Date(subscriptionEndsAt), 'dd MMMM yyyy', { locale: es })}` : ''}. Renueva para continuar usando todas las funciones.`,
+        bgColor: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700',
+        textColor: 'text-red-800 dark:text-red-400',
+        iconColor: 'text-red-600 dark:text-red-400',
+        buttonColor: 'bg-red-600 hover:bg-red-700',
+        buttonText: 'Renovar Subscripción',
         link: '/precios'
       };
     } else if (isPastDue) {
@@ -300,6 +314,15 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
                 <Clock className={`h-4 w-4 ${config.iconColor}`} />
                 <span className={config.textColor}>
                   {daysRemaining} días restantes
+                </span>
+              </div>
+            )}
+
+            {config.type === 'subscription-expired' && subscriptionEndsAt && (
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-xs md:text-sm">
+                <CalendarX className={`h-4 w-4 ${config.iconColor}`} />
+                <span className={config.textColor}>
+                  Expirada el {format(new Date(subscriptionEndsAt), 'dd MMM yyyy', { locale: es })}
                 </span>
               </div>
             )}
