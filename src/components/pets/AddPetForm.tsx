@@ -51,7 +51,7 @@ export function AddPetForm() {
         const response = await fetch('/api/customers');
         if (response.ok) {
           const data = await response.json();
-          setCustomers(data);
+          setCustomers(Array.isArray(data) ? data : (data.data || []));
         }
       } catch (error) {
         console.error('Error loading customers:', error);
