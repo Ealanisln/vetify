@@ -263,11 +263,19 @@ describe('Stripe Checkout API Integration Tests', () => {
       const subscription = createMockSubscription();
       const tenantNotSynced = createMockTenant({ stripeSubscriptionId: null });
 
+      const tenantSynced = createMockTenant({ stripeSubscriptionId: 'sub_test_123' });
+
       mockStripe.checkout.sessions.retrieve.mockResolvedValue(session);
       mockStripe.subscriptions.retrieve.mockResolvedValue(subscription);
-      // Always return not synced to trigger timeout
-      prismaMock.tenant.findUnique.mockResolvedValue(tenantNotSynced as any);
-      mockHandleSubscriptionChange.mockResolvedValue(undefined);
+      // Return not synced during polling, then synced after manual sync
+      prismaMock.tenant.findUnique
+        .mockResolvedValueOnce(tenantNotSynced as any) // poll 1
+        .mockResolvedValueOnce(tenantNotSynced as any) // poll 2
+        .mockResolvedValueOnce(tenantNotSynced as any) // poll 3
+        .mockResolvedValueOnce(tenantNotSynced as any) // poll 4
+        .mockResolvedValueOnce(tenantNotSynced as any) // poll 5
+        .mockResolvedValue(tenantSynced as any);       // after manual sync verification
+      mockHandleSubscriptionChange.mockResolvedValue(true);
 
       const request = createMockRequest('cs_test_123');
 

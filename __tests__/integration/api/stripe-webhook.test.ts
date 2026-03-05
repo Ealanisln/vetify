@@ -218,7 +218,7 @@ describe('Stripe Webhook API Integration Tests', () => {
       mockStripe.webhooks.constructEvent.mockReturnValue(event);
       mockStripe.subscriptions.retrieve.mockResolvedValue(subscription);
       mockStripe.subscriptions.list.mockResolvedValue({ data: [] });
-      mockHandleSubscriptionChange.mockResolvedValue(undefined);
+      mockHandleSubscriptionChange.mockResolvedValue(true);
 
       const request = createMockRequest({});
       const response = await POST(request);
@@ -242,7 +242,7 @@ describe('Stripe Webhook API Integration Tests', () => {
         data: [subscription, duplicateSubscription],
       });
       mockStripe.subscriptions.cancel.mockResolvedValue({});
-      mockHandleSubscriptionChange.mockResolvedValue(undefined);
+      mockHandleSubscriptionChange.mockResolvedValue(true);
 
       const request = createMockRequest({});
       await POST(request);
@@ -260,7 +260,7 @@ describe('Stripe Webhook API Integration Tests', () => {
       mockStripe.webhooks.constructEvent.mockReturnValue(event);
       mockStripe.subscriptions.retrieve.mockResolvedValue(subscription);
       mockStripe.subscriptions.list.mockResolvedValue({ data: [subscription] });
-      mockHandleSubscriptionChange.mockResolvedValue(undefined);
+      mockHandleSubscriptionChange.mockResolvedValue(true);
 
       const request = createMockRequest({});
       await POST(request);
@@ -302,7 +302,7 @@ describe('Stripe Webhook API Integration Tests', () => {
       const event = createMockEvent('customer.subscription.updated', subscription);
 
       mockStripe.webhooks.constructEvent.mockReturnValue(event);
-      mockHandleSubscriptionChange.mockResolvedValue(undefined);
+      mockHandleSubscriptionChange.mockResolvedValue(true);
 
       const request = createMockRequest({});
       const response = await POST(request);
@@ -318,7 +318,7 @@ describe('Stripe Webhook API Integration Tests', () => {
       const event = createMockEvent('customer.subscription.updated', canceledSubscription);
 
       mockStripe.webhooks.constructEvent.mockReturnValue(event);
-      mockHandleSubscriptionChange.mockResolvedValue(undefined);
+      mockHandleSubscriptionChange.mockResolvedValue(true);
 
       const request = createMockRequest({});
       await POST(request);
@@ -337,7 +337,7 @@ describe('Stripe Webhook API Integration Tests', () => {
       const event = createMockEvent('customer.subscription.updated', trialingSubscription);
 
       mockStripe.webhooks.constructEvent.mockReturnValue(event);
-      mockHandleSubscriptionChange.mockResolvedValue(undefined);
+      mockHandleSubscriptionChange.mockResolvedValue(true);
 
       const request = createMockRequest({});
       await POST(request);
@@ -354,7 +354,7 @@ describe('Stripe Webhook API Integration Tests', () => {
       const event = createMockEvent('customer.subscription.updated', cancelAtEndSubscription);
 
       mockStripe.webhooks.constructEvent.mockReturnValue(event);
-      mockHandleSubscriptionChange.mockResolvedValue(undefined);
+      mockHandleSubscriptionChange.mockResolvedValue(true);
 
       const request = createMockRequest({});
       await POST(request);
@@ -371,7 +371,7 @@ describe('Stripe Webhook API Integration Tests', () => {
       const event = createMockEvent('customer.subscription.deleted', subscription);
 
       mockStripe.webhooks.constructEvent.mockReturnValue(event);
-      mockHandleSubscriptionChange.mockResolvedValue(undefined);
+      mockHandleSubscriptionChange.mockResolvedValue(true);
 
       const request = createMockRequest({});
       const response = await POST(request);
