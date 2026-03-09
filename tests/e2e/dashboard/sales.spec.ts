@@ -84,7 +84,7 @@ test.describe('Sales/POS Management', () => {
       const searchInput = page.locator('[data-testid="customer-search-input"]');
       await searchInput.fill('Juan');
 
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       // Should show search results
       const results = page.locator('[data-testid="customer-search-result"]');
@@ -99,7 +99,7 @@ test.describe('Sales/POS Management', () => {
       const searchInput = page.locator('[data-testid="customer-search-input"]');
       await searchInput.fill('555');
 
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="customer-search-result"]');
       if (await results.first().isVisible()) {
@@ -112,7 +112,7 @@ test.describe('Sales/POS Management', () => {
       const searchInput = page.locator('[data-testid="customer-search-input"]');
       await searchInput.fill('test');
 
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="customer-search-result"]');
       if (await results.first().isVisible()) {
@@ -138,7 +138,7 @@ test.describe('Sales/POS Management', () => {
       // First select a customer
       const searchInput = page.locator('[data-testid="customer-search-input"]');
       await searchInput.fill('test');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="customer-search-result"]');
       if (await results.first().isVisible()) {
@@ -159,7 +159,7 @@ test.describe('Sales/POS Management', () => {
       // Select a customer first
       const searchInput = page.locator('[data-testid="customer-search-input"]');
       await searchInput.fill('test');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="customer-search-result"]');
       if (await results.first().isVisible()) {
@@ -177,7 +177,7 @@ test.describe('Sales/POS Management', () => {
       // Select a customer first
       const searchInput = page.locator('[data-testid="customer-search-input"]');
       await searchInput.fill('test');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="customer-search-result"]');
       if (await results.first().isVisible()) {
@@ -203,7 +203,7 @@ test.describe('Sales/POS Management', () => {
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('vacuna');
 
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -215,7 +215,7 @@ test.describe('Sales/POS Management', () => {
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
 
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -227,7 +227,7 @@ test.describe('Sales/POS Management', () => {
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
 
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -256,7 +256,7 @@ test.describe('Sales/POS Management', () => {
       // First add item to cart
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -278,7 +278,7 @@ test.describe('Sales/POS Management', () => {
       // First add item to cart
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -303,7 +303,7 @@ test.describe('Sales/POS Management', () => {
       // First add item to cart
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -331,7 +331,7 @@ test.describe('Sales/POS Management', () => {
       // Add item to cart
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -348,7 +348,7 @@ test.describe('Sales/POS Management', () => {
       // Add item to cart
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -383,7 +383,7 @@ test.describe('Sales/POS Management', () => {
       // Add item to cart
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -398,7 +398,7 @@ test.describe('Sales/POS Management', () => {
       // Add item to cart
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -414,7 +414,7 @@ test.describe('Sales/POS Management', () => {
       // Add item and proceed to checkout
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -431,7 +431,7 @@ test.describe('Sales/POS Management', () => {
       // Add item and proceed to checkout
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -459,7 +459,7 @@ test.describe('Sales/POS Management', () => {
       // Add item and proceed to checkout
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -485,7 +485,7 @@ test.describe('Sales/POS Management', () => {
       // Complete a sale first
       const searchInput = page.locator('[data-testid="product-search-input"]');
       await searchInput.fill('consulta');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const results = page.locator('[data-testid="product-search-result"]');
       if (await results.first().isVisible()) {
@@ -575,7 +575,7 @@ test.describe('Sales/POS Management', () => {
         // Try to make a sale
         const searchInput = page.locator('[data-testid="product-search-input"]');
         await searchInput.fill('consulta');
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('networkidle');
 
         const results = page.locator('[data-testid="product-search-result"]');
         if (await results.first().isVisible()) {

@@ -39,7 +39,7 @@ test.describe('P0 - Critical Health Checks @weekly @p0', () => {
     } else {
       // Try scrolling to find it
       await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2))
-      await page.waitForTimeout(500)
+      await page.waitForLoadState('domcontentloaded')
       // Look for pricing cards or plan options
       const pricingContent = page.locator('[data-testid="pricing-card"], text=/Plan Básico|Plan Profesional/i').first()
       await expect(pricingContent).toBeVisible({ timeout: 10000 })
@@ -169,7 +169,7 @@ test.describe('P1 - Navigation @weekly @p1', () => {
   test('Footer links are present @weekly @p1', async ({ page }) => {
     await page.goto('/')
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
-    await page.waitForTimeout(500)
+    await page.waitForLoadState('domcontentloaded')
 
     const footer = page.locator('footer')
     if (await footer.isVisible()) {
@@ -232,7 +232,7 @@ test.describe('P2 - Mobile Responsive @weekly @p2 @mobile', () => {
     await page.setViewportSize({ width: 375, height: 667 })
     await page.goto('/')
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
-    await page.waitForTimeout(500)
+    await page.waitForLoadState('domcontentloaded')
 
     const footer = page.locator('footer')
     if (await footer.isVisible()) {
@@ -260,7 +260,7 @@ test.describe('P2 - Performance Indicators @weekly @p2', () => {
     })
 
     await page.goto('/')
-    await page.waitForTimeout(2000)
+    await page.waitForLoadState('networkidle')
 
     // Filter out expected/known/non-critical errors
     const criticalErrors = errors.filter((error) => {
@@ -339,7 +339,7 @@ test.describe('P0 - Mascotas @weekly @p0', () => {
     await expect(searchInput).toBeVisible()
     // Verificar que el input es funcional
     await searchInput.fill('test')
-    await page.waitForTimeout(300)
+    await page.waitForLoadState('networkidle')
     // El input debe mantener el valor
     await expect(searchInput).toHaveValue('test')
   })
@@ -400,7 +400,7 @@ test.describe('P0 - Clientes @weekly @p0', () => {
     const searchInput = page.locator('[data-testid="customers-search-input"]')
     await expect(searchInput).toBeVisible()
     await searchInput.fill('test')
-    await page.waitForTimeout(300)
+    await page.waitForLoadState('networkidle')
     await expect(searchInput).toHaveValue('test')
   })
 
@@ -472,7 +472,7 @@ test.describe('P1 - Citas @weekly @p1', () => {
     const hasModal = await page.locator('[data-testid="appointment-modal"]').isVisible().catch(() => false)
     // El modal puede tardar en aparecer
     if (!hasModal) {
-      await page.waitForTimeout(500)
+      await page.waitForLoadState('networkidle')
     }
     const modalVisible = await page.locator('[data-testid="appointment-modal"]').isVisible().catch(() => false)
     expect(modalVisible).toBeTruthy()
@@ -524,7 +524,7 @@ test.describe('P1 - Inventario @weekly @p1', () => {
     const searchInput = page.locator('[data-testid="inventory-search-input"]')
     await expect(searchInput).toBeVisible()
     await searchInput.fill('test')
-    await page.waitForTimeout(300)
+    await page.waitForLoadState('networkidle')
     await expect(searchInput).toHaveValue('test')
   })
 
@@ -576,7 +576,7 @@ test.describe('P1 - Punto de Venta @weekly @p1', () => {
     const hasSearch = await customerSearch.isVisible().catch(() => false)
     if (hasSearch) {
       await customerSearch.fill('test')
-      await page.waitForTimeout(300)
+      await page.waitForLoadState('networkidle')
       await expect(customerSearch).toHaveValue('test')
     }
     expect(hasSearch).toBeTruthy()
@@ -589,7 +589,7 @@ test.describe('P1 - Punto de Venta @weekly @p1', () => {
     const hasSearch = await productSearch.isVisible().catch(() => false)
     if (hasSearch) {
       await productSearch.fill('vacuna')
-      await page.waitForTimeout(300)
+      await page.waitForLoadState('networkidle')
       await expect(productSearch).toHaveValue('vacuna')
     }
     expect(hasSearch).toBeTruthy()
@@ -787,7 +787,7 @@ test.describe('P0 - CRUD Clientes @weekly @p0 @crud', () => {
 
     // Search for a term
     await searchInput.fill('test')
-    await page.waitForTimeout(500)
+    await page.waitForLoadState('networkidle')
 
     // Verify search is working (results update or empty state shown)
     const hasResults = await page.locator('[data-testid="customer-row"]').first().isVisible().catch(() => false)
@@ -837,7 +837,7 @@ test.describe('P0 - CRUD Mascotas @weekly @p0 @crud', () => {
     const ownerSelect = page.locator('[data-testid="pet-owner-select"]')
     if (await ownerSelect.isVisible()) {
       await ownerSelect.click()
-      await page.waitForTimeout(300)
+      await page.waitForLoadState('domcontentloaded')
       const ownerOption = page.locator('[data-testid="owner-option"]').first()
       if (await ownerOption.isVisible().catch(() => false)) {
         await ownerOption.click()
@@ -944,7 +944,7 @@ test.describe('P1 - CRUD Citas @weekly @p1 @crud', () => {
     const petSelect = page.locator('[data-testid="appointment-pet-select"]')
     if (await petSelect.isVisible()) {
       await petSelect.click()
-      await page.waitForTimeout(300)
+      await page.waitForLoadState('domcontentloaded')
       const petOption = page.locator('[data-testid="pet-option"]').first()
       if (await petOption.isVisible().catch(() => false)) {
         await petOption.click()
@@ -969,7 +969,7 @@ test.describe('P1 - CRUD Citas @weekly @p1 @crud', () => {
     const serviceSelect = page.locator('[data-testid="appointment-service-select"]')
     if (await serviceSelect.isVisible()) {
       await serviceSelect.click()
-      await page.waitForTimeout(300)
+      await page.waitForLoadState('domcontentloaded')
       const serviceOption = page.locator('[data-testid="service-option"]').first()
       if (await serviceOption.isVisible().catch(() => false)) {
         await serviceOption.click()
@@ -1093,7 +1093,7 @@ test.describe('P1 - CRUD Inventario @weekly @p1 @crud', () => {
     const categorySelect = page.locator('[data-testid="product-category-select"]')
     if (await categorySelect.isVisible()) {
       await categorySelect.click()
-      await page.waitForTimeout(300)
+      await page.waitForLoadState('domcontentloaded')
       const categoryOption = page.locator('[data-testid="category-option"]').first()
       if (await categoryOption.isVisible().catch(() => false)) {
         await categoryOption.click()
@@ -1201,7 +1201,7 @@ test.describe('P1 - CRUD Ventas @weekly @p1 @crud', () => {
     const productSearch = page.locator('[data-testid="product-search-input"]')
     if (await productSearch.isVisible()) {
       await productSearch.fill('consulta')
-      await page.waitForTimeout(500)
+      await page.waitForLoadState('networkidle')
 
       // Click on first result
       const result = page.locator('[data-testid="product-search-result"]').first()
@@ -1229,7 +1229,7 @@ test.describe('P1 - CRUD Ventas @weekly @p1 @crud', () => {
     const customerSearch = page.locator('[data-testid="customer-search-input"]')
     if (await customerSearch.isVisible()) {
       await customerSearch.fill('demo')
-      await page.waitForTimeout(500)
+      await page.waitForLoadState('networkidle')
 
       // Click on first result
       const result = page.locator('[data-testid="customer-search-result"]').first()

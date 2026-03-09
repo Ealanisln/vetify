@@ -35,7 +35,7 @@ test.describe('Landing Page Analytics', () => {
       await page.waitForLoadState('networkidle');
 
       // Wait for analytics to be sent (uses sendBeacon, might be delayed)
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       // Should have made at least one analytics request
       expect(analyticsRequests.length).toBeGreaterThanOrEqual(0);

@@ -175,7 +175,7 @@ test.describe('Appointments Management', () => {
       const searchInput = page.locator('[data-testid="pet-search-input"]');
       if (await searchInput.isVisible()) {
         await searchInput.fill('Max');
-        await page.waitForTimeout(300);
+        await page.waitForLoadState('networkidle');
       }
 
       // Select first result
