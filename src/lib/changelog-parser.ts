@@ -179,6 +179,12 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   - Alertas automáticas por fallos de pago y errores críticos
   - Nuevo enum value \`PAYMENT_FAILED_ALERT\`
 
+- **Página de Funcionalidades**
+  - Nueva página \`/funcionalidades\` con componentes y tests
+
+- **Persistencia de Audit Logs de Seguridad**
+  - Logs de auditoría de seguridad ahora se persisten en base de datos
+
 ### Corregido
 - **fix(cron):** ping diario a Redis para evitar archivado de Upstash por inactividad
 - **fix(subscription):** reconocer trials gestionados por Stripe en control de acceso
@@ -189,16 +195,22 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 - **fix(middleware):** permitir webhook de Stripe a través de auth, CSRF, y matcher
 - **fix(pets):** extraer array de respuesta paginada de \`/api/customers\`
 - **fix(security):** eliminar proxies abiertos, forzar auth de super admin, redactar secretos
+- **fix(appointments):** re-habilitar botón de WhatsApp en QuickActions
+
+### Eliminado
+- Código de blog/Storyblok removido de la rama de desarrollo
 
 ### Testing
 - Eliminación de flakiness en tests E2E
 - 13 nuevas suites de tests de integración
 - Umbrales de cobertura obligatorios
 - Tests E2E Phase 4: admin smoke tests, registros médicos, teardown
+- QA audit cleanup: corrección de tests engañosos, cobertura adicional
 
 ### Infraestructura
 - Sincronización de enum \`EmailTemplate\` entre bases de datos de prod y dev
-- Persistencia de audit logs de seguridad en base de datos
+- Múltiples correcciones de CI: seed data, Playwright exclusions, auth-dependent E2E tests
+- Actualización de README y CLAUDE.md para v1.4.0
 
 ---
 
