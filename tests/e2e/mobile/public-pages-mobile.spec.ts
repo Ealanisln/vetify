@@ -28,7 +28,6 @@ const mobileViewports = {
 // Helper to wait for animations
 const waitForAnimations = async (page: import('@playwright/test').Page) => {
   await page.waitForLoadState('networkidle')
-  await page.waitForTimeout(500)
 }
 
 test.describe('Public Pages Mobile E2E', () => {
@@ -59,7 +58,7 @@ test.describe('Public Pages Mobile E2E', () => {
 
       if (await menuButton.isVisible()) {
         await menuButton.tap()
-        await page.waitForTimeout(300)
+        await page.waitForLoadState('domcontentloaded')
 
         // Mobile menu should be visible
         const mobileMenu = page.locator('nav, [role="navigation"], [data-testid="mobile-menu"]')
@@ -123,7 +122,7 @@ test.describe('Public Pages Mobile E2E', () => {
       await page.evaluate(() => {
         window.scrollTo({ top: document.body.scrollHeight })
       })
-      await page.waitForTimeout(300)
+      await page.waitForLoadState('domcontentloaded')
 
       const footer = page.locator('footer')
       await expect(footer).toBeVisible()
@@ -170,7 +169,7 @@ test.describe('Public Pages Mobile E2E', () => {
       await page.evaluate(() => {
         window.scrollTo({ top: 500 })
       })
-      await page.waitForTimeout(300)
+      await page.waitForLoadState('domcontentloaded')
 
       const services = page.locator(
         '[data-testid*="services"], text=/servicios/i, section:has-text("Servicios")'
@@ -359,7 +358,7 @@ test.describe('Public Pages Mobile E2E', () => {
       await page.mouse.move(187, 200, { steps: 10 })
       await page.mouse.up()
 
-      await page.waitForTimeout(300)
+      await page.waitForLoadState('domcontentloaded')
 
       const scrollY = await page.evaluate(() => window.scrollY)
       expect(scrollY).toBeGreaterThan(0)
@@ -373,7 +372,7 @@ test.describe('Public Pages Mobile E2E', () => {
       await page.evaluate(() => {
         window.scrollTo({ top: 1000 })
       })
-      await page.waitForTimeout(500)
+      await page.waitForLoadState('domcontentloaded')
 
       // Check images are loaded
       const images = page.locator('img[src]')

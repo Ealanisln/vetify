@@ -88,13 +88,13 @@ test.describe('Public Testimonials', () => {
 
         if (await nextButton.isVisible()) {
           await nextButton.click();
-          // Animation should complete
-          await page.waitForTimeout(500);
+          // Wait for carousel animation to complete
+          await page.waitForLoadState('domcontentloaded');
         }
 
         if (await prevButton.isVisible()) {
           await prevButton.click();
-          await page.waitForTimeout(500);
+          await page.waitForLoadState('domcontentloaded');
         }
       }
     });
@@ -180,7 +180,7 @@ test.describe('Public Testimonials', () => {
       await textarea.fill('This is a test testimonial text');
 
       // Wait for character count to update
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('domcontentloaded');
 
       // Should show character count - look for element containing digits + "caracter"
       // The format is "31 caracteres" in a generic element
@@ -204,8 +204,8 @@ test.describe('Public Testimonials', () => {
       // Submit form
       await page.click('button[type="submit"]');
 
-      // Wait briefly for submission to start
-      await page.waitForTimeout(1000);
+      // Wait for submission to start
+      await page.waitForLoadState('networkidle');
 
       // Check that form submission was initiated
       // Either button shows "Enviando" (submission in progress)

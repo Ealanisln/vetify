@@ -16,4 +16,6 @@ export { NewSubscriptionPaymentEmail } from './new-subscription-payment';
 export { PaymentFailedAlertEmail } from './payment-failed-alert';
 export { TestimonialRequestEmail } from './testimonial-request';
 export { StaffInvitationEmail } from './staff-invitation';
+export { TrialExpiringEmail } from './trial-expiring';
+export { TrialExpiredEmail } from './trial-expired';
 export { BaseLayout, BRAND_COLOR } from './base-layout';

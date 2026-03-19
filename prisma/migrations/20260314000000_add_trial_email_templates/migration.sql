@@ -1,0 +1,3 @@
+-- AlterEnum
+ALTER TYPE "EmailTemplate" ADD VALUE 'TRIAL_EXPIRING';
+ALTER TYPE "EmailTemplate" ADD VALUE 'TRIAL_EXPIRED';

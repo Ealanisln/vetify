@@ -22,6 +22,8 @@ import type {
   PaymentFailedAlertData,
   TestimonialRequestData,
   StaffInvitationData,
+  TrialExpiringData,
+  TrialExpiredData,
 } from './types';
 import { logEmailSend } from '../notifications/notification-logger';
 import {
@@ -37,6 +39,8 @@ import {
   PaymentFailedAlertEmail,
   TestimonialRequestEmail,
   StaffInvitationEmail,
+  TrialExpiringEmail,
+  TrialExpiredEmail,
 } from './templates';
 import { formatDateLong, formatDateTimeLong, formatDate, formatCurrency } from '../utils/date-format';
 
@@ -429,6 +433,33 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
           position: d.position,
           inviteUrl: d.inviteUrl,
           expirationDays: d.expirationDays,
+        })
+      );
+    }
+
+    case 'trial-expiring': {
+      const d = (emailData as TrialExpiringData).data;
+      const trialEndsDateStr = formatDateLong(d.trialEndsDate);
+      return await render(
+        TrialExpiringEmail({
+          clinicName: d.clinicName,
+          ownerName: d.ownerName,
+          daysRemaining: d.daysRemaining,
+          trialEndsDate: trialEndsDateStr,
+          upgradeUrl: d.upgradeUrl,
+        })
+      );
+    }
+
+    case 'trial-expired': {
+      const d = (emailData as TrialExpiredData).data;
+      const expiredDateStr = formatDateLong(d.expiredDate);
+      return await render(
+        TrialExpiredEmail({
+          clinicName: d.clinicName,
+          ownerName: d.ownerName,
+          expiredDate: expiredDateStr,
+          upgradeUrl: d.upgradeUrl,
         })
       );
     }

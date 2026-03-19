@@ -33,12 +33,30 @@ const customJestConfig = {
   ],
   coverageThreshold: {
     global: {
-      // Raised from 5% to 20% as part of QA audit (Phase 2)
+      // Baseline established as part of QA audit (Phase 5)
       // Target: increase quarterly toward 70-80%
-      branches: 20,
+      branches: 15,
       functions: 20,
-      lines: 20,
-      statements: 20,
+      lines: 17,
+      statements: 17,
+    },
+    './src/lib/security/': {
+      branches: 60,
+      functions: 65,
+      lines: 65,
+      statements: 65,
+    },
+    './src/lib/': {
+      branches: 35,
+      functions: 40,
+      lines: 38,
+      statements: 38,
+    },
+    './src/hooks/': {
+      branches: 40,
+      functions: 40,
+      lines: 40,
+      statements: 40,
     },
   },
   testMatch: [

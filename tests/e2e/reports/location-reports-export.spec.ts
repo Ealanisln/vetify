@@ -36,7 +36,7 @@ test.describe('Location Reports Export Functionality', () => {
       }
 
       // Wait for reports to load
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       // Check for export menu
       const exportMenu = page.locator('[data-testid="export-menu"]');
@@ -56,7 +56,7 @@ test.describe('Location Reports Export Functionality', () => {
         }
       }
 
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       // Click export menu button
       const exportButton = page.locator('[data-testid="export-menu"] button').first();
@@ -64,7 +64,8 @@ test.describe('Location Reports Export Functionality', () => {
         await exportButton.click();
 
         // Wait for dropdown to appear
-        await page.waitForTimeout(300);
+        // Wait for dropdown menu items to appear
+        await expect(page.locator('[role="menuitem"]').first()).toBeVisible();
 
         // Check for export options
         const menuItems = page.locator('[role="menuitem"]');
@@ -85,19 +86,18 @@ test.describe('Location Reports Export Functionality', () => {
         }
       }
 
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       const exportButton = page.locator('[data-testid="export-menu"] button').first();
       if (await exportButton.isVisible()) {
         await exportButton.click();
-        await page.waitForTimeout(300);
 
         // Verify dropdown is open
         const dropdown = page.locator('[data-testid="export-menu"] [role="menu"]');
+        await expect(dropdown).toBeVisible();
 
         // Click outside
         await page.click('body', { position: { x: 10, y: 10 } });
-        await page.waitForTimeout(300);
 
         // Dropdown should be closed
         await expect(dropdown).not.toBeVisible();
@@ -116,7 +116,7 @@ test.describe('Location Reports Export Functionality', () => {
         }
       }
 
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       const exportButton = page.locator('[data-testid="export-menu"] button').first();
       if (await exportButton.isVisible()) {
@@ -125,7 +125,7 @@ test.describe('Location Reports Export Functionality', () => {
 
         // Click to open
         await exportButton.click();
-        await page.waitForTimeout(300);
+        await expect(page.locator('[role="menu"]')).toBeVisible();
 
         // Verify chevron rotated (has rotate-180 class)
         const chevronAfterClick = page.locator('[data-testid="export-menu"] svg.rotate-180');
@@ -147,7 +147,7 @@ test.describe('Location Reports Export Functionality', () => {
         }
       }
 
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       // Set up download listener
       const downloadPromise = page.waitForEvent('download', { timeout: 5000 }).catch(() => null);
@@ -155,7 +155,7 @@ test.describe('Location Reports Export Functionality', () => {
       const exportButton = page.locator('[data-testid="export-menu"] button').first();
       if (await exportButton.isVisible()) {
         await exportButton.click();
-        await page.waitForTimeout(300);
+        await expect(page.locator('[role="menuitem"]').first()).toBeVisible();
 
         // Click CSV option
         const csvOption = page.locator('[role="menuitem"]').filter({ hasText: 'CSV' });
@@ -183,14 +183,14 @@ test.describe('Location Reports Export Functionality', () => {
         }
       }
 
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       const downloadPromise = page.waitForEvent('download', { timeout: 5000 }).catch(() => null);
 
       const exportButton = page.locator('[data-testid="export-menu"] button').first();
       if (await exportButton.isVisible()) {
         await exportButton.click();
-        await page.waitForTimeout(300);
+        await expect(page.locator('[role="menuitem"]').first()).toBeVisible();
 
         const excelOption = page.locator('[role="menuitem"]').filter({ hasText: 'Excel' });
         if (await excelOption.isVisible()) {
@@ -216,14 +216,14 @@ test.describe('Location Reports Export Functionality', () => {
         }
       }
 
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       const downloadPromise = page.waitForEvent('download', { timeout: 5000 }).catch(() => null);
 
       const exportButton = page.locator('[data-testid="export-menu"] button').first();
       if (await exportButton.isVisible()) {
         await exportButton.click();
-        await page.waitForTimeout(300);
+        await expect(page.locator('[role="menuitem"]').first()).toBeVisible();
 
         const pdfOption = page.locator('[role="menuitem"]').filter({ hasText: 'PDF' });
         if (await pdfOption.isVisible()) {
@@ -264,17 +264,16 @@ test.describe('Location Reports Export Functionality', () => {
         }
       }
 
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       const exportButton = page.locator('[data-testid="export-menu"] button').first();
       if (await exportButton.isVisible()) {
         await exportButton.click();
-        await page.waitForTimeout(300);
+        await expect(page.locator('[role="menuitem"]').first()).toBeVisible();
 
         const csvOption = page.locator('[role="menuitem"]').filter({ hasText: 'CSV' });
         if (await csvOption.isVisible()) {
           await csvOption.click();
-          await page.waitForTimeout(300);
 
           // Dropdown should be closed
           const dropdown = page.locator('[data-testid="export-menu"] [role="menu"]');
@@ -297,7 +296,7 @@ test.describe('Location Reports Export Functionality', () => {
         }
       }
 
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       // Check each tab has export menu
       const tabs = ['ventas', 'inventario', 'rendimiento'];
@@ -306,7 +305,7 @@ test.describe('Location Reports Export Functionality', () => {
         const tabButton = page.locator(`button`).filter({ hasText: new RegExp(tab, 'i') });
         if (await tabButton.isVisible()) {
           await tabButton.click();
-          await page.waitForTimeout(500);
+          await page.waitForLoadState('networkidle');
 
           const exportMenu = page.locator('[data-testid="export-menu"]');
           await expect(exportMenu).toBeVisible();
@@ -321,7 +320,7 @@ test.describe('Location Reports Export Functionality', () => {
       const comparisonTab = page.locator('button').filter({ hasText: /compar/i });
       if (await comparisonTab.isVisible()) {
         await comparisonTab.click();
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('networkidle');
 
         // Select multiple locations
         const multiSelector = page.locator('[data-testid="location-multi-selector"]');
@@ -349,7 +348,7 @@ test.describe('Location Reports Export Functionality', () => {
         }
       }
 
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       const exportButton = page.locator('[data-testid="export-menu"] button').first();
       if (await exportButton.isVisible()) {
@@ -358,7 +357,6 @@ test.describe('Location Reports Export Functionality', () => {
 
         // Press Enter to open
         await page.keyboard.press('Enter');
-        await page.waitForTimeout(300);
 
         // Check dropdown is open
         const menuItems = page.locator('[role="menuitem"]');
@@ -370,7 +368,6 @@ test.describe('Location Reports Export Functionality', () => {
 
           // Press Enter to select
           await page.keyboard.press('Enter');
-          await page.waitForTimeout(300);
 
           // Menu should close
           const dropdown = page.locator('[data-testid="export-menu"] [role="menu"]');
@@ -391,12 +388,12 @@ test.describe('Location Reports Export Functionality', () => {
         }
       }
 
-      await page.waitForTimeout(1000);
+      await page.waitForLoadState('networkidle');
 
       const exportButton = page.locator('[data-testid="export-menu"] button').first();
       if (await exportButton.isVisible()) {
         await exportButton.click();
-        await page.waitForTimeout(300);
+        await expect(page.locator('[role="menuitem"]').first()).toBeVisible();
 
         // Check for proper ARIA roles
         const menu = page.locator('[role="menu"]');

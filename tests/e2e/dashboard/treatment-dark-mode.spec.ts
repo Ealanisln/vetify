@@ -297,7 +297,6 @@ test.describe('Treatment Page Dark Mode - Public Access', () => {
 
     if (await themeButton.isVisible()) {
       await themeButton.click()
-      await page.waitForTimeout(300)
 
       // Theme dropdown should appear
       const darkOption = page.locator('button:has-text("Oscuro")').first()

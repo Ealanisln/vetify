@@ -99,8 +99,8 @@ test.describe('Actualizaciones Page', () => {
         // Click to toggle
         await versionButton.click();
 
-        // Wait for animation
-        await page.waitForTimeout(300);
+        // Wait for accordion transition
+        await page.waitForLoadState('domcontentloaded');
       }
     });
   });
@@ -140,7 +140,7 @@ test.describe('Actualizaciones Page', () => {
       const v120Button = page.locator('button').filter({ hasText: 'v1.2.0' });
       if (await v120Button.count() > 0) {
         await v120Button.click();
-        await page.waitForTimeout(300);
+        await page.waitForLoadState('domcontentloaded');
       }
       const feature = page.locator('text=/InstallPrompt|PWA/i');
       const count = await feature.count();
@@ -152,7 +152,7 @@ test.describe('Actualizaciones Page', () => {
       const v110Button = page.locator('button').filter({ hasText: 'v1.1.0' });
       if (await v110Button.count() > 0) {
         await v110Button.click();
-        await page.waitForTimeout(300);
+        await page.waitForLoadState('domcontentloaded');
       }
       const feature = page.locator('text=/Sistema de Invitaciones/i');
       const count = await feature.count();
@@ -164,7 +164,7 @@ test.describe('Actualizaciones Page', () => {
       const v110Button = page.locator('button').filter({ hasText: 'v1.1.0' });
       if (await v110Button.count() > 0) {
         await v110Button.click();
-        await page.waitForTimeout(300);
+        await page.waitForLoadState('domcontentloaded');
       }
       const feature = page.locator('text=/Sistema de Permisos|RBAC/i');
       const count = await feature.count();
@@ -176,7 +176,7 @@ test.describe('Actualizaciones Page', () => {
       const v110Button = page.locator('button').filter({ hasText: 'v1.1.0' });
       if (await v110Button.count() > 0) {
         await v110Button.click();
-        await page.waitForTimeout(300);
+        await page.waitForLoadState('domcontentloaded');
       }
       const feature = page.locator('text=/Página de Actualizaciones/i');
       const count = await feature.count();

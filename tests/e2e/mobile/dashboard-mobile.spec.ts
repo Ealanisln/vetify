@@ -54,7 +54,6 @@ test.describe('Dashboard Mobile E2E', () => {
 
       if (await menuButton.isVisible()) {
         await menuButton.tap()
-        await page.waitForTimeout(300) // Wait for animation
 
         // Navigation menu should be visible
         const navMenu = page.locator('nav, [data-testid="mobile-nav"]')
@@ -73,11 +72,11 @@ test.describe('Dashboard Mobile E2E', () => {
       if (await menuButton.isVisible()) {
         // Open menu
         await menuButton.tap()
-        await page.waitForTimeout(300)
+        await page.waitForLoadState('domcontentloaded')
 
         // Tap outside to close
         await page.locator('body').tap({ position: { x: 350, y: 400 } })
-        await page.waitForTimeout(300)
+        await page.waitForLoadState('domcontentloaded')
 
         // Menu should be closed (or at least not covering content)
       }
@@ -93,7 +92,7 @@ test.describe('Dashboard Mobile E2E', () => {
 
       if (await menuButton.isVisible()) {
         await menuButton.tap()
-        await page.waitForTimeout(300)
+        await page.waitForLoadState('domcontentloaded')
 
         // Find and tap pets link
         const petsLink = page.locator('a[href*="/pets"], text=/mascotas/i').first()
@@ -115,7 +114,7 @@ test.describe('Dashboard Mobile E2E', () => {
 
       if (await menuButton.isVisible()) {
         await menuButton.tap()
-        await page.waitForTimeout(300)
+        await page.waitForLoadState('domcontentloaded')
 
         const calendarLink = page.locator('a[href*="/calendar"], text=/calendario/i').first()
         if (await calendarLink.isVisible()) {
@@ -238,7 +237,7 @@ test.describe('Dashboard Mobile E2E', () => {
       if (await dropdown.isVisible()) {
         await dropdown.tap()
         // Dropdown should open
-        await page.waitForTimeout(300)
+        await page.waitForLoadState('domcontentloaded')
       }
     })
 
@@ -266,7 +265,7 @@ test.describe('Dashboard Mobile E2E', () => {
       await page.evaluate(() => {
         window.scrollTo({ top: 500, behavior: 'smooth' })
       })
-      await page.waitForTimeout(500)
+      await page.waitForLoadState('domcontentloaded')
 
       const scrollY = await page.evaluate(() => window.scrollY)
       expect(scrollY).toBeGreaterThan(0)
@@ -300,7 +299,7 @@ test.describe('Dashboard Mobile E2E', () => {
       await page.evaluate(() => {
         window.scrollTo({ top: document.body.scrollHeight })
       })
-      await page.waitForTimeout(300)
+      await page.waitForLoadState('domcontentloaded')
 
       // Page should be scrollable
       const scrollHeight = await page.evaluate(() => document.body.scrollHeight)

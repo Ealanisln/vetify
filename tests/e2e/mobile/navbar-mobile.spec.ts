@@ -18,6 +18,15 @@ const mobileViewports = {
   android: { width: 360, height: 640 }, // Common Android
 }
 
+// Helper to open mobile menu and wait for overlay
+async function openMobileMenu(page: import('@playwright/test').Page) {
+  const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
+  await menuButton.tap()
+  const overlay = page.locator('.z-\\[110\\]')
+  await expect(overlay).toBeVisible()
+  return { menuButton, overlay }
+}
+
 test.describe('Mobile Navbar E2E', () => {
   test.beforeEach(async ({ page }) => {
     await page.setViewportSize(mobileViewports.iphone)
@@ -28,14 +37,7 @@ test.describe('Mobile Navbar E2E', () => {
       await page.goto('/')
       await page.waitForLoadState('domcontentloaded')
 
-      // Find and click hamburger menu button
-      const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
-      await menuButton.tap()
-      await page.waitForTimeout(300) // Wait for animation
-
-      // Get the z-index of the overlay
-      const overlay = page.locator('.z-\\[110\\]')
-      await expect(overlay).toBeVisible()
+      const { overlay } = await openMobileMenu(page)
 
       // Verify overlay z-index is higher than navbar
       const overlayZIndex = await overlay.evaluate((el) => {
@@ -51,9 +53,7 @@ test.describe('Mobile Navbar E2E', () => {
       await page.goto('/')
       await page.waitForLoadState('domcontentloaded')
 
-      const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
-      await menuButton.tap()
-      await page.waitForTimeout(300)
+      await openMobileMenu(page)
 
       // Menu links should be visible and clickable
       const funcionalidadesLink = page.locator('a[href="/funcionalidades"]').last()
@@ -67,18 +67,11 @@ test.describe('Mobile Navbar E2E', () => {
       await page.goto('/')
       await page.waitForLoadState('domcontentloaded')
 
-      const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
-      await menuButton.tap()
-      await page.waitForTimeout(300)
-
-      // Menu overlay should be visible
-      const overlay = page.locator('.z-\\[110\\]')
-      await expect(overlay).toBeVisible()
+      const { overlay } = await openMobileMenu(page)
 
       // Click on backdrop to close
       const backdrop = page.locator('.z-\\[110\\] > div').first()
       await backdrop.tap({ position: { x: 10, y: 400 } })
-      await page.waitForTimeout(300)
 
       // Menu should be closed
       await expect(overlay).not.toBeVisible()
@@ -94,21 +87,14 @@ test.describe('Mobile Navbar E2E', () => {
       await page.evaluate(() => {
         window.scrollTo(0, 100)
       })
-      await page.waitForTimeout(100)
-
-      // Get initial scroll position
-      const initialScrollY = await page.evaluate(() => window.scrollY)
 
       // Open menu
-      const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
-      await menuButton.tap()
-      await page.waitForTimeout(300)
+      await openMobileMenu(page)
 
       // Try to scroll while menu is open
       await page.evaluate(() => {
         window.scrollTo(0, 500)
       })
-      await page.waitForTimeout(100)
 
       // Body should have position: fixed which prevents scrolling
       const bodyStyles = await page.evaluate(() => ({
@@ -129,19 +115,17 @@ test.describe('Mobile Navbar E2E', () => {
       await page.evaluate((scroll) => {
         window.scrollTo(0, scroll)
       }, targetScroll)
-      await page.waitForTimeout(100)
 
       // Get position before opening menu
       const scrollBeforeOpen = await page.evaluate(() => window.scrollY)
 
       // Open menu
-      const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
-      await menuButton.tap()
-      await page.waitForTimeout(300)
+      const { menuButton } = await openMobileMenu(page)
 
       // Close menu
       await menuButton.tap()
-      await page.waitForTimeout(300)
+      const overlay = page.locator('.z-\\[110\\]')
+      await expect(overlay).not.toBeVisible()
 
       // Get position after closing menu
       const scrollAfterClose = await page.evaluate(() => window.scrollY)
@@ -154,11 +138,7 @@ test.describe('Mobile Navbar E2E', () => {
       await page.goto('/')
       await page.waitForLoadState('domcontentloaded')
 
-      const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
-
-      // Open menu
-      await menuButton.tap()
-      await page.waitForTimeout(300)
+      const { menuButton } = await openMobileMenu(page)
 
       // Verify body has scroll lock styles
       let bodyStyles = await page.evaluate(() => ({
@@ -173,7 +153,8 @@ test.describe('Mobile Navbar E2E', () => {
 
       // Close menu
       await menuButton.tap()
-      await page.waitForTimeout(300)
+      const overlay = page.locator('.z-\\[110\\]')
+      await expect(overlay).not.toBeVisible()
 
       // Body styles should be cleaned up
       bodyStyles = await page.evaluate(() => ({
@@ -217,10 +198,8 @@ test.describe('Mobile Navbar E2E', () => {
       const nav = page.locator('nav').first()
 
       // Check for dark mode background class which is always present
-      // The navbar has dark:bg-gray-900 variants in all states
       const hasDarkBackground = await nav.evaluate((el) => {
         const classList = el.className
-        // Match dark:bg-gray-900 with optional opacity suffix
         return /dark:bg-gray-900(\/\d+)?/.test(classList)
       })
 
@@ -235,9 +214,7 @@ test.describe('Mobile Navbar E2E', () => {
       await page.goto('/')
       await page.waitForLoadState('domcontentloaded')
 
-      const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
-      await menuButton.tap()
-      await page.waitForTimeout(300)
+      await openMobileMenu(page)
 
       // Check iOS-specific scroll lock styles
       const bodyStyles = await page.evaluate(() => ({
@@ -260,9 +237,7 @@ test.describe('Mobile Navbar E2E', () => {
       await page.goto('/')
       await page.waitForLoadState('domcontentloaded')
 
-      const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
-      await menuButton.tap()
-      await page.waitForTimeout(300)
+      await openMobileMenu(page)
 
       // Check if mobile menu has safe-area class
       const mobileMenuPanel = page.locator('.mobile-menu-panel, .mobile-menu-safe-area').first()
@@ -287,20 +262,18 @@ test.describe('Mobile Navbar E2E', () => {
 
       // Tap to open
       await menuButton.tap()
-      await page.waitForTimeout(300)
+      await expect(page.locator('.z-\\[110\\]')).toBeVisible()
 
       await expect(menuButton).toHaveAttribute('aria-expanded', 'true')
     })
 
     test('navigation links work on touch', async ({ page }) => {
       await page.goto('/')
-      await page.waitForLoadState('domcontentloaded')
-      await page.waitForTimeout(500) // Wait for hydration
+      await page.waitForLoadState('networkidle')
 
       const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
       await expect(menuButton).toBeVisible({ timeout: 5000 })
       await menuButton.click() // Use click for reliability
-      await page.waitForTimeout(800) // Wait longer for menu animation
 
       // Wait for menu overlay to be visible
       const overlay = page.locator('.z-\\[110\\]')
@@ -321,13 +294,13 @@ test.describe('Mobile Navbar E2E', () => {
 
       const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
 
-      // Rapidly tap multiple times
+      // Rapidly tap multiple times (odd number = should end open)
       await menuButton.tap()
-      await page.waitForTimeout(50)
       await menuButton.tap()
-      await page.waitForTimeout(50)
       await menuButton.tap()
-      await page.waitForTimeout(300)
+
+      // Wait for final state to settle
+      await page.waitForLoadState('domcontentloaded')
 
       // Menu should be in a valid state (either open or closed, not broken)
       const isExpanded = await menuButton.getAttribute('aria-expanded')
@@ -352,12 +325,7 @@ test.describe('Mobile Navbar E2E', () => {
       const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
       await expect(menuButton).toBeVisible()
 
-      await menuButton.tap()
-      await page.waitForTimeout(300)
-
-      // Menu should be visible and functional
-      const overlay = page.locator('.z-\\[110\\]')
-      await expect(overlay).toBeVisible()
+      await openMobileMenu(page)
     })
 
     test('works on iPhone XR viewport', async ({ page }) => {
@@ -368,11 +336,7 @@ test.describe('Mobile Navbar E2E', () => {
       const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
       await expect(menuButton).toBeVisible()
 
-      await menuButton.tap()
-      await page.waitForTimeout(300)
-
-      const overlay = page.locator('.z-\\[110\\]')
-      await expect(overlay).toBeVisible()
+      await openMobileMenu(page)
     })
 
     test('works on Android viewport', async ({ page }) => {
@@ -383,22 +347,14 @@ test.describe('Mobile Navbar E2E', () => {
       const menuButton = page.locator('button[aria-label*="menú"], button[aria-label*="menu"]').first()
       await expect(menuButton).toBeVisible()
 
-      await menuButton.tap()
-      await page.waitForTimeout(300)
-
-      const overlay = page.locator('.z-\\[110\\]')
-      await expect(overlay).toBeVisible()
+      await openMobileMenu(page)
     })
   })
 
   test.describe('Theme Toggle in Mobile Menu', () => {
     test('theme dropdown opens in mobile view', async ({ page }) => {
       await page.goto('/')
-      await page.waitForLoadState('domcontentloaded')
-
-      // Theme button is in navbar header on mobile (next to hamburger)
-      // Wait for page to fully load
-      await page.waitForTimeout(500)
+      await page.waitForLoadState('networkidle')
 
       // Find the VISIBLE theme button (mobile has a different button than desktop)
       const themeButtons = page.locator('button[aria-label*="tema"]')
@@ -419,7 +375,6 @@ test.describe('Mobile Navbar E2E', () => {
       }
 
       await themeButton.click()
-      await page.waitForTimeout(500)
 
       // Theme dropdown should be visible - find the visible "Claro" option
       // There may be multiple (desktop and mobile), so find the visible one
@@ -440,10 +395,7 @@ test.describe('Mobile Navbar E2E', () => {
 
     test('theme dropdown has higher z-index than menu', async ({ page }) => {
       await page.goto('/')
-      await page.waitForLoadState('domcontentloaded')
-
-      // Wait for page to fully load
-      await page.waitForTimeout(500)
+      await page.waitForLoadState('networkidle')
 
       // Find the VISIBLE theme button
       const themeButtons = page.locator('button[aria-label*="tema"]')
@@ -463,7 +415,6 @@ test.describe('Mobile Navbar E2E', () => {
       }
 
       await themeButton.click()
-      await page.waitForTimeout(300)
 
       // Theme dropdown should have z-[110] class
       const dropdown = page.locator('.z-\\[110\\]')

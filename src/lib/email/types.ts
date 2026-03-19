@@ -16,7 +16,9 @@ export type EmailTemplate =
   | 'new-subscription-payment'
   | 'payment-failed-alert'
   | 'testimonial-request'
-  | 'staff-invitation';
+  | 'staff-invitation'
+  | 'trial-expiring'
+  | 'trial-expired';
 
 export type EmailStatus =
   | 'PENDING'
@@ -281,6 +283,33 @@ export interface StaffInvitationData extends BaseEmailData {
 }
 
 /**
+ * Trial Expiring Email Data
+ */
+export interface TrialExpiringData extends BaseEmailData {
+  template: 'trial-expiring';
+  data: {
+    clinicName: string;
+    ownerName: string;
+    daysRemaining: number;
+    trialEndsDate: Date;
+    upgradeUrl: string;
+  };
+}
+
+/**
+ * Trial Expired Email Data
+ */
+export interface TrialExpiredData extends BaseEmailData {
+  template: 'trial-expired';
+  data: {
+    clinicName: string;
+    ownerName: string;
+    expiredDate: Date;
+    upgradeUrl: string;
+  };
+}
+
+/**
  * Union type for all email data types
  */
 export type EmailData =
@@ -295,7 +324,9 @@ export type EmailData =
   | NewSubscriptionPaymentData
   | PaymentFailedAlertData
   | TestimonialRequestData
-  | StaffInvitationData;
+  | StaffInvitationData
+  | TrialExpiringData
+  | TrialExpiredData;
 
 /**
  * Email send result

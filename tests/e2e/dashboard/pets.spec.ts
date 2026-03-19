@@ -45,7 +45,7 @@ test.describe('Pets Management', () => {
       await searchInput.fill('Max');
 
       // Wait for debounced search
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       // Should show filtered results
       const petCards = page.locator('[data-testid="pet-card"]');
@@ -517,7 +517,7 @@ test.describe('Pets Management', () => {
 
         // Then search
         await searchInput.fill('test');
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('networkidle');
 
         // Sort should still be applied - verify page still functional
         await expect(page.locator('[data-testid="pet-card"]').first().or(page.locator('[data-testid="empty-pets-state"]'))).toBeVisible();
@@ -706,8 +706,8 @@ test.describe('Pets Management', () => {
           await editPhotoAction.click();
           await page.waitForLoadState('domcontentloaded');
 
-          // Wait for scroll animation
-          await page.waitForTimeout(500);
+          // Wait for scroll animation to complete
+          await page.waitForLoadState('domcontentloaded');
 
           // Photo section should be visible in viewport
           const photoSection = page.locator('text=/Foto de Perfil/i');

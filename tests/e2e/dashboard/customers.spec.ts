@@ -49,7 +49,7 @@ test.describe('Customers Management', () => {
       await searchInput.fill('Juan');
 
       // Wait for debounced search
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       // Should show filtered results
       const customerRows = page.locator('[data-testid="customer-row"]');
@@ -69,7 +69,7 @@ test.describe('Customers Management', () => {
       const searchInput = page.locator('[data-testid="customers-search-input"]');
       await searchInput.fill('@gmail.com');
 
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       const customerRows = page.locator('[data-testid="customer-row"]');
       const count = await customerRows.count();
@@ -85,7 +85,7 @@ test.describe('Customers Management', () => {
       const searchInput = page.locator('[data-testid="customers-search-input"]');
       await searchInput.fill('555');
 
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       // Results should match phone number
       const customerRows = page.locator('[data-testid="customer-row"]');
@@ -123,7 +123,7 @@ test.describe('Customers Management', () => {
       // Search for non-existent customer
       const searchInput = page.locator('[data-testid="customers-search-input"]');
       await searchInput.fill('zzzznonexistent12345');
-      await page.waitForTimeout(500);
+      await page.waitForLoadState('networkidle');
 
       await expect(page.locator('[data-testid="empty-customers-state"]')).toBeVisible();
     });
