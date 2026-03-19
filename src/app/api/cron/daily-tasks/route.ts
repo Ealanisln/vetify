@@ -5,14 +5,18 @@
  * - Inventory alerts
  * - Appointment reminders
  * - Treatment reminders
+ * - Redis keepalive (prevents Upstash archiving)
+ * - Trial lifecycle emails
  *
  * Workaround for Vercel free plan limit of 2 cron jobs.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
+import { Redis } from '@upstash/redis';
 import { checkAllTenantsInventory } from '@/lib/email/inventory-alerts';
 import { processAppointmentReminders, processTreatmentReminders } from '@/lib/email/reminder-alerts';
+import { processTrialLifecycleEmails } from '@/lib/email/trial-lifecycle';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120; // Allow up to 120 seconds for all tasks
@@ -91,11 +95,46 @@ export async function GET(request: NextRequest) {
     results.treatments = { success: false, error: msg };
   }
 
+  // Task 4: Redis Keepalive (prevents Upstash from archiving inactive free-plan DBs)
+  try {
+    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      const redis = new Redis({
+        url: process.env.UPSTASH_REDIS_REST_URL,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN,
+      });
+      const pong = await redis.ping();
+      results.redisKeepalive = { success: true, response: pong };
+    } else {
+      results.redisKeepalive = { success: false, error: 'Redis not configured' };
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[CRON] Redis keepalive failed:', msg);
+    results.redisKeepalive = { success: false, error: msg };
+  }
+
+  // Task 5: Trial Lifecycle Emails
+  try {
+    console.log('[CRON] Running trial lifecycle emails...');
+    const trialResult = await processTrialLifecycleEmails();
+    results.trialLifecycle = {
+      success: trialResult.success,
+      tenantsChecked: trialResult.tenantsChecked,
+      expiringEmailsSent: trialResult.expiringEmailsSent,
+      expiredEmailsSent: trialResult.expiredEmailsSent,
+    };
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[CRON] Trial lifecycle emails failed:', msg);
+    errors.push(`trialLifecycle: ${msg}`);
+    results.trialLifecycle = { success: false, error: msg };
+  }
+
   const allSuccess = errors.length === 0;
   console.log(`[CRON] Daily tasks complete. Success: ${allSuccess}, Errors: ${errors.length}`);
 
   if (errors.length > 0) {
-    Sentry.captureMessage(`Daily cron: ${errors.length}/3 tasks failed`, {
+    Sentry.captureMessage(`Daily cron: ${errors.length}/5 tasks failed`, {
       level: errors.length === 3 ? 'fatal' : 'error',
       tags: { category: 'cron', failedTasks: errors.length },
       contexts: {
