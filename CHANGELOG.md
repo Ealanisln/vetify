@@ -5,6 +5,46 @@ Todos los cambios notables en este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
+## [No publicado]
+
+### Agregado
+- **Emails de Ciclo de Vida del Trial**
+  - Notificación automática cuando el trial está por vencer (≤3 días, cooldown 24h)
+  - Notificación automática cuando el trial ha expirado (cooldown 7 días)
+  - Nuevos templates de email: `trial-expiring` y `trial-expired`
+  - Migración Prisma para enum values `TRIAL_EXPIRING` y `TRIAL_EXPIRED`
+
+- **Promociones Beta Tester**
+  - Nuevo tipo de promoción `FREE_TRIAL` con días de trial dinámicos
+  - Campos `promotionType`, `trialDays`, `maxRedemptions`, `currentRedemptions` en `SystemPromotion`
+
+- **Alertas Automatizadas de Monitoreo**
+  - Alertas automáticas por fallos de pago y errores críticos
+  - Nuevo enum value `PAYMENT_FAILED_ALERT`
+
+### Corregido
+- **fix(cron):** ping diario a Redis para evitar archivado de Upstash por inactividad
+- **fix(subscription):** reconocer trials gestionados por Stripe en control de acceso
+- **fix(subscription):** detectar suscripciones pagadas expiradas en UI del cliente
+- **fix(security):** validar `subscriptionEndsAt` para prevenir acceso con datos obsoletos
+- **fix(payments):** usar IDs dinámicos de productos Stripe en portal del cliente
+- **fix(payments):** mostrar fallos silenciosos de sincronización de suscripción tras checkout
+- **fix(middleware):** permitir webhook de Stripe a través de auth, CSRF, y matcher
+- **fix(pets):** extraer array de respuesta paginada de `/api/customers`
+- **fix(security):** eliminar proxies abiertos, forzar auth de super admin, redactar secretos
+
+### Testing
+- Eliminación de flakiness en tests E2E
+- 13 nuevas suites de tests de integración
+- Umbrales de cobertura obligatorios
+- Tests E2E Phase 4: admin smoke tests, registros médicos, teardown
+
+### Infraestructura
+- Sincronización de enum `EmailTemplate` entre bases de datos de prod y dev
+- Persistencia de audit logs de seguridad en base de datos
+
+---
+
 ## [1.4.0] - 2026-02-14
 
 ### Agregado
