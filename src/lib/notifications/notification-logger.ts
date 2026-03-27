@@ -32,6 +32,8 @@ export async function logEmailSend(
       'new-user-registration': EmailTemplate.NEW_USER_REGISTRATION,
       'new-subscription-payment': EmailTemplate.NEW_SUBSCRIPTION_PAYMENT,
       'staff-invitation': EmailTemplate.STAFF_INVITATION,
+      'trial-expiring': EmailTemplate.TRIAL_EXPIRING,
+      'trial-expired': EmailTemplate.TRIAL_EXPIRED,
     } as const satisfies Record<string, EmailTemplate>;
 
     await prisma.emailLog.create({

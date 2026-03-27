@@ -391,13 +391,19 @@ export async function createCheckoutSessionForAPI({
   priceId,
   userId,
   planKey,
-  billingInterval = 'monthly'
+  billingInterval = 'monthly',
+  referralCodeId,
+  referralPartnerId,
+  referralStripeCouponId,
 }: {
   tenant: Tenant | null;
   priceId: string;
   userId: string;
   planKey?: string;
   billingInterval?: 'monthly' | 'annual';
+  referralCodeId?: string;
+  referralPartnerId?: string;
+  referralStripeCouponId?: string;
 }) {
   if (!tenant) {
     throw new Error('Tenant is required');
@@ -429,7 +435,9 @@ export async function createCheckoutSessionForAPI({
       tenantId: tenant.id,
       planKey: planKey || 'unknown',
       userId,
-      hadLocalTrial: tenant.trialEndsAt ? 'true' : 'false'
+      hadLocalTrial: tenant.trialEndsAt ? 'true' : 'false',
+      ...(referralCodeId ? { referralCodeId } : {}),
+      ...(referralPartnerId ? { referralPartnerId } : {}),
     }
   };
 
@@ -465,9 +473,12 @@ export async function createCheckoutSessionForAPI({
     }
   };
 
-  // Apply promotion or allow manual promo codes
+  // Apply promotion or referral discount or allow manual promo codes
   if (promoResult.type === 'DISCOUNT') {
     sessionConfig.discounts = [{ coupon: promoResult.discountCoupon }];
+  } else if (referralStripeCouponId) {
+    // Apply referral discount if no system promotion is active
+    sessionConfig.discounts = [{ coupon: referralStripeCouponId }];
   } else if (promoResult.type === 'NONE') {
     sessionConfig.allow_promotion_codes = true;
   }
