@@ -5,7 +5,6 @@
  * - Inventory alerts
  * - Appointment reminders
  * - Treatment reminders
- * - Redis keepalive (prevents Upstash archiving)
  * - Trial lifecycle emails
  *
  * Workaround for Vercel free plan limit of 2 cron jobs.
@@ -13,7 +12,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
-import { Redis } from '@upstash/redis';
 import { checkAllTenantsInventory } from '@/lib/email/inventory-alerts';
 import { processAppointmentReminders, processTreatmentReminders } from '@/lib/email/reminder-alerts';
 import { processTrialLifecycleEmails } from '@/lib/email/trial-lifecycle';
@@ -95,25 +93,7 @@ export async function GET(request: NextRequest) {
     results.treatments = { success: false, error: msg };
   }
 
-  // Task 4: Redis Keepalive (prevents Upstash from archiving inactive free-plan DBs)
-  try {
-    if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-      const redis = new Redis({
-        url: process.env.UPSTASH_REDIS_REST_URL,
-        token: process.env.UPSTASH_REDIS_REST_TOKEN,
-      });
-      const pong = await redis.ping();
-      results.redisKeepalive = { success: true, response: pong };
-    } else {
-      results.redisKeepalive = { success: false, error: 'Redis not configured' };
-    }
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[CRON] Redis keepalive failed:', msg);
-    results.redisKeepalive = { success: false, error: msg };
-  }
-
-  // Task 5: Trial Lifecycle Emails
+  // Task 4: Trial Lifecycle Emails
   try {
     console.log('[CRON] Running trial lifecycle emails...');
     const trialResult = await processTrialLifecycleEmails();
@@ -134,8 +114,8 @@ export async function GET(request: NextRequest) {
   console.log(`[CRON] Daily tasks complete. Success: ${allSuccess}, Errors: ${errors.length}`);
 
   if (errors.length > 0) {
-    Sentry.captureMessage(`Daily cron: ${errors.length}/5 tasks failed`, {
-      level: errors.length === 3 ? 'fatal' : 'error',
+    Sentry.captureMessage(`Daily cron: ${errors.length}/4 tasks failed`, {
+      level: errors.length >= 3 ? 'fatal' : 'error',
       tags: { category: 'cron', failedTasks: errors.length },
       contexts: {
         cron: {
