@@ -3,6 +3,7 @@ import { getAuthenticatedUserWithOptionalTenant } from '../../../lib/auth';
 import { createTenantWithDefaults, isSlugAvailable } from '../../../lib/tenant';
 import { notifyNewUserRegistration } from '../../../lib/email/admin-notifications';
 import { getActivePromotionFromDB } from '../../../lib/pricing-config';
+import { resolveReferralCode, createConversion } from '../../../lib/referrals/queries';
 import { z } from 'zod';
 
 const onboardingSchema = z.object({
@@ -18,6 +19,7 @@ const onboardingSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'El slug solo puede contener letras minúsculas, números y guiones'),
   phone: z.string().optional(),
   address: z.string().optional(),
+  referralCode: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -67,6 +69,23 @@ export async function POST(request: NextRequest) {
       address: validatedData.address,
       trialDays: promoTrialDays,
     });
+
+    // Track referral attribution if a referral code was provided
+    if (validatedData.referralCode) {
+      try {
+        const referral = await resolveReferralCode(validatedData.referralCode);
+        if (referral) {
+          await createConversion({
+            partnerId: referral.partner.id,
+            codeId: referral.id,
+            tenantId: result.tenant.id,
+          });
+          console.log(`[ONBOARDING] Referral tracked: code=${referral.code}, partner=${referral.partner.name}, tenant=${result.tenant.id}`);
+        }
+      } catch (refError) {
+        console.error('[ONBOARDING] Error tracking referral (non-blocking):', refError);
+      }
+    }
 
     // Send admin notification (non-blocking)
     notifyNewUserRegistration({

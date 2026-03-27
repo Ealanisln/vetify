@@ -84,6 +84,7 @@ model Tenant {
   landingPageAnalytics LandingPageAnalytics[]
   pushSubscriptions   PushSubscription[]
   webhooks            Webhook[]
+  referralConversions ReferralConversion[]
 
   @@index([status])
   @@index([slug])
@@ -1432,6 +1433,108 @@ model SystemPromotion {
 
   @@index([isActive, endDate])
   @@index([code])
+}
+
+// ============================================================================
+// REFERRAL / AFFILIATE SYSTEM
+// ============================================================================
+
+model ReferralPartner {
+  id                String   @id @default(uuid())
+  name              String
+  email             String   @unique
+  phone             String?
+  company           String?
+  commissionPercent Decimal  @db.Decimal(5, 2) // e.g. 20.00 = 20%
+  isActive          Boolean  @default(true)
+  notes             String?  @db.Text
+  createdBy         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  referralCodes ReferralCode[]
+  conversions   ReferralConversion[]
+
+  @@index([email])
+  @@index([isActive])
+}
+
+model ReferralCode {
+  id        String  @id @default(uuid())
+  code      String  @unique
+  partnerId String
+  isActive  Boolean @default(true)
+
+  // Optional discount for referred clinic
+  discountPercent Int?
+  discountMonths  Int?
+  stripeCouponId  String?
+
+  // Tracking
+  clickCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partner     ReferralPartner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  conversions ReferralConversion[]
+
+  @@index([code])
+  @@index([partnerId])
+  @@index([isActive])
+}
+
+model ReferralConversion {
+  id        String @id @default(uuid())
+  partnerId String
+  codeId    String
+  tenantId  String
+
+  // Conversion tracking
+  status     ReferralConversionStatus @default(SIGNUP)
+  signedUpAt DateTime                 @default(now())
+  convertedAt DateTime?
+
+  // Commission details
+  planKey            String?
+  subscriptionAmount Decimal? @db.Decimal(10, 2)
+  commissionPercent  Decimal? @db.Decimal(5, 2)
+  commissionAmount   Decimal? @db.Decimal(10, 2)
+
+  // Payout tracking
+  payoutStatus ReferralPayoutStatus @default(PENDING)
+  paidAt       DateTime?
+  paidBy       String?
+  payoutNotes  String?              @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  partner ReferralPartner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  code    ReferralCode    @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  tenant  Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([codeId, tenantId])
+  @@index([partnerId])
+  @@index([codeId])
+  @@index([tenantId])
+  @@index([status])
+  @@index([payoutStatus])
+  @@index([convertedAt])
+}
+
+enum ReferralConversionStatus {
+  SIGNUP
+  CONVERTED
+  CHURNED
+}
+
+enum ReferralPayoutStatus {
+  PENDING
+  APPROVED
+  PAID
+  VOID
 }
 
 // ============================================================================

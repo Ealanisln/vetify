@@ -10,7 +10,8 @@ import {
   ChartBarIcon,
   Cog6ToothIcon,
   ShieldCheckIcon,
-  TagIcon
+  TagIcon,
+  UserPlusIcon,
 } from '@heroicons/react/24/outline';
 import { clsx } from 'clsx';
 
@@ -20,6 +21,7 @@ const navigation = [
   { name: 'Usuarios', href: '/admin/users', icon: UserGroupIcon },
   { name: 'Facturación', href: '/admin/billing', icon: CreditCardIcon },
   { name: 'Promociones', href: '/admin/promotions', icon: TagIcon },
+  { name: 'Referidos', href: '/admin/referrals', icon: UserPlusIcon },
   { name: 'Reportes', href: '/admin/reports', icon: ChartBarIcon },
   { name: 'Sistema', href: '/admin/system', icon: ShieldCheckIcon },
   { name: 'Configuración', href: '/admin/settings', icon: Cog6ToothIcon },

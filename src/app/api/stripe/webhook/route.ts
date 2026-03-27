@@ -5,6 +5,8 @@ import { stripe, handleSubscriptionChange } from '../../../../lib/payments/strip
 import { notifyNewSubscriptionPayment, notifyPaymentFailed } from '../../../../lib/email/admin-notifications';
 import { prisma } from '../../../../lib/prisma';
 import { incrementPromotionRedemptions } from '../../../../lib/promotions/queries';
+import { markConversionConverted } from '../../../../lib/referrals/queries';
+import { notifyReferralConversion, notifyPartnerReferralSuccess } from '../../../../lib/email/referral-notifications';
 import Stripe from 'stripe';
 
 export async function POST(request: NextRequest) {
@@ -241,6 +243,57 @@ export async function POST(request: NextRequest) {
           } catch (notifError) {
             // Log but don't fail the webhook
             console.error('[WEBHOOK] Error preparing payment notification:', notifError);
+          }
+
+          // Track referral conversion if this subscription was referred
+          try {
+            const referralCodeId = subscription.metadata?.referralCodeId;
+            if (referralCodeId) {
+              const custForRef = await stripe.customers.retrieve(invoice.customer as string) as Stripe.Customer;
+              const refTenantId = custForRef.metadata?.tenantId;
+              if (refTenantId) {
+                const planKey = subscription.metadata?.planKey || 'unknown';
+                const amount = invoice.amount_paid / 100;
+                const conversion = await markConversionConverted(refTenantId, planKey, amount);
+                if (conversion) {
+                  console.log(`[WEBHOOK] Referral conversion tracked: tenant=${refTenantId}, commission=${conversion.commissionAmount}`);
+
+                  // Fetch partner + code info for notifications
+                  const refConversion = await prisma.referralConversion.findUnique({
+                    where: { id: conversion.id },
+                    include: {
+                      partner: { select: { name: true, email: true } },
+                      code: { select: { code: true } },
+                      tenant: { select: { name: true } },
+                    },
+                  });
+
+                  if (refConversion) {
+                    // Notify admin (non-blocking)
+                    notifyReferralConversion({
+                      partnerName: refConversion.partner.name,
+                      partnerEmail: refConversion.partner.email,
+                      referralCode: refConversion.code.code,
+                      tenantName: refConversion.tenant.name,
+                      planKey,
+                      subscriptionAmount: amount,
+                      commissionPercent: Number(refConversion.commissionPercent),
+                      commissionAmount: Number(refConversion.commissionAmount),
+                    }).catch(e => console.error('[WEBHOOK] Referral admin notification error:', e));
+
+                    // Notify partner (non-blocking)
+                    notifyPartnerReferralSuccess({
+                      partnerEmail: refConversion.partner.email,
+                      partnerName: refConversion.partner.name,
+                      tenantName: refConversion.tenant.name,
+                      commissionAmount: Number(refConversion.commissionAmount),
+                    }).catch(e => console.error('[WEBHOOK] Referral partner notification error:', e));
+                  }
+                }
+              }
+            }
+          } catch (refError) {
+            console.error('[WEBHOOK] Error tracking referral conversion:', refError);
           }
         }
         break;
