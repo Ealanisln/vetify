@@ -29,6 +29,9 @@ const invalidSchemaWithoutContext = {
   name: 'Invalid Schema',
 };
 
+const getJsonLdScripts = (container: HTMLElement) =>
+  Array.from(container.querySelectorAll('script[type="application/ld+json"]'));
+
 describe('StructuredData Component', () => {
   describe('Single schema rendering', () => {
     it('should render valid schema as JSON-LD script', () => {
@@ -36,10 +39,10 @@ describe('StructuredData Component', () => {
         <StructuredData data={validOrganizationSchema as any} />
       );
 
-      const script = container.querySelector('script[type="application/ld+json"]');
-      expect(script).toBeTruthy();
+      const scripts = getJsonLdScripts(container);
+      expect(scripts).toHaveLength(1);
 
-      const content = JSON.parse(script?.innerHTML || '{}');
+      const content = JSON.parse(scripts[0].innerHTML || '{}');
       expect(content['@context']).toBe('https://schema.org');
       expect(content['@type']).toBe('Organization');
       expect(content.name).toBe('Test Clinic');
@@ -49,127 +52,85 @@ describe('StructuredData Component', () => {
       const { container } = render(
         <StructuredData data={invalidSchemaWithoutContext as any} />
       );
-
-      const script = container.querySelector('script[type="application/ld+json"]');
-      expect(script).toBeNull();
+      expect(getJsonLdScripts(container)).toHaveLength(0);
     });
 
     it('should not render null data', () => {
-      const { container } = render(
-        <StructuredData data={null as any} />
-      );
-
-      const script = container.querySelector('script[type="application/ld+json"]');
-      expect(script).toBeNull();
+      const { container } = render(<StructuredData data={null as any} />);
+      expect(getJsonLdScripts(container)).toHaveLength(0);
     });
 
     it('should not render undefined data', () => {
-      const { container } = render(
-        <StructuredData data={undefined as any} />
-      );
-
-      const script = container.querySelector('script[type="application/ld+json"]');
-      expect(script).toBeNull();
+      const { container } = render(<StructuredData data={undefined as any} />);
+      expect(getJsonLdScripts(container)).toHaveLength(0);
     });
   });
 
   describe('Array schema rendering', () => {
-    it('should render array of valid schemas', () => {
+    it('should render one <script> per schema (not a single array script)', () => {
       const schemas = [validOrganizationSchema, validSoftwareSchema];
+      const { container } = render(<StructuredData data={schemas as any} />);
 
-      const { container } = render(
-        <StructuredData data={schemas as any} />
-      );
+      const scripts = getJsonLdScripts(container);
+      expect(scripts).toHaveLength(2);
 
-      const script = container.querySelector('script[type="application/ld+json"]');
-      expect(script).toBeTruthy();
-
-      const content = JSON.parse(script?.innerHTML || '[]');
-      expect(Array.isArray(content)).toBe(true);
-      expect(content).toHaveLength(2);
-      expect(content[0]['@type']).toBe('Organization');
-      expect(content[1]['@type']).toBe('SoftwareApplication');
+      const first = JSON.parse(scripts[0].innerHTML);
+      const second = JSON.parse(scripts[1].innerHTML);
+      expect(Array.isArray(first)).toBe(false);
+      expect(first['@type']).toBe('Organization');
+      expect(second['@type']).toBe('SoftwareApplication');
     });
 
     it('should filter out invalid schemas from array', () => {
       const schemas = [
         validOrganizationSchema,
-        invalidSchemaWithoutContext, // Should be filtered out
+        invalidSchemaWithoutContext,
         validSoftwareSchema,
       ];
+      const { container } = render(<StructuredData data={schemas as any} />);
 
-      const { container } = render(
-        <StructuredData data={schemas as any} />
-      );
-
-      const script = container.querySelector('script[type="application/ld+json"]');
-      expect(script).toBeTruthy();
-
-      const content = JSON.parse(script?.innerHTML || '[]');
-      expect(Array.isArray(content)).toBe(true);
-      expect(content).toHaveLength(2); // Only 2 valid schemas
-      expect(content[0]['@type']).toBe('Organization');
-      expect(content[1]['@type']).toBe('SoftwareApplication');
+      const scripts = getJsonLdScripts(container);
+      expect(scripts).toHaveLength(2);
+      expect(JSON.parse(scripts[0].innerHTML)['@type']).toBe('Organization');
+      expect(JSON.parse(scripts[1].innerHTML)['@type']).toBe('SoftwareApplication');
     });
 
     it('should filter out null items from array', () => {
-      const schemas = [
-        validOrganizationSchema,
-        null,
-        validSoftwareSchema,
-      ];
-
-      const { container } = render(
-        <StructuredData data={schemas as any} />
-      );
-
-      const script = container.querySelector('script[type="application/ld+json"]');
-      expect(script).toBeTruthy();
-
-      const content = JSON.parse(script?.innerHTML || '[]');
-      expect(content).toHaveLength(2);
+      const schemas = [validOrganizationSchema, null, validSoftwareSchema];
+      const { container } = render(<StructuredData data={schemas as any} />);
+      expect(getJsonLdScripts(container)).toHaveLength(2);
     });
 
     it('should filter out undefined items from array', () => {
-      const schemas = [
-        validOrganizationSchema,
-        undefined,
-        validSoftwareSchema,
-      ];
-
-      const { container } = render(
-        <StructuredData data={schemas as any} />
-      );
-
-      const script = container.querySelector('script[type="application/ld+json"]');
-      expect(script).toBeTruthy();
-
-      const content = JSON.parse(script?.innerHTML || '[]');
-      expect(content).toHaveLength(2);
+      const schemas = [validOrganizationSchema, undefined, validSoftwareSchema];
+      const { container } = render(<StructuredData data={schemas as any} />);
+      expect(getJsonLdScripts(container)).toHaveLength(2);
     });
 
     it('should not render empty array after filtering', () => {
-      const schemas = [
-        invalidSchemaWithoutContext, // Will be filtered
-        null,
-        undefined,
-      ];
-
-      const { container } = render(
-        <StructuredData data={schemas as any} />
-      );
-
-      const script = container.querySelector('script[type="application/ld+json"]');
-      expect(script).toBeNull();
+      const schemas = [invalidSchemaWithoutContext, null, undefined];
+      const { container } = render(<StructuredData data={schemas as any} />);
+      expect(getJsonLdScripts(container)).toHaveLength(0);
     });
 
     it('should not render empty array', () => {
-      const { container } = render(
-        <StructuredData data={[] as any} />
-      );
+      const { container } = render(<StructuredData data={[] as any} />);
+      expect(getJsonLdScripts(container)).toHaveLength(0);
+    });
 
-      const script = container.querySelector('script[type="application/ld+json"]');
-      expect(script).toBeNull();
+    it('every emitted <script> parses to an object whose @context is a string (regression VETIFY-NEXTJS-1K)', () => {
+      const { container } = render(
+        <StructuredData data={[validOrganizationSchema, validSoftwareSchema] as any} />
+      );
+      const scripts = getJsonLdScripts(container);
+      expect(scripts.length).toBeGreaterThan(0);
+      for (const script of scripts) {
+        const parsed = JSON.parse(script.textContent || '');
+        expect(Array.isArray(parsed)).toBe(false);
+        expect(typeof parsed['@context']).toBe('string');
+        // Simulate Umami's call: parsed["@context"].toLowerCase()
+        expect(() => parsed['@context'].toLowerCase()).not.toThrow();
+      }
     });
   });
 
@@ -186,10 +147,10 @@ describe('StructuredData Component', () => {
         <StructuredData data={schemaWithSpecialChars as any} />
       );
 
-      const script = container.querySelector('script[type="application/ld+json"]');
-      expect(script).toBeTruthy();
+      const scripts = getJsonLdScripts(container);
+      expect(scripts).toHaveLength(1);
 
-      const content = JSON.parse(script?.innerHTML || '{}');
+      const content = JSON.parse(scripts[0].innerHTML);
       expect(content.name).toBe('Test & Clinic "Special"');
       expect(content.description).toBe('A clinic with <special> characters');
     });
@@ -206,14 +167,11 @@ describe('StructuredData Component', () => {
         },
       };
 
-      const { container } = render(
-        <StructuredData data={nestedSchema as any} />
-      );
+      const { container } = render(<StructuredData data={nestedSchema as any} />);
+      const scripts = getJsonLdScripts(container);
+      expect(scripts).toHaveLength(1);
 
-      const script = container.querySelector('script[type="application/ld+json"]');
-      expect(script).toBeTruthy();
-
-      const content = JSON.parse(script?.innerHTML || '{}');
+      const content = JSON.parse(scripts[0].innerHTML);
       expect(content.address['@type']).toBe('PostalAddress');
       expect(content.address.streetAddress).toBe('123 Main St');
     });
