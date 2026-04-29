@@ -116,13 +116,21 @@ export function calculateRiskLevel(
  * Persist audit event to the database via internal API endpoint.
  * Fire-and-forget: does not block the caller, silently handles errors.
  */
+let _warnedMissingSecret = false;
+
 function persistAuditEvent(event: AuditEvent): void {
   const baseUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
   const secret = process.env.INTERNAL_API_SECRET;
-  if (!secret) return;
+  if (!secret) {
+    if (!_warnedMissingSecret) {
+      console.warn('[AUDIT] INTERNAL_API_SECRET not set — audit events will NOT persist');
+      _warnedMissingSecret = true;
+    }
+    return;
+  }
 
   try {
     fetch(`${baseUrl}/api/internal/audit-log`, {

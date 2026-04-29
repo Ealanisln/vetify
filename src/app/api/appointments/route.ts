@@ -6,24 +6,7 @@ import { sendAppointmentConfirmation, sendAppointmentStaffNotification } from '@
 import type { AppointmentConfirmationData, AppointmentStaffNotificationData } from '@/lib/email/types';
 import { shouldSendNotification } from '@/lib/enhanced-settings';
 import { parsePaginationParams, createPaginatedResponse } from '@/lib/pagination';
-
-// Helper to transform empty strings to undefined
-const emptyStringToUndefined = z.string().transform(val => val === '' ? undefined : val).optional();
-
-// Schema de validación para las citas
-const appointmentSchema = z.object({
-  dateTime: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: "Invalid date format"
-  }),
-  duration: z.number().min(15).max(300).default(30),
-  customerId: z.string(),
-  petId: z.string(),
-  reason: z.string(),
-  status: z.enum(['SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']).default('SCHEDULED'),
-  notes: z.string().optional(),
-  staffId: emptyStringToUndefined,
-  locationId: emptyStringToUndefined,
-});
+import { appointmentSchema } from '@/lib/validations/appointments-api';
 
 export async function GET(request: Request) {
   try {
@@ -363,6 +346,7 @@ export async function POST(request: Request) {
     
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.warn('[APPOINTMENTS][POST] validation failed', { issues: error.issues });
       return NextResponse.json(
         { success: false, error: 'Datos inválidos', details: error.errors },
         { status: 400 }

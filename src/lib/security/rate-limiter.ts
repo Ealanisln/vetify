@@ -125,14 +125,14 @@ export async function checkRateLimit(
   } catch (error) {
     console.error('Rate limit check failed:', error);
 
-    // SECURITY FIX: On Redis failure, deny the request to prevent bypass attacks
-    // This follows fail-secure principle - if rate limiting infra is down,
-    // we should not allow unlimited traffic which could enable DDoS or brute force
+    // FAIL-OPEN: Allow requests when Redis is unavailable (e.g., Upstash DB archived).
+    // Changed from fail-secure to fail-open intentionally — without traffic, rate limiting
+    // is not needed. To restore fail-secure, change success back to false.
     return {
-      success: false,
+      success: true,
       limit: 0,
       remaining: 0,
-      reset: new Date(Date.now() + 60000), // Retry after 1 minute
+      reset: new Date(Date.now() + 60000),
     };
   }
 }

@@ -4,10 +4,11 @@ import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { prisma } from '../../../lib/prisma';
 import { findOrCreateUser } from '../../../lib/db/queries/users';
 import { getStripePriceIdForPlan } from '../../../lib/pricing-config';
+import { resolveReferralCode } from '../../../lib/referrals/queries';
 
 export async function POST(request: NextRequest) {
   try {
-    const { priceId, planKey, billingInterval = 'monthly' } = await request.json();
+    const { priceId, planKey, billingInterval = 'monthly', referralCode } = await request.json();
 
     // Resolve price ID - either from direct priceId or from planKey
     let actualPriceId = priceId;
@@ -93,11 +94,31 @@ export async function POST(request: NextRequest) {
       }, { status: 500 });
     }
 
+    // Resolve referral code if provided
+    let referralCodeId: string | undefined;
+    let referralPartnerId: string | undefined;
+    let referralStripeCouponId: string | undefined;
+    if (referralCode) {
+      try {
+        const resolved = await resolveReferralCode(referralCode);
+        if (resolved) {
+          referralCodeId = resolved.id;
+          referralPartnerId = resolved.partner.id;
+          referralStripeCouponId = resolved.stripeCouponId || undefined;
+        }
+      } catch (refError) {
+        console.error('[CHECKOUT] Error resolving referral code:', refError);
+      }
+    }
+
     // Crear sesión de checkout
     const session = await createCheckoutSessionForAPI({
       tenant,
       priceId: actualPriceId,
-      userId: user.id
+      userId: user.id,
+      referralCodeId,
+      referralPartnerId,
+      referralStripeCouponId,
     });
 
     return NextResponse.json({ url: session.url });

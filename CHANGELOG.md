@@ -5,6 +5,70 @@ Todos los cambios notables en este proyecto se documentarán en este archivo.
 El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/),
 y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
+## [No publicado]
+
+## [1.5.0] - 2026-04-29
+
+### Agregado
+- **Sistema de Referidos**
+  - Programa completo de socios y comisiones por referidos
+  - Panel de administración en `/admin/referrals` con listas, detalle, conversiones y formularios
+  - Endpoints `/api/admin/referrals/*` y redirect público `/api/ref/[code]`
+  - Notificaciones por email (`referral-notifications`) y eventos en webhooks de Stripe + checkout + onboarding
+  - Documentación: `docs/manual-referidos.md`, `docs/referral-system.md`, `docs/referral-pricing.md`
+  - Migración Prisma `20260328000000_add_referral_system`
+
+- **Emails de Ciclo de Vida del Trial**
+  - Notificación automática cuando el trial está por vencer (≤3 días, cooldown 24h)
+  - Notificación automática cuando el trial ha expirado (cooldown 7 días)
+  - Nuevos templates de email: `trial-expiring` y `trial-expired`
+  - Migración Prisma para enum values `TRIAL_EXPIRING` y `TRIAL_EXPIRED`
+
+- **Promociones Beta Tester**
+  - Nuevo tipo de promoción `FREE_TRIAL` con días de trial dinámicos
+  - Campos `promotionType`, `trialDays`, `maxRedemptions`, `currentRedemptions` en `SystemPromotion`
+
+- **Alertas Automatizadas de Monitoreo**
+  - Alertas automáticas por fallos de pago y errores críticos
+  - Nuevo enum value `PAYMENT_FAILED_ALERT`
+
+- **Página de Funcionalidades**
+  - Nueva página `/funcionalidades` con componentes y tests
+
+- **Persistencia de Audit Logs de Seguridad**
+  - Logs de auditoría de seguridad ahora se persisten en base de datos
+
+### Corregido
+- **fix(appointments):** aceptar `null` en `staffId`/`locationId` al crear citas (POST `/api/appointments`); el formulario enviaba `null` cuando no había ubicación seleccionada y el schema de Zod sólo aceptaba `string | undefined`, devolviendo 400 "Datos inválidos" (Sentry VETIFY-NEXTJS-1M)
+- **fix(appointments):** enriquecer mensajes de error del cliente con detalles de validación (`field — message`) para que Sentry y el toast del usuario sean diagnosticables
+- **fix(cron):** ping diario a Redis para evitar archivado de Upstash por inactividad
+- **fix(subscription):** reconocer trials gestionados por Stripe en control de acceso
+- **fix(subscription):** detectar suscripciones pagadas expiradas en UI del cliente
+- **fix(security):** validar `subscriptionEndsAt` para prevenir acceso con datos obsoletos
+- **fix(payments):** usar IDs dinámicos de productos Stripe en portal del cliente
+- **fix(payments):** mostrar fallos silenciosos de sincronización de suscripción tras checkout
+- **fix(middleware):** permitir webhook de Stripe a través de auth, CSRF, y matcher
+- **fix(pets):** extraer array de respuesta paginada de `/api/customers`
+- **fix(security):** eliminar proxies abiertos, forzar auth de super admin, redactar secretos
+- **fix(appointments):** re-habilitar botón de WhatsApp en QuickActions
+
+### Eliminado
+- Código de blog/Storyblok removido de la rama de desarrollo
+
+### Testing
+- Eliminación de flakiness en tests E2E
+- 13 nuevas suites de tests de integración
+- Umbrales de cobertura obligatorios
+- Tests E2E Phase 4: admin smoke tests, registros médicos, teardown
+- QA audit cleanup: corrección de tests engañosos, cobertura adicional
+
+### Infraestructura
+- Sincronización de enum `EmailTemplate` entre bases de datos de prod y dev
+- Múltiples correcciones de CI: seed data, Playwright exclusions, auth-dependent E2E tests
+- Actualización de README y CLAUDE.md para v1.4.0
+
+---
+
 ## [1.4.0] - 2026-02-14
 
 ### Agregado
