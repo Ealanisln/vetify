@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nextjs';
 import { prisma } from '../prisma';
 import { isLaunchPromotionActive, PRICING_CONFIG, isStripeInLiveMode } from '../pricing-config';
 import { getActivePromotion, checkPromotionAvailability } from '../promotions/queries';
+import { computeRetentionEndsAt } from '../retention/constants';
 
 import type { Tenant, SubscriptionStatus, PlanType } from '@prisma/client';
 
@@ -737,7 +738,11 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
       subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
       subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
       isTrialPeriod: status === 'trialing',
-      status: 'ACTIVE' as const // Activar tenant
+      status: 'ACTIVE' as const, // Activar tenant
+      // Reactivation clears any pending retention/deletion clock
+      canceledAt: null,
+      dataRetentionEndsAt: null,
+      retentionWarningSentAt: null,
     };
 
     // Update tenant and create/update TenantSubscription in a transaction
@@ -773,10 +778,21 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
 
     return true;
   } else if (status === 'canceled' || status === 'unpaid' || status === 'past_due') {
+    // past_due is dunning, not yet a definitive cancellation — keep retention timer
+    // unset so we don't start the 90-day deletion clock for a transient payment failure.
+    const triggersRetention = status === 'canceled' || status === 'unpaid';
+    const startRetentionClock =
+      triggersRetention && tenant.dataRetentionEndsAt === null;
+
+    const now = new Date();
     const updateData = {
       subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
       stripeProductId: status === 'canceled' ? null : (subscription.items.data[0]?.plan?.product as string),
-      planName: status === 'canceled' ? null : undefined
+      planName: status === 'canceled' ? null : undefined,
+      ...(startRetentionClock && {
+        canceledAt: now,
+        dataRetentionEndsAt: computeRetentionEndsAt(now),
+      }),
     };
 
     // Update tenant and TenantSubscription status
