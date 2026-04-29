@@ -1,6 +1,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AppointmentFormData, AppointmentQuery, AppointmentStatus } from '../lib/validations/appointments';
 
+interface ApiErrorBody {
+  error?: string;
+  details?: Array<{ path?: Array<string | number>; message?: string }>;
+}
+
+const formatApiError = (result: ApiErrorBody, fallback: string): string => {
+  const base = result.error || fallback;
+  const issue = result.details?.[0];
+  if (!issue) return base;
+  const field = issue.path?.length ? issue.path.join('.') : 'campo';
+  const message = issue.message || 'inválido';
+  return `${base}: ${field} — ${message}`;
+};
+
 export interface AppointmentWithDetails {
   id: string;
   dateTime: Date;
@@ -107,7 +121,7 @@ export const useAppointments = (initialQuery?: Partial<AppointmentQuery>, enable
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Error al crear la cita');
+        throw new Error(formatApiError(result, 'Error al crear la cita'));
       }
 
       const newAppointment = {
@@ -150,7 +164,7 @@ export const useAppointments = (initialQuery?: Partial<AppointmentQuery>, enable
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Error al actualizar la cita');
+        throw new Error(formatApiError(result, 'Error al actualizar la cita'));
       }
 
       const updatedAppointment = {
