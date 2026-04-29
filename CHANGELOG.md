@@ -7,7 +7,17 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.5.0] - 2026-04-29
+
 ### Agregado
+- **Sistema de Referidos**
+  - Programa completo de socios y comisiones por referidos
+  - Panel de administración en `/admin/referrals` con listas, detalle, conversiones y formularios
+  - Endpoints `/api/admin/referrals/*` y redirect público `/api/ref/[code]`
+  - Notificaciones por email (`referral-notifications`) y eventos en webhooks de Stripe + checkout + onboarding
+  - Documentación: `docs/manual-referidos.md`, `docs/referral-system.md`, `docs/referral-pricing.md`
+  - Migración Prisma `20260328000000_add_referral_system`
+
 - **Emails de Ciclo de Vida del Trial**
   - Notificación automática cuando el trial está por vencer (≤3 días, cooldown 24h)
   - Notificación automática cuando el trial ha expirado (cooldown 7 días)
