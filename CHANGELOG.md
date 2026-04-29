@@ -29,6 +29,8 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
   - Logs de auditoría de seguridad ahora se persisten en base de datos
 
 ### Corregido
+- **fix(appointments):** aceptar `null` en `staffId`/`locationId` al crear citas (POST `/api/appointments`); el formulario enviaba `null` cuando no había ubicación seleccionada y el schema de Zod sólo aceptaba `string | undefined`, devolviendo 400 "Datos inválidos" (Sentry VETIFY-NEXTJS-1M)
+- **fix(appointments):** enriquecer mensajes de error del cliente con detalles de validación (`field — message`) para que Sentry y el toast del usuario sean diagnosticables
 - **fix(cron):** ping diario a Redis para evitar archivado de Upstash por inactividad
 - **fix(subscription):** reconocer trials gestionados por Stripe en control de acceso
 - **fix(subscription):** detectar suscripciones pagadas expiradas en UI del cliente
