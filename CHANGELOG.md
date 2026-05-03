@@ -7,6 +7,24 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.6.0] - 2026-05-03
+
+### Agregado
+- **Sistema de Retención de Datos (90 días)**
+  - Nuevos campos `retentionStartedAt`, `retentionExpiresAt`, `retentionWarningEmailSentAt` en `Tenant` con índice parcial
+  - Webhook de Stripe activa/limpia el reloj de retención de 90 días al cancelar/reactivar suscripción
+  - Job `purgeExpiredTenants` con transacción y re-chequeo, snapshot de auditoría antes de purgar
+  - Email de aviso T-7 (`data-retention-warning`) integrado al cron de tareas diarias
+  - Nueva migración Prisma `20260428000000_add_data_retention`
+  - Cobertura de tests unitarios e integración para `purge`, `notify` y webhook de Stripe
+
+### Corregido
+- **fix(seo):** emitir un `<script>` por cada esquema JSON-LD en lugar de un array (Sentry VETIFY-NEXTJS-1K)
+- **fix(db):** commitear archivo de migración `20260328000000_add_referral_system` que no se había incluido al mergear el feature de referidos; la migración ya estaba aplicada en prod y dev
+
+### Documentación
+- `docs/referral-pricing.md`: niveles recomendados de comisión y descuento del programa de referidos
+
 ## [1.5.0] - 2026-04-29
 
 ### Agregado
