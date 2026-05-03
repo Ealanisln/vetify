@@ -24,6 +24,7 @@ import type {
   StaffInvitationData,
   TrialExpiringData,
   TrialExpiredData,
+  DataRetentionWarningData,
 } from './types';
 import { logEmailSend } from '../notifications/notification-logger';
 import {
@@ -41,6 +42,7 @@ import {
   StaffInvitationEmail,
   TrialExpiringEmail,
   TrialExpiredEmail,
+  DataRetentionWarningEmail,
 } from './templates';
 import { formatDateLong, formatDateTimeLong, formatDate, formatCurrency } from '../utils/date-format';
 
@@ -460,6 +462,20 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
           ownerName: d.ownerName,
           expiredDate: expiredDateStr,
           upgradeUrl: d.upgradeUrl,
+        })
+      );
+    }
+
+    case 'data-retention-warning': {
+      const d = (emailData as DataRetentionWarningData).data;
+      const deletionDateStr = formatDateLong(d.deletionDate);
+      return await render(
+        DataRetentionWarningEmail({
+          clinicName: d.clinicName,
+          ownerName: d.ownerName,
+          daysRemaining: d.daysRemaining,
+          deletionDate: deletionDateStr,
+          reactivateUrl: d.reactivateUrl,
         })
       );
     }
