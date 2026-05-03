@@ -60,7 +60,7 @@ Welcome to the Vetify API! This API allows you to programmatically manage your v
 All API requests require authentication using an API key. Include your API key in the \`Authorization\` header:
 
 \`\`\`
-Authorization: Bearer vfy_a1b2c3d4_e5f6g7h8i9j0k1l2m3n4o5p6
+Authorization: Bearer vfy_xxxxxxxx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 \`\`\`
 
 API keys can be generated from your dashboard under Settings > API Keys.
