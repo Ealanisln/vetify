@@ -57,11 +57,15 @@ function sanitizeStructuredData(data: StructuredDataType): StructuredDataType | 
 }
 
 /**
- * Render structured data script tag
- * Server component for adding JSON-LD structured data to pages
+ * Render structured data script tag(s)
+ * Server component for adding JSON-LD structured data to pages.
  *
- * Note: This component sanitizes data to prevent errors with analytics
- * scripts (like Umami) that process JSON-LD by ensuring @context is always defined.
+ * When given an array of schemas, renders one <script type="application/ld+json">
+ * per schema (Google Search Central recommends separate scripts; this also
+ * prevents third-party JSON-LD scanners — e.g. Umami's analytics SDK — from
+ * crashing when they parse a script and call `parsed["@context"].toLowerCase()`
+ * on what they expect to be an object but is actually an array. See Sentry
+ * VETIFY-NEXTJS-1K.
  */
 export function StructuredData({
   data,
@@ -70,19 +74,33 @@ export function StructuredData({
 }) {
   const sanitizedData = sanitizeStructuredData(data);
 
-  // Don't render anything if data is invalid
   if (!sanitizedData) {
     return null;
   }
 
   // Note: dangerouslySetInnerHTML is safe here because the content is
   // JSON serialized from our own schema generation functions, not user input.
+  if (Array.isArray(sanitizedData)) {
+    return (
+      <>
+        {sanitizedData.map((schema, i) => {
+          const type = (schema as { '@type'?: string })['@type'] ?? 'Schema';
+          return (
+            <script
+              key={`ld-${type}-${i}`}
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+            />
+          );
+        })}
+      </>
+    );
+  }
+
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{
-        __html: JSON.stringify(sanitizedData),
-      }}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(sanitizedData) }}
     />
   );
 }
