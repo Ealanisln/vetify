@@ -6,6 +6,8 @@
  * - Appointment reminders
  * - Treatment reminders
  * - Trial lifecycle emails
+ * - Retention warnings (T-7d email before deletion)
+ * - Retention purge (delete tenants past 90-day grace)
  *
  * Workaround for Vercel free plan limit of 2 cron jobs.
  */
@@ -15,6 +17,8 @@ import * as Sentry from '@sentry/nextjs';
 import { checkAllTenantsInventory } from '@/lib/email/inventory-alerts';
 import { processAppointmentReminders, processTreatmentReminders } from '@/lib/email/reminder-alerts';
 import { processTrialLifecycleEmails } from '@/lib/email/trial-lifecycle';
+import { sendRetentionWarnings } from '@/lib/retention/notify';
+import { purgeExpiredTenants } from '@/lib/retention/purge';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120; // Allow up to 120 seconds for all tasks
@@ -110,11 +114,65 @@ export async function GET(request: NextRequest) {
     results.trialLifecycle = { success: false, error: msg };
   }
 
+  // Task 5: Retention warnings (T-7d email, idempotent via retentionWarningSentAt)
+  try {
+    console.log('[CRON] Running retention warnings...');
+    const notifyResult = await sendRetentionWarnings();
+    results.retentionWarnings = {
+      success: notifyResult.failed.length === 0,
+      scanned: notifyResult.scanned,
+      sent: notifyResult.sent.length,
+      skippedNoAdmin: notifyResult.skippedNoAdmin.length,
+      failed: notifyResult.failed.length,
+      remaining: notifyResult.remaining,
+    };
+    if (notifyResult.remaining) {
+      console.warn('[CRON] Retention warnings: more candidates remain, will resume next run');
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[CRON] Retention warnings failed:', msg);
+    errors.push(`retentionWarnings: ${msg}`);
+    results.retentionWarnings = { success: false, error: msg };
+  }
+
+  // Task 6: Retention purge (delete tenants past dataRetentionEndsAt)
+  try {
+    console.log('[CRON] Running retention purge...');
+    const purgeResult = await purgeExpiredTenants();
+    results.retentionPurge = {
+      success: purgeResult.failed.length === 0,
+      scanned: purgeResult.scanned,
+      purged: purgeResult.purged.length,
+      skippedReactivated: purgeResult.skippedReactivated.length,
+      failed: purgeResult.failed.length,
+      remaining: purgeResult.remaining,
+    };
+    if (purgeResult.purged.length > 0) {
+      console.warn('[CRON] Retention purge: deleted tenants', purgeResult.purged);
+    }
+    if (purgeResult.remaining) {
+      console.warn('[CRON] Retention purge: more candidates remain, will resume next run');
+    }
+    if (purgeResult.failed.length > 0) {
+      Sentry.captureMessage('Retention purge: per-tenant failures', {
+        level: 'error',
+        tags: { category: 'retention', issue: 'purge_failed' },
+        contexts: { failures: { failed: purgeResult.failed } },
+      });
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[CRON] Retention purge failed:', msg);
+    errors.push(`retentionPurge: ${msg}`);
+    results.retentionPurge = { success: false, error: msg };
+  }
+
   const allSuccess = errors.length === 0;
   console.log(`[CRON] Daily tasks complete. Success: ${allSuccess}, Errors: ${errors.length}`);
 
   if (errors.length > 0) {
-    Sentry.captureMessage(`Daily cron: ${errors.length}/4 tasks failed`, {
+    Sentry.captureMessage(`Daily cron: ${errors.length}/6 tasks failed`, {
       level: errors.length >= 3 ? 'fatal' : 'error',
       tags: { category: 'cron', failedTasks: errors.length },
       contexts: {

@@ -35,6 +35,13 @@ model Tenant {
   subscriptionStatus   SubscriptionStatus @default(INACTIVE)
   subscriptionEndsAt   DateTime?
 
+  // Data retention (90 days post-cancellation)
+  // Partial index "Tenant_dataRetention_idx" is created in raw SQL inside the
+  // add_data_retention migration — Prisma does not manage WHERE-clause indexes.
+  canceledAt             DateTime?
+  dataRetentionEndsAt    DateTime?
+  retentionWarningSentAt DateTime?
+
   // Campos para página pública
   publicPageEnabled    Boolean @default(false)
   publicDescription    String? @db.Text

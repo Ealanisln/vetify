@@ -18,7 +18,8 @@ export type EmailTemplate =
   | 'testimonial-request'
   | 'staff-invitation'
   | 'trial-expiring'
-  | 'trial-expired';
+  | 'trial-expired'
+  | 'data-retention-warning';
 
 export type EmailStatus =
   | 'PENDING'
@@ -310,6 +311,20 @@ export interface TrialExpiredData extends BaseEmailData {
 }
 
 /**
+ * Data Retention Warning Email Data
+ */
+export interface DataRetentionWarningData extends BaseEmailData {
+  template: 'data-retention-warning';
+  data: {
+    clinicName: string;
+    ownerName: string;
+    daysRemaining: number;
+    deletionDate: Date;
+    reactivateUrl: string;
+  };
+}
+
+/**
  * Union type for all email data types
  */
 export type EmailData =
@@ -326,7 +341,8 @@ export type EmailData =
   | TestimonialRequestData
   | StaffInvitationData
   | TrialExpiringData
-  | TrialExpiredData;
+  | TrialExpiredData
+  | DataRetentionWarningData;
 
 /**
  * Email send result

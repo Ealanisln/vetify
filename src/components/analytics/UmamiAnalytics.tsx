@@ -7,12 +7,13 @@ import { useEffect, useState } from 'react';
 /**
  * Umami Analytics Script Component
  *
- * This component conditionally loads Umami Analytics, excluding certain pages
- * that may have conflicts with the analytics script processing JSON-LD.
- *
- * Known issue: Umami's script processes JSON-LD structured data and can throw
- * "undefined is not an object (evaluating 'r["@context"].toLowerCase')" on pages
- * with complex authentication flows like /invite.
+ * Conditionally loads Umami Analytics. The exclusion list below is for routes
+ * where analytics is undesirable (auth flows, onboarding, etc.) — NOT for the
+ * legacy `r["@context"].toLowerCase` JSON-LD parser crash, which was fixed at
+ * the root in `StructuredData` (Sentry VETIFY-NEXTJS-1K) by emitting one
+ * `<script type="application/ld+json">` per schema instead of bundling them
+ * as an array. Routes can be removed from this list once their analytics
+ * exclusion is no longer justified by auth/privacy concerns.
  */
 
 // Pages where Umami should NOT be loaded to prevent conflicts
