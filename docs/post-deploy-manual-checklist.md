@@ -19,7 +19,7 @@ Se complementa con `pnpm test:post-deploy`, que valida automáticamente el smoke
 > Valida que un nuevo usuario puede registrarse, Kinde callback funciona y el tenant se crea con trial activo.
 
 - [ ] Abrir incógnito en https://www.vetify.pro y dar **Comenzar** / **Registrarse**.
-- [ ] Completar Kinde con email throwaway (ej. `qa+v$VERSION@vetify.pro` o un alias temporal).
+- [ ] Completar Kinde con email throwaway (ej. `ealanisln+v$VERSION@gmail.com` o un alias temporal con `+`).
 - [ ] Después del callback, debería redirigir a `/onboarding`.
 - [ ] Completar nombre de clínica + slug y enviar.
 - [ ] Aterriza en `/dashboard` con banner de trial activo.
@@ -32,33 +32,59 @@ Se complementa con `pnpm test:post-deploy`, que valida automáticamente el smoke
 
 ---
 
-## 2. Stripe checkout → suscripción activa
+## 2. Stripe checkout (en development.vetify.pro)
 
-> Valida la integración Stripe + el webhook (que tocaron #180 referidos y #181 retention).
+> Valida la **lógica de la aplicación**: que el flujo de checkout, redirects y sincronización post-webhook funcionan en el código que se desplegó. **No garantiza que funcione en producción** (ver paso 3).
 
-- [ ] Desde el tenant del paso 1 (o un tenant de prueba dedicado), ir a `/dashboard/settings?tab=subscription` o `/precios`.
+- [ ] Crear o usar un tenant de prueba **en dev** (NO el del paso 1, que vive en la DB de producción), e ir a `https://development.vetify.pro/dashboard/settings?tab=subscription` o `/precios`.
 - [ ] Elegir un plan (BÁSICO o PROFESIONAL) y completar checkout con tarjeta de **test mode** de Stripe (`4242 4242 4242 4242`, fecha futura, CVC cualquiera).
 - [ ] Después del pago, redirige al dashboard con confirmación.
-- [ ] (Vía Supabase MCP) verificar en `Tenant`:
+- [ ] (Vía Supabase MCP, branch de dev) verificar en `Tenant`:
   - `stripeCustomerId` poblado
   - `stripeSubscriptionId` poblado
   - `subscriptionStatus = 'ACTIVE'`
-- [ ] (Vía Supabase MCP) verificar que existe una fila en `TenantSubscription` para ese tenant.
+- [ ] (Vía Supabase MCP, branch de dev) verificar que existe una fila en `TenantSubscription` para ese tenant.
 
-**Si falla**: revisar logs de `/api/stripe/checkout` y `/api/stripe/webhook` en Vercel; revisar el evento en Stripe Dashboard.
+**Si falla en dev**: hay regresión en el código. Revisar logs de `/api/stripe/checkout` y `/api/stripe/webhook` en Vercel.
+
+> ℹ️ **Prerrequisito**: este flujo asume que `development.vetify.pro` tiene su **propio webhook de Stripe en test mode** apuntando a `https://development.vetify.pro/api/stripe/webhook`. Si ese webhook no existe o no está suscrito a los eventos, `subscriptionStatus` nunca pasará a `ACTIVE` — y eso es config de dev, NO una regresión del código.
+
+> ⚠️ **Pasar este test en dev NO confirma que prod funcione**. Las claves de Stripe (test vs live), el webhook signing secret, los price IDs y los eventos suscritos son **objetos distintos** entre los dos entornos. El paso 3 abajo cubre prod específicamente.
 
 ---
 
-## 3. Webhook de Stripe procesa eventos
+## 3. Stripe en producción real (sin meter datos basura)
 
-> El webhook fue modificado por #180 y #181 — riesgo alto de regresión silenciosa.
+> Esto valida que la **configuración de Stripe en `vetify-prod`** está correcta — claves live, webhook signing secret, eventos suscritos, price IDs. Es la única forma de detectar errores que solo aparecen en prod.
 
-- [ ] Abrir Stripe Dashboard → Developers → Webhooks → endpoint de producción.
-- [ ] Verificar que el último evento `checkout.session.completed` tiene status **Succeeded** (200).
-- [ ] Verificar que el último `customer.subscription.updated` también tiene status **Succeeded**.
-- [ ] Si hay eventos en **Failed** dentro de las últimas 24h: **investigar antes de cerrar el deploy**.
+### 3a. Verificar el webhook live (sin tocar nada)
 
-**Si falla**: el endpoint puede estar devolviendo 500. Revisar Sentry filtrando por `transaction:/api/stripe/webhook`.
+- [ ] Stripe Dashboard → modo **Live** (no test) → Developers → Webhooks → endpoint que apunta a `https://www.vetify.pro/api/stripe/webhook`.
+- [ ] Último evento `checkout.session.completed` (de un usuario real) con status **Succeeded** (200).
+- [ ] Último `customer.subscription.updated` también **Succeeded**.
+- [ ] Sin eventos en **Failed** las últimas 24h.
+- [ ] Lista de eventos suscritos coincide con lo que el handler espera (mínimo: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_failed`).
+
+### 3b. Verificar env vars de Stripe en Vercel prod
+
+- [ ] Vercel → `vetify-prod` → Settings → Environment Variables → Production scope:
+  - `STRIPE_SECRET_KEY` empieza con `sk_live_`
+  - `STRIPE_WEBHOOK_SECRET` empieza con `whsec_`
+  - `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` empieza con `pk_live_`
+- [ ] Localmente: `pnpm stripe:verify` confirma que los price IDs existen en modo live.
+
+### 3c. (Opcional pero recomendado) Test E2E real con refund inmediato
+
+> Si hubo cambios en el handler de webhook o en el flujo de checkout, vale la pena hacer una corrida real.
+
+- [ ] Crear tenant nuevo en `https://www.vetify.pro` con email throwaway.
+- [ ] Completar checkout con **tu propia tarjeta real** (NO la 4242 — esa es solo de test mode).
+- [ ] Verificar que `Tenant.subscriptionStatus='ACTIVE'` en DB de prod (Supabase MCP).
+- [ ] Inmediatamente: Stripe Dashboard live → encontrar el charge → **Refund full**.
+- [ ] Cancelar la suscripción desde Stripe Dashboard.
+- [ ] (Opcional) Borrar el tenant de prueba desde admin.
+
+**Si falla solo en prod (no en dev)**: el problema está en configuración (env vars, price IDs, webhook secret) o en algo cache-dependiente, no en el código. Revisar Sentry filtrando por `transaction:/api/stripe/webhook` y comparar el último evento Failed.
 
 ---
 
