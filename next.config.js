@@ -268,6 +268,9 @@ const sentryWebpackPluginOptions = {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
+  // Self-hosted GlitchTip endpoint for source map upload (Sentry-compatible API).
+  // Defaults to the production GlitchTip instance; SaaS Sentry needs no override.
+  sentryUrl: process.env.SENTRY_URL || 'https://glitchtip.alanis.dev',
   // Enable source maps upload for better error tracking
   hideSourceMaps: true,
   // Widen the upload scope to include all relevant files
