@@ -7,6 +7,28 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.7.0] - 2026-05-22
+
+### Agregado
+- **Migración de tracking de errores a GlitchTip self-hosted** ([#193](https://github.com/Ealanisln/vetify/pull/193))
+  - Cambio del backend de telemetría a `glitchtip.alanis.dev` (compatible con la API de Sentry; el SDK `@sentry/nextjs` no cambia)
+  - `next.config.js`: nueva opción `sentryUrl` (vía `SENTRY_URL`) para subida de source maps a GlitchTip
+  - CSP `connect-src` extendido a `https://glitchtip.alanis.dev` en `security/index.ts` e `input-sanitization.ts` (`*.sentry.io` permanece durante la transición)
+  - `.env.example` documenta `SENTRY_URL` y el formato del DSN de GlitchTip
+- **Flujo de validación post-deploy** ([#192](https://github.com/Ealanisln/vetify/pull/192))
+  - `scripts/post-deploy.mjs`: script automatizado de verificación post-deploy
+  - `docs/post-deploy-manual-checklist.md`: checklist manual de validación
+  - Smoke tests semanales E2E (`tests/e2e/weekly/weekly.smoke.spec.ts`) con configuración dedicada (`playwright.weekly.config.ts`)
+  - Checklist de Stripe separado por entorno: lógica de app (dev) vs configuración de cuenta (prod)
+
+### Corregido
+- **fix(security):** reemplazar ejemplo de bearer token en OpenAPI spec para satisfacer GitGuardian ([#191](https://github.com/Ealanisln/vetify/pull/191))
+- **test(e2e):** eliminar `waitForLoadState('networkidle')` flaky en pruebas responsive de `/actualizaciones`
+
+### Documentación
+- Documentar URL de producción (`https://www.vetify.pro`) y proyecto de Vercel en `CLAUDE.md`
+- `.gitignore`: ignorar artefactos de `.gstack/`
+
 ## [1.6.0] - 2026-05-03
 
 ### Agregado
