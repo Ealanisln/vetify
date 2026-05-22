@@ -208,8 +208,10 @@ test.describe('Actualizaciones Page', () => {
   test.describe('Responsive Design', () => {
     test('should display correctly on mobile viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
+      // reload() waits for the 'load' event by default; the toBeVisible()
+      // assertions below auto-wait. networkidle is flaky here (it can hang on
+      // any lingering connection after a reload) so we don't wait on it.
       await page.reload();
-      await page.waitForLoadState('networkidle');
 
       const title = page.locator('h1');
       await expect(title).toBeVisible();
@@ -220,8 +222,9 @@ test.describe('Actualizaciones Page', () => {
 
     test('should display correctly on tablet viewport', async ({ page }) => {
       await page.setViewportSize({ width: 768, height: 1024 });
+      // reload() waits for 'load' by default; toBeVisible() auto-waits.
+      // networkidle removed: flaky after a reload (see mobile viewport test).
       await page.reload();
-      await page.waitForLoadState('networkidle');
 
       const title = page.locator('h1');
       await expect(title).toBeVisible();
