@@ -1262,3 +1262,120 @@ test.describe('P1 - CRUD Ventas @weekly @p1 @crud', () => {
     expect(hasStatus || hasOpenBtn || hasCloseBtn).toBeTruthy()
   })
 })
+
+// ============================================================================
+// P0 - RECENT SHIPS REGRESSION @weekly @p0 @recent-ships
+// Targeted checks for areas touched by the most recent releases (v1.5.0 + v1.6.0):
+// referrals, data retention, appointments null-handling, JSON-LD SEO, OpenAPI.
+// All checks are READ-ONLY or expect rejection (4xx) — safe to run against production.
+// ============================================================================
+test.describe('P0 - Recent Ships Regression @weekly @p0 @recent-ships', () => {
+  test('Referral code endpoint handles unknown codes without 500 @weekly @p0 @recent-ships', async ({ request }) => {
+    // Regression for #180 (referral system). Unknown codes must not crash the handler.
+    const response = await request.get('/api/ref/test-code-does-not-exist-12345', {
+      maxRedirects: 0,
+      failOnStatusCode: false,
+    })
+    const status = response.status()
+    // Acceptable: redirect to landing, not-found, or graceful 200/204. NEVER 5xx.
+    expect(status).toBeGreaterThanOrEqual(200)
+    expect(status).toBeLessThan(500)
+  })
+
+  test('Appointments API rejects unauthenticated POST without 5xx @weekly @p0 @recent-ships', async ({ request }) => {
+    // Regression for #182 (null staffId/locationId handling). Confirm Zod path
+    // doesn't throw 500 even when staffId/locationId are absent. Without auth
+    // we expect 401/403, never a server crash.
+    const response = await request.post('/api/v1/appointments', {
+      data: {
+        petId: 'fake-pet-id',
+        customerId: 'fake-customer-id',
+        dateTime: new Date(Date.now() + 86400000).toISOString(),
+        reason: 'smoke test',
+        // intentionally no staffId / locationId
+      },
+      failOnStatusCode: false,
+    })
+    const status = response.status()
+    // Expected: 401/403 (no auth) or 400 (validation). NEVER 500.
+    expect(status).toBeGreaterThanOrEqual(400)
+    expect(status).toBeLessThan(500)
+  })
+
+  test('Landing page JSON-LD is valid structured data @weekly @p0 @recent-ships', async ({ page }) => {
+    // Regression for #185 (JSON-LD script tag fix for VETIFY-NEXTJS-1K Sentry issue).
+    await page.goto('/')
+    await page.waitForLoadState('domcontentloaded')
+
+    const ldScripts = await page.locator('script[type="application/ld+json"]').allTextContents()
+    expect(ldScripts.length).toBeGreaterThan(0)
+
+    // Each JSON-LD block must be valid JSON with @context and @type.
+    for (const raw of ldScripts) {
+      const parsed = JSON.parse(raw) as Record<string, unknown> | Record<string, unknown>[]
+      const items = Array.isArray(parsed) ? parsed : [parsed]
+      for (const item of items) {
+        expect(item['@context']).toBeDefined()
+        expect(item['@type']).toBeDefined()
+      }
+    }
+  })
+
+  test('OpenAPI spec endpoint responds without 5xx @weekly @p0 @recent-ships', async ({ request }) => {
+    // The OpenAPI handler is intended as public, but the middleware may gate
+    // all /api/* routes with an auth redirect (307 → /api/auth/login). Both
+    // outcomes are acceptable here — what we're verifying is that the spec
+    // infrastructure didn't crash. If 200, validate it's a valid OpenAPI 3.x doc.
+    const response = await request.get('/api/openapi.json', {
+      maxRedirects: 0,
+      failOnStatusCode: false,
+    })
+    const status = response.status()
+    expect(status).toBeGreaterThanOrEqual(200)
+    expect(status).toBeLessThan(500)
+
+    if (status === 200) {
+      const spec = await response.json()
+      expect(spec).toHaveProperty('openapi')
+      expect(spec.openapi).toMatch(/^3\./)
+      expect(spec).toHaveProperty('info')
+      expect(spec).toHaveProperty('paths')
+    }
+  })
+
+  test('Stripe webhook rejects unsigned requests without 5xx @weekly @p0 @recent-ships', async ({ request }) => {
+    // Both the referral system (#180) and data retention (#181) modified the Stripe
+    // webhook handler. Unsigned payloads must be rejected with a client error,
+    // never crash the handler. We send an empty JSON body without the Stripe-Signature header.
+    const response = await request.post('/api/stripe/webhook', {
+      data: {},
+      headers: { 'Content-Type': 'application/json' },
+      failOnStatusCode: false,
+    })
+    const status = response.status()
+    // Expected: 400 (no signature) or 401. NEVER 500.
+    expect(status).toBeGreaterThanOrEqual(400)
+    expect(status).toBeLessThan(500)
+  })
+
+  test('Daily cron endpoint is protected from unauthenticated access @weekly @p0 @recent-ships', async ({ request }) => {
+    // Regression for #181 (data retention). The cron endpoint runs the 90-day
+    // tenant purge — it MUST reject unauthenticated callers. Acceptable denials:
+    //   - 401/403 from the route handler's CRON_SECRET check
+    //   - 307 redirect from the global middleware to the auth login page
+    // A 200 here would mean the cron is exposed publicly — that's the regression
+    // we're guarding against.
+    const response = await request.get('/api/cron/daily-tasks', {
+      maxRedirects: 0,
+      failOnStatusCode: false,
+    })
+    const status = response.status()
+    expect([307, 401, 403]).toContain(status)
+
+    if (status === 307) {
+      // Redirect should land on the auth flow, not somewhere else.
+      const location = response.headers()['location'] || ''
+      expect(location).toMatch(/auth|login|kinde/i)
+    }
+  })
+})

@@ -1,6 +1,6 @@
 {
   "name": "vetify",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -34,6 +34,9 @@
     "test:e2e:weekly": "playwright test --config playwright.weekly.config.ts",
     "test:e2e:weekly:p0": "playwright test --config playwright.weekly.config.ts --grep '@p0'",
     "test:e2e:weekly:report": "playwright show-report playwright-report-weekly",
+    "test:post-deploy": "node scripts/post-deploy.mjs",
+    "test:post-deploy:prod": "TARGET=prod playwright test --config playwright.weekly.config.ts --project prod-smoke",
+    "test:post-deploy:local": "TEST_AUTH_ENABLED=true playwright test --config playwright.weekly.config.ts --project chromium --grep '@p0'",
     "test:all": "pnpm test:unit && pnpm test:integration && pnpm test:e2e",
     "test:critical": "node scripts/run-critical-tests.mjs",
     "test:pre-deploy": "pnpm test:critical && pnpm build",

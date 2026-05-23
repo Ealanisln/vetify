@@ -43,3 +43,8 @@ secret:
     # Stripe test webhook secret
     - name: "Stripe test webhook secret"
       match: "whsec_test_secret"
+    # OpenAPI documentation example bearer token (placeholder, not a real secret)
+    - name: "OpenAPI docs example bearer token - legacy"
+      match: "vfy_a1b2c3d4_e5f6g7h8i9j0k1l2m3n4o5p6"
+    - name: "OpenAPI docs example bearer token - current"
+      match: "vfy_xxxxxxxx_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"

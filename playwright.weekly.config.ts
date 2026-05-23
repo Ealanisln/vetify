@@ -10,9 +10,13 @@ import { defineConfig, devices } from '@playwright/test'
  * - Dedicated report output
  *
  * Usage:
- *   pnpm test:e2e:weekly          # Run full suite
- *   pnpm test:e2e:weekly:p0       # Run P0 (critical) tests only
+ *   pnpm test:e2e:weekly          # Run full suite (local)
+ *   pnpm test:e2e:weekly:p0       # Run P0 (critical) tests only (local)
+ *   pnpm test:post-deploy:prod    # Run prod-smoke project against production
  */
+const isProdTarget = process.env.TARGET === 'prod'
+const prodBaseURL = process.env.PROD_URL || 'https://www.vetify.pro'
+
 export default defineConfig({
   testDir: './tests/e2e/weekly',
   fullyParallel: false, // Sequential execution for stability
@@ -40,7 +44,7 @@ export default defineConfig({
   },
 
   projects: [
-    // Primary: Chromium only for weekly smoke tests
+    // Primary: Chromium only for weekly smoke tests (local)
     {
       name: 'chromium',
       use: {
@@ -48,7 +52,7 @@ export default defineConfig({
         viewport: { width: 1280, height: 720 },
       },
     },
-    // Mobile viewport for responsive tests
+    // Mobile viewport for responsive tests (local)
     {
       name: 'mobile',
       use: {
@@ -57,12 +61,30 @@ export default defineConfig({
       // Only run tests tagged with @mobile
       grep: /@mobile/,
     },
+    // Production read-only smoke: runs P0 tests that don't write data
+    // Skip authenticated and CRUD tests; targets the live production URL.
+    {
+      name: 'prod-smoke',
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 720 },
+        baseURL: prodBaseURL,
+      },
+      grep: /@p0/,
+      grepInvert: /@authenticated|@crud|@mobile/,
+    },
   ],
 
-  webServer: {
-    command: process.env.CI ? 'pnpm start' : 'pnpm dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  // Only spin up a local webServer when not targeting production.
+  // Setting TARGET=prod (used by test:post-deploy:prod) skips local server boot.
+  ...(isProdTarget
+    ? {}
+    : {
+        webServer: {
+          command: process.env.CI ? 'pnpm start' : 'pnpm dev',
+          url: 'http://localhost:3000',
+          reuseExistingServer: !process.env.CI,
+          timeout: 120 * 1000,
+        },
+      }),
 })

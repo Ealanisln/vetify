@@ -240,7 +240,8 @@ export const securityHeaders = {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https: http:",
     "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co https://*.stripe.com https://*.sentry.io wss://*.supabase.co https://analytics.alanis.dev",
+    // TODO(glitchtip-cutover): remove https://*.sentry.io once prod DSN is confirmed on GlitchTip
+    "connect-src 'self' https://*.supabase.co https://*.stripe.com https://*.sentry.io https://glitchtip.alanis.dev wss://*.supabase.co https://analytics.alanis.dev",
     "frame-src 'self' https://*.stripe.com https://www.facebook.com",
     "object-src 'none'",
     "base-uri 'self'",

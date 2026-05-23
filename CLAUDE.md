@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Vetify is a multi-tenant SaaS platform for veterinary practice management built with Next.js 15, React 19, TypeScript, Prisma, and PostgreSQL. The application uses Kinde Auth for authentication, Stripe for payments, and supports trial/subscription-based access control.
 
+### URLs
+
+- **Production**: `https://www.vetify.pro` (apex `vetify.pro` redirects to `www`)
+- **Vercel project**: `vetify-prod` (org `alanis-projects-98cc43e8`)
+- **Local dev**: `http://localhost:3000`
+
+> Note: `vetify.com` redirects to an unrelated company (Avetta) and `vetify.com.mx` is a parked GoDaddy page — do not use either.
+
 ## Package Manager
 
 **ALWAYS use `pnpm` for all package operations:**
