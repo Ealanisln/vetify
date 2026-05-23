@@ -164,6 +164,11 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.7.1] - 2026-05-22
+
+### Corregido
+- **fix(csp):** agregar \`https://glitchtip.alanis.dev\` al \`connect-src\` en \`next.config.js\` (la CSP real de las respuestas de prod, no la de \`src/lib/security/*\` que solo es informativa). Sin este cambio, los errores client-side de Sentry SDK quedaban bloqueados por CSP al hacer el cutover de DSN. Hotfix posterior a v1.7.0.
+
 ## [1.7.0] - 2026-05-22
 
 ### Agregado
