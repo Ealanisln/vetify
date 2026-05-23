@@ -405,10 +405,18 @@ export const config = {
      *
      * NOTE: /api/stripe/webhook is excluded to allow Stripe webhook delivery
      * without auth redirect. Stripe verifies requests via signature (STRIPE_WEBHOOK_SECRET).
+     *
+     * NOTE: /api/version and /api/health are excluded so monitoring tools and
+     * scripts/post-deploy.mjs can hit them without an authenticated session.
+     * Both are designed as public endpoints (no PII; just version + uptime).
+     *
+     * NOTE: /api/cron/* is excluded because each cron route enforces its own
+     * Bearer-token auth via CRON_SECRET. Letting Kinde redirect them to /api/auth/login
+     * would break Vercel cron invocations entirely.
      */
     '/dashboard/:path*',
     '/onboarding',
     '/admin/:path*',
-    '/api/((?!public/|auth/|invitations/|internal/|pricing|stripe/webhook).*)',
+    '/api/((?!public/|auth/|invitations/|internal/|pricing|stripe/webhook|version|health|cron/).*)',
   ],
 };
