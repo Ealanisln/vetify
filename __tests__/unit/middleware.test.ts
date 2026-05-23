@@ -416,5 +416,29 @@ describe('middleware', () => {
       expect(config.matcher).toContain('/onboarding');
       expect(config.matcher).toContain('/admin/:path*');
     });
+
+    it('should exclude public endpoints from the /api/ matcher', async () => {
+      // These endpoints are public (or self-auth'd) and must not hit Kinde's
+      // withAuth wrapper — otherwise they redirect to /api/auth/login.
+      // Regression guard for the post-v1.7.0 finding where /api/version,
+      // /api/health and /api/cron/* were being 307'd to login.
+      const { config } = await import('@/middleware');
+      const apiMatcher = (config.matcher as string[]).find((m) => m.startsWith('/api/'));
+      expect(apiMatcher).toBeDefined();
+
+      // Build the regex Next.js would compile from the matcher and assert
+      // the public endpoints are NOT matched (i.e. middleware skips them).
+      const pattern = apiMatcher!.replace(/^\/api\//, '');
+      const regex = new RegExp(`^/api/${pattern.slice(1, -1)}$`);
+
+      expect(regex.test('/api/version')).toBe(false);
+      expect(regex.test('/api/health')).toBe(false);
+      expect(regex.test('/api/cron/daily-tasks')).toBe(false);
+      expect(regex.test('/api/cron/treatment-reminders')).toBe(false);
+
+      // Sanity: protected endpoints still hit middleware.
+      expect(regex.test('/api/pets')).toBe(true);
+      expect(regex.test('/api/admin/anything')).toBe(true);
+    });
   });
 });
