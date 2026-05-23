@@ -7,6 +7,11 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.7.2] - 2026-05-22
+
+### Corregido
+- **fix(middleware):** excluir `/api/version`, `/api/health` y `/api/cron/*` del matcher de Kinde. Sin esto, `withAuth` redirige esos endpoints a `/api/auth/login` con 307, lo que rompía el script `scripts/post-deploy.mjs` introducido en v1.7.0 y cualquier herramienta de monitoreo externo. Los cron routes ya tienen su propia auth vía `CRON_SECRET`; version/health son intencionalmente públicos.
+
 ## [1.7.1] - 2026-05-22
 
 ### Corregido
