@@ -83,3 +83,6 @@ public/fallback-*.js
 public/fallback-*.js.map
 .playwright-mcp/
 .gstack/
+
+# RLS audit captures (raw schema dumps, not for commit)
+prisma/migrations/.audit/
