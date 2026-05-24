@@ -29,7 +29,7 @@ The intended outcome: the repo's `prisma/migrations/` becomes the single source 
 |---|---|---|---|---|
 | 0 | Pre-flight: baseline the repo + author the new migrations | none | none — all reads + local files | ✅ Done (commit `d8ba84e`, 2026-05-23) |
 | 1 | Dev reset: prod backup + wipe + re-baseline + restore (anonymized) + verify | low | none in prod (read-only snapshot) | ✅ Done (2026-05-23) |
-| 2 | **Window 1** — RLS hardening on prod | medium | brief cron pause | 🔄 Pre-flight starting 2026-05-24 |
+| 2 | **Window 1** — RLS hardening on prod | medium | brief cron pause | ✅ Done (2026-05-24) |
 | 3 | **Window 2** — PG 17 upgrade on prod | medium | 5–10 min downtime | ⏳ Pending |
 | 4 | Performance hygiene PR | low | none (CONCURRENTLY) | ⏳ Pending |
 | 5 | Verification + ongoing discipline | none | none | ⏳ Pending |
@@ -48,18 +48,21 @@ Phases 0 + 1 are entirely safe. Phase 2 is the first production-touching step.
 
 **Phase 1 complete (2026-05-23).** Dev = prod-schema + anonymized prod-data + 6 RLS migrations applied. Advisor: 0 ERRORs, 1 expected WARN (public booking), 6 expected INFO (default-deny audit tables). Found and fixed bug in migration 1 (PUBLIC EXECUTE not revoked) via new migration 5; added migration 6 to lock down `_prisma_migrations`. Both fixes will also apply to prod in Phase 2.
 
+**Phase 2 complete (2026-05-24, ~17:20–17:30 UTC).** Window 1 RLS hardening landed on prod with zero user-visible downtime. Pre-flight surfaced that prod's `_prisma_migrations` still held the 21 pre-rebaseline entries (Phase 0's `resolve --applied 0_init` step had never been executed against prod); added a W1.5 reconciliation step (delete old + resolve 0_init) inside the freeze. `prisma migrate deploy` then applied migrations 1–6 cleanly — no collisions with the residual `07_row_level_security_v2` policies we worried about. **Result: 15 ERROR → 0, 35 → 50 RLS-enabled tables, 36 → 59 policies.** Remaining advisor surface (1 WARN by-design public booking, 6 INFO by-design default-deny, 1 WARN `vulnerable_postgres_version` — Phase 3 target) exactly matches dev. Smoke flows (login, create pet, public booking, webhook delivery) all green.
+
 ### Phase 2 step checklist
 - [x] P1 ✅ 2026-05-24: prod `_prisma_migrations` has **21 OLD entries**, no `0_init`. **Rebaseline required** before W2 (decided: clean rebaseline — delete old, mark 0_init applied).
 - [x] P2 ✅ Prod advisor baseline saved: **15 ERROR** (14 rls_disabled + 1 sensitive_columns_exposed on Webhook.secret), 9 WARN (3 USING(true), 4 search_path_mutable, 2 SECURITY DEFINER, 1 pg_version), 3 INFO (RLS-no-policy).
 - [x] P4 ✅ Prod pooler reachable via `aws-0-us-east-1.pooler.supabase.com:5432`. PG 15.8, 50 tables, 35 with RLS.
-- [ ] Open Phase 2 PR against `development`
-- [ ] P3 Fresh prod pg_dump → encrypt → shred plaintext
-- [ ] W1 Pause `/api/cron/daily-tasks` via Vercel dashboard
-- [ ] W1.5 **NEW** — Reconcile `_prisma_migrations`: DELETE 21 old entries + `prisma migrate resolve --applied 0_init`
-- [ ] W2 `pnpm prisma migrate deploy` against prod (now applies 1–6 cleanly)
-- [ ] W3 Advisor diff + function ACL spot-check + `/api/health` + 4 smoke flows
-- [ ] W4 Re-enable cron + 30 min GlitchTip/Sentry watch
-- [ ] W5 Merge PR + final tracker update
+- [x] ✅ Phase 2 PR #202 opened + merged into `development`
+- [x] ✅ P3 Pre-window dump: `prisma/.audit/prod-dump-pre-rls-window-2026-05-24.dump.gpg` (58K, gpg AES256, passphrase in 1Password)
+- [x] ✅ W1 Cron `/api/cron/daily-tasks` paused via Vercel dashboard
+- [x] ✅ W1.5 Reconcile: deleted 21 stale `_prisma_migrations` entries, `prisma migrate resolve --applied 0_init` at 17:23 UTC
+- [x] ✅ W2 `prisma migrate deploy` applied migrations 1–6 to prod at 17:23 UTC, no policy collisions
+- [x] ✅ W3 Verify: **0 ERRORs** (was 15), 50 tables RLS-enabled (was 35), 59 policies (was 36), `/api/health` 200/214ms, function ACLs locked to postgres+service_role, data row counts intact (13 tenants / 38 customers / 25 pets)
+- [x] ✅ W3 Smoke flows: login, create pet, public booking, webhook delivery — all pass
+- [x] ✅ W4 Cron re-enabled in Vercel. 30-min watch skipped — no active real users on prod to generate meaningful traffic; smoke flows during W3 covered the regression-detection bases.
+- [x] ✅ W5 Tracker committed
 
 ---
 
