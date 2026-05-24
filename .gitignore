@@ -85,4 +85,6 @@ public/fallback-*.js.map
 .gstack/
 
 # RLS audit captures (raw schema dumps, not for commit)
+# Moved out of prisma/migrations/ because Prisma was enumerating it as a migration directory.
+prisma/.audit/
 prisma/migrations/.audit/
