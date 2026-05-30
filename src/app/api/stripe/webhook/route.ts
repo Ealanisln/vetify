@@ -8,6 +8,31 @@ import { incrementPromotionRedemptions } from '../../../../lib/promotions/querie
 import { markConversionConverted } from '../../../../lib/referrals/queries';
 import { notifyReferralConversion, notifyPartnerReferralSuccess } from '../../../../lib/email/referral-notifications';
 import Stripe from 'stripe';
+import { Prisma } from '@prisma/client';
+
+/**
+ * Best-effort update of the persisted webhook event status. Never throws —
+ * a logging failure must not turn a successfully-processed webhook into a 500
+ * (which would make Stripe retry an event whose side effects already ran).
+ */
+async function markEventStatus(
+  eventId: string,
+  status: 'PROCESSED' | 'FAILED',
+  error?: string
+): Promise<void> {
+  try {
+    await prisma.stripeWebhookEvent.update({
+      where: { id: eventId },
+      data: {
+        status,
+        error: error ?? null,
+        processedAt: status === 'PROCESSED' ? new Date() : null,
+      },
+    });
+  } catch (e) {
+    console.error('Webhook: Failed to update StripeWebhookEvent status:', e);
+  }
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
@@ -52,6 +77,49 @@ export async function POST(request: NextRequest) {
       { error: 'Firma inválida' },
       { status: 400 }
     );
+  }
+
+  // ── Idempotency guard ──────────────────────────────────────────────────
+  // Stripe delivers at-least-once: the same event can arrive multiple times
+  // (network retries, our own 500s). The primary key is the Stripe event id,
+  // so a redelivery collides on INSERT. If we already PROCESSED it, skip —
+  // otherwise the non-idempotent side effects (referral commissions, promo
+  // redemptions) would run twice and double-count real money.
+  try {
+    await prisma.stripeWebhookEvent.create({
+      data: {
+        id: event.id,
+        type: event.type,
+        livemode: event.livemode,
+        apiVersion: event.api_version ?? null,
+        status: 'RECEIVED',
+      },
+    });
+  } catch (dedupeError) {
+    if (
+      dedupeError instanceof Prisma.PrismaClientKnownRequestError &&
+      dedupeError.code === 'P2002'
+    ) {
+      const existing = await prisma.stripeWebhookEvent.findUnique({
+        where: { id: event.id },
+      });
+      if (existing?.status === 'PROCESSED') {
+        console.log(`Webhook: Duplicate event ${event.id} already processed — skipping`);
+        return NextResponse.json({ received: true, duplicate: true, event_type: event.type });
+      }
+      // A previous attempt was recorded but never finished (crash / transient
+      // failure). Allow reprocessing and bump the attempt counter for audit.
+      await prisma.stripeWebhookEvent.update({
+        where: { id: event.id },
+        data: { attempts: { increment: 1 }, status: 'RECEIVED', error: null },
+      });
+      console.warn(`Webhook: Reprocessing previously-unfinished event ${event.id}`);
+    } else {
+      // Persisting the dedupe record failed for some other reason. Don't drop
+      // the event — log and continue processing (better duplicate-risk than
+      // silently losing a payment event).
+      console.error('Webhook: Failed to record event for idempotency:', dedupeError);
+    }
   }
 
   try {
@@ -116,6 +184,7 @@ export async function POST(request: NextRequest) {
                 },
               },
             });
+            await markEventStatus(event.id, 'FAILED', 'sync_failed:checkout.session.completed');
             return NextResponse.json(
               { error: 'Subscription sync failed', subscriptionId: subscription.id },
               { status: 500 }
@@ -171,6 +240,7 @@ export async function POST(request: NextRequest) {
               },
             },
           });
+          await markEventStatus(event.id, 'FAILED', `sync_failed:${event.type}`);
           return NextResponse.json(
             { error: 'Subscription sync failed', subscriptionId: subscription.id },
             { status: 500 }
@@ -195,7 +265,28 @@ export async function POST(request: NextRequest) {
           const subscription = await stripe.subscriptions.retrieve(
             invoice.subscription as string
           );
-          await handleSubscriptionChange(subscription);
+          const invoiceSyncSuccess = await handleSubscriptionChange(subscription);
+          if (invoiceSyncSuccess === false) {
+            // The payment itself succeeded, so we don't 500 (that would make
+            // Stripe retry a charge that already cleared, and customer.subscription.updated
+            // will re-attempt the sync anyway). But surface it: a paid invoice
+            // that failed to sync means a paying customer may lack access.
+            console.error('Webhook: handleSubscriptionChange returned false for invoice.payment_succeeded', {
+              subscriptionId: subscription.id,
+              customer: invoice.customer,
+            });
+            Sentry.captureMessage('Webhook: subscription sync failed on invoice.payment_succeeded', {
+              level: 'warning',
+              tags: { category: 'payments', issue: 'sync_failed_invoice' },
+              contexts: {
+                subscription: {
+                  id: subscription.id,
+                  status: subscription.status,
+                  customer: invoice.customer as string,
+                },
+              },
+            });
+          }
           console.log('Webhook: Invoice payment processed successfully');
 
           // Send admin notification for successful payment (non-blocking)
@@ -387,10 +478,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    await markEventStatus(event.id, 'PROCESSED');
     console.log('=== WEBHOOK DEBUG END SUCCESS ===');
     return NextResponse.json({ received: true, event_type: event.type });
   } catch (error) {
     console.error('Webhook: Error processing event:', error);
+    await markEventStatus(event.id, 'FAILED', error instanceof Error ? error.message : 'Unknown error');
     console.log('=== WEBHOOK DEBUG END ERROR ===');
     return NextResponse.json(
       { error: 'Error al procesar webhook', details: error instanceof Error ? error.message : 'Unknown error' },

@@ -40,8 +40,24 @@ jest.mock('@/lib/email/admin-notifications', () => ({
   notifyNewSubscriptionPayment: mockNotifyNewSubscriptionPayment,
 }));
 
+// Mock Sentry so we can assert payment-issue capture without a real DSN
+jest.mock('@sentry/nextjs', () => ({
+  captureMessage: jest.fn(),
+  captureException: jest.fn(),
+}));
+
+import { Prisma } from '@prisma/client';
+import * as Sentry from '@sentry/nextjs';
+
 // Import after mocks
 import { POST } from '@/app/api/stripe/webhook/route';
+
+// P2002 = unique constraint violation (duplicate Stripe event id on insert)
+const makeP2002 = () =>
+  new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+    code: 'P2002',
+    clientVersion: 'test',
+  });
 
 // Test data factories
 const createMockSubscription = (overrides = {}): Partial<Stripe.Subscription> => ({
@@ -761,6 +777,120 @@ describe('Stripe Webhook API Integration Tests', () => {
 
       expect(response.status).toBe(200);
       expect(mockNotifyNewSubscriptionPayment).not.toHaveBeenCalled();
+    });
+
+    it('should capture Sentry warning (but still 200) when sync returns false on paid invoice', async () => {
+      const invoice = createMockInvoice();
+      const subscription = createMockSubscription();
+      const event = createMockEvent('invoice.payment_succeeded', invoice);
+
+      mockStripe.webhooks.constructEvent.mockReturnValue(event);
+      mockStripe.subscriptions.retrieve.mockResolvedValue(subscription);
+      mockStripe.customers.retrieve.mockResolvedValue(createMockCustomer({ metadata: {} }));
+      // Sync explicitly fails for a paid invoice
+      mockHandleSubscriptionChange.mockResolvedValue(false);
+
+      const request = createMockRequest({});
+      const response = await POST(request);
+
+      // Payment cleared → we must NOT 500, but we MUST surface the failure
+      expect(response.status).toBe(200);
+      expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        'Webhook: subscription sync failed on invoice.payment_succeeded',
+        expect.objectContaining({
+          level: 'warning',
+          tags: expect.objectContaining({ issue: 'sync_failed_invoice' }),
+        })
+      );
+    });
+  });
+
+  describe('Idempotency (StripeWebhookEvent)', () => {
+    it('should record every received event keyed by Stripe event id', async () => {
+      const event = createMockEvent('customer.subscription.updated', createMockSubscription());
+      mockStripe.webhooks.constructEvent.mockReturnValue(event);
+      mockHandleSubscriptionChange.mockResolvedValue(true);
+
+      const request = createMockRequest({});
+      await POST(request);
+
+      expect(prismaMock.stripeWebhookEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            id: 'evt_test_123',
+            type: 'customer.subscription.updated',
+            status: 'RECEIVED',
+          }),
+        })
+      );
+      // On success the event is marked PROCESSED
+      expect(prismaMock.stripeWebhookEvent.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'evt_test_123' },
+          data: expect.objectContaining({ status: 'PROCESSED' }),
+        })
+      );
+    });
+
+    it('should SKIP a duplicate event that was already PROCESSED (no double side effects)', async () => {
+      const event = createMockEvent('invoice.payment_succeeded', createMockInvoice());
+      mockStripe.webhooks.constructEvent.mockReturnValue(event);
+      // Insert collides → already-seen event, and it was fully processed before
+      prismaMock.stripeWebhookEvent.create.mockRejectedValue(makeP2002());
+      prismaMock.stripeWebhookEvent.findUnique.mockResolvedValue({
+        id: 'evt_test_123',
+        status: 'PROCESSED',
+      } as any);
+
+      const request = createMockRequest({});
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.duplicate).toBe(true);
+      // Critical: the non-idempotent work must NOT run again
+      expect(mockStripe.subscriptions.retrieve).not.toHaveBeenCalled();
+      expect(mockHandleSubscriptionChange).not.toHaveBeenCalled();
+    });
+
+    it('should REPROCESS a duplicate whose previous attempt never finished', async () => {
+      const event = createMockEvent('customer.subscription.updated', createMockSubscription());
+      mockStripe.webhooks.constructEvent.mockReturnValue(event);
+      prismaMock.stripeWebhookEvent.create.mockRejectedValue(makeP2002());
+      // Recorded earlier but stuck in RECEIVED (a prior crash) → safe to retry
+      prismaMock.stripeWebhookEvent.findUnique.mockResolvedValue({
+        id: 'evt_test_123',
+        status: 'RECEIVED',
+      } as any);
+      mockHandleSubscriptionChange.mockResolvedValue(true);
+
+      const request = createMockRequest({});
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
+      // Attempt counter bumped
+      expect(prismaMock.stripeWebhookEvent.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'evt_test_123' },
+          data: expect.objectContaining({ attempts: { increment: 1 } }),
+        })
+      );
+      // And processing actually runs
+      expect(mockHandleSubscriptionChange).toHaveBeenCalled();
+    });
+
+    it('should still process the event if the idempotency record write fails for a non-P2002 reason', async () => {
+      const event = createMockEvent('customer.subscription.updated', createMockSubscription());
+      mockStripe.webhooks.constructEvent.mockReturnValue(event);
+      // Some other DB error — we must not drop a real payment event
+      prismaMock.stripeWebhookEvent.create.mockRejectedValue(new Error('connection reset'));
+      mockHandleSubscriptionChange.mockResolvedValue(true);
+
+      const request = createMockRequest({});
+      const response = await POST(request);
+
+      expect(response.status).toBe(200);
+      expect(mockHandleSubscriptionChange).toHaveBeenCalled();
     });
   });
 });
