@@ -1,0 +1,27 @@
+-- =============================================================================
+-- 6_rls_enable_prisma_migrations
+-- =============================================================================
+-- Silences the final advisor ERROR `rls_disabled_in_public` for the
+-- _prisma_migrations table. Migration 2 deliberately skipped this table on
+-- the assumption that "RLS would interfere with Prisma's migration
+-- management", but that's incorrect: Prisma connects as the `postgres` role
+-- (table owner + BYPASSRLS attribute on Supabase), so RLS doesn't gate it.
+--
+-- WHAT THIS DOES
+--   1. Enable RLS on _prisma_migrations.
+--   2. Add no policies → default-deny for anon and authenticated.
+--   3. postgres + service_role continue to read/write freely (they bypass RLS).
+--
+-- WHY
+--   _prisma_migrations is exposed via PostgREST by default. Without RLS, an
+--   anon caller could probe it via /rest/v1/_prisma_migrations and see the
+--   project's migration history (file names, applied timestamps, checksums)
+--   — useful reconnaissance for an attacker. This brings _prisma_migrations
+--   in line with SecurityAuditLog / AdminAuditLog (also default-deny via
+--   migration 2).
+--
+-- IDEMPOTENCY
+--   ALTER TABLE ... ENABLE ROW LEVEL SECURITY is idempotent. Safe to re-run.
+-- =============================================================================
+
+ALTER TABLE public._prisma_migrations ENABLE ROW LEVEL SECURITY;
