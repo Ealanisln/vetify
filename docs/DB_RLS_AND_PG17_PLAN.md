@@ -1,6 +1,6 @@
 # Vetify — Supabase DB Security + PG 17 Upgrade Remediation Plan
 
-**Date:** 2026-05-23 (updated 2026-05-23 to add prod-backup + anonymized restore to Phase 1)
+**Date:** 2026-05-23 (updated 2026-06-03: Phase 2 complete on prod 2026-05-24; rebaseline + tracker promoted development→main as v1.8.0)
 **Source audit:** `~/.gstack/projects/Ealanisln-vetify/ealanis-db-health-audit-20260523.md`
 **Confirmed decisions:**
 - Dev reset strategy: **wipe dev, re-baseline from prod schema dump, restore anonymized prod data**

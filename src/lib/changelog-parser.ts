@@ -164,6 +164,18 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.8.0] - 2026-06-02
+
+### Seguridad
+- **RLS hardening en producción.** Se habilitó Row Level Security en todas las tablas multi-tenant y se reemplazaron las políticas permisivas \`USING (true)\`. El advisor de seguridad de Supabase pasó de **15 ERRORs a 0**. La función \`user_tenant_id()\` ya no es ejecutable por los roles \`anon\`, \`authenticated\` ni \`PUBLIC\` (migraciones \`1\` y \`5\`). Las tablas de solo-service-role (\`SecurityAuditLog\`, \`AdminAuditLog\`, \`_prisma_migrations\`) quedan en default-deny (migraciones \`2\` y \`6\`).
+
+### Cambiado
+- **Rebaseline de migraciones de Prisma.** Las 21 migraciones históricas se consolidaron en un set canónico (\`0_init\` + migraciones RLS \`1\`–\`6\`), alineando el historial del repositorio con el estado real de la base de datos de producción.
+- **Reset del entorno de desarrollo.** Dev se reconstruye desde el set canónico con datos de producción anonimizados vía \`scripts/anonymize-dev.mjs\` (limpieza de PII + rotación de secretos, con guard anti-producción por hostname).
+
+### Documentación
+- \`docs/DB_RLS_AND_PG17_PLAN.md\`: tracker de migraciones/RLS/PG17 reconciliado con el estado verificado de producción (Fase 2 completa; Fase 3 — upgrade a PostgreSQL 17 — pendiente).
+
 ## [1.7.2] - 2026-05-22
 
 ### Corregido
