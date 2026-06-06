@@ -324,7 +324,9 @@ export async function createCheckoutSession({
     // Cancel all existing active subscriptions to prevent duplicates
     for (const sub of existingSubscriptions.data) {
       console.log(`Canceling existing subscription ${sub.id} before creating new one`);
-      await stripe.subscriptions.cancel(sub.id);
+      await stripe.subscriptions.cancel(sub.id, undefined, {
+        idempotencyKey: `cancel-existing:${tenant.id}:${sub.id}`,
+      });
     }
   }
 
@@ -424,7 +426,9 @@ export async function createCheckoutSessionForAPI({
     // Cancel all existing active subscriptions to prevent duplicates
     for (const sub of existingSubscriptions.data) {
       console.log(`[API] Canceling existing subscription ${sub.id} before creating new one`);
-      await stripe.subscriptions.cancel(sub.id);
+      await stripe.subscriptions.cancel(sub.id, undefined, {
+        idempotencyKey: `cancel-existing:${tenant.id}:${sub.id}`,
+      });
     }
   }
 
@@ -600,6 +604,10 @@ async function createOrRetrieveCustomer(tenant: Tenant, userId: string) {
           userId: userId,
           clinicName: tenant.name || '' // Agregar nombre de la clínica para contexto
         }
+      }, {
+        // Dedupe concurrent/retried checkout starts: a double-submit within the
+        // idempotency window returns the same customer instead of creating two.
+        idempotencyKey: `customer-create:${tenant.id}:${userId}`,
       });
     }
 
