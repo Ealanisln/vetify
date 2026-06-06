@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isSlugAvailable } from '../../../../lib/tenant';
+import { isSlugAvailable, generateUniqueSlug } from '../../../../lib/tenant';
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,10 +23,14 @@ export async function GET(request: NextRequest) {
 
     const available = await isSlugAvailable(slug);
 
+    // Si está ocupada, sugerir una URL libre para que el cliente no se trabe.
+    const suggestion = available ? undefined : await generateUniqueSlug(slug);
+
     return NextResponse.json({
       available,
-      message: available 
-        ? 'Esta URL está disponible' 
+      suggestion,
+      message: available
+        ? 'Esta URL está disponible'
         : 'Esta URL ya está en uso'
     });
 

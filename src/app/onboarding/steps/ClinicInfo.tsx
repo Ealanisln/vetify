@@ -9,13 +9,13 @@ interface ClinicInfoProps {
     email: string;
     name?: string;
   } | null;
-  onNext: (info: {
+  onSubmit: (info: {
     clinicName: string;
     slug: string;
     phone?: string;
     address?: string;
   }) => void;
-  onBack: () => void;
+  isSubmitting: boolean;
   initialData?: {
     clinicName: string;
     slug: string;
@@ -24,13 +24,14 @@ interface ClinicInfoProps {
   };
 }
 
-export function ClinicInfo({ onNext, onBack, initialData }: ClinicInfoProps) {
+export function ClinicInfo({ onSubmit, isSubmitting, initialData }: ClinicInfoProps) {
   const [clinicName, setClinicName] = useState(initialData?.clinicName || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [phone, setPhone] = useState(initialData?.phone || '');
   const [address, setAddress] = useState(initialData?.address || '');
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  const [slugSuggestion, setSlugSuggestion] = useState<string | null>(null);
 
   // Auto-generate slug from clinic name
   useEffect(() => {
@@ -47,6 +48,7 @@ export function ClinicInfo({ onNext, onBack, initialData }: ClinicInfoProps) {
       checkSlugAvailability(slug);
     } else {
       setSlugAvailable(null);
+      setSlugSuggestion(null);
     }
   }, [slug]);
 
@@ -55,9 +57,11 @@ export function ClinicInfo({ onNext, onBack, initialData }: ClinicInfoProps) {
       const response = await fetch(`/api/onboarding/check-slug?slug=${slugToCheck}`);
       const data = await response.json();
       setSlugAvailable(data.available);
+      setSlugSuggestion(data.available ? null : (data.suggestion ?? null));
     } catch (error) {
       console.error('Error checking slug:', error);
       setSlugAvailable(false);
+      setSlugSuggestion(null);
     } finally {
       setIsCheckingSlug(false);
     }
@@ -65,24 +69,25 @@ export function ClinicInfo({ onNext, onBack, initialData }: ClinicInfoProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (clinicName && slug && slugAvailable) {
-      onNext({
-        clinicName,
-        slug,
-        phone: phone || undefined,
-        address: address || undefined,
-      });
-    }
+    if (!clinicName || !slug || isCheckingSlug || isSubmitting) return;
+    // Si la URL elegida está ocupada, usamos la sugerencia libre.
+    const finalSlug = slugAvailable === false && slugSuggestion ? slugSuggestion : slug;
+    onSubmit({
+      clinicName,
+      slug: finalSlug,
+      phone: phone || undefined,
+      address: address || undefined,
+    });
   };
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="space-y-4 md:space-y-6 max-w-2xl mx-auto">
       <div className="text-center">
         <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Información de tu clínica
+          Crea tu clínica
         </h2>
         <p className="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400">
-          Configura los datos básicos de tu clínica veterinaria
+          Solo necesitamos lo básico para empezar. Lo demás lo configuras dentro.
         </p>
       </div>
 
@@ -129,11 +134,13 @@ export function ClinicInfo({ onNext, onBack, initialData }: ClinicInfoProps) {
           {isCheckingSlug && (
             <p className="mt-1 text-sm text-gray-500">Verificando disponibilidad...</p>
           )}
-          {slugAvailable === true && (
+          {!isCheckingSlug && slugAvailable === true && (
             <p className="mt-1 text-sm text-green-600">✅ URL disponible</p>
           )}
-          {slugAvailable === false && (
-            <p className="mt-1 text-sm text-red-600">❌ URL no disponible</p>
+          {!isCheckingSlug && slugAvailable === false && slugSuggestion && (
+            <p className="mt-1 text-sm text-amber-600 dark:text-amber-500">
+              Esa URL ya está ocupada — usaremos <span className="font-medium">vetify.app/{slugSuggestion}</span>
+            </p>
           )}
         </div>
 
@@ -147,7 +154,7 @@ export function ClinicInfo({ onNext, onBack, initialData }: ClinicInfoProps) {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#75a99c] focus:ring-[#75a99c] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-            placeholder="+1 (555) 123-4567"
+            placeholder="+52 (55) 1234-5678"
           />
         </div>
 
@@ -165,23 +172,28 @@ export function ClinicInfo({ onNext, onBack, initialData }: ClinicInfoProps) {
           />
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 pt-4">
-          <button
-            type="button"
-            onClick={onBack}
-            className="w-full sm:flex-1 py-3 px-4 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 transition-all"
-          >
-            Atrás
-          </button>
-          <button
-            type="submit"
-            disabled={!clinicName || !slug || !slugAvailable}
-            className="w-full sm:flex-1 py-3 px-4 bg-[#75a99c] hover:bg-[#5b9788] disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all"
-          >
-            Continuar
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={!clinicName || !slug || isCheckingSlug || isSubmitting}
+          className="w-full py-3 px-4 bg-[#75a99c] hover:bg-[#5b9788] disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all"
+        >
+          {isSubmitting ? (
+            <div className="flex items-center justify-center">
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Creando tu clínica...
+            </div>
+          ) : (
+            'Empezar gratis'
+          )}
+        </button>
+
+        <p className="text-center text-sm text-green-600 dark:text-green-400 font-medium">
+          ✅ 30 días gratis · Sin tarjeta · Plan Profesional completo
+        </p>
       </form>
     </div>
   );
-} 
+}
