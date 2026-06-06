@@ -263,9 +263,13 @@ describe('Stripe Webhook API Integration Tests', () => {
       const request = createMockRequest({});
       await POST(request);
 
-      // Should cancel the duplicate but not the current subscription
+      // Should cancel the duplicate but not the current subscription.
+      // Fase D: cancel carries an idempotency key so a webhook redelivery
+      // (or our own retry) doesn't issue the cancel twice.
       expect(mockStripe.subscriptions.cancel).toHaveBeenCalledTimes(1);
-      expect(mockStripe.subscriptions.cancel).toHaveBeenCalledWith('sub_duplicate_123');
+      expect(mockStripe.subscriptions.cancel).toHaveBeenCalledWith('sub_duplicate_123', undefined, {
+        idempotencyKey: 'cancel-dup:evt_test_123:sub_duplicate_123',
+      });
     });
 
     it('should not cancel any subscriptions when only one exists', async () => {
@@ -701,10 +705,14 @@ describe('Stripe Webhook API Integration Tests', () => {
       const request = createMockRequest({});
       await POST(request);
 
-      // Should cancel both duplicates
+      // Should cancel both duplicates, each with its own idempotency key (Fase D)
       expect(mockStripe.subscriptions.cancel).toHaveBeenCalledTimes(2);
-      expect(mockStripe.subscriptions.cancel).toHaveBeenCalledWith('sub_dup_1');
-      expect(mockStripe.subscriptions.cancel).toHaveBeenCalledWith('sub_dup_2');
+      expect(mockStripe.subscriptions.cancel).toHaveBeenCalledWith('sub_dup_1', undefined, {
+        idempotencyKey: 'cancel-dup:evt_test_123:sub_dup_1',
+      });
+      expect(mockStripe.subscriptions.cancel).toHaveBeenCalledWith('sub_dup_2', undefined, {
+        idempotencyKey: 'cancel-dup:evt_test_123:sub_dup_2',
+      });
     });
 
     it('should use fallback plan name when price has no nickname', async () => {
