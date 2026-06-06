@@ -2,27 +2,53 @@ import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import * as Sentry from '@sentry/nextjs';
 import { stripe, handleSubscriptionChange } from '../../../../lib/payments/stripe';
+import { isPermanentError } from '../../../../lib/payments/webhook-errors';
 import { notifyNewSubscriptionPayment, notifyPaymentFailed } from '../../../../lib/email/admin-notifications';
 import { prisma } from '../../../../lib/prisma';
 import { incrementPromotionRedemptions } from '../../../../lib/promotions/queries';
 import { markConversionConverted } from '../../../../lib/referrals/queries';
 import { notifyReferralConversion, notifyPartnerReferralSuccess } from '../../../../lib/email/referral-notifications';
+import { createLogger } from '../../../../lib/logger';
 import Stripe from 'stripe';
+import { Prisma } from '@prisma/client';
+
+const log = createLogger('stripe.webhook');
+
+/**
+ * Best-effort update of the persisted webhook event status. Never throws —
+ * a logging failure must not turn a successfully-processed webhook into a 500
+ * (which would make Stripe retry an event whose side effects already ran).
+ */
+async function markEventStatus(
+  eventId: string,
+  status: 'PROCESSED' | 'FAILED',
+  error?: string
+): Promise<void> {
+  try {
+    await prisma.stripeWebhookEvent.update({
+      where: { id: eventId },
+      data: {
+        status,
+        error: error ?? null,
+        processedAt: status === 'PROCESSED' ? new Date() : null,
+      },
+    });
+  } catch (e) {
+    log.error('Failed to update StripeWebhookEvent status', {
+      eventId,
+      status,
+      err: e instanceof Error ? e.message : String(e),
+    });
+  }
+}
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const headersList = await headers();
   const signature = headersList.get('stripe-signature');
 
-  console.log('=== WEBHOOK DEBUG START ===');
-  console.log('Webhook: Received request');
-  console.log('Webhook: Body length:', body.length);
-  console.log('Webhook: Signature present:', !!signature);
-  console.log('Webhook: STRIPE_WEBHOOK_SECRET present:', !!process.env.STRIPE_WEBHOOK_SECRET);
-
   if (!signature) {
-    console.error('Webhook: No signature found in headers');
-    console.log('Webhook: Available headers:', Object.keys(headersList));
+    log.warn('Rejected: no stripe-signature header');
     return NextResponse.json(
       { error: 'No se encontró la firma' },
       { status: 400 }
@@ -30,7 +56,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error('Webhook: STRIPE_WEBHOOK_SECRET environment variable is not set');
+    log.error('Misconfigured: STRIPE_WEBHOOK_SECRET is not set');
     return NextResponse.json(
       { error: 'Webhook secret not configured' },
       { status: 500 }
@@ -45,44 +71,79 @@ export async function POST(request: NextRequest) {
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-    console.log('Webhook: Event received and verified successfully:', event.type, event.id);
   } catch (error) {
-    console.error('Webhook: Error verifying signature:', error);
+    log.warn('Rejected: signature verification failed', {
+      err: error instanceof Error ? error.message : String(error),
+    });
     return NextResponse.json(
       { error: 'Firma inválida' },
       { status: 400 }
     );
   }
 
+  // Per-event logger so every downstream line is tagged with the event id/type.
+  const elog = log.child({ eventId: event.id, type: event.type, livemode: event.livemode });
+  elog.info('Event verified');
+
+  // ── Idempotency guard ──────────────────────────────────────────────────
+  // Stripe delivers at-least-once: the same event can arrive multiple times
+  // (network retries, our own 500s). The primary key is the Stripe event id,
+  // so a redelivery collides on INSERT. If we already PROCESSED it, skip —
+  // otherwise the non-idempotent side effects (referral commissions, promo
+  // redemptions) would run twice and double-count real money.
+  try {
+    await prisma.stripeWebhookEvent.create({
+      data: {
+        id: event.id,
+        type: event.type,
+        livemode: event.livemode,
+        apiVersion: event.api_version ?? null,
+        status: 'RECEIVED',
+      },
+    });
+  } catch (dedupeError) {
+    if (
+      dedupeError instanceof Prisma.PrismaClientKnownRequestError &&
+      dedupeError.code === 'P2002'
+    ) {
+      const existing = await prisma.stripeWebhookEvent.findUnique({
+        where: { id: event.id },
+      });
+      if (existing?.status === 'PROCESSED') {
+        elog.info('Duplicate event already processed — skipping');
+        return NextResponse.json({ received: true, duplicate: true, event_type: event.type });
+      }
+      // A previous attempt was recorded but never finished (crash / transient
+      // failure). Allow reprocessing and bump the attempt counter for audit.
+      await prisma.stripeWebhookEvent.update({
+        where: { id: event.id },
+        data: { attempts: { increment: 1 }, status: 'RECEIVED', error: null },
+      });
+      elog.warn('Reprocessing previously-unfinished event');
+    } else {
+      // Persisting the dedupe record failed for some other reason. Don't drop
+      // the event — log and continue processing (better duplicate-risk than
+      // silently losing a payment event).
+      elog.error('Failed to record event for idempotency', {
+        err: dedupeError instanceof Error ? dedupeError.message : String(dedupeError),
+      });
+    }
+  }
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
-        console.log('Webhook: Processing checkout.session.completed');
         const session = event.data.object as Stripe.Checkout.Session;
-
-        console.log('Webhook: Session details:', {
-          id: session.id,
+        elog.info('Processing checkout.session.completed', {
+          sessionId: session.id,
           mode: session.mode,
-          payment_status: session.payment_status,
-          status: session.status,
-          subscription: session.subscription,
-          customer: session.customer
+          paymentStatus: session.payment_status,
         });
 
         if (session.mode === 'subscription' && session.subscription) {
-          console.log('Webhook: Retrieving subscription:', session.subscription);
           const subscription = await stripe.subscriptions.retrieve(
             session.subscription as string
           );
-
-          console.log('Webhook: Subscription details:', {
-            id: subscription.id,
-            status: subscription.status,
-            trial_start: subscription.trial_start,
-            trial_end: subscription.trial_end,
-            current_period_end: subscription.current_period_end,
-            customer: subscription.customer
-          });
 
           // ✅ Cancel any other active subscriptions for this customer
           const customerId = subscription.customer as string;
@@ -94,14 +155,19 @@ export async function POST(request: NextRequest) {
 
           for (const otherSub of otherSubscriptions.data) {
             if (otherSub.id !== subscription.id) {
-              console.log(`Webhook: Canceling duplicate subscription ${otherSub.id}`);
-              await stripe.subscriptions.cancel(otherSub.id);
+              elog.info('Canceling duplicate subscription', { subscriptionId: otherSub.id });
+              // Idempotency key keyed on the event + target sub so a Stripe
+              // redelivery (or our own retry) doesn't issue the cancel twice.
+              await stripe.subscriptions.cancel(otherSub.id, undefined, {
+                idempotencyKey: `cancel-dup:${event.id}:${otherSub.id}`,
+              });
             }
           }
 
           const syncSuccess = await handleSubscriptionChange(subscription);
           if (!syncSuccess) {
-            console.error('Webhook: handleSubscriptionChange returned false for checkout.session.completed', {
+            elog.error('handleSubscriptionChange returned false', {
+              stage: 'checkout.session.completed',
               subscriptionId: subscription.id,
               customerId,
             });
@@ -116,46 +182,44 @@ export async function POST(request: NextRequest) {
                 },
               },
             });
+            await markEventStatus(event.id, 'FAILED', 'sync_failed:checkout.session.completed');
             return NextResponse.json(
               { error: 'Subscription sync failed', subscriptionId: subscription.id },
               { status: 500 }
             );
           }
-          console.log('Webhook: Subscription processed successfully');
+          elog.info('Subscription processed successfully', { subscriptionId: subscription.id });
 
           // Track promotion redemption if this checkout used a FREE_TRIAL promotion
           try {
             const promotionId = subscription.metadata?.promotionId;
             if (promotionId) {
               const success = await incrementPromotionRedemptions(promotionId);
-              console.log(`Webhook: Promotion redemption ${success ? 'recorded' : 'failed (sold out?)'} for ${promotionId}`);
+              elog.info('Promotion redemption recorded', { promotionId, success });
             }
           } catch (promoError) {
             // Log but don't fail the webhook
-            console.error('Webhook: Error tracking promotion redemption:', promoError);
+            elog.error('Error tracking promotion redemption', {
+              err: promoError instanceof Error ? promoError.message : String(promoError),
+            });
           }
         } else {
-          console.log('Webhook: Session is not a subscription or missing subscription ID');
+          elog.info('Session is not a subscription or missing subscription ID');
         }
         break;
       }
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
-        console.log(`Webhook: Processing ${event.type}`);
         const subscription = event.data.object as Stripe.Subscription;
-        
-        console.log('Webhook: Subscription update details:', {
-          id: subscription.id,
+        elog.info('Processing subscription change', {
+          subscriptionId: subscription.id,
           status: subscription.status,
-          trial_start: subscription.trial_start,
-          trial_end: subscription.trial_end,
-          current_period_end: subscription.current_period_end,
-          customer: subscription.customer
         });
 
         const updateSuccess = await handleSubscriptionChange(subscription);
         if (!updateSuccess) {
-          console.error(`Webhook: handleSubscriptionChange returned false for ${event.type}`, {
+          elog.error('handleSubscriptionChange returned false', {
+            stage: event.type,
             subscriptionId: subscription.id,
             status: subscription.status,
             customer: subscription.customer,
@@ -171,32 +235,51 @@ export async function POST(request: NextRequest) {
               },
             },
           });
+          await markEventStatus(event.id, 'FAILED', `sync_failed:${event.type}`);
           return NextResponse.json(
             { error: 'Subscription sync failed', subscriptionId: subscription.id },
             { status: 500 }
           );
         }
-        console.log('Webhook: Subscription update processed successfully');
+        elog.info('Subscription update processed successfully', { subscriptionId: subscription.id });
         break;
       }
       case 'invoice.payment_succeeded': {
-        console.log('Webhook: Processing invoice.payment_succeeded');
         const invoice = event.data.object as Stripe.Invoice;
-
-        console.log('Webhook: Invoice details:', {
-          id: invoice.id,
-          subscription: invoice.subscription,
-          status: invoice.status,
-          amount_paid: invoice.amount_paid,
-          customer: invoice.customer
+        elog.info('Processing invoice.payment_succeeded', {
+          invoiceId: invoice.id,
+          subscriptionId: invoice.subscription as string | undefined,
+          amountPaid: invoice.amount_paid,
         });
 
         if (invoice.subscription) {
           const subscription = await stripe.subscriptions.retrieve(
             invoice.subscription as string
           );
-          await handleSubscriptionChange(subscription);
-          console.log('Webhook: Invoice payment processed successfully');
+          const invoiceSyncSuccess = await handleSubscriptionChange(subscription);
+          if (invoiceSyncSuccess === false) {
+            // The payment itself succeeded, so we don't 500 (that would make
+            // Stripe retry a charge that already cleared, and customer.subscription.updated
+            // will re-attempt the sync anyway). But surface it: a paid invoice
+            // that failed to sync means a paying customer may lack access.
+            elog.error('handleSubscriptionChange returned false', {
+              stage: 'invoice.payment_succeeded',
+              subscriptionId: subscription.id,
+              customer: invoice.customer,
+            });
+            Sentry.captureMessage('Webhook: subscription sync failed on invoice.payment_succeeded', {
+              level: 'warning',
+              tags: { category: 'payments', issue: 'sync_failed_invoice' },
+              contexts: {
+                subscription: {
+                  id: subscription.id,
+                  status: subscription.status,
+                  customer: invoice.customer as string,
+                },
+              },
+            });
+          }
+          elog.info('Invoice payment processed', { invoiceId: invoice.id });
 
           // Send admin notification for successful payment (non-blocking)
           try {
@@ -236,13 +319,17 @@ export async function POST(request: NextRequest) {
                   stripeCustomerId: customer.id,
                   stripeSubscriptionId: subscription.id,
                 }).catch(notifError => {
-                  console.error('[WEBHOOK] Failed to send payment notification:', notifError);
+                  elog.error('Failed to send payment notification', {
+                    err: notifError instanceof Error ? notifError.message : String(notifError),
+                  });
                 });
               }
             }
           } catch (notifError) {
             // Log but don't fail the webhook
-            console.error('[WEBHOOK] Error preparing payment notification:', notifError);
+            elog.error('Error preparing payment notification', {
+              err: notifError instanceof Error ? notifError.message : String(notifError),
+            });
           }
 
           // Track referral conversion if this subscription was referred
@@ -256,7 +343,10 @@ export async function POST(request: NextRequest) {
                 const amount = invoice.amount_paid / 100;
                 const conversion = await markConversionConverted(refTenantId, planKey, amount);
                 if (conversion) {
-                  console.log(`[WEBHOOK] Referral conversion tracked: tenant=${refTenantId}, commission=${conversion.commissionAmount}`);
+                  elog.info('Referral conversion tracked', {
+                    tenantId: refTenantId,
+                    commission: conversion.commissionAmount,
+                  });
 
                   // Fetch partner + code info for notifications
                   const refConversion = await prisma.referralConversion.findUnique({
@@ -279,7 +369,9 @@ export async function POST(request: NextRequest) {
                       subscriptionAmount: amount,
                       commissionPercent: Number(refConversion.commissionPercent),
                       commissionAmount: Number(refConversion.commissionAmount),
-                    }).catch(e => console.error('[WEBHOOK] Referral admin notification error:', e));
+                    }).catch(e => elog.error('Referral admin notification error', {
+                      err: e instanceof Error ? e.message : String(e),
+                    }));
 
                     // Notify partner (non-blocking)
                     notifyPartnerReferralSuccess({
@@ -287,26 +379,27 @@ export async function POST(request: NextRequest) {
                       partnerName: refConversion.partner.name,
                       tenantName: refConversion.tenant.name,
                       commissionAmount: Number(refConversion.commissionAmount),
-                    }).catch(e => console.error('[WEBHOOK] Referral partner notification error:', e));
+                    }).catch(e => elog.error('Referral partner notification error', {
+                      err: e instanceof Error ? e.message : String(e),
+                    }));
                   }
                 }
               }
             }
           } catch (refError) {
-            console.error('[WEBHOOK] Error tracking referral conversion:', refError);
+            elog.error('Error tracking referral conversion', {
+              err: refError instanceof Error ? refError.message : String(refError),
+            });
           }
         }
         break;
       }
       case 'invoice.payment_failed': {
-        console.log('Webhook: Processing invoice.payment_failed');
         const invoice = event.data.object as Stripe.Invoice;
-
-        console.log('Webhook: Failed invoice details:', {
-          id: invoice.id,
-          subscription: invoice.subscription,
-          status: invoice.status,
-          customer: invoice.customer
+        elog.warn('Processing invoice.payment_failed', {
+          invoiceId: invoice.id,
+          subscriptionId: invoice.subscription as string | undefined,
+          customer: invoice.customer as string,
         });
 
         // Capture in Sentry
@@ -374,27 +467,58 @@ export async function POST(request: NextRequest) {
             stripeCustomerId: customer.id,
             stripeSubscriptionId: invoice.subscription as string | undefined,
           }).catch(notifError => {
-            console.error('[WEBHOOK] Failed to send payment failed notification:', notifError);
+            elog.error('Failed to send payment failed notification', {
+              err: notifError instanceof Error ? notifError.message : String(notifError),
+            });
           });
         } catch (notifError) {
-          console.error('[WEBHOOK] Error preparing payment failed notification:', notifError);
+          elog.error('Error preparing payment failed notification', {
+            err: notifError instanceof Error ? notifError.message : String(notifError),
+          });
         }
 
         break;
       }
       default: {
-        console.log('Webhook: Unhandled event type:', event.type);
+        elog.info('Unhandled event type');
       }
     }
 
-    console.log('=== WEBHOOK DEBUG END SUCCESS ===');
+    await markEventStatus(event.id, 'PROCESSED');
+    elog.info('Event processed successfully');
     return NextResponse.json({ received: true, event_type: event.type });
   } catch (error) {
-    console.error('Webhook: Error processing event:', error);
-    console.log('=== WEBHOOK DEBUG END ERROR ===');
+    const permanent = isPermanentError(error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+
+    await markEventStatus(event.id, 'FAILED', message);
+    Sentry.captureException(error, {
+      level: permanent ? 'error' : 'warning',
+      tags: {
+        category: 'payments',
+        issue: 'webhook_processing_error',
+        retryable: String(!permanent),
+      },
+      contexts: { event: { id: event.id, type: event.type } },
+    });
+
+    if (permanent) {
+      // A code/data bug that will fail identically on every retry. Acknowledge
+      // the event (2xx) so Stripe stops redelivering, and rely on Sentry to
+      // surface it. Retrying for ~3 days would only add noise.
+      elog.error('Permanent error — acknowledging to stop retries', { err: message });
+      return NextResponse.json(
+        { received: true, error: 'permanent_failure', details: message },
+        { status: 200 }
+      );
+    }
+
+    // Transient (DB blip, Stripe rate limit, network). Return 500 so Stripe
+    // redelivers and we get another chance.
+    elog.error('Transient error — returning 500 for Stripe retry', { err: message });
     return NextResponse.json(
-      { error: 'Error al procesar webhook', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Error al procesar webhook', details: message },
       { status: 500 }
     );
   }
-} 
+}
