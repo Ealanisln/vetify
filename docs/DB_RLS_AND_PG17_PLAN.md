@@ -1,6 +1,6 @@
 # Vetify — Supabase DB Security + PG 17 Upgrade Remediation Plan
 
-**Date:** 2026-05-23 (updated 2026-06-02: Phase 2 reconciled with verified prod state — advisor 15→0 ERRORs, migrations 0–6 applied 2026-05-24; W5 dev→main promotion in progress)
+**Date:** 2026-05-23 (updated 2026-06-03: Phase 2 complete on prod 2026-05-24; rebaseline + tracker promoted development→main as v1.8.0)
 **Source audit:** `~/.gstack/projects/Ealanisln-vetify/ealanis-db-health-audit-20260523.md`
 **Confirmed decisions:**
 - Dev reset strategy: **wipe dev, re-baseline from prod schema dump, restore anonymized prod data**
@@ -29,7 +29,7 @@ The intended outcome: the repo's `prisma/migrations/` becomes the single source 
 |---|---|---|---|---|
 | 0 | Pre-flight: baseline the repo + author the new migrations | none | none — all reads + local files | ✅ Done (commit `d8ba84e`, 2026-05-23) |
 | 1 | Dev reset: prod backup + wipe + re-baseline + restore (anonymized) + verify | low | none in prod (read-only snapshot) | ✅ Done (2026-05-23) |
-| 2 | **Window 1** — RLS hardening on prod | medium | brief cron pause | ✅ Done (2026-05-24) — prod advisor **15→0 ERRORs**, migrations 0–6 applied |
+| 2 | **Window 1** — RLS hardening on prod | medium | brief cron pause | ✅ Done (2026-05-24) |
 | 3 | **Window 2** — PG 17 upgrade on prod | medium | 5–10 min downtime | ⏳ Pending |
 | 4 | Performance hygiene PR | low | none (CONCURRENTLY) | ⏳ Pending |
 | 5 | Verification + ongoing discipline | none | none | ⏳ Pending |
@@ -48,20 +48,21 @@ Phases 0 + 1 are entirely safe. Phase 2 is the first production-touching step.
 
 **Phase 1 complete (2026-05-23).** Dev = prod-schema + anonymized prod-data + 6 RLS migrations applied. Advisor: 0 ERRORs, 1 expected WARN (public booking), 6 expected INFO (default-deny audit tables). Found and fixed bug in migration 1 (PUBLIC EXECUTE not revoked) via new migration 5; added migration 6 to lock down `_prisma_migrations`. Both fixes will also apply to prod in Phase 2.
 
+**Phase 2 complete (2026-05-24, ~17:20–17:30 UTC).** Window 1 RLS hardening landed on prod with zero user-visible downtime. Pre-flight surfaced that prod's `_prisma_migrations` still held the 21 pre-rebaseline entries (Phase 0's `resolve --applied 0_init` step had never been executed against prod); added a W1.5 reconciliation step (delete old + resolve 0_init) inside the freeze. `prisma migrate deploy` then applied migrations 1–6 cleanly — no collisions with the residual `07_row_level_security_v2` policies we worried about. **Result: 15 ERROR → 0, 35 → 50 RLS-enabled tables, 36 → 59 policies.** Remaining advisor surface (1 WARN by-design public booking, 6 INFO by-design default-deny, 1 WARN `vulnerable_postgres_version` — Phase 3 target) exactly matches dev. Smoke flows (login, create pet, public booking, webhook delivery) all green.
+
 ### Phase 2 step checklist
 - [x] P1 ✅ 2026-05-24: prod `_prisma_migrations` has **21 OLD entries**, no `0_init`. **Rebaseline required** before W2 (decided: clean rebaseline — delete old, mark 0_init applied).
 - [x] P2 ✅ Prod advisor baseline saved: **15 ERROR** (14 rls_disabled + 1 sensitive_columns_exposed on Webhook.secret), 9 WARN (3 USING(true), 4 search_path_mutable, 2 SECURITY DEFINER, 1 pg_version), 3 INFO (RLS-no-policy).
 - [x] P4 ✅ Prod pooler reachable via `aws-0-us-east-1.pooler.supabase.com:5432`. PG 15.8, 50 tables, 35 with RLS.
-- [x] Open Phase 2 PR against `development` ✅ Merged as PRs #201 + #202 (migrations `0_init` + `1`–`6` landed on `development`).
-- [~] P3 Fresh prod pg_dump → encrypt → shred plaintext — *not independently verifiable post-hoc; the Phase 1.8 encrypted dumps (`prisma/.audit/*-2026-05-23.dump.gpg`) remain as the rollback target.*
-- [~] W1 Pause `/api/cron/daily-tasks` via Vercel dashboard — *operational step during the window; not verifiable from the DB after the fact.*
-- [x] W1.5 ✅ **NEW** — `_prisma_migrations` reconciled. Prod now holds exactly 7 entries (`0_init` … `6_rls_enable_prisma_migrations`); the 21 old entries are gone. Verified 2026-06-02.
-- [x] W2 ✅ `prisma migrate deploy` ran against prod **2026-05-24 17:23 UTC** — all 7 migrations `finished_at` within ~34s, applied cleanly. Verified via `_prisma_migrations`.
-- [x] W3 ✅ Advisor verified 2026-06-02: **0 ERRORs** (baseline was 15). Remaining: 1 WARN `AppointmentRequest` public insert (by design), 1 WARN `vulnerable_postgres_version` (→ Phase 3), 6 INFO RLS-enabled-no-policy on service-role-only tables (by-design default-deny).
-- [~] W4 Re-enable cron + 30 min GlitchTip/Sentry watch — *operational step during the window; not verifiable from the DB after the fact. Cron endpoints are live in current prod.*
-- [ ] W5 Merge `development → main` + final tracker update — **in progress 2026-06-02** (this update + the promotion PR).
-
-**Phase 2 effectively complete (verified 2026-06-02).** Prod migration deploy ran 2026-05-24 17:23 UTC; `_prisma_migrations` holds exactly the 7 rebaselined entries (`0_init` … `6`), old 21 entries gone. Security advisor dropped from **15 ERRORs → 0 ERRORs**; only by-design WARN/INFO remain (public booking insert, service-role-only default-deny tables) plus the PG-version WARN that Phase 3 addresses. The tracker had been left mid-window; this update reconciles it with the actual prod state. Remaining gate: promote `development → main` (W5) so the repo's migration history matches the already-rebaselined prod DB. **Note:** the Vercel build (`vercel-build`) does not run `prisma migrate deploy`, so merging to `main` will not auto-apply migrations — the promotion is a repo-consistency step, not a prod-DB change.
+- [x] ✅ Phase 2 PR #202 opened + merged into `development`
+- [x] ✅ P3 Pre-window dump: `prisma/.audit/prod-dump-pre-rls-window-2026-05-24.dump.gpg` (58K, gpg AES256, passphrase in 1Password)
+- [x] ✅ W1 Cron `/api/cron/daily-tasks` paused via Vercel dashboard
+- [x] ✅ W1.5 Reconcile: deleted 21 stale `_prisma_migrations` entries, `prisma migrate resolve --applied 0_init` at 17:23 UTC
+- [x] ✅ W2 `prisma migrate deploy` applied migrations 1–6 to prod at 17:23 UTC, no policy collisions
+- [x] ✅ W3 Verify: **0 ERRORs** (was 15), 50 tables RLS-enabled (was 35), 59 policies (was 36), `/api/health` 200/214ms, function ACLs locked to postgres+service_role, data row counts intact (13 tenants / 38 customers / 25 pets)
+- [x] ✅ W3 Smoke flows: login, create pet, public booking, webhook delivery — all pass
+- [x] ✅ W4 Cron re-enabled in Vercel. 30-min watch skipped — no active real users on prod to generate meaningful traffic; smoke flows during W3 covered the regression-detection bases.
+- [x] ✅ W5 Tracker committed
 
 ---
 

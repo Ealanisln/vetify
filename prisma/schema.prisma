@@ -1714,3 +1714,34 @@ model SecurityAuditLog {
   @@index([riskLevel])
   @@index([tenantId, timestamp])
 }
+
+/// Idempotency + audit log for inbound Stripe webhooks.
+/// The id IS the Stripe event id (evt_...), so the primary key gives us
+/// at-least-once delivery protection for free: a redelivered event collides
+/// on insert and we skip re-running side effects (referral commissions,
+/// promo redemptions) that are not idempotent.
+/// Internal-only table — written by the webhook handler via the service role,
+/// which bypasses RLS. Default-deny RLS (no policies) is applied in the
+/// 7_add_stripe_webhook_event migration, matching SecurityAuditLog.
+model StripeWebhookEvent {
+  id          String                   @id // Stripe event id (evt_...)
+  type        String
+  status      StripeWebhookEventStatus @default(RECEIVED)
+  livemode    Boolean                  @default(false)
+  apiVersion  String?
+  attempts    Int                      @default(1)
+  error       String?                  @db.Text
+  receivedAt  DateTime                 @default(now())
+  processedAt DateTime?
+
+  @@index([type])
+  @@index([status])
+  @@index([receivedAt])
+}
+
+enum StripeWebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+  SKIPPED
+}

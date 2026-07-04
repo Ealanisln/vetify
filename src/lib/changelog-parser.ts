@@ -164,6 +164,17 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.9.0] - 2026-07-03
+
+### Agregado
+- **Idempotencia en el webhook de Stripe (Fase B).** Nueva tabla \`StripeWebhookEvent\` (migración \`7\`) con el event id de Stripe como llave primaria, dando protección ante entregas duplicadas (at-least-once): los eventos redelivered se detectan por colisión en el INSERT y se omiten los efectos secundarios no idempotentes (comisiones de referidos, redención de promociones).
+- **Logging estructurado y clasificación de errores en el webhook (Fases C y D).** Nuevo \`src/lib/logger.ts\` y \`src/lib/payments/webhook-errors.ts\`: los errores se clasifican como transitorios (responden 5xx para que Stripe reintente) o permanentes (responden 2xx y se registran), con llaves de idempotencia consistentes.
+- **Health check de Stripe.** \`GET /api/health/stripe\` verifica conectividad con la API de Stripe, configuración de llaves/webhook secret y estado de la tabla de eventos.
+- **Preflight de Stripe.** \`scripts/stripe-preflight.mjs\` valida la configuración de Stripe (llaves, productos, precios, webhook) antes de un deploy.
+
+### Cambiado
+- **Onboarding de un solo paso.** El registro ahora solo pide los datos de la clínica; la selección de plan se difiere al final del periodo de prueba. Motivado por un ~41% de abandono en el flujo de registro de dos pasos.
+
 ## [1.8.0] - 2026-06-02
 
 ### Seguridad

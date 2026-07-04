@@ -111,20 +111,20 @@ describe('Onboarding API Integration Tests', () => {
       expect(result.subscriptionStatus).toBe('TRIALING');
     });
 
-    it('should validate required fields (name, slug, planKey)', () => {
+    it('should require only clinicName and slug (planKey is optional, defaults to PROFESIONAL)', () => {
+      // El onboarding ya no pide plan: planKey/billingInterval son opcionales
+      // y el API aplica PROFESIONAL/monthly por default.
       const invalidData = {
-        // Missing planKey
-        billingInterval: 'monthly',
         clinicName: 'Test Clinic',
         // Missing slug
       };
 
-      const requiredFields = ['planKey', 'clinicName', 'slug'];
+      const requiredFields = ['clinicName', 'slug'];
       const missingFields = requiredFields.filter((field) => !(field in invalidData));
 
-      expect(missingFields).toContain('planKey');
-      expect(missingFields).toContain('slug');
-      // API would return: { message: 'Datos inválidos', errors: [...] }, { status: 400 }
+      expect(missingFields).toEqual(['slug']);
+      expect(requiredFields).not.toContain('planKey');
+      // Sin planKey, el API crea el tenant con el plan por default (PROFESIONAL).
     });
 
     it('should reject if user already has tenant', async () => {
@@ -145,7 +145,7 @@ describe('Onboarding API Integration Tests', () => {
       // API would return: { message: 'El usuario ya tiene una clínica configurada' }, { status: 400 }
     });
 
-    it('should check slug availability before creation', async () => {
+    it('should auto-resolve a taken slug instead of rejecting', async () => {
       const takenSlug = 'existing-clinic';
 
       // Simulate existing tenant with this slug
@@ -160,7 +160,9 @@ describe('Onboarding API Integration Tests', () => {
 
       expect(existingTenant).not.toBeNull();
       expect(existingTenant?.slug).toBe(takenSlug);
-      // API would return: { message: 'Esta URL ya está en uso' }, { status: 400 }
+      // Nuevo comportamiento: en vez de 400, el API llama generateUniqueSlug()
+      // y crea el tenant con un slug único (ej. 'existing-clinic-2').
+      // check-slug devuelve { available: false, suggestion: 'existing-clinic-2' }.
     });
 
     it('should validate slug format (lowercase, alphanumeric, hyphens)', () => {

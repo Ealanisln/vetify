@@ -1,18 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUserWithOptionalTenant } from '../../../lib/auth';
-import { createTenantWithDefaults, isSlugAvailable } from '../../../lib/tenant';
+import { createTenantWithDefaults, isSlugAvailable, generateUniqueSlug } from '../../../lib/tenant';
 import { notifyNewUserRegistration } from '../../../lib/email/admin-notifications';
 import { getActivePromotionFromDB } from '../../../lib/pricing-config';
 import { resolveReferralCode, createConversion } from '../../../lib/referrals/queries';
 import { z } from 'zod';
 
 const onboardingSchema = z.object({
-  planKey: z.enum(['BASICO', 'PROFESIONAL', 'CORPORATIVO'], {
-    required_error: 'Debe seleccionar un plan',
-  }),
-  billingInterval: z.enum(['monthly', 'yearly'], {
-    required_error: 'Debe seleccionar un intervalo de facturación',
-  }),
+  // El plan ya no se elige en el onboarding: entra con Profesional en trial
+  // y lo elige después (fin de trial / Configuración → suscripción).
+  planKey: z.enum(['BASICO', 'PROFESIONAL', 'CORPORATIVO']).optional().default('PROFESIONAL'),
+  billingInterval: z.enum(['monthly', 'yearly']).optional().default('monthly'),
   clinicName: z.string().min(1, 'El nombre de la clínica es requerido'),
   slug: z.string()
     .min(1, 'El slug es requerido')
@@ -44,13 +42,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = onboardingSchema.parse(body);
 
-    // Check if slug is already taken
-    if (!(await isSlugAvailable(validatedData.slug))) {
-      return NextResponse.json(
-        { message: 'Esta URL ya está en uso. Por favor, elige otra.' },
-        { status: 400 }
-      );
-    }
+    // Resolver el slug de forma segura: si está ocupado (o hay una carrera),
+    // se auto-genera uno único con sufijo en vez de rechazar el alta.
+    const slug = (await isSlugAvailable(validatedData.slug))
+      ? validatedData.slug
+      : await generateUniqueSlug(validatedData.slug);
 
     // Check for active FREE_TRIAL promotion to extend trial period
     const promotion = await getActivePromotionFromDB();
@@ -61,7 +57,7 @@ export async function POST(request: NextRequest) {
     // Create tenant with selected plan
     const result = await createTenantWithDefaults({
       name: validatedData.clinicName,
-      slug: validatedData.slug,
+      slug,
       userId: user.id,
       planKey: validatedData.planKey,
       billingInterval: validatedData.billingInterval,

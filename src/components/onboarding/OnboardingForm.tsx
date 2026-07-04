@@ -5,11 +5,8 @@ import { useRouter } from 'next/navigation';
 import * as Sentry from '@sentry/nextjs';
 import { TRIAL_PERIOD_DAYS } from '@/lib/constants';
 import { UserWithTenant } from '@/types';
-import { PlanSelection } from '../../app/onboarding/steps/PlanSelection';
+import { COMPLETE_PLANS } from '@/lib/pricing-config';
 import { ClinicInfo } from '../../app/onboarding/steps/ClinicInfo';
-import { Confirmation } from '../../app/onboarding/steps/Confirmation';
-import { OnboardingProgress } from './OnboardingProgress';
-import type { OnboardingState } from '../../types/onboarding';
 import { trackCompleteRegistration, trackStartTrial } from '@/lib/analytics/meta-events';
 import type { PromoInfo } from '../../app/onboarding/OnboardingPageClient';
 
@@ -18,41 +15,25 @@ interface OnboardingFormProps {
   promoInfo?: PromoInfo | null;
 }
 
+// El plan ya no se elige en el onboarding: el usuario entra con Profesional en
+// trial y elige plan después (fin de trial / Configuración → suscripción).
+const DEFAULT_PLAN = COMPLETE_PLANS.PROFESIONAL;
+const DEFAULT_BILLING_INTERVAL = 'monthly' as const;
+
+interface ClinicInfoData {
+  clinicName: string;
+  slug: string;
+  phone?: string;
+  address?: string;
+}
+
 export function OnboardingForm({ user, promoInfo }: OnboardingFormProps) {
   const trialDays = promoInfo?.trialDays ?? TRIAL_PERIOD_DAYS;
   const router = useRouter();
-  const [state, setState] = useState<OnboardingState>({
-    currentStep: 'plan',
-    isSubmitting: false
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handlePlanSelect = (plan: OnboardingState['selectedPlan']) => {
-    setState(prev => ({
-      ...prev,
-      selectedPlan: plan,
-      currentStep: 'clinic'
-    }));
-  };
-
-  const handleClinicInfo = (info: OnboardingState['clinicInfo']) => {
-    setState(prev => ({
-      ...prev,
-      clinicInfo: info,
-      currentStep: 'confirmation'
-    }));
-  };
-
-  const handleBack = () => {
-    setState(prev => ({
-      ...prev,
-      currentStep: prev.currentStep === 'confirmation' ? 'clinic' : 'plan'
-    }));
-  };
-
-  const handleSubmit = async () => {
-    if (!state.selectedPlan || !state.clinicInfo) return;
-
-    setState(prev => ({ ...prev, isSubmitting: true }));
+  const handleSubmit = async (clinicInfo: ClinicInfoData) => {
+    setIsSubmitting(true);
 
     try {
       const response = await fetch('/api/onboarding', {
@@ -60,16 +41,13 @@ export function OnboardingForm({ user, promoInfo }: OnboardingFormProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          planKey: state.selectedPlan.key,
-          billingInterval: state.selectedPlan.billingInterval,
-          ...state.clinicInfo,
-        }),
+        // El plan se aplica por default en el servidor (Profesional / trial).
+        body: JSON.stringify(clinicInfo),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        
+
         // Handle specific error cases
         if (response.status === 400 && errorData.message?.includes('ya tiene una clínica')) {
           // User already has a tenant, redirect to dashboard
@@ -77,7 +55,7 @@ export function OnboardingForm({ user, promoInfo }: OnboardingFormProps) {
           router.refresh();
           return;
         }
-        
+
         throw new Error(errorData.message || 'Error al crear la clínica');
       }
 
@@ -92,23 +70,23 @@ export function OnboardingForm({ user, promoInfo }: OnboardingFormProps) {
       try {
         // Track CompleteRegistration event
         trackCompleteRegistration({
-          plan_name: state.selectedPlan.name,
-          plan_key: state.selectedPlan.key,
-          billing_interval: state.selectedPlan.billingInterval,
+          plan_name: DEFAULT_PLAN.name,
+          plan_key: DEFAULT_PLAN.key,
+          billing_interval: DEFAULT_BILLING_INTERVAL,
           is_trial: true, // New registrations always start with trial
-          clinic_name: state.clinicInfo.clinicName,
+          clinic_name: clinicInfo.clinicName,
           currency: 'MXN',
-          value: state.selectedPlan.priceMonthly, // Use monthly price as value
+          value: DEFAULT_PLAN.monthlyPrice,
           status: 'completed'
         });
 
         // Track StartTrial event for new trial periods
         trackStartTrial({
-          plan_name: state.selectedPlan.name,
-          plan_key: state.selectedPlan.key,
+          plan_name: DEFAULT_PLAN.name,
+          plan_key: DEFAULT_PLAN.key,
           trial_end_date: new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString(),
           currency: 'MXN',
-          value: state.selectedPlan.priceMonthly,
+          value: DEFAULT_PLAN.monthlyPrice,
           trial_duration_days: trialDays
         });
       } catch (error) {
@@ -118,7 +96,7 @@ export function OnboardingForm({ user, promoInfo }: OnboardingFormProps) {
           tags: { category: 'meta_pixel', operation: 'onboarding_tracking' },
           contexts: {
             onboarding: {
-              plan: state.selectedPlan?.name,
+              plan: DEFAULT_PLAN.name,
               step: 'completion'
             }
           }
@@ -128,45 +106,21 @@ export function OnboardingForm({ user, promoInfo }: OnboardingFormProps) {
       console.error('Onboarding error:', err);
       // You might want to show an error message here
     } finally {
-      setState(prev => ({ ...prev, isSubmitting: false }));
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="space-y-4 md:space-y-6 lg:space-y-8 max-w-7xl mx-auto">
-      <OnboardingProgress currentStep={state.currentStep} />
-      
-      {state.currentStep === 'plan' && (
-        <PlanSelection
-          onNext={handlePlanSelect}
-          initialSelection={state.selectedPlan}
-          trialDays={trialDays}
-        />
-      )}
-      
-      {state.currentStep === 'clinic' && (
-        <ClinicInfo
-          user={user ? {
-            id: user.id,
-            email: user.email,
-            name: user.name || undefined
-          } : null}
-          onNext={handleClinicInfo}
-          onBack={handleBack}
-          initialData={state.clinicInfo}
-        />
-      )}
-      
-      {state.currentStep === 'confirmation' && (
-        <Confirmation
-          plan={state.selectedPlan!}
-          clinicInfo={state.clinicInfo!}
-          onBack={handleBack}
-          isSubmitting={state.isSubmitting}
-          onSubmit={handleSubmit}
-          trialDays={trialDays}
-        />
-      )}
+      <ClinicInfo
+        user={user ? {
+          id: user.id,
+          email: user.email,
+          name: user.name || undefined
+        } : null}
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+      />
     </div>
   );
-} 
+}
