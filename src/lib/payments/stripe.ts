@@ -987,24 +987,16 @@ export async function createStripeProducts() {
 }
 
 // Obtener price ID por clave de plan y intervalo - Nueva estructura B2B
+// Uses runtime mode detection so test keys never resolve to live price IDs
 export function getPriceIdByPlan(planKey: string, interval: 'monthly' | 'annual'): string | null {
   const planType = planKey.toUpperCase();
+  const prices = getStripePriceIds();
 
-  if (planType === 'BASICO') {
-    return interval === 'annual'
-      ? STRIPE_PRICES.BASICO.annual
-      : STRIPE_PRICES.BASICO.monthly;
-  } else if (planType === 'PROFESIONAL') {
-    return interval === 'annual'
-      ? STRIPE_PRICES.PROFESIONAL.annual
-      : STRIPE_PRICES.PROFESIONAL.monthly;
-  } else if (planType === 'CORPORATIVO') {
-    return interval === 'annual'
-      ? STRIPE_PRICES.CORPORATIVO.annual
-      : STRIPE_PRICES.CORPORATIVO.monthly;
+  if (planType !== 'BASICO' && planType !== 'PROFESIONAL' && planType !== 'CORPORATIVO') {
+    return null;
   }
 
-  return null;
+  return interval === 'annual' ? prices[planType].annual : prices[planType].monthly;
 }
 
 // Obtener mapeo de plan B2B

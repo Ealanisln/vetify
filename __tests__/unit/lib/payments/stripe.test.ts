@@ -263,44 +263,69 @@ describe('Stripe Payment Integration', () => {
   });
 
   describe('getPriceIdByPlan', () => {
-    it('should return correct monthly price for BASICO', () => {
-      const priceId = getPriceIdByPlan('BASICO', 'monthly');
-      expect(priceId).toBe(STRIPE_PRICES.BASICO.monthly);
+    describe('in test mode', () => {
+      beforeEach(() => {
+        (isStripeInLiveMode as jest.Mock).mockReturnValue(false);
+      });
+
+      it('should return TEST monthly price for BASICO, never the production one', () => {
+        const priceId = getPriceIdByPlan('BASICO', 'monthly');
+        expect(priceId).toBe('price_1SJh6nPwxz1bHxlHQ15mCTij');
+        expect(priceId).not.toBe(STRIPE_PRICES.BASICO.monthly);
+      });
+
+      it('should return TEST annual price for BASICO', () => {
+        const priceId = getPriceIdByPlan('BASICO', 'annual');
+        expect(priceId).toBe('price_1SJh6oPwxz1bHxlH1gXSEuSF');
+      });
+
+      it('should return TEST monthly price for PROFESIONAL', () => {
+        const priceId = getPriceIdByPlan('PROFESIONAL', 'monthly');
+        expect(priceId).toBe('price_1SJh6oPwxz1bHxlHkJudNKvL');
+      });
+
+      it('should return TEST annual price for PROFESIONAL', () => {
+        const priceId = getPriceIdByPlan('PROFESIONAL', 'annual');
+        expect(priceId).toBe('price_1SJh6pPwxz1bHxlHcMip7KIU');
+      });
+
+      it('should return TEST monthly price for CORPORATIVO', () => {
+        const priceId = getPriceIdByPlan('CORPORATIVO', 'monthly');
+        expect(priceId).toBe('price_1SJh6pPwxz1bHxlHY9cnLnPw');
+      });
+
+      it('should return TEST annual price for CORPORATIVO', () => {
+        const priceId = getPriceIdByPlan('CORPORATIVO', 'annual');
+        expect(priceId).toBe('price_1SJh6qPwxz1bHxlHd3ud2WZ3');
+      });
+
+      it('should handle lowercase plan keys', () => {
+        const priceId = getPriceIdByPlan('basico', 'monthly');
+        expect(priceId).toBe('price_1SJh6nPwxz1bHxlHQ15mCTij');
+      });
     });
 
-    it('should return correct annual price for BASICO', () => {
-      const priceId = getPriceIdByPlan('BASICO', 'annual');
-      expect(priceId).toBe(STRIPE_PRICES.BASICO.annual);
-    });
+    describe('in live mode', () => {
+      beforeEach(() => {
+        (isStripeInLiveMode as jest.Mock).mockReturnValue(true);
+      });
 
-    it('should return correct monthly price for PROFESIONAL', () => {
-      const priceId = getPriceIdByPlan('PROFESIONAL', 'monthly');
-      expect(priceId).toBe(STRIPE_PRICES.PROFESIONAL.monthly);
-    });
-
-    it('should return correct annual price for PROFESIONAL', () => {
-      const priceId = getPriceIdByPlan('PROFESIONAL', 'annual');
-      expect(priceId).toBe(STRIPE_PRICES.PROFESIONAL.annual);
-    });
-
-    it('should return correct monthly price for CORPORATIVO', () => {
-      const priceId = getPriceIdByPlan('CORPORATIVO', 'monthly');
-      expect(priceId).toBe(STRIPE_PRICES.CORPORATIVO.monthly);
-    });
-
-    it('should return correct annual price for CORPORATIVO', () => {
-      const priceId = getPriceIdByPlan('CORPORATIVO', 'annual');
-      expect(priceId).toBe(STRIPE_PRICES.CORPORATIVO.annual);
-    });
-
-    it('should handle lowercase plan keys', () => {
-      const priceId = getPriceIdByPlan('basico', 'monthly');
-      expect(priceId).toBe(STRIPE_PRICES.BASICO.monthly);
+      it('should return LIVE prices', () => {
+        expect(getPriceIdByPlan('BASICO', 'monthly')).toBe(STRIPE_PRICES.BASICO.monthly);
+        expect(getPriceIdByPlan('PROFESIONAL', 'annual')).toBe(STRIPE_PRICES.PROFESIONAL.annual);
+      });
     });
 
     it('should return null for unknown plan', () => {
+      (isStripeInLiveMode as jest.Mock).mockReturnValue(false);
       const priceId = getPriceIdByPlan('UNKNOWN_PLAN', 'monthly');
       expect(priceId).toBeNull();
+    });
+
+    it('should return null for legacy B2B plan keys', () => {
+      (isStripeInLiveMode as jest.Mock).mockReturnValue(false);
+      expect(getPriceIdByPlan('CLINICA', 'monthly')).toBeNull();
+      expect(getPriceIdByPlan('EMPRESA', 'monthly')).toBeNull();
     });
   });
 
