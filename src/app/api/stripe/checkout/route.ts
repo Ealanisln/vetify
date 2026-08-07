@@ -5,28 +5,35 @@ import { stripe, handleSubscriptionChange } from '../../../../lib/payments/strip
 import { prisma } from '../../../../lib/prisma';
 import Stripe from 'stripe';
 
-// Type for the subscription result in waitForSubscriptionCreation
-type TenantSubscription = {
-  id: string;
-  stripeSubscriptionId: string | null;
-  subscriptionStatus: string;
-  planName: string | null;
-  stripeCustomerId: string | null;
-};
+/**
+ * Checkout return handler (Stripe success_url).
+ *
+ * Sync-first: instead of polling up to 10s for the webhook, we check the DB
+ * once and — if the webhook hasn't landed yet — run the same idempotent sync
+ * the webhook performs (handleSubscriptionChange) right away. The webhook
+ * remains the source of truth for asynchronous updates; this path only makes
+ * the post-payment redirect immediate.
+ */
 
-type SubscriptionWaitResult = {
-  success: boolean;
-  subscription?: TenantSubscription | Stripe.Checkout.Session;
-  shouldFallback?: boolean;
-};
+async function isSubscriptionSynced(
+  customerId: string,
+  subscriptionId: string
+): Promise<{ synced: boolean; planName: string | null }> {
+  const tenant = await prisma.tenant.findUnique({
+    where: { stripeCustomerId: customerId },
+    select: {
+      stripeSubscriptionId: true,
+      planName: true,
+    },
+  });
 
-// Type guard to check if subscription is a tenant object
-function isTenantSubscription(subscription: TenantSubscription | Stripe.Checkout.Session): subscription is TenantSubscription {
-  return 'planName' in subscription;
+  return {
+    synced: tenant?.stripeSubscriptionId === subscriptionId,
+    planName: tenant?.planName ?? null,
+  };
 }
 
-// Helper function to manually sync subscription when webhook fails
-async function manualSubscriptionSync(subscription: Stripe.Subscription) {
+async function manualSubscriptionSync(subscription: Stripe.Subscription): Promise<boolean> {
   console.log('Manual sync: Processing subscription manually:', subscription.id);
   try {
     const stripeSubscription = await stripe.subscriptions.retrieve(subscription.id);
@@ -37,18 +44,13 @@ async function manualSubscriptionSync(subscription: Stripe.Subscription) {
       return false;
     }
 
-    // Verify the DB was actually updated
-    const customerId = stripeSubscription.customer as string;
-    const tenant = await prisma.tenant.findUnique({
-      where: { stripeCustomerId: customerId },
-      select: { stripeSubscriptionId: true }
-    });
+    const { synced } = await isSubscriptionSynced(
+      stripeSubscription.customer as string,
+      stripeSubscription.id
+    );
 
-    if (tenant?.stripeSubscriptionId !== stripeSubscription.id) {
-      console.error('Manual sync: DB verification failed — stripeSubscriptionId mismatch', {
-        expected: stripeSubscription.id,
-        actual: tenant?.stripeSubscriptionId
-      });
+    if (!synced) {
+      console.error('Manual sync: DB verification failed — stripeSubscriptionId mismatch');
       return false;
     }
 
@@ -58,74 +60,6 @@ async function manualSubscriptionSync(subscription: Stripe.Subscription) {
     console.error('Manual sync: Error processing subscription:', error);
     return false;
   }
-}
-
-// Helper function to wait for subscription to be created in database
-async function waitForSubscriptionCreation(
-  sessionId: string,
-  maxAttempts: number = 5, // Reduced attempts for faster fallback
-  delayMs: number = 2000 // Increased delay for webhook processing
-): Promise<SubscriptionWaitResult> {
-  console.log(`Checkout: Waiting for subscription creation, sessionId: ${sessionId}`);
-  
-  let sessionData;
-  
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      console.log(`Checkout: Attempt ${attempt}/${maxAttempts} - Checking subscription status`);
-      
-      // Get session to find subscription ID
-      sessionData = await stripe.checkout.sessions.retrieve(sessionId);
-      
-      if (!sessionData.subscription) {
-        console.log('Checkout: No subscription found in session yet');
-        await new Promise(resolve => setTimeout(resolve, delayMs));
-        continue;
-      }
-
-      // Check if tenant record has been updated with subscription data
-      const subscription = await stripe.subscriptions.retrieve(sessionData.subscription as string);
-      const customerId = subscription.customer as string;
-      
-      const tenant = await prisma.tenant.findUnique({
-        where: { stripeCustomerId: customerId },
-        select: {
-          id: true,
-          stripeSubscriptionId: true,
-          subscriptionStatus: true,
-          planName: true,
-          stripeCustomerId: true
-        }
-      });
-
-      if (tenant?.stripeSubscriptionId === subscription.id) {
-        console.log('Checkout: Subscription successfully created and synced to database');
-        return { success: true, subscription: tenant };
-      }
-
-      console.log(`Checkout: Subscription not synced yet (attempt ${attempt}), waiting...`);
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-      
-    } catch (error) {
-      console.error(`Checkout: Error checking subscription status (attempt ${attempt}):`, error);
-      if (attempt === maxAttempts) {
-        // Return session data for fallback processing
-        return { 
-          success: false, 
-          shouldFallback: true,
-          subscription: sessionData 
-        };
-      }
-      await new Promise(resolve => setTimeout(resolve, delayMs));
-    }
-  }
-
-  console.log('Checkout: Timeout waiting for subscription creation - will try manual sync');
-  return { 
-    success: false, 
-    shouldFallback: true,
-    subscription: sessionData 
-  };
 }
 
 export async function GET(request: NextRequest) {
@@ -140,7 +74,7 @@ export async function GET(request: NextRequest) {
   try {
     console.log('Checkout: Retrieving session:', sessionId);
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    
+
     console.log('Checkout: Session details:', {
       id: session.id,
       status: session.status,
@@ -150,97 +84,72 @@ export async function GET(request: NextRequest) {
       customer: session.customer
     });
 
-    // Verificar que la sesión está completa
     if (session.status !== 'complete') {
       console.error('Checkout: Session not complete:', session.status);
       redirect('/precios?error=session_incomplete');
       return;
     }
 
-    // Para sesiones de suscripción, esperar a que se procese el webhook
-    if (session.mode === 'subscription' && session.subscription) {
-      console.log('Checkout: Subscription session detected, waiting for webhook processing...');
-      
-      const result = await waitForSubscriptionCreation(sessionId);
-      
-      if (result.success) {
-        // Success - webhook processed the subscription
-        const isPaid = session.payment_status === 'paid';
-        const isTrial = session.payment_status === 'no_payment_required' || session.payment_status === null;
-        
-        if (isPaid || isTrial) {
-          console.log('Checkout: Payment verified and subscription synced - redirecting to dashboard');
-          const successParam = isTrial ? 'trial_started' : 'subscription_created';
-          const planName = result.subscription && isTenantSubscription(result.subscription) 
-            ? result.subscription.planName || 'unknown' 
-            : 'unknown';
-          // URL encode plan name to handle non-ASCII characters
-          const encodedPlanName = encodeURIComponent(planName);
-          redirect(`/dashboard?success=${successParam}&plan=${encodedPlanName}`);
-        } else {
-          console.error('Checkout: Payment status invalid:', session.payment_status);
-          redirect('/precios?error=payment_failed');
-        }
-      } else if (result.shouldFallback && session.subscription) {
-        // Webhook timeout - try manual sync
-        console.warn('Checkout: Webhook timeout, attempting manual subscription sync...');
-        
-        // Get the full subscription object for manual sync
-        const subscriptionId = typeof session.subscription === 'string' 
-          ? session.subscription 
-          : session.subscription.id;
-        const fullSubscription = await stripe.subscriptions.retrieve(subscriptionId);
-        const manualSyncSuccess = await manualSubscriptionSync(fullSubscription);
-        
-        if (manualSyncSuccess) {
-          console.log('Checkout: Manual sync successful - redirecting to dashboard');
-          const isTrial = session.payment_status === 'no_payment_required' || session.payment_status === null;
-          const successParam = isTrial ? 'trial_started' : 'subscription_created';
-          redirect(`/dashboard?success=${successParam}&info=manual_sync`);
-        } else {
-          console.warn('Checkout: Manual sync failed, but session is complete - redirecting with warning');
-          Sentry.captureMessage('Checkout sync_pending: manual sync failed after webhook timeout', {
-            level: 'warning',
-            tags: { category: 'payments', issue: 'sync_pending' },
-            contexts: {
-              checkout: {
-                sessionId,
-                customerId: session.customer as string,
-                subscriptionId: session.subscription as string,
-                paymentStatus: session.payment_status,
-              },
-            },
-          });
-          const encodedSessionId = encodeURIComponent(sessionId);
-          redirect(`/dashboard?success=subscription_created&warning=sync_pending&session_id=${encodedSessionId}`);
-        }
-      } else {
-        // Complete fallback - redirect with warning
-        console.warn('Checkout: All sync attempts failed, but session is complete - redirecting with warning');
-        Sentry.captureMessage('Checkout sync_pending: all sync attempts failed', {
-          level: 'warning',
-          tags: { category: 'payments', issue: 'sync_pending' },
-          contexts: {
-            checkout: {
-              sessionId,
-              customerId: session.customer as string,
-              subscriptionId: session.subscription as string,
-              paymentStatus: session.payment_status,
-            },
-          },
-        });
-        const isTrial = session.payment_status === 'no_payment_required' || session.payment_status === null;
-        const successParam = isTrial ? 'trial_started' : 'subscription_created';
-        const encodedSessionId = encodeURIComponent(sessionId);
-        redirect(`/dashboard?success=${successParam}&warning=sync_pending&session_id=${encodedSessionId}`);
-      }
-    } else {
+    if (session.mode !== 'subscription' || !session.subscription) {
       console.error('Checkout: Session missing subscription or not subscription mode:', {
         mode: session.mode,
         hasSubscription: !!session.subscription
       });
       redirect('/precios?error=subscription_missing');
+      return;
     }
+
+    const isPaid = session.payment_status === 'paid';
+    const isTrial = session.payment_status === 'no_payment_required' || session.payment_status === null;
+
+    if (!isPaid && !isTrial) {
+      console.error('Checkout: Payment status invalid:', session.payment_status);
+      redirect('/precios?error=payment_failed');
+      return;
+    }
+
+    const successParam = isTrial ? 'trial_started' : 'subscription_created';
+
+    const subscriptionId = typeof session.subscription === 'string'
+      ? session.subscription
+      : session.subscription.id;
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const customerId = subscription.customer as string;
+
+    // 1. Webhook may have already processed the subscription — check once
+    const { synced, planName } = await isSubscriptionSynced(customerId, subscriptionId);
+
+    if (synced) {
+      console.log('Checkout: Subscription already synced by webhook - redirecting to dashboard');
+      const encodedPlanName = encodeURIComponent(planName || 'unknown');
+      redirect(`/dashboard?success=${successParam}&plan=${encodedPlanName}`);
+    }
+
+    // 2. Webhook hasn't landed yet — run the same idempotent sync directly
+    console.log('Checkout: Webhook not processed yet, syncing subscription directly...');
+    const manualSyncSuccess = await manualSubscriptionSync(subscription);
+
+    if (manualSyncSuccess) {
+      console.log('Checkout: Direct sync successful - redirecting to dashboard');
+      redirect(`/dashboard?success=${successParam}&info=manual_sync`);
+    }
+
+    // 3. Sync failed — session is complete, so let the user in with a warning
+    console.warn('Checkout: Direct sync failed, but session is complete - redirecting with warning');
+    Sentry.captureMessage('Checkout sync_pending: direct sync failed after checkout', {
+      level: 'warning',
+      tags: { category: 'payments', issue: 'sync_pending' },
+      contexts: {
+        checkout: {
+          sessionId,
+          customerId,
+          subscriptionId,
+          paymentStatus: session.payment_status,
+        },
+      },
+    });
+    const encodedSessionId = encodeURIComponent(sessionId);
+    redirect(`/dashboard?success=${successParam}&warning=sync_pending&session_id=${encodedSessionId}`);
   } catch (error) {
     // Don't catch redirect errors - let them propagate normally
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
@@ -249,4 +158,4 @@ export async function GET(request: NextRequest) {
     console.error('Checkout: Error processing checkout:', error);
     redirect('/precios?error=processing_failed&details=' + encodeURIComponent(String(error)));
   }
-} 
+}

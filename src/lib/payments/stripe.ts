@@ -746,6 +746,9 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
       subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
       subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
       isTrialPeriod: status === 'trialing',
+      // Keep the trial clock in sync with Stripe: real date during a
+      // Stripe-managed trial, cleared once the subscription is paid
+      trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
       status: 'ACTIVE' as const, // Activar tenant
       // Reactivation clears any pending retention/deletion clock
       canceledAt: null,
