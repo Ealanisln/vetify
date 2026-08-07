@@ -19,7 +19,7 @@ import {
   X
 } from 'lucide-react';
 import type { Tenant } from '@prisma/client';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInCalendarDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { calculateTrialDaysRemaining } from '../../lib/trial/utils';
 import { getPlanKeyFromName } from '../../lib/pricing-config';
@@ -71,7 +71,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
       return calculateTrialDaysRemaining(tenant);
     } else if (subscriptionEndsAt) {
       // Para suscripciones pagadas, usar subscriptionEndsAt
-      return differenceInDays(new Date(subscriptionEndsAt), new Date());
+      return differenceInCalendarDays(new Date(subscriptionEndsAt), new Date());
     }
     return null;
   };
@@ -295,7 +295,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
               <div className="flex items-center justify-center sm:justify-start gap-2 text-xs md:text-sm">
                 <CalendarX className={`h-4 w-4 ${config.iconColor}`} />
                 <span className={config.textColor}>
-                  {daysRemaining === 0 ? 'Termina hoy' : `${daysRemaining} días restantes`}
+                  {daysRemaining === 0 ? 'Termina hoy' : `${daysRemaining} día${daysRemaining !== 1 ? 's' : ''} restante${daysRemaining !== 1 ? 's' : ''}`}
                 </span>
               </div>
             )}
@@ -313,7 +313,7 @@ export function SubscriptionNotifications({ tenant }: SubscriptionNotificationsP
               <div className="flex items-center justify-center sm:justify-start gap-2 text-xs md:text-sm">
                 <Clock className={`h-4 w-4 ${config.iconColor}`} />
                 <span className={config.textColor}>
-                  {daysRemaining} días restantes
+                  {daysRemaining} día{daysRemaining !== 1 ? 's' : ''} restante{daysRemaining !== 1 ? 's' : ''}
                 </span>
               </div>
             )}

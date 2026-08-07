@@ -1,4 +1,4 @@
-import { differenceInDays } from 'date-fns';
+import { differenceInCalendarDays } from 'date-fns';
 import type { Tenant } from '@prisma/client';
 import { TRIAL_WARNING_DAYS } from '../constants';
 
@@ -37,7 +37,7 @@ export function calculateTrialStatus(tenant: Tenant): TrialStatus {
 
   const now = new Date();
   const trialEnd = new Date(tenant.trialEndsAt);
-  const daysRemaining = differenceInDays(trialEnd, now);
+  const daysRemaining = differenceInCalendarDays(trialEnd, now);
 
   // Expired trial (negative days)
   if (daysRemaining < 0) {
@@ -139,5 +139,5 @@ export function calculateTrialDaysRemaining(
   const trialEnd = new Date(tenant.trialEndsAt);
   
   // Return actual difference, including negative values for expired trials
-  return differenceInDays(trialEnd, now);
+  return differenceInCalendarDays(trialEnd, now);
 }

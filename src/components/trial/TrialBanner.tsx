@@ -187,7 +187,7 @@ export function TrialBanner({
             
             {trialStatus.status === 'active' && (
               <Badge variant="outline" className="text-xs">
-                {trialStatus.daysRemaining} días restantes
+                {trialStatus.daysRemaining} día{trialStatus.daysRemaining !== 1 ? 's' : ''} restante{trialStatus.daysRemaining !== 1 ? 's' : ''}
               </Badge>
             )}
             
