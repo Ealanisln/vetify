@@ -11,6 +11,7 @@ import type { Tenant } from '@prisma/client';
 import type { PricingPlan, APIPlan, SubscriptionData } from './types';
 import type { DowngradeValidation } from '../../lib/downgrade-validation';
 import { trackViewContent } from '@/lib/analytics/meta-events';
+import { resolveCurrentPlanKey } from '@/lib/pricing/current-plan';
 
 interface PricingPageEnhancedProps {
   tenant?: Tenant | null;
@@ -68,23 +69,10 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
         const data = await response.json();
         setSubscriptionData(data);
 
-        // Detectar plan actual ya sea de suscripción o trial
-        // Prioridad: planKey > planName > URL param
-        let detectedPlanKey: string | null = null;
-
-        if (data.planKey) {
-          detectedPlanKey = data.planKey.toLowerCase();
-        } else if (data.planName) {
-          detectedPlanKey = mapPlanNameToKey(data.planName);
-        } else {
-          // Si no hay planName en la respuesta, intentar obtener de URL
-          const urlParams = new URLSearchParams(window.location.search);
-          const currentPlanParam = urlParams.get('currentPlan');
-
-          if (currentPlanParam) {
-            detectedPlanKey = currentPlanParam.toLowerCase();
-          }
-        }
+        // Detectar plan actual: los tenants en trial sin suscripción de Stripe
+        // no tienen plan actual — todos los planes deben ser seleccionables
+        const urlParams = new URLSearchParams(window.location.search);
+        const detectedPlanKey = resolveCurrentPlanKey(data, urlParams.get('currentPlan'));
 
         if (detectedPlanKey) {
           setUserPlan(detectedPlanKey);
@@ -193,19 +181,6 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
     loadActivePromotion();
   }, []);
-
-  // Map Stripe plan name to local plan key
-  const mapPlanNameToKey = (planName: string): string => {
-    const name = planName.toLowerCase();
-    if (name.includes('básico') || name.includes('basico') || name.includes('basic')) {
-      return 'basico';
-    } else if (name.includes('profesional') || name.includes('professional')) {
-      return 'profesional';
-    } else if (name.includes('corporativo') || name.includes('corporate') || name.includes('empresa') || name.includes('enterprise')) {
-      return 'corporativo';
-    }
-    return 'basico';
-  };
 
   // Get available upgrades based on current plan
   const getAvailableUpgrades = (currentPlan: string): string[] => {
