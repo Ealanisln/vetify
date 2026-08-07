@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getStripePrices, getStripeProducts } from '../../../lib/payments/stripe';
+import { getStripePrices, getStripeProducts, getStripeProductIds } from '../../../lib/payments/stripe';
 
 export async function GET() {
   try {
@@ -43,11 +43,11 @@ export async function GET() {
     });
 
     // Filter only the correct Vetify products (basico, profesional)
-    // Corporativo se maneja por separado en el frontend como cotización
-    const VALID_PRODUCT_IDS = [
-      'prod_TGDXKD2ksDenYm', // Plan Básico
-      'prod_TGDXLJxNFGsF9X'  // Plan Profesional
-    ];
+    // Corporativo se maneja por separado en el frontend como cotización.
+    // Resolved at runtime so the IDs match the Stripe mode the current key targets.
+    // Hardcoding them pinned this filter to test mode, which returned zero plans in live.
+    const productIds = getStripeProductIds();
+    const VALID_PRODUCT_IDS = [productIds.BASICO, productIds.PROFESIONAL];
 
     const activePlans = pricingData
       .filter(plan => {
