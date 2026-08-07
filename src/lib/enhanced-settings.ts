@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { CURRENCIES, DEFAULT_CURRENCY } from './currency';
 import { z } from 'zod';
 
 // Settings schemas
@@ -120,8 +121,8 @@ export async function getClinicSettings(tenantId: string) {
         enableEmailReminders: true,
         enableSmsReminders: false,
         taxRate: 0.16,
-        currencyCode: 'USD',
-        currencySymbol: '$',
+        currencyCode: DEFAULT_CURRENCY,
+        currencySymbol: CURRENCIES[DEFAULT_CURRENCY].symbol,
         appointmentDuration: 30,
       }
     });
@@ -147,8 +148,8 @@ export async function updateClinicSettings(tenantId: string, data: ClinicSetting
       enableEmailReminders: true,
       enableSmsReminders: false,
       taxRate: 0.16,
-      currencyCode: 'USD',
-      currencySymbol: '$',
+      currencyCode: DEFAULT_CURRENCY,
+      currencySymbol: CURRENCIES[DEFAULT_CURRENCY].symbol,
       appointmentDuration: 30,
     }
   });
@@ -255,8 +256,8 @@ export async function updateNotificationSettings(tenantId: string, data: Notific
       enableEmailReminders: validatedData.emailEnabled || false,
       enableSmsReminders: validatedData.smsEnabled || false,
       taxRate: 0.16,
-      currencyCode: 'USD',
-      currencySymbol: '$',
+      currencyCode: DEFAULT_CURRENCY,
+      currencySymbol: CURRENCIES[DEFAULT_CURRENCY].symbol,
       appointmentDuration: 30,
     }
   });

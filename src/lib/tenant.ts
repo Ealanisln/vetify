@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { CURRENCIES, DEFAULT_CURRENCY } from './currency';
 import type { SubscriptionStatus } from '@prisma/client';
 import type { ThemeId } from './themes';
 
@@ -179,8 +180,8 @@ export async function createTenantWithDefaults(data: {
         enableEmailReminders: true,
         enableSmsReminders: false,
         taxRate: 0.16,
-        currencyCode: 'USD',
-        currencySymbol: '$',
+        currencyCode: DEFAULT_CURRENCY,
+        currencySymbol: CURRENCIES[DEFAULT_CURRENCY].symbol,
         appointmentDuration: 30,
       }
     });
