@@ -9,21 +9,11 @@ import {
   getStripePlanMapping,
   PLAN_PRICES
 } from '@/lib/payments/stripe';
-import { z } from 'zod';
-
-// Upgrade request validation schema
-const UpgradeRequestSchema = z.object({
-  targetPlan: z.enum(['PROFESIONAL', 'CLINICA', 'EMPRESA']),
-  billingInterval: z.enum(['monthly', 'annual']).default('monthly'),
-  fromTrial: z.boolean().default(false)
-});
-
-// Plan hierarchy for upgrade validation
-const PLAN_HIERARCHY = {
-  PROFESIONAL: 1,
-  CLINICA: 2,
-  EMPRESA: 3
-} as const;
+import {
+  UpgradeRequestSchema,
+  PLAN_HIERARCHY,
+  isValidUpgrade,
+} from '@/lib/payments/upgrade-validation';
 
 /**
  * POST /api/subscription/upgrade
@@ -154,17 +144,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 8. Validate upgrade (can only upgrade to higher tier)
-    const currentTier = PLAN_HIERARCHY[currentPlanKey as keyof typeof PLAN_HIERARCHY];
-    const targetTier = PLAN_HIERARCHY[targetPlan];
-
-    if (!currentTier || !targetTier) {
-      return NextResponse.json(
-        { error: 'Invalid plan tier', message: 'Plan no válido' },
-        { status: 400 }
-      );
-    }
-
-    if (targetTier <= currentTier) {
+    if (!isValidUpgrade(currentPlanKey, targetPlan)) {
       return NextResponse.json(
         {
           error: 'Invalid upgrade',

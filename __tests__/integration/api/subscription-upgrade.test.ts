@@ -34,9 +34,9 @@ jest.mock('@/lib/payments/stripe', () => ({
   getPriceIdByPlan: (...args: any[]) => mockGetPriceIdByPlan(...args),
   getStripePlanMapping: () => mockGetStripePlanMapping(),
   PLAN_PRICES: {
-    PROFESIONAL: { monthly: 499, annual: 4990 },
-    CLINICA: { monthly: 999, annual: 9990 },
-    EMPRESA: { monthly: 1999, annual: 19990 },
+    BASICO: { monthly: 499, annual: 4990 },
+    PROFESIONAL: { monthly: 999, annual: 9990 },
+    CORPORATIVO: { monthly: 1999, annual: 19990 },
   },
 }));
 
@@ -51,7 +51,7 @@ const createTestTenantWithSubscription = (overrides = {}) => ({
   stripeCustomerId: 'cus_test123',
   stripeSubscriptionId: 'sub_test123',
   stripeProductId: 'prod_test123',
-  planName: 'PROFESIONAL',
+  planName: 'BASICO',
   subscriptionStatus: 'ACTIVE',
   subscriptionEndsAt: new Date('2025-12-31'),
   isTrialPeriod: false,
@@ -61,8 +61,8 @@ const createTestTenantWithSubscription = (overrides = {}) => ({
   tenantSubscription: {
     plan: {
       id: 'plan-1',
-      key: 'PROFESIONAL',
-      name: 'Profesional',
+      key: 'BASICO',
+      name: 'Básico',
     },
   },
   ...overrides,
@@ -113,13 +113,13 @@ describe('Subscription Upgrade API Integration Tests', () => {
     // Default Stripe mocks
     mockGetPriceIdByPlan.mockReturnValue('price_test123');
     mockGetStripePlanMapping.mockReturnValue({
-      PROFESIONAL: {
+      BASICO: {
         limits: { locations: 1, staff: 5, pets: 500 },
       },
-      CLINICA: {
+      PROFESIONAL: {
         limits: { locations: 3, staff: 15, pets: 2000 },
       },
-      EMPRESA: {
+      CORPORATIVO: {
         limits: { locations: 10, staff: 50, pets: 10000 },
       },
     });
@@ -164,7 +164,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
     });
 
     describe('Available Upgrades', () => {
-      it('should return available upgrades for PROFESIONAL plan', async () => {
+      it('should return available upgrades for BASICO plan', async () => {
         prismaMock.user.findUnique.mockResolvedValue({
           ...mockUser,
           tenant: mockTenant,
@@ -174,21 +174,21 @@ describe('Subscription Upgrade API Integration Tests', () => {
         const data = await response.json();
 
         expect(response.status).toBe(200);
-        expect(data.currentPlan.key).toBe('PROFESIONAL');
+        expect(data.currentPlan.key).toBe('BASICO');
         expect(data.currentPlan.tier).toBe(1);
         expect(data.canUpgrade).toBe(true);
         expect(data.availableUpgrades).toHaveLength(2);
-        expect(data.availableUpgrades[0].planKey).toBe('CLINICA');
-        expect(data.availableUpgrades[1].planKey).toBe('EMPRESA');
+        expect(data.availableUpgrades[0].planKey).toBe('PROFESIONAL');
+        expect(data.availableUpgrades[1].planKey).toBe('CORPORATIVO');
       });
 
-      it('should return available upgrades for CLINICA plan', async () => {
+      it('should return available upgrades for PROFESIONAL plan', async () => {
         const clinicaTenant = createTestTenantWithSubscription({
-          planName: 'CLINICA',
+          planName: 'PROFESIONAL',
           tenantSubscription: {
             plan: {
               id: 'plan-2',
-              key: 'CLINICA',
+              key: 'PROFESIONAL',
               name: 'Clinica',
             },
           },
@@ -203,21 +203,21 @@ describe('Subscription Upgrade API Integration Tests', () => {
         const data = await response.json();
 
         expect(response.status).toBe(200);
-        expect(data.currentPlan.key).toBe('CLINICA');
+        expect(data.currentPlan.key).toBe('PROFESIONAL');
         expect(data.currentPlan.tier).toBe(2);
         expect(data.canUpgrade).toBe(true);
         expect(data.availableUpgrades).toHaveLength(1);
-        expect(data.availableUpgrades[0].planKey).toBe('EMPRESA');
+        expect(data.availableUpgrades[0].planKey).toBe('CORPORATIVO');
       });
 
-      it('should return no upgrades for EMPRESA plan', async () => {
+      it('should return no upgrades for CORPORATIVO plan', async () => {
         const empresaTenant = createTestTenantWithSubscription({
-          planName: 'EMPRESA',
+          planName: 'CORPORATIVO',
           tenantSubscription: {
             plan: {
               id: 'plan-3',
-              key: 'EMPRESA',
-              name: 'Empresa',
+              key: 'CORPORATIVO',
+              name: 'Corporativo',
             },
           },
         });
@@ -231,7 +231,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         const data = await response.json();
 
         expect(response.status).toBe(200);
-        expect(data.currentPlan.key).toBe('EMPRESA');
+        expect(data.currentPlan.key).toBe('CORPORATIVO');
         expect(data.currentPlan.tier).toBe(3);
         expect(data.canUpgrade).toBe(false);
         expect(data.availableUpgrades).toHaveLength(0);
@@ -311,7 +311,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         mockIsAuthenticated.mockResolvedValue(false);
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -326,7 +326,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         mockGetUser.mockResolvedValue(null);
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -364,7 +364,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         } as any);
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'weekly',
         });
 
@@ -401,7 +401,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         prismaMock.trialAccessLog.create.mockResolvedValue({} as any);
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -419,7 +419,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         } as any);
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -445,7 +445,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         });
 
         const request = createMockRequest({
-          targetPlan: 'PROFESIONAL',
+          targetPlan: 'BASICO',
           billingInterval: 'monthly',
           fromTrial: true,
         });
@@ -472,7 +472,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         });
 
         const request = createMockRequest({
-          targetPlan: 'PROFESIONAL',
+          targetPlan: 'BASICO',
           billingInterval: 'annual',
         });
 
@@ -494,7 +494,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         mockGetPriceIdByPlan.mockReturnValue(null);
 
         const request = createMockRequest({
-          targetPlan: 'PROFESIONAL',
+          targetPlan: 'BASICO',
           billingInterval: 'monthly',
           fromTrial: true,
         });
@@ -520,7 +520,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         } as any);
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -543,7 +543,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         });
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -580,7 +580,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         prismaMock.trialAccessLog.create.mockResolvedValue({} as any);
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -618,7 +618,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         prismaMock.trialAccessLog.create.mockResolvedValue({} as any);
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -631,13 +631,13 @@ describe('Subscription Upgrade API Integration Tests', () => {
     });
 
     describe('Upgrade Validation', () => {
-      it('should reject downgrade (CLINICA to PROFESIONAL)', async () => {
+      it('should reject downgrade (PROFESIONAL to BASICO)', async () => {
         const clinicaTenant = createTestTenantWithSubscription({
-          planName: 'CLINICA',
+          planName: 'PROFESIONAL',
           tenantSubscription: {
             plan: {
               id: 'plan-2',
-              key: 'CLINICA',
+              key: 'PROFESIONAL',
               name: 'Clinica',
             },
           },
@@ -654,7 +654,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         });
 
         const request = createMockRequest({
-          targetPlan: 'PROFESIONAL',
+          targetPlan: 'BASICO',
           billingInterval: 'monthly',
         });
 
@@ -677,7 +677,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         });
 
         const request = createMockRequest({
-          targetPlan: 'PROFESIONAL',
+          targetPlan: 'BASICO',
           billingInterval: 'monthly',
         });
 
@@ -688,7 +688,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         expect(data.error).toBe('Invalid upgrade');
       });
 
-      it('should allow upgrade to higher tier (PROFESIONAL to CLINICA)', async () => {
+      it('should allow upgrade to higher tier (BASICO to PROFESIONAL)', async () => {
         prismaMock.user.findUnique.mockResolvedValue({
           ...mockUser,
           tenant: mockTenant,
@@ -714,7 +714,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         prismaMock.trialAccessLog.create.mockResolvedValue({} as any);
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -725,7 +725,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         expect(data.success).toBe(true);
       });
 
-      it('should allow upgrade to highest tier (PROFESIONAL to EMPRESA)', async () => {
+      it('should allow upgrade to highest tier (BASICO to CORPORATIVO)', async () => {
         prismaMock.user.findUnique.mockResolvedValue({
           ...mockUser,
           tenant: mockTenant,
@@ -751,7 +751,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         prismaMock.trialAccessLog.create.mockResolvedValue({} as any);
 
         const request = createMockRequest({
-          targetPlan: 'EMPRESA',
+          targetPlan: 'CORPORATIVO',
           billingInterval: 'monthly',
         });
 
@@ -760,7 +760,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
 
         expect(response.status).toBe(200);
         expect(data.success).toBe(true);
-        expect(data.subscription.plan).toBe('EMPRESA');
+        expect(data.subscription.plan).toBe('CORPORATIVO');
       });
     });
 
@@ -793,7 +793,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
 
       it('should return subscription details', async () => {
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -804,13 +804,13 @@ describe('Subscription Upgrade API Integration Tests', () => {
         expect(data.subscription).toBeDefined();
         expect(data.subscription.id).toBe('sub_updated');
         expect(data.subscription.status).toBe('active');
-        expect(data.subscription.plan).toBe('CLINICA');
+        expect(data.subscription.plan).toBe('PROFESIONAL');
         expect(data.subscription.billingInterval).toBe('monthly');
       });
 
       it('should return proration details', async () => {
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -825,7 +825,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
 
       it('should return new pricing details', async () => {
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -841,7 +841,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
 
       it('should return annual pricing for annual interval', async () => {
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'annual',
         });
 
@@ -855,7 +855,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
 
       it('should log the upgrade action', async () => {
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -868,7 +868,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
             feature: 'subscription_upgrade',
             action: 'upgrade',
             allowed: true,
-            denialReason: 'Upgraded from PROFESIONAL to CLINICA',
+            denialReason: 'Upgraded from BASICO to PROFESIONAL',
           }),
         });
       });
@@ -888,7 +888,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         );
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -919,7 +919,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         );
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -948,7 +948,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         mockUpdateSubscription.mockRejectedValue(new Error('Network error'));
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -975,7 +975,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         mockGetPriceIdByPlan.mockReturnValue(null);
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 
@@ -1003,7 +1003,7 @@ describe('Subscription Upgrade API Integration Tests', () => {
         });
 
         const request = createMockRequest({
-          targetPlan: 'CLINICA',
+          targetPlan: 'PROFESIONAL',
           billingInterval: 'monthly',
         });
 

@@ -128,7 +128,9 @@ export function getTrialMessage(daysRemaining: number): string {
  * Calculate days remaining specifically for trials using trialEndsAt
  * Keeps negative values for proper expired trial handling
  */
-export function calculateTrialDaysRemaining(tenant: Tenant): number | null {
+export function calculateTrialDaysRemaining(
+  tenant: Pick<Tenant, 'isTrialPeriod' | 'trialEndsAt'>
+): number | null {
   if (!tenant.isTrialPeriod || !tenant.trialEndsAt) {
     return null;
   }

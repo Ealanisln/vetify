@@ -4,8 +4,10 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+import type { PlanKey } from '@/lib/payments/upgrade-validation';
+
 export interface UpgradeOptions {
-  targetPlan: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA';
+  targetPlan: PlanKey;
   billingInterval: 'monthly' | 'annual';
   fromTrial?: boolean;
 }
@@ -152,7 +154,7 @@ export function useUpgrade() {
    * Quick upgrade to a specific plan from trial
    */
   const upgradeFromTrial = useCallback(async (
-    targetPlan: 'PROFESIONAL' | 'CLINICA' | 'EMPRESA',
+    targetPlan: PlanKey,
     billingInterval: 'monthly' | 'annual' = 'monthly'
   ) => {
     return upgrade({

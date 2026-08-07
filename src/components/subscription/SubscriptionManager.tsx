@@ -20,6 +20,7 @@ import {
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getPlanKeyFromName } from '../../lib/pricing-config';
+import { getPlanDisplay } from '../../lib/subscription/display';
 import { toast } from 'sonner';
 
 interface SubscriptionManagerProps {
@@ -71,6 +72,15 @@ export function SubscriptionManager({ tenant, isActiveSubscription }: Subscripti
       }, 2000);
     }
   }, [searchParams, router]);
+
+  // Unified plan label — same semantics as dashboard and /precios
+  const planDisplay = getPlanDisplay({
+    isTrialPeriod: tenant.isTrialPeriod,
+    trialEndsAt: tenant.trialEndsAt,
+    stripeSubscriptionId: tenant.stripeSubscriptionId,
+    planName: tenant.planName,
+    subscriptionPlanName: planName,
+  });
 
   // CRITICAL FIX: Check if trial has expired
   // Trial is expired if: status is TRIALING AND trialEndsAt is in the past
@@ -265,7 +275,7 @@ export function SubscriptionManager({ tenant, isActiveSubscription }: Subscripti
               </div>
             </div>
             <Badge className={statusConfig.color} variant="outline">
-              {planName || 'Sin plan'}
+              {planDisplay.label}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground">{statusConfig.description}</p>
@@ -283,7 +293,7 @@ export function SubscriptionManager({ tenant, isActiveSubscription }: Subscripti
                   Plan Actual
                 </p>
                 <p className="text-lg font-bold">
-                  {planName || 'Sin plan activo'}
+                  {planDisplay.label}
                 </p>
               </div>
 
