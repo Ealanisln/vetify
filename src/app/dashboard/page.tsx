@@ -1,4 +1,5 @@
 import { requireAuth } from '../../lib/auth';
+import { getPlanDisplay } from '../../lib/subscription/display';
 import { getDashboardStats } from '../../lib/dashboard';
 import { StatsCard, RecentPetsCard, UpcomingAppointmentsCard, SubscriptionNotifications, WelcomeBanner } from '../../components/dashboard';
 import { PlanLimitsDisplay } from '../../components/subscription';
@@ -47,7 +48,13 @@ export default async function DashboardPage() {
         />
         <StatsCard
           title="Plan Actual"
-          value={tenant.tenantSubscription?.plan?.name || 'Sin plan'}
+          value={getPlanDisplay({
+            isTrialPeriod: tenant.isTrialPeriod,
+            trialEndsAt: tenant.trialEndsAt,
+            stripeSubscriptionId: tenant.stripeSubscriptionId,
+            planName: tenant.planName,
+            subscriptionPlanName: tenant.tenantSubscription?.plan?.name,
+          }).label}
           icon="⭐"
         />
         {/* FUTURE FEATURE: Automatizaciones - n8n integration not yet implemented */}

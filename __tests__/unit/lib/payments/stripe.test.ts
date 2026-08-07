@@ -155,6 +155,7 @@ import {
   getStripePlanMapping,
   getPriceIdByPlan,
   getPlanMapping,
+  handleSubscriptionChange,
   STRIPE_PRODUCTS,
   STRIPE_PRICES,
   PLAN_PRICES,
@@ -581,6 +582,71 @@ describe('Stripe Integration Error Handling', () => {
     it('should return null for empty string', () => {
       const mapping = getPlanMapping('');
       expect(mapping).toBeNull();
+    });
+  });
+
+  describe('handleSubscriptionChange trial-field hygiene', () => {
+    const baseSubscription = {
+      id: 'sub_test123',
+      customer: 'cus_test123',
+      items: {
+        data: [{ plan: { product: 'prod_TGDXKD2ksDenYm' } }], // BASICO test product
+      },
+      current_period_start: Math.floor(Date.now() / 1000),
+      current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+      cancel_at_period_end: false,
+    };
+
+    const mockTenant = { id: 'tenant-1', stripeCustomerId: 'cus_test123' };
+    const mockDbPlan = { id: 'plan-1', key: 'BASICO', name: 'Plan Básico' };
+
+    let capturedTenantUpdate: Record<string, unknown> | null;
+
+    beforeEach(() => {
+      capturedTenantUpdate = null;
+      (isStripeInLiveMode as jest.Mock).mockReturnValue(false);
+      (prisma.tenant.findUnique as jest.Mock).mockResolvedValue(mockTenant);
+      (prisma.plan.findUnique as jest.Mock).mockResolvedValue(mockDbPlan);
+      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) =>
+        callback({
+          tenant: {
+            update: jest.fn().mockImplementation(({ data }) => {
+              capturedTenantUpdate = data;
+              return Promise.resolve({});
+            }),
+          },
+          tenantSubscription: {
+            upsert: jest.fn().mockResolvedValue({}),
+          },
+        })
+      );
+    });
+
+    it('clears isTrialPeriod AND trialEndsAt when the subscription becomes active', async () => {
+      const result = await handleSubscriptionChange({
+        ...baseSubscription,
+        status: 'active',
+        trial_end: null,
+      } as never);
+
+      expect(result).toBe(true);
+      expect(capturedTenantUpdate).not.toBeNull();
+      expect(capturedTenantUpdate!.isTrialPeriod).toBe(false);
+      expect(capturedTenantUpdate!.trialEndsAt).toBeNull();
+    });
+
+    it('syncs trialEndsAt from Stripe for a Stripe-managed trial', async () => {
+      const trialEnd = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
+
+      const result = await handleSubscriptionChange({
+        ...baseSubscription,
+        status: 'trialing',
+        trial_end: trialEnd,
+      } as never);
+
+      expect(result).toBe(true);
+      expect(capturedTenantUpdate!.isTrialPeriod).toBe(true);
+      expect(capturedTenantUpdate!.trialEndsAt).toEqual(new Date(trialEnd * 1000));
     });
   });
 });
