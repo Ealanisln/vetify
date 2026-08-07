@@ -16,7 +16,6 @@ import {
 import type { Tenant } from '@prisma/client';
 import { calculateTrialStatus, type TrialStatus } from '../../lib/trial/utils';
 import { useRouter } from 'next/navigation';
-import { UpgradeModal } from './UpgradeModal';
 
 interface TrialBannerProps {
   tenant: Tenant;
@@ -31,7 +30,6 @@ export function TrialBanner({
 }: TrialBannerProps) {
   const router = useRouter();
   const [trialStatus, setTrialStatus] = useState(() => calculateTrialStatus(tenant));
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Update countdown every minute for real-time updates
   useEffect(() => {
@@ -92,8 +90,7 @@ export function TrialBanner({
   const Icon = config.icon;
 
   const handleUpgrade = () => {
-    // Open upgrade modal instead of redirecting to pricing page
-    setShowUpgradeModal(true);
+    handleViewPricing();
   };
 
   const handleViewPricing = () => {
@@ -242,13 +239,6 @@ export function TrialBanner({
         </div>
       </div>
 
-      {/* Upgrade Modal */}
-      <UpgradeModal
-        open={showUpgradeModal}
-        onOpenChange={setShowUpgradeModal}
-        currentPlanKey={null}
-        isTrialPeriod={tenant.isTrialPeriod}
-      />
     </Card>
   );
 }
