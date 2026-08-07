@@ -164,6 +164,25 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.10.0] - 2026-08-07
+
+### Corregido
+- **Los emails del ciclo de vida del trial nunca se enviaban.** El query de \`processTrialLifecycleEmails\` omitía \`isTrialPeriod\`, por lo que el cálculo de días restantes regresaba \`null\` para todos los tenants y ningún aviso de expiración (T-3 días) ni de trial expirado llegó a enviarse — en ningún entorno. Se corrigió el query, se eliminó el cast que ocultaba el error de tipos y se agregaron tests de regresión con semántica real de \`select\` de Prisma.
+- **La cadena de upgrade usaba planes retirados y precios de producción en desarrollo.** \`UpgradeModal\` → \`useUpgrade\` → \`POST /api/subscription/upgrade\` validaban los plan keys legacy (\`CLINICA\`/\`EMPRESA\`), impidiendo elegir Básico o Corporativo, y \`getPriceIdByPlan\` siempre resolvía price IDs live (errores "No such price" con llaves de test). El schema y la jerarquía ahora viven en \`lib/payments/upgrade-validation.ts\` (\`BASICO\` < \`PROFESIONAL\` < \`CORPORATIVO\`) y la resolución de precios detecta el modo de Stripe en runtime.
+- **Los tenants en trial no podían contratar el Plan Básico.** \`/precios\` marcaba Básico como "Plan Actual" (deshabilitado) porque el trial lleva una \`TenantSubscription\` con ese plan. Un trial sin suscripción de Stripe ahora no tiene plan actual: los tres planes muestran su botón de contratación.
+- **Conteo de días del trial con off-by-one.** Un trial que vence pasado mañana decía "1 día"; ahora se cuenta en días de calendario (\`differenceInCalendarDays\`). También se corrigió la concordancia "1 días restantes" → "1 día restante".
+
+### Cambiado
+- **Estado del plan unificado en todas las superficies.** Dashboard, configuración y precios derivaban el estado de campos distintos (un tenant en trial veía "Plan Básico", "Sin plan activo" y "Plan Actual" a la vez). Nuevo \`lib/subscription/display.ts\` con una sola semántica: nombre del plan si hay suscripción de Stripe, "Prueba gratuita"/"Prueba expirada" durante el trial, "Sin plan" en otro caso.
+- **Redirección post-pago inmediata (sync-first).** El return handler de checkout ya no espera al webhook con polling (hasta ~20 s de pantalla en blanco tras pagar): verifica la base una vez y, si el webhook no ha llegado, ejecuta el mismo sync idempotente al instante (~2-3 s). El webhook sigue siendo la fuente de verdad asíncrona.
+- **\`trialEndsAt\` se sincroniza con Stripe al cambiar la suscripción:** fecha real durante un trial gestionado por Stripe y limpieza del campo al convertir a plan de pago.
+- **Se eliminó \`UpgradeModal\`** (huérfano, con props incompatibles entre sus dos consumidores); todas las superficies de upgrade dirigen a \`/precios\`.
+- Las sesiones de checkout ahora llevan el \`planKey\` real en la metadata de Stripe (antes \`"unknown"\` cuando el cliente enviaba solo el price ID).
+- El rate limiter registra fallas de Redis una sola vez por proceso (antes en cada request cuando Upstash era inalcanzable en desarrollo).
+
+### Documentación
+- Nueva sección "Local Payments & Cron Testing" en \`CLAUDE.md\`: cuenta sandbox de Stripe correcta, \`stripe listen\`, inyección de \`CRON_SECRET\` local y buzón de pruebas de Resend.
+
 ## [1.9.0] - 2026-07-03
 
 ### Agregado
