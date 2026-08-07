@@ -3,11 +3,26 @@
 // Mock Stripe functions
 const mockGetStripeProducts = jest.fn();
 const mockGetStripePrices = jest.fn();
+const mockGetStripeProductIds = jest.fn();
 
 jest.mock('@/lib/payments/stripe', () => ({
   getStripeProducts: () => mockGetStripeProducts(),
   getStripePrices: () => mockGetStripePrices(),
+  getStripeProductIds: () => mockGetStripeProductIds(),
 }));
+
+// Product IDs as resolved by getStripeProductIds() in each Stripe mode.
+const TEST_MODE_PRODUCT_IDS = {
+  BASICO: 'prod_TGDXKD2ksDenYm',
+  PROFESIONAL: 'prod_TGDXLJxNFGsF9X',
+  CORPORATIVO: 'prod_TGDXxUkqhta3cp',
+};
+
+const LIVE_MODE_PRODUCT_IDS = {
+  BASICO: 'prod_TOO1tpvYblty9Y',
+  PROFESIONAL: 'prod_TOO1RsH4C7mQmr',
+  CORPORATIVO: 'prod_TOO1q6SDg9CGMP',
+};
 
 // Import after mocks
 import { GET } from '@/app/api/pricing/route';
@@ -35,6 +50,7 @@ const createMockStripePrice = (overrides = {}) => ({
 describe('Pricing API Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetStripeProductIds.mockReturnValue(TEST_MODE_PRODUCT_IDS);
     jest.spyOn(console, 'log').mockImplementation();
     jest.spyOn(console, 'error').mockImplementation();
   });
@@ -177,6 +193,57 @@ describe('Pricing API Integration Tests', () => {
         expect(response.status).toBe(200);
         expect(data.plans).toHaveLength(2);
         expect(data.plans.map((p: any) => p.id)).not.toContain('prod_INVALID');
+      });
+
+      // Regression: VALID_PRODUCT_IDS used to be hardcoded to the TEST-mode product
+      // IDs, so in live mode the filter matched nothing and the route returned zero
+      // plans, silently pushing the pricing page onto its hardcoded fallback.
+      it('should filter using live-mode product IDs when Stripe is in live mode', async () => {
+        mockGetStripeProductIds.mockReturnValue(LIVE_MODE_PRODUCT_IDS);
+
+        const products = [
+          createMockStripeProduct({ id: LIVE_MODE_PRODUCT_IDS.BASICO, name: 'Plan Básico' }),
+          createMockStripeProduct({ id: LIVE_MODE_PRODUCT_IDS.PROFESIONAL, name: 'Plan Profesional' }),
+          createMockStripeProduct({ id: 'prod_INVALID', name: 'Invalid Product' }),
+        ];
+        const prices = [
+          createMockStripePrice({ productId: LIVE_MODE_PRODUCT_IDS.BASICO, unitAmount: 59900 }),
+          createMockStripePrice({ productId: LIVE_MODE_PRODUCT_IDS.PROFESIONAL, unitAmount: 119900 }),
+          createMockStripePrice({ productId: 'prod_INVALID', unitAmount: 999900 }),
+        ];
+
+        mockGetStripeProducts.mockResolvedValue(products);
+        mockGetStripePrices.mockResolvedValue(prices);
+
+        const response = await GET();
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.plans).toHaveLength(2);
+        expect(data.plans.map((p: any) => p.id)).toEqual([
+          LIVE_MODE_PRODUCT_IDS.BASICO,
+          LIVE_MODE_PRODUCT_IDS.PROFESIONAL,
+        ]);
+      });
+
+      it('should exclude Corporativo, which is sold as a custom quote', async () => {
+        const products = [
+          createMockStripeProduct({ id: TEST_MODE_PRODUCT_IDS.BASICO, name: 'Plan Básico' }),
+          createMockStripeProduct({ id: TEST_MODE_PRODUCT_IDS.CORPORATIVO, name: 'Plan Corporativo' }),
+        ];
+        const prices = [
+          createMockStripePrice({ productId: TEST_MODE_PRODUCT_IDS.BASICO, unitAmount: 59900 }),
+          createMockStripePrice({ productId: TEST_MODE_PRODUCT_IDS.CORPORATIVO, unitAmount: 500000 }),
+        ];
+
+        mockGetStripeProducts.mockResolvedValue(products);
+        mockGetStripePrices.mockResolvedValue(prices);
+
+        const response = await GET();
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.plans.map((p: any) => p.id)).toEqual([TEST_MODE_PRODUCT_IDS.BASICO]);
       });
 
       it('should sort plans by monthly price ascending', async () => {
