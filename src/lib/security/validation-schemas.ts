@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { commonSchemas } from './input-sanitization';
+import { DEFAULT_CURRENCY } from '../currency';
 
 /**
  * Enhanced validation schemas for all API endpoints
@@ -300,7 +301,7 @@ export const billingSchemas = {
     total: commonSchemas.amount,
     dueDate: z.string().datetime().optional(),
     notes: commonSchemas.description.optional(),
-    currency: commonSchemas.currencyCode.default('USD'),
+    currency: commonSchemas.currencyCode.default(DEFAULT_CURRENCY),
   }),
 
   payment: z.object({
