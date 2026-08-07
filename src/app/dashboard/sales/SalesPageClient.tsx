@@ -13,6 +13,7 @@ import { CustomerSearchResult, ProductSearchResult, SaleItemForm } from '@/types
 import { toast } from 'sonner';
 import { SaleDetailModal } from '@/components/sales/SaleDetailModal';
 import { useLocation } from '@/components/providers/LocationProvider';
+import { useCurrencyCode, useFormatMoney } from '@/components/providers/CurrencyProvider';
 import { calculateTaxBreakdown, formatTaxRateLabel } from '@/lib/tax-utils';
 import { useStaffPermissions } from '@/hooks/useStaffPermissions';
 import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
@@ -68,6 +69,8 @@ export default function SalesPageClient({}: SalesPageClientProps) {
 
   const { currentLocation, isAllLocations } = useLocation();
   const { canAccess, isLoading: permissionsLoading } = useStaffPermissions();
+  const currencyCode = useCurrencyCode();
+  const formatMoney = useFormatMoney();
 
   // Check if user can process sales
   const canProcessSales = canAccess('sales', 'write');
@@ -188,7 +191,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
   // Calcular totales
   // Los precios YA incluyen IVA - calculamos desglose informativo
   const totalWithTax = cartItems.reduce((sum, item) => sum + item.total, 0);
-  const taxBreakdown = calculateTaxBreakdown(totalWithTax, taxRate);
+  const taxBreakdown = calculateTaxBreakdown(totalWithTax, taxRate, currencyCode);
   const subtotal = taxBreakdown.subtotalWithoutTax; // Subtotal SIN IVA (base gravable)
   const tax = taxBreakdown.taxAmount;               // IVA incluido (desglose informativo)
   const total = taxBreakdown.total;                 // Total = suma de precios (NO suma adicional)
@@ -446,7 +449,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
                       </div>
                       <div className="text-right">
                         <div className="font-medium text-[#75a99c]">
-                          ${product.price?.toFixed(2) || '0.00'}
+                          {formatMoney(product.price ?? 0)}
                         </div>
                         <div className="text-xs text-gray-400">
                           {product.type === 'product' ? 'Producto' : 'Servicio'}
@@ -482,7 +485,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
                       {item.description}
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      ${item.unitPrice.toFixed(2)} c/u
+                      {formatMoney(item.unitPrice)} c/u
                     </div>
                   </div>
                   
@@ -497,7 +500,7 @@ export default function SalesPageClient({}: SalesPageClientProps) {
                     />
                     
                     <div className="font-medium text-[#75a99c] min-w-[60px] text-right">
-                      ${item.total.toFixed(2)}
+                      {formatMoney(item.total)}
                     </div>
                     
                     <button
@@ -523,16 +526,16 @@ export default function SalesPageClient({}: SalesPageClientProps) {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">Subtotal (sin IVA):</span>
-              <span className="font-medium">${subtotal.toFixed(2)}</span>
+              <span className="font-medium">{formatMoney(subtotal)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600 dark:text-gray-400">IVA incluido ({formatTaxRateLabel(taxRate)}):</span>
-              <span className="font-medium">${tax.toFixed(2)}</span>
+              <span className="font-medium">{formatMoney(tax)}</span>
             </div>
             <div className="border-t border-gray-200 dark:border-gray-600 pt-2">
               <div className="flex justify-between">
                 <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">Total:</span>
-                <span className="text-lg font-semibold text-[#75a99c]">${total.toFixed(2)}</span>
+                <span className="text-lg font-semibold text-[#75a99c]">{formatMoney(total)}</span>
               </div>
             </div>
           </div>

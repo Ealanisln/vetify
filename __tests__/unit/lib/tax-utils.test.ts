@@ -120,6 +120,56 @@ describe('tax-utils', () => {
     });
   });
 
+  describe('calculateTaxBreakdown across currencies', () => {
+    it('rounds a zero-decimal currency to whole units', () => {
+      // A Chilean clinic's ticket must not print centavos that do not exist.
+      const result = calculateTaxBreakdown(80000, 0.19, 'CLP');
+
+      expect(Number.isInteger(result.subtotalWithoutTax)).toBe(true);
+      expect(Number.isInteger(result.taxAmount)).toBe(true);
+      expect(Number.isInteger(result.total)).toBe(true);
+    });
+
+    it('keeps cents for a two-decimal currency', () => {
+      const result = calculateTaxBreakdown(80000, 0.19, 'COP');
+
+      expect(result.subtotalWithoutTax).toBe(67226.89);
+      expect(result.taxAmount).toBe(12773.11);
+    });
+
+    /**
+     * The load-bearing property. Rounding subtotal and tax independently can
+     * drift a unit apart, which on a printed ticket means the lines visibly do
+     * not add up to the total the customer paid.
+     */
+    it('always has subtotal + tax equal the total exactly', () => {
+      const currencies = ['MXN', 'CLP', 'COP', 'PYG', 'USD'];
+      const rates = [0, 0.08, 0.16, 0.19, 0.21];
+      const totals = [1, 7, 99.99, 180, 1234.56, 80000, 350000];
+
+      for (const currency of currencies) {
+        for (const rate of rates) {
+          for (const total of totals) {
+            const r = calculateTaxBreakdown(total, rate, currency);
+            expect(r.subtotalWithoutTax + r.taxAmount).toBeCloseTo(r.total, 6);
+          }
+        }
+      }
+    });
+
+    it('defaults to MXN so existing two-argument callers are unaffected', () => {
+      expect(calculateTaxBreakdown(180, 0.16)).toEqual(
+        calculateTaxBreakdown(180, 0.16, 'MXN')
+      );
+    });
+
+    it('falls back to the default currency for an unknown code', () => {
+      expect(calculateTaxBreakdown(180, 0.16, 'XXX')).toEqual(
+        calculateTaxBreakdown(180, 0.16, 'MXN')
+      );
+    });
+  });
+
   describe('MEXICO_TAX_RATES', () => {
     it('should have standard rate of 16%', () => {
       expect(MEXICO_TAX_RATES.STANDARD).toBe(0.16);
