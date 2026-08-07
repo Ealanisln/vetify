@@ -45,6 +45,7 @@ export async function processTrialLifecycleEmails(): Promise<TrialLifecycleResul
       select: {
         id: true,
         name: true,
+        isTrialPeriod: true,
         trialEndsAt: true,
         lastTrialCheck: true,
       },
@@ -54,8 +55,7 @@ export async function processTrialLifecycleEmails(): Promise<TrialLifecycleResul
 
     for (const tenant of tenants) {
       try {
-        // calculateTrialDaysRemaining expects a full Tenant; we only need the fields it checks
-        const daysRemaining = calculateTrialDaysRemaining(tenant as Parameters<typeof calculateTrialDaysRemaining>[0]);
+        const daysRemaining = calculateTrialDaysRemaining(tenant);
         if (daysRemaining === null) continue;
 
         const now = new Date();
