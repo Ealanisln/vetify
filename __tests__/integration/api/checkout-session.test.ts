@@ -17,6 +17,7 @@ const mockGetPriceByLookupKey = jest.fn();
 jest.mock('@/lib/payments/stripe', () => ({
   createCheckoutSessionForAPI: (...args: any[]) => mockCreateCheckoutSessionForAPI(...args),
   getPriceByLookupKey: (...args: any[]) => mockGetPriceByLookupKey(...args),
+  getPlanKeyByPriceId: jest.fn().mockReturnValue('BASICO'),
 }));
 
 // Mock findOrCreateUser
@@ -235,6 +236,8 @@ describe('Checkout Session API Integration Tests', () => {
         tenant,
         priceId: 'price_test_123',
         userId: user.id,
+        planKey: 'BASICO',
+        billingInterval: 'monthly',
       });
     });
   });
