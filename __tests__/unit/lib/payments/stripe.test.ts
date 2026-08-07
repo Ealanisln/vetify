@@ -154,6 +154,7 @@ import {
   getStripePriceIds,
   getStripePlanMapping,
   getPriceIdByPlan,
+  getPlanKeyByPriceId,
   getPlanMapping,
   STRIPE_PRODUCTS,
   STRIPE_PRICES,
@@ -581,6 +582,23 @@ describe('Stripe Integration Error Handling', () => {
     it('should return null for empty string', () => {
       const mapping = getPlanMapping('');
       expect(mapping).toBeNull();
+    });
+  });
+
+  describe('getPlanKeyByPriceId', () => {
+    beforeEach(() => {
+      (isStripeInLiveMode as jest.Mock).mockReturnValue(false);
+    });
+
+    it('resolves each TEST price ID back to its plan key', () => {
+      expect(getPlanKeyByPriceId('price_1SJh6nPwxz1bHxlHQ15mCTij')).toBe('BASICO');
+      expect(getPlanKeyByPriceId('price_1SJh6pPwxz1bHxlHcMip7KIU')).toBe('PROFESIONAL');
+      expect(getPlanKeyByPriceId('price_1SJh6qPwxz1bHxlHd3ud2WZ3')).toBe('CORPORATIVO');
+    });
+
+    it('returns null for unknown price IDs', () => {
+      expect(getPlanKeyByPriceId('price_unknown')).toBeNull();
+      expect(getPlanKeyByPriceId('')).toBeNull();
     });
   });
 });

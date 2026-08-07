@@ -475,6 +475,14 @@ When fixing a tracked bug (Plane, etc.):
 - **DO NOT** run `pnpm dev` unless explicitly asked
 - Assume dev server is already running
 
+### Local Payments & Cron Testing
+
+- **Stripe account**: local dev uses the **"Vetify sandbox"** (`acct_1ReUgbPwxz1bHxlH`, key `sk_test_51ReUgb...`). The main Vetify account's test mode is empty — the test catalog lives in the sandbox. When connecting tools (Stripe CLI, MCP), pick the sandbox in the account selector.
+- **Webhooks**: no listener runs locally by default. The checkout return handler syncs subscriptions directly (sync-first), so paying with test card `4242 4242 4242 4242` works without one. To exercise the real webhook path, run: `stripe listen --forward-to localhost:3000/api/stripe/webhook`
+- **Cron routes** (`/api/cron/daily-tasks`): require `Authorization: Bearer $CRON_SECRET`. `CRON_SECRET` is not set in local env files — inject it when starting the server: `CRON_SECRET=dev-local pnpm dev`, then `curl -H "Authorization: Bearer dev-local" localhost:3000/api/cron/daily-tasks`
+- **Trial email testing**: point the test tenant's Staff email to `delivered@resend.dev` (Resend's test inbox) to avoid bounces; emails DO send for real in dev when `RESEND_API_KEY` is set (dry-run only under `NODE_ENV=test`).
+- **Rate limiting**: if Upstash env vars point to an unreachable Redis, the middleware fails open and logs the failure once per process.
+
 ### Authentication Flow
 
 1. Kinde handles OAuth/login flow

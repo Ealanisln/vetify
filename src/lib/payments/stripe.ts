@@ -1007,6 +1007,18 @@ export function getPriceIdByPlan(planKey: string, interval: 'monthly' | 'annual'
   return null;
 }
 
+// Reverse lookup: resolve a price ID back to its plan key (runtime mode aware)
+export function getPlanKeyByPriceId(priceId: string): string | null {
+  if (!priceId) return null;
+  const prices = getStripePriceIds();
+  for (const [planKey, planPrices] of Object.entries(prices)) {
+    if (planPrices.monthly === priceId || planPrices.annual === priceId) {
+      return planKey;
+    }
+  }
+  return null;
+}
+
 // Obtener mapeo de plan B2B
 export function getPlanMapping(planKey: string) {
   const planType = planKey.toUpperCase();
