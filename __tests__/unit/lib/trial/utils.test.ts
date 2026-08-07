@@ -538,4 +538,45 @@ describe('trial/utils', () => {
       expect(result.status).toBe('ending_soon');
     });
   });
+
+  describe('calendar-day semantics (off-by-one regression)', () => {
+    // A trial ending the day after tomorrow at 17:51 must read "2 días",
+    // not "1 día" — users count calendar days, not full 24h periods.
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2026-08-07T18:00:00'));
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('counts calendar days remaining, not truncated 24h periods', () => {
+      const tenant = createMockTenant({
+        isTrialPeriod: true,
+        trialEndsAt: new Date('2026-08-09T17:51:00'), // 1.99 real days away
+      });
+
+      expect(calculateTrialDaysRemaining(tenant)).toBe(2);
+      expect(calculateTrialStatus(tenant).daysRemaining).toBe(2);
+    });
+
+    it('counts a trial ending tomorrow morning as 1 day', () => {
+      const tenant = createMockTenant({
+        isTrialPeriod: true,
+        trialEndsAt: new Date('2026-08-08T08:00:00'), // 14h away, next calendar day
+      });
+
+      expect(calculateTrialDaysRemaining(tenant)).toBe(1);
+    });
+
+    it('counts expired trials in negative calendar days', () => {
+      const tenant = createMockTenant({
+        isTrialPeriod: true,
+        trialEndsAt: new Date('2026-08-05T23:00:00'), // 2 calendar days ago
+      });
+
+      expect(calculateTrialDaysRemaining(tenant)).toBe(-2);
+    });
+  });
 });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createCheckoutSessionForAPI, getPriceByLookupKey } from '../../../lib/payments/stripe';
+import { createCheckoutSessionForAPI, getPriceByLookupKey, getPlanKeyByPriceId } from '../../../lib/payments/stripe';
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { prisma } from '../../../lib/prisma';
 import { findOrCreateUser } from '../../../lib/db/queries/users';
@@ -112,10 +112,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear sesión de checkout
+    // planKey travels in Stripe metadata — resolve it from the price when the
+    // client only sent a priceId so sessions never carry planKey: "unknown"
+    const resolvedPlanKey =
+      (planKey && planKey.toUpperCase()) || getPlanKeyByPriceId(actualPriceId) || undefined;
+
     const session = await createCheckoutSessionForAPI({
       tenant,
       priceId: actualPriceId,
       userId: user.id,
+      planKey: resolvedPlanKey,
+      billingInterval: billingInterval === 'yearly' || billingInterval === 'annual' ? 'annual' : 'monthly',
       referralCodeId,
       referralPartnerId,
       referralStripeCouponId,

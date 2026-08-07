@@ -746,6 +746,9 @@ async function updateTenantSubscription(tenant: Tenant, subscription: Stripe.Sub
       subscriptionStatus: status.toUpperCase() as SubscriptionStatus,
       subscriptionEndsAt: new Date(subscription.current_period_end * 1000),
       isTrialPeriod: status === 'trialing',
+      // Keep the trial clock in sync with Stripe: real date during a
+      // Stripe-managed trial, cleared once the subscription is paid
+      trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
       status: 'ACTIVE' as const, // Activar tenant
       // Reactivation clears any pending retention/deletion clock
       canceledAt: null,
@@ -987,23 +990,27 @@ export async function createStripeProducts() {
 }
 
 // Obtener price ID por clave de plan y intervalo - Nueva estructura B2B
+// Uses runtime mode detection so test keys never resolve to live price IDs
 export function getPriceIdByPlan(planKey: string, interval: 'monthly' | 'annual'): string | null {
   const planType = planKey.toUpperCase();
+  const prices = getStripePriceIds();
 
-  if (planType === 'BASICO') {
-    return interval === 'annual'
-      ? STRIPE_PRICES.BASICO.annual
-      : STRIPE_PRICES.BASICO.monthly;
-  } else if (planType === 'PROFESIONAL') {
-    return interval === 'annual'
-      ? STRIPE_PRICES.PROFESIONAL.annual
-      : STRIPE_PRICES.PROFESIONAL.monthly;
-  } else if (planType === 'CORPORATIVO') {
-    return interval === 'annual'
-      ? STRIPE_PRICES.CORPORATIVO.annual
-      : STRIPE_PRICES.CORPORATIVO.monthly;
+  if (planType !== 'BASICO' && planType !== 'PROFESIONAL' && planType !== 'CORPORATIVO') {
+    return null;
   }
 
+  return interval === 'annual' ? prices[planType].annual : prices[planType].monthly;
+}
+
+// Reverse lookup: resolve a price ID back to its plan key (runtime mode aware)
+export function getPlanKeyByPriceId(priceId: string): string | null {
+  if (!priceId) return null;
+  const prices = getStripePriceIds();
+  for (const [planKey, planPrices] of Object.entries(prices)) {
+    if (planPrices.monthly === priceId || planPrices.annual === priceId) {
+      return planKey;
+    }
+  }
   return null;
 }
 

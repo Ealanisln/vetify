@@ -233,58 +233,69 @@ describe('Stripe Checkout API Integration Tests', () => {
     });
   });
 
-  describe('Webhook Sync - Polling Mechanism', () => {
-    it('should poll multiple times before finding synced subscription', async () => {
+  describe('Sync-First Behavior (no polling)', () => {
+    it('redirects without manual sync when the webhook already synced the tenant', async () => {
       const session = createMockSession({ payment_status: 'paid' });
       const subscription = createMockSubscription();
-      const tenantNotSynced = createMockTenant({ stripeSubscriptionId: null });
       const tenantSynced = createMockTenant();
 
       mockStripe.checkout.sessions.retrieve.mockResolvedValue(session);
       mockStripe.subscriptions.retrieve.mockResolvedValue(subscription);
-
-      // First two calls return not synced, third returns synced
-      prismaMock.tenant.findUnique
-        .mockResolvedValueOnce(tenantNotSynced as any)
-        .mockResolvedValueOnce(tenantNotSynced as any)
-        .mockResolvedValueOnce(tenantSynced as any);
+      prismaMock.tenant.findUnique.mockResolvedValue(tenantSynced as any);
 
       const request = createMockRequest('cs_test_123');
 
       await expect(GET(request)).rejects.toThrow('NEXT_REDIRECT');
       expect(redirectUrl).toContain('/dashboard?success=subscription_created');
-      expect(prismaMock.tenant.findUnique).toHaveBeenCalledTimes(3);
-    }, 20000);
-  });
+      expect(mockHandleSubscriptionChange).not.toHaveBeenCalled();
+      expect(prismaMock.tenant.findUnique).toHaveBeenCalledTimes(1);
+    });
 
-  describe('Manual Sync Fallback', () => {
-    it('should attempt manual sync when webhook times out', async () => {
+    it('completes fast — never waits 10s polling for the webhook', async () => {
       const session = createMockSession({ payment_status: 'paid' });
       const subscription = createMockSubscription();
       const tenantNotSynced = createMockTenant({ stripeSubscriptionId: null });
-
       const tenantSynced = createMockTenant({ stripeSubscriptionId: 'sub_test_123' });
 
       mockStripe.checkout.sessions.retrieve.mockResolvedValue(session);
       mockStripe.subscriptions.retrieve.mockResolvedValue(subscription);
-      // Return not synced during polling, then synced after manual sync
       prismaMock.tenant.findUnique
-        .mockResolvedValueOnce(tenantNotSynced as any) // poll 1
-        .mockResolvedValueOnce(tenantNotSynced as any) // poll 2
-        .mockResolvedValueOnce(tenantNotSynced as any) // poll 3
-        .mockResolvedValueOnce(tenantNotSynced as any) // poll 4
-        .mockResolvedValueOnce(tenantNotSynced as any) // poll 5
-        .mockResolvedValue(tenantSynced as any);       // after manual sync verification
+        .mockResolvedValueOnce(tenantNotSynced as any) // initial check
+        .mockResolvedValue(tenantSynced as any);       // verification after sync
+      mockHandleSubscriptionChange.mockResolvedValue(true);
+
+      const request = createMockRequest('cs_test_123');
+
+      const start = Date.now();
+      await expect(GET(request)).rejects.toThrow('NEXT_REDIRECT');
+      const elapsed = Date.now() - start;
+
+      expect(elapsed).toBeLessThan(3000);
+      expect(mockHandleSubscriptionChange).toHaveBeenCalledTimes(1);
+    }, 5000);
+  });
+
+  describe('Manual Sync Fallback', () => {
+    it('syncs manually right away when the webhook has not landed yet', async () => {
+      const session = createMockSession({ payment_status: 'paid' });
+      const subscription = createMockSubscription();
+      const tenantNotSynced = createMockTenant({ stripeSubscriptionId: null });
+      const tenantSynced = createMockTenant({ stripeSubscriptionId: 'sub_test_123' });
+
+      mockStripe.checkout.sessions.retrieve.mockResolvedValue(session);
+      mockStripe.subscriptions.retrieve.mockResolvedValue(subscription);
+      prismaMock.tenant.findUnique
+        .mockResolvedValueOnce(tenantNotSynced as any) // initial check: webhook not yet
+        .mockResolvedValue(tenantSynced as any);       // verification after manual sync
       mockHandleSubscriptionChange.mockResolvedValue(true);
 
       const request = createMockRequest('cs_test_123');
 
       await expect(GET(request)).rejects.toThrow('NEXT_REDIRECT');
-      // Should have called handleSubscriptionChange for manual sync
       expect(mockHandleSubscriptionChange).toHaveBeenCalledWith(subscription);
       expect(redirectUrl).toContain('/dashboard?success=subscription_created');
       expect(redirectUrl).toContain('info=manual_sync');
-    }, 30000);
+    }, 5000);
 
     it('should redirect with warning when manual sync fails', async () => {
       const session = createMockSession({ payment_status: 'paid' });
@@ -302,11 +313,9 @@ describe('Stripe Checkout API Integration Tests', () => {
       expect(redirectUrl).toContain('/dashboard?success=subscription_created');
       expect(redirectUrl).toContain('warning=sync_pending');
       expect(redirectUrl).toContain('session_id=cs_test_123');
-    }, 30000);
+    }, 5000);
 
-    it('should redirect with warning when manual sync fails for trial (always uses subscription_created)', async () => {
-      // Note: The actual implementation always uses subscription_created when manual sync fails
-      // This is the current behavior in the checkout route (line 181)
+    it('should redirect with trial_started warning when manual sync fails for a trial', async () => {
       const session = createMockSession({ payment_status: 'no_payment_required' });
       const subscription = createMockSubscription({ status: 'trialing' });
       const tenantNotSynced = createMockTenant({ stripeSubscriptionId: null });
@@ -319,10 +328,9 @@ describe('Stripe Checkout API Integration Tests', () => {
       const request = createMockRequest('cs_test_123');
 
       await expect(GET(request)).rejects.toThrow('NEXT_REDIRECT');
-      // The code uses subscription_created even for trials when manual sync fails
-      expect(redirectUrl).toContain('/dashboard?success=subscription_created');
+      expect(redirectUrl).toContain('/dashboard?success=trial_started');
       expect(redirectUrl).toContain('warning=sync_pending');
-    }, 30000);
+    }, 5000);
   });
 
   describe('Payment Status Handling', () => {
@@ -365,7 +373,7 @@ describe('Stripe Checkout API Integration Tests', () => {
       await expect(GET(request)).rejects.toThrow('NEXT_REDIRECT');
       expect(redirectUrl).toContain('/precios?error=processing_failed');
       expect(redirectUrl).toContain('Subscription%20not%20found');
-    }, 30000);
+    }, 5000);
 
     it('should handle subscription as string ID in session', async () => {
       const session = createMockSession({ subscription: 'sub_string_id' });
@@ -415,7 +423,7 @@ describe('Stripe Checkout API Integration Tests', () => {
       // Should still succeed with manual sync attempt
       await expect(GET(request)).rejects.toThrow('NEXT_REDIRECT');
       expect(redirectUrl).toContain('/dashboard');
-    }, 30000);
+    }, 5000);
 
     it('should handle very long plan names', async () => {
       const longPlanName = 'A'.repeat(200);

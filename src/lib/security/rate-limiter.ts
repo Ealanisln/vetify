@@ -7,6 +7,9 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
+// Tracks whether we already logged a Redis failure (avoid per-request spam)
+let redisFailureLogged = false;
+
 // Rate limiting configurations for different endpoint types
 export const rateLimiters = {
   // Strict limits for authentication endpoints
@@ -123,7 +126,15 @@ export async function checkRateLimit(
       reset: new Date(result.reset),
     };
   } catch (error) {
-    console.error('Rate limit check failed:', error);
+    // Log once per process — an unreachable Redis in dev would otherwise
+    // print this error on every single request
+    if (!redisFailureLogged) {
+      redisFailureLogged = true;
+      console.error(
+        'Rate limit check failed (further failures logged silently):',
+        error
+      );
+    }
 
     // FAIL-OPEN: Allow requests when Redis is unavailable (e.g., Upstash DB archived).
     // Changed from fail-secure to fail-open intentionally — without traffic, rate limiting

@@ -14,7 +14,7 @@ import {
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useLocation } from '@/components/providers/LocationProvider';
-import { UpgradeModal } from '@/components/trial/UpgradeModal';
+import { useRouter } from 'next/navigation';
 
 interface CashDrawer {
   id: string;
@@ -44,10 +44,10 @@ interface MultiCashDrawerManagerProps {
 
 export function MultiCashDrawerManager({ tenantId, canOperate = true }: MultiCashDrawerManagerProps) {
   const { currentLocation } = useLocation();
+  const router = useRouter();
   const [drawers, setDrawers] = useState<CashDrawer[]>([]);
   const [planLimits, setPlanLimits] = useState<PlanLimits | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [selectedDrawer, setSelectedDrawer] = useState<CashDrawer | null>(null);
   const [showOpenForm, setShowOpenForm] = useState(false);
   const [initialAmount, setInitialAmount] = useState<string>('1000');
@@ -75,7 +75,7 @@ export function MultiCashDrawerManager({ tenantId, canOperate = true }: MultiCas
 
   const handleOpenNewDrawer = () => {
     if (planLimits && !planLimits.canAdd) {
-      setShowUpgradeModal(true);
+      router.push('/precios?source=caja_limit');
       return;
     }
     setShowOpenForm(true);
@@ -104,7 +104,7 @@ export function MultiCashDrawerManager({ tenantId, canOperate = true }: MultiCas
         setShowOpenForm(false);
         setInitialAmount('1000');
       } else if (response.status === 402) {
-        setShowUpgradeModal(true);
+        router.push('/precios?source=caja_limit');
       } else {
         const error = await response.json();
         alert(error.error || 'Error abriendo caja');
@@ -362,12 +362,6 @@ export function MultiCashDrawerManager({ tenantId, canOperate = true }: MultiCas
         </div>
       )}
 
-      {/* Upgrade Modal */}
-      <UpgradeModal
-        isOpen={showUpgradeModal}
-        onClose={() => setShowUpgradeModal(false)}
-        currentPlanId={null}
-      />
     </div>
   );
 }

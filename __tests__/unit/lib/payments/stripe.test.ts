@@ -154,7 +154,9 @@ import {
   getStripePriceIds,
   getStripePlanMapping,
   getPriceIdByPlan,
+  getPlanKeyByPriceId,
   getPlanMapping,
+  handleSubscriptionChange,
   STRIPE_PRODUCTS,
   STRIPE_PRICES,
   PLAN_PRICES,
@@ -263,44 +265,69 @@ describe('Stripe Payment Integration', () => {
   });
 
   describe('getPriceIdByPlan', () => {
-    it('should return correct monthly price for BASICO', () => {
-      const priceId = getPriceIdByPlan('BASICO', 'monthly');
-      expect(priceId).toBe(STRIPE_PRICES.BASICO.monthly);
+    describe('in test mode', () => {
+      beforeEach(() => {
+        (isStripeInLiveMode as jest.Mock).mockReturnValue(false);
+      });
+
+      it('should return TEST monthly price for BASICO, never the production one', () => {
+        const priceId = getPriceIdByPlan('BASICO', 'monthly');
+        expect(priceId).toBe('price_1SJh6nPwxz1bHxlHQ15mCTij');
+        expect(priceId).not.toBe(STRIPE_PRICES.BASICO.monthly);
+      });
+
+      it('should return TEST annual price for BASICO', () => {
+        const priceId = getPriceIdByPlan('BASICO', 'annual');
+        expect(priceId).toBe('price_1SJh6oPwxz1bHxlH1gXSEuSF');
+      });
+
+      it('should return TEST monthly price for PROFESIONAL', () => {
+        const priceId = getPriceIdByPlan('PROFESIONAL', 'monthly');
+        expect(priceId).toBe('price_1SJh6oPwxz1bHxlHkJudNKvL');
+      });
+
+      it('should return TEST annual price for PROFESIONAL', () => {
+        const priceId = getPriceIdByPlan('PROFESIONAL', 'annual');
+        expect(priceId).toBe('price_1SJh6pPwxz1bHxlHcMip7KIU');
+      });
+
+      it('should return TEST monthly price for CORPORATIVO', () => {
+        const priceId = getPriceIdByPlan('CORPORATIVO', 'monthly');
+        expect(priceId).toBe('price_1SJh6pPwxz1bHxlHY9cnLnPw');
+      });
+
+      it('should return TEST annual price for CORPORATIVO', () => {
+        const priceId = getPriceIdByPlan('CORPORATIVO', 'annual');
+        expect(priceId).toBe('price_1SJh6qPwxz1bHxlHd3ud2WZ3');
+      });
+
+      it('should handle lowercase plan keys', () => {
+        const priceId = getPriceIdByPlan('basico', 'monthly');
+        expect(priceId).toBe('price_1SJh6nPwxz1bHxlHQ15mCTij');
+      });
     });
 
-    it('should return correct annual price for BASICO', () => {
-      const priceId = getPriceIdByPlan('BASICO', 'annual');
-      expect(priceId).toBe(STRIPE_PRICES.BASICO.annual);
-    });
+    describe('in live mode', () => {
+      beforeEach(() => {
+        (isStripeInLiveMode as jest.Mock).mockReturnValue(true);
+      });
 
-    it('should return correct monthly price for PROFESIONAL', () => {
-      const priceId = getPriceIdByPlan('PROFESIONAL', 'monthly');
-      expect(priceId).toBe(STRIPE_PRICES.PROFESIONAL.monthly);
-    });
-
-    it('should return correct annual price for PROFESIONAL', () => {
-      const priceId = getPriceIdByPlan('PROFESIONAL', 'annual');
-      expect(priceId).toBe(STRIPE_PRICES.PROFESIONAL.annual);
-    });
-
-    it('should return correct monthly price for CORPORATIVO', () => {
-      const priceId = getPriceIdByPlan('CORPORATIVO', 'monthly');
-      expect(priceId).toBe(STRIPE_PRICES.CORPORATIVO.monthly);
-    });
-
-    it('should return correct annual price for CORPORATIVO', () => {
-      const priceId = getPriceIdByPlan('CORPORATIVO', 'annual');
-      expect(priceId).toBe(STRIPE_PRICES.CORPORATIVO.annual);
-    });
-
-    it('should handle lowercase plan keys', () => {
-      const priceId = getPriceIdByPlan('basico', 'monthly');
-      expect(priceId).toBe(STRIPE_PRICES.BASICO.monthly);
+      it('should return LIVE prices', () => {
+        expect(getPriceIdByPlan('BASICO', 'monthly')).toBe(STRIPE_PRICES.BASICO.monthly);
+        expect(getPriceIdByPlan('PROFESIONAL', 'annual')).toBe(STRIPE_PRICES.PROFESIONAL.annual);
+      });
     });
 
     it('should return null for unknown plan', () => {
+      (isStripeInLiveMode as jest.Mock).mockReturnValue(false);
       const priceId = getPriceIdByPlan('UNKNOWN_PLAN', 'monthly');
       expect(priceId).toBeNull();
+    });
+
+    it('should return null for legacy B2B plan keys', () => {
+      (isStripeInLiveMode as jest.Mock).mockReturnValue(false);
+      expect(getPriceIdByPlan('CLINICA', 'monthly')).toBeNull();
+      expect(getPriceIdByPlan('EMPRESA', 'monthly')).toBeNull();
     });
   });
 
@@ -581,6 +608,88 @@ describe('Stripe Integration Error Handling', () => {
     it('should return null for empty string', () => {
       const mapping = getPlanMapping('');
       expect(mapping).toBeNull();
+    });
+  });
+
+  describe('getPlanKeyByPriceId', () => {
+    beforeEach(() => {
+      (isStripeInLiveMode as jest.Mock).mockReturnValue(false);
+    });
+
+    it('resolves each TEST price ID back to its plan key', () => {
+      expect(getPlanKeyByPriceId('price_1SJh6nPwxz1bHxlHQ15mCTij')).toBe('BASICO');
+      expect(getPlanKeyByPriceId('price_1SJh6pPwxz1bHxlHcMip7KIU')).toBe('PROFESIONAL');
+      expect(getPlanKeyByPriceId('price_1SJh6qPwxz1bHxlHd3ud2WZ3')).toBe('CORPORATIVO');
+    });
+
+    it('returns null for unknown price IDs', () => {
+      expect(getPlanKeyByPriceId('price_unknown')).toBeNull();
+      expect(getPlanKeyByPriceId('')).toBeNull();
+    });
+  });
+
+  describe('handleSubscriptionChange trial-field hygiene', () => {
+    const baseSubscription = {
+      id: 'sub_test123',
+      customer: 'cus_test123',
+      items: {
+        data: [{ plan: { product: 'prod_TGDXKD2ksDenYm' } }], // BASICO test product
+      },
+      current_period_start: Math.floor(Date.now() / 1000),
+      current_period_end: Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60,
+      cancel_at_period_end: false,
+    };
+
+    const mockTenant = { id: 'tenant-1', stripeCustomerId: 'cus_test123' };
+    const mockDbPlan = { id: 'plan-1', key: 'BASICO', name: 'Plan Básico' };
+
+    let capturedTenantUpdate: Record<string, unknown> | null;
+
+    beforeEach(() => {
+      capturedTenantUpdate = null;
+      (isStripeInLiveMode as jest.Mock).mockReturnValue(false);
+      (prisma.tenant.findUnique as jest.Mock).mockResolvedValue(mockTenant);
+      (prisma.plan.findUnique as jest.Mock).mockResolvedValue(mockDbPlan);
+      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) =>
+        callback({
+          tenant: {
+            update: jest.fn().mockImplementation(({ data }) => {
+              capturedTenantUpdate = data;
+              return Promise.resolve({});
+            }),
+          },
+          tenantSubscription: {
+            upsert: jest.fn().mockResolvedValue({}),
+          },
+        })
+      );
+    });
+
+    it('clears isTrialPeriod AND trialEndsAt when the subscription becomes active', async () => {
+      const result = await handleSubscriptionChange({
+        ...baseSubscription,
+        status: 'active',
+        trial_end: null,
+      } as never);
+
+      expect(result).toBe(true);
+      expect(capturedTenantUpdate).not.toBeNull();
+      expect(capturedTenantUpdate!.isTrialPeriod).toBe(false);
+      expect(capturedTenantUpdate!.trialEndsAt).toBeNull();
+    });
+
+    it('syncs trialEndsAt from Stripe for a Stripe-managed trial', async () => {
+      const trialEnd = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
+
+      const result = await handleSubscriptionChange({
+        ...baseSubscription,
+        status: 'trialing',
+        trial_end: trialEnd,
+      } as never);
+
+      expect(result).toBe(true);
+      expect(capturedTenantUpdate!.isTrialPeriod).toBe(true);
+      expect(capturedTenantUpdate!.trialEndsAt).toEqual(new Date(trialEnd * 1000));
     });
   });
 });
