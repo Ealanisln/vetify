@@ -96,7 +96,10 @@ export async function GET(
             publicAddress: true,
             tenantSettings: {
               select: {
-                taxRate: true
+                taxRate: true,
+                // The ticket is a document about this sale, so it formats with
+                // the sale's own tenant settings rather than ambient context.
+                currencyCode: true
               }
             }
           }

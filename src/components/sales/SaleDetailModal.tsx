@@ -5,6 +5,7 @@ import { XMarkIcon, PrinterIcon, ReceiptPercentIcon, UserIcon, CheckCircleIcon }
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatTaxRateLabel, calculateTaxBreakdown } from '@/lib/tax-utils';
+import { DEFAULT_CURRENCY, formatMoney, type FormatMoneyOptions } from '@/lib/currency';
 import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface SaleDetailModalProps {
@@ -75,6 +76,7 @@ export interface SaleDetail {
     publicAddress: string | null;
     tenantSettings: {
       taxRate: string | null;
+      currencyCode: string | null;
     } | null;
   };
 }
@@ -152,12 +154,13 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
     }
   };
 
-  const formatCurrency = (amount: string | number) => {
+  // The sale carries its own tenant's currency, so a persisted ticket always
+  // formats the way it did when it was issued.
+  const currencyCode = sale?.tenant.tenantSettings?.currencyCode ?? DEFAULT_CURRENCY;
+
+  const formatCurrency = (amount: string | number, options?: FormatMoneyOptions) => {
     const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(numAmount);
+    return formatMoney(numAmount, currencyCode, options);
   };
 
   const formatDate = (dateString: string) => {
@@ -215,7 +218,7 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
                   <tr key={item.id}>
                     <td className="text-[10px] py-0.5">{item.description}</td>
                     <td className="text-center text-[10px]">{parseFloat(item.quantity)}</td>
-                    <td className="text-right text-[10px]">{formatCurrency(item.total).replace('MX$', '$')}</td>
+                    <td className="text-right text-[10px]">{formatCurrency(item.total)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -225,26 +228,26 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
             {(() => {
               const taxRate = Number(sale.tenant.tenantSettings?.taxRate) || 0.16;
               const totalAmount = parseFloat(sale.total) + parseFloat(sale.discount);
-              const taxBreakdown = calculateTaxBreakdown(totalAmount, taxRate);
+              const taxBreakdown = calculateTaxBreakdown(totalAmount, taxRate, currencyCode);
               return (
                 <div className="mb-2 pb-2 border-b border-dashed border-black">
                   <div className="flex justify-between">
                     <span>Subtotal (sin IVA):</span>
-                    <span>{formatCurrency(taxBreakdown.subtotalWithoutTax).replace('MX$', '$')}</span>
+                    <span>{formatCurrency(taxBreakdown.subtotalWithoutTax)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>IVA incluido ({formatTaxRateLabel(taxRate)}):</span>
-                    <span>{formatCurrency(taxBreakdown.taxAmount).replace('MX$', '$')}</span>
+                    <span>{formatCurrency(taxBreakdown.taxAmount)}</span>
                   </div>
                   {parseFloat(sale.discount) > 0 && (
                     <div className="flex justify-between">
                       <span>Descuento:</span>
-                      <span>-{formatCurrency(sale.discount).replace('MX$', '$')}</span>
+                      <span>-{formatCurrency(sale.discount)}</span>
                     </div>
                   )}
                   <div className="flex justify-between font-bold text-sm border-t border-black pt-1 mt-1">
                     <span>TOTAL:</span>
-                    <span>{formatCurrency(sale.total).replace('MX$', '$')}</span>
+                    <span>{formatCurrency(sale.total, { showCode: true })}</span>
                   </div>
                 </div>
               );
@@ -255,7 +258,7 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
               {sale.payments.map((payment) => (
                 <div key={payment.id} className="flex justify-between">
                   <span>{PAYMENT_METHOD_LABELS[payment.paymentMethod] || payment.paymentMethod}:</span>
-                  <span>{formatCurrency(payment.amount).replace('MX$', '$')}</span>
+                  <span>{formatCurrency(payment.amount)}</span>
                 </div>
               ))}
               <p className="text-[10px] mt-1">Atendió: {sale.staff?.name || sale.user?.name || 'N/A'}</p>
@@ -409,7 +412,7 @@ export function SaleDetailModal({ saleId, open, onClose }: SaleDetailModalProps)
                     {(() => {
                       const taxRate = Number(sale.tenant.tenantSettings?.taxRate) || 0.16;
                       const totalAmount = parseFloat(sale.total) + parseFloat(sale.discount);
-                      const taxBreakdown = calculateTaxBreakdown(totalAmount, taxRate);
+                      const taxBreakdown = calculateTaxBreakdown(totalAmount, taxRate, currencyCode);
                       return (
                         <div className="space-y-2 text-sm">
                           <div className="flex justify-between">
