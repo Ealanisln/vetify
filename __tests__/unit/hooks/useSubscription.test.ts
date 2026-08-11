@@ -389,6 +389,54 @@ describe('useSubscription', () => {
     });
   });
 
+  describe('Scheduled Cancellation (cancelAtPeriodEnd)', () => {
+    it('should return isCancelScheduled true when ACTIVE with cancelAtPeriodEnd', () => {
+      const tenant = {
+        ...createMockTenant({ subscriptionStatus: 'ACTIVE' }),
+        tenantSubscription: { cancelAtPeriodEnd: true },
+      };
+      const { result } = renderHook(() => useSubscription(tenant));
+
+      expect(result.current.isCancelScheduled).toBe(true);
+      expect(result.current.isActive).toBe(true);
+      expect(result.current.hasActiveSubscription).toBe(true);
+    });
+
+    it('should return isCancelScheduled false when cancelAtPeriodEnd is false', () => {
+      const tenant = {
+        ...createMockTenant({ subscriptionStatus: 'ACTIVE' }),
+        tenantSubscription: { cancelAtPeriodEnd: false },
+      };
+      const { result } = renderHook(() => useSubscription(tenant));
+
+      expect(result.current.isCancelScheduled).toBe(false);
+    });
+
+    it('should return isCancelScheduled false when tenantSubscription is missing', () => {
+      const tenant = createMockTenant({ subscriptionStatus: 'ACTIVE' });
+      const { result } = renderHook(() => useSubscription(tenant));
+
+      expect(result.current.isCancelScheduled).toBe(false);
+    });
+
+    it('should return isCancelScheduled false once status is CANCELED', () => {
+      const tenant = {
+        ...createMockTenant({ subscriptionStatus: 'CANCELED' }),
+        tenantSubscription: { cancelAtPeriodEnd: true },
+      };
+      const { result } = renderHook(() => useSubscription(tenant));
+
+      expect(result.current.isCancelScheduled).toBe(false);
+      expect(result.current.isCanceled).toBe(true);
+    });
+
+    it('should return isCancelScheduled false for null tenant', () => {
+      const { result } = renderHook(() => useSubscription(null));
+
+      expect(result.current.isCancelScheduled).toBe(false);
+    });
+  });
+
   describe('Expired Paid Subscription Detection', () => {
     it('should detect expired paid subscription beyond 7-day grace period', () => {
       // subscriptionEndsAt is 30 days ago → well past the 7-day grace
