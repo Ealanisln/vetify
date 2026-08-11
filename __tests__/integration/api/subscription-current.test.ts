@@ -137,6 +137,19 @@ describe('Subscription Current API Integration Tests', () => {
         expect(data.planKey).toBe('PROFESIONAL');
       });
 
+      it('should expose the tenant billing currency for the pricing page', async () => {
+        prismaMock.user.findUnique.mockResolvedValue({
+          ...mockUser,
+          tenant: { ...mockTenant, billingCurrency: 'CLP' },
+        } as any);
+
+        const response = await GET();
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.billingCurrency).toBe('CLP');
+      });
+
       it('should calculate days remaining correctly', async () => {
         const futureDate = new Date();
         futureDate.setDate(futureDate.getDate() + 30); // 30 days from now
