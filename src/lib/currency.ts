@@ -204,6 +204,37 @@ export function currencyForCountry(country: string): CurrencyCode {
 }
 
 /**
+ * Currencies Vetify can CHARGE subscriptions in. Distinct from display
+ * currencies: every Stripe price carries a currency_option per entry here,
+ * so adding one means defining real prices, not just formatting.
+ */
+export const BILLING_CURRENCIES = ['MXN', 'CLP', 'COP', 'USD'] as const;
+
+export type BillingCurrency = (typeof BILLING_CURRENCIES)[number];
+
+const COUNTRY_TO_BILLING_CURRENCY: Record<string, BillingCurrency> = {
+  MX: 'MXN',
+  CL: 'CLP',
+  CO: 'COP',
+};
+
+export function isBillingCurrency(code: string): code is BillingCurrency {
+  const normalized = typeof code === 'string' ? code.toUpperCase() : '';
+  return (BILLING_CURRENCIES as readonly string[]).includes(normalized);
+}
+
+/**
+ * Maps an ISO-3166-1 alpha-2 country to the currency we charge in.
+ * Countries without a local charge currency pay in USD, even when their
+ * display currency is supported (a Peruvian clinic sees PEN in the POS but
+ * pays the subscription in USD until PEN billing launches).
+ */
+export function billingCurrencyForCountry(country: string): BillingCurrency {
+  const normalized = typeof country === 'string' ? country.toUpperCase() : '';
+  return COUNTRY_TO_BILLING_CURRENCY[normalized] ?? 'USD';
+}
+
+/**
  * Node's ICU separates the symbol from the digits with U+00A0, and uses it as
  * the group separator in es-CR. Collapsing those to a plain space keeps output
  * stable across Node/ICU versions and searchable in tests and snapshots.

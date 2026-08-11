@@ -1,7 +1,10 @@
 import {
+  BILLING_CURRENCIES,
   CURRENCIES,
   DEFAULT_CURRENCY,
+  billingCurrencyForCountry,
   currencyForCountry,
+  isBillingCurrency,
   formatMoney,
   fromMinorUnits,
   getCurrency,
@@ -115,6 +118,45 @@ describe('currencyForCountry', () => {
     expect(currencyForCountry('ZZ')).toBe(DEFAULT_CURRENCY);
     expect(currencyForCountry('')).toBe(DEFAULT_CURRENCY);
     expect(currencyForCountry(null as unknown as string)).toBe(DEFAULT_CURRENCY);
+  });
+});
+
+describe('billing currencies', () => {
+  it('supports exactly the launch charge currencies', () => {
+    expect(BILLING_CURRENCIES).toEqual(['MXN', 'CLP', 'COP', 'USD']);
+  });
+
+  it('maps launch countries to their local charge currency', () => {
+    expect(billingCurrencyForCountry('MX')).toBe('MXN');
+    expect(billingCurrencyForCountry('CL')).toBe('CLP');
+    expect(billingCurrencyForCountry('CO')).toBe('COP');
+  });
+
+  it('falls back to USD for countries without a local charge currency', () => {
+    // Display currency exists for these (PEN, ARS…), but billing does not yet.
+    expect(billingCurrencyForCountry('PE')).toBe('USD');
+    expect(billingCurrencyForCountry('AR')).toBe('USD');
+    expect(billingCurrencyForCountry('US')).toBe('USD');
+    expect(billingCurrencyForCountry('FR')).toBe('USD');
+    expect(billingCurrencyForCountry('ZZ')).toBe('USD');
+    expect(billingCurrencyForCountry('')).toBe('USD');
+    expect(billingCurrencyForCountry(null as unknown as string)).toBe('USD');
+  });
+
+  it('is case-insensitive', () => {
+    expect(billingCurrencyForCountry('mx')).toBe('MXN');
+    expect(billingCurrencyForCountry('cl')).toBe('CLP');
+  });
+
+  it('validates billing currency codes', () => {
+    expect(isBillingCurrency('MXN')).toBe(true);
+    expect(isBillingCurrency('CLP')).toBe(true);
+    expect(isBillingCurrency('COP')).toBe(true);
+    expect(isBillingCurrency('USD')).toBe(true);
+    expect(isBillingCurrency('PEN')).toBe(false);
+    expect(isBillingCurrency('ARS')).toBe(false);
+    expect(isBillingCurrency('mxn')).toBe(true);
+    expect(isBillingCurrency('')).toBe(false);
   });
 });
 
