@@ -40,6 +40,10 @@ export async function GET() {
       taxRate: settings?.taxRate ? Number(settings.taxRate) : DEFAULT_TAX_RATE,
       currencyConfirmed: settings?.currencyConfirmed ?? false,
       saleCount,
+      // Read-only: the charge currency is fixed at onboarding and only
+      // changes through support (a Stripe subscription cannot switch
+      // currency in place)
+      billingCurrency: tenant.billingCurrency ?? 'MXN',
     });
   } catch (error) {
     console.error('Error fetching currency settings:', error);
