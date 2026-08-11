@@ -49,7 +49,16 @@ export function useSubscriptionStatus() {
     const fromPortal = searchParams.get('from_portal');
 
     setIsLoading(true);
-    fetchStatus()
+
+    // On portal return, pull the latest state from Stripe first: portal
+    // changes land via webhook, which may lag or not be configured outside
+    // production.
+    const maybeSync = fromPortal
+      ? fetch('/api/stripe/sync-subscription', { method: 'POST' }).catch(() => {})
+      : Promise.resolve();
+
+    maybeSync
+      .then(() => fetchStatus())
       .finally(() => {
         setIsLoading(false);
 

@@ -3,7 +3,13 @@
 import { useEffect, useState } from 'react';
 import type { Tenant } from '@prisma/client';
 
-export function useSubscription(tenant: Tenant | null) {
+// The tenant coming from requireAuth/requirePermission includes the
+// TenantSubscription relation; Prisma's base Tenant type does not.
+export type TenantWithSubscriptionFlags = Tenant & {
+  tenantSubscription?: { cancelAtPeriodEnd?: boolean } | null;
+};
+
+export function useSubscription(tenant: TenantWithSubscriptionFlags | null) {
   const [isActive, setIsActive] = useState(false);
   const [isTrialing, setIsTrialing] = useState(false);
   const [isPastDue, setIsPastDue] = useState(false);
@@ -40,11 +46,19 @@ export function useSubscription(tenant: Tenant | null) {
     return endsAt.getTime() + gracePeriodMs < now.getTime();
   })();
 
+  // Stripe keeps the subscription ACTIVE with cancel_at_period_end=true until
+  // the period ends; surface that window so the UI can show it before the
+  // status flips to CANCELED.
+  const isCancelScheduled =
+    tenant?.subscriptionStatus === 'ACTIVE' &&
+    tenant?.tenantSubscription?.cancelAtPeriodEnd === true;
+
   return {
     isActive,
     isTrialing,
     isPastDue,
     isCanceled,
+    isCancelScheduled,
     planName,
     subscriptionEndsAt,
     isPaidSubscriptionExpired,
