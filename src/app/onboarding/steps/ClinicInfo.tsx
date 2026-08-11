@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { generateSlugFromName, removeAccents } from '../../../lib/tenant';
+import { ONBOARDING_COUNTRIES } from '../../../lib/onboarding-defaults';
 
 interface ClinicInfoProps {
   user: {
@@ -12,10 +13,13 @@ interface ClinicInfoProps {
   onSubmit: (info: {
     clinicName: string;
     slug: string;
+    countryCode: string;
     phone?: string;
     address?: string;
   }) => void;
   isSubmitting: boolean;
+  /** ISO alpha-2 country pre-detected server-side (x-vercel-ip-country). */
+  detectedCountry?: string;
   initialData?: {
     clinicName: string;
     slug: string;
@@ -24,9 +28,15 @@ interface ClinicInfoProps {
   };
 }
 
-export function ClinicInfo({ onSubmit, isSubmitting, initialData }: ClinicInfoProps) {
+const isOfferedCountry = (code?: string) =>
+  !!code && ONBOARDING_COUNTRIES.some(c => c.code === code.toUpperCase());
+
+export function ClinicInfo({ onSubmit, isSubmitting, detectedCountry, initialData }: ClinicInfoProps) {
   const [clinicName, setClinicName] = useState(initialData?.clinicName || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
+  const [countryCode, setCountryCode] = useState(
+    isOfferedCountry(detectedCountry) ? detectedCountry!.toUpperCase() : 'MX'
+  );
   const [phone, setPhone] = useState(initialData?.phone || '');
   const [address, setAddress] = useState(initialData?.address || '');
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
@@ -75,6 +85,7 @@ export function ClinicInfo({ onSubmit, isSubmitting, initialData }: ClinicInfoPr
     onSubmit({
       clinicName,
       slug: finalSlug,
+      countryCode,
       phone: phone || undefined,
       address: address || undefined,
     });
@@ -142,6 +153,28 @@ export function ClinicInfo({ onSubmit, isSubmitting, initialData }: ClinicInfoPr
               Esa URL ya está ocupada — usaremos <span className="font-medium">vetify.app/{slugSuggestion}</span>
             </p>
           )}
+        </div>
+
+        <div>
+          <label htmlFor="countryCode" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            País *
+          </label>
+          <select
+            id="countryCode"
+            value={countryCode}
+            onChange={(e) => setCountryCode(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#75a99c] focus:ring-[#75a99c] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+            required
+          >
+            {ONBOARDING_COUNTRIES.map((country) => (
+              <option key={country.code} value={country.code}>
+                {country.name}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Define la moneda de tus precios y de tu suscripción
+          </p>
         </div>
 
         <div>

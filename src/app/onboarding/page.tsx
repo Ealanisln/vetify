@@ -1,5 +1,6 @@
 import { getAuthenticatedUserWithOptionalTenant } from '../../lib/auth';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { getActivePromotionFromDB } from '../../lib/pricing-config';
 import { OnboardingPageClient } from './OnboardingPageClient';
 
@@ -22,7 +23,11 @@ export default async function OnboardingPage() {
       ? { trialDays: promotion.trialDays, badgeText: promotion.badgeText, description: promotion.description }
       : null;
 
-    return <OnboardingPageClient user={user} promoInfo={promoInfo} />;
+    // Pre-select the country from Vercel's IP geolocation; the user can
+    // always correct it in the form (VPNs, proxies). Absent locally.
+    const detectedCountry = (await headers()).get('x-vercel-ip-country') ?? undefined;
+
+    return <OnboardingPageClient user={user} promoInfo={promoInfo} detectedCountry={detectedCountry} />;
   } catch (error) {
     console.error('Error loading user:', error);
     
