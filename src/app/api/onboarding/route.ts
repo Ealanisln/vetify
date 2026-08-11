@@ -15,6 +15,10 @@ const onboardingSchema = z.object({
   slug: z.string()
     .min(1, 'El slug es requerido')
     .regex(/^[a-z0-9-]+$/, 'El slug solo puede contener letras minúsculas, números y guiones'),
+  countryCode: z.string()
+    .length(2, 'El país debe ser un código ISO de 2 letras')
+    .transform(value => value.toUpperCase())
+    .optional(),
   phone: z.string().optional(),
   address: z.string().optional(),
   referralCode: z.string().optional(),
@@ -61,6 +65,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       planKey: validatedData.planKey,
       billingInterval: validatedData.billingInterval,
+      countryCode: validatedData.countryCode,
       phone: validatedData.phone,
       address: validatedData.address,
       trialDays: promoTrialDays,
