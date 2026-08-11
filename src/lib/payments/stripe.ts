@@ -5,6 +5,7 @@ import { prisma } from '../prisma';
 import { isLaunchPromotionActive, PRICING_CONFIG, isStripeInLiveMode } from '../pricing-config';
 import { getActivePromotion, checkPromotionAvailability } from '../promotions/queries';
 import { computeRetentionEndsAt } from '../retention/constants';
+import { checkoutCurrency } from './billing-prices';
 
 import type { Tenant, SubscriptionStatus, PlanType } from '@prisma/client';
 
@@ -24,6 +25,8 @@ interface StripeSubscriptionData {
 // Type for Stripe checkout session configuration
 interface StripeCheckoutSessionConfig {
   customer: string;
+  // Selects the matching currency_option on the price; omitted for MXN (base)
+  currency?: string;
   payment_method_types: string[];
   line_items: Array<{
     price: string;
@@ -384,6 +387,12 @@ export async function createCheckoutSession({
   }
   // For FREE_TRIAL, no discounts/promo codes needed (trial_period_days handles it)
 
+  // Charge in the tenant's billing currency (undefined for MXN, the base)
+  const sessionCurrency = checkoutCurrency(tenant.billingCurrency);
+  if (sessionCurrency) {
+    sessionConfig.currency = sessionCurrency;
+  }
+
   const session = await stripe.checkout.sessions.create(sessionConfig);
 
   redirect(session.url!);
@@ -486,6 +495,12 @@ export async function createCheckoutSessionForAPI({
     sessionConfig.discounts = [{ coupon: referralStripeCouponId }];
   } else if (promoResult.type === 'NONE') {
     sessionConfig.allow_promotion_codes = true;
+  }
+
+  // Charge in the tenant's billing currency (undefined for MXN, the base)
+  const sessionCurrency = checkoutCurrency(tenant.billingCurrency);
+  if (sessionCurrency) {
+    sessionConfig.currency = sessionCurrency;
   }
 
   const session = await stripe.checkout.sessions.create(sessionConfig);
