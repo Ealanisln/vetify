@@ -1,4 +1,6 @@
+import { headers } from 'next/headers';
 import { PricingPageEnhanced } from '../../components/pricing';
+import { billingCurrencyForCountry } from '@/lib/currency';
 import { generateMetadata as generateSEOMetadata, createPageSEO } from '@/lib/seo';
 import { PAGE_METADATA } from '@/lib/seo/config';
 import { generatePricingProductSchema } from '@/lib/seo/structured-data';
@@ -48,6 +50,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function PreciosPage() {
+  // Visitantes anónimos ven precios en la moneda de su país (geo IP de
+  // Vercel); los autenticados se corrigen client-side a la del tenant.
+  const country = (await headers()).get('x-vercel-ip-country');
+  // Sin header (localhost, proxies) se conserva el default MXN actual
+  const initialBillingCurrency = country ? billingCurrencyForCountry(country) : 'MXN';
+
   // Generate pricing structured data
   const pricingSchema = generatePricingProductSchema([
     {
@@ -85,7 +93,7 @@ export default async function PreciosPage() {
     <>
       {/* Structured data for SEO */}
       <StructuredData data={[pricingSchema, breadcrumbSchema, faqSchema]} />
-      <PricingPageEnhanced tenant={null} />
+      <PricingPageEnhanced tenant={null} initialBillingCurrency={initialBillingCurrency} />
     </>
   );
 }

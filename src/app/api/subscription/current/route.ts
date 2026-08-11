@@ -28,6 +28,7 @@ export async function GET() {
             subscriptionStatus: true,
             subscriptionEndsAt: true,
             isTrialPeriod: true,
+            billingCurrency: true,
             status: true,
             createdAt: true,
             updatedAt: true,
@@ -85,6 +86,7 @@ export async function GET() {
       stripeSubscriptionId: tenant.stripeSubscriptionId,
       stripeProductId: tenant.stripeProductId,
       tenantStatus: tenant.status,
+      billingCurrency: tenant.billingCurrency,
       lastUpdated: tenant.updatedAt,
       // Agregar información de la suscripción si existe
       planKey: tenant.tenantSubscription?.plan?.key || null
