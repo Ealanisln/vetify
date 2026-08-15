@@ -13,6 +13,8 @@ interface CurrencySettingsData {
   taxRate: number;
   currencyConfirmed: boolean;
   saleCount: number;
+  /** Charge currency of the Vetify subscription — read-only, set at onboarding. */
+  billingCurrency?: string;
 }
 
 /** Amount used for the live preview. Big enough to show grouping separators. */
@@ -247,6 +249,20 @@ export function CurrencySettings() {
                   Cancelar
                 </Button>
               </div>
+            </div>
+          )}
+
+          {initial.billingCurrency && (
+            <div className="rounded-md border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4 flex gap-3">
+              <Coins className="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400" />
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Tu suscripción de Vetify se cobra en{' '}
+                <span className="font-medium text-gray-900 dark:text-gray-100">
+                  {initial.billingCurrency}
+                </span>
+                . Esta sección solo controla la moneda de tus precios, tickets y reportes; para
+                cambiar la moneda de cobro contacta a soporte.
+              </p>
             </div>
           )}
 

@@ -79,7 +79,24 @@ describe('/api/settings/currency', () => {
         taxRate: 0.19,
         currencyConfirmed: true,
         saleCount: 143,
+        billingCurrency: 'MXN',
       });
+    });
+
+    it('exposes the tenant billing currency as read-only info', async () => {
+      mockRequireActiveSubscription.mockResolvedValue({
+        tenant: { id: 'tenant-1', billingCurrency: 'CLP' },
+      });
+      settingsMock.findUnique.mockResolvedValue({
+        currencyCode: 'CLP',
+        taxRate: 0.19,
+        currencyConfirmed: true,
+      });
+      saleMock.count.mockResolvedValue(0);
+
+      const data = await (await GET()).json();
+
+      expect(data.billingCurrency).toBe('CLP');
     });
 
     it('falls back to defaults when the tenant has no settings row', async () => {
@@ -223,5 +240,21 @@ describe('/api/settings/currency', () => {
 
     expect(res.status).toBe(403);
     expect(settingsMock.upsert).not.toHaveBeenCalled();
+  });
+
+  describe('PUT billing currency lock', () => {
+    it('ignores attempts to change the billing currency through this endpoint', async () => {
+      settingsMock.findUnique.mockResolvedValue({ currencyCode: 'MXN' });
+
+      const res = await PUT(
+        putRequest({ currencyCode: 'MXN', taxRate: 0.16, billingCurrency: 'USD' })
+      );
+
+      expect(res.status).toBe(200);
+      // Display settings only — the charge currency never goes through here
+      const upsertArgs = settingsMock.upsert.mock.calls[0][0];
+      expect(upsertArgs.update).not.toHaveProperty('billingCurrency');
+      expect(upsertArgs.create).not.toHaveProperty('billingCurrency');
+    });
   });
 });
