@@ -18,6 +18,8 @@ import type { TrialExpiringData, TrialExpiredData } from './types';
 const EXPIRING_COOLDOWN_HOURS = 24;
 /** Minimum days between expired emails for the same tenant */
 const EXPIRED_COOLDOWN_DAYS = 7;
+/** Stop resending expired emails once the trial ended this many days ago */
+const EXPIRED_EMAIL_WINDOW_DAYS = 30;
 
 export interface TrialLifecycleResult {
   success: boolean;
@@ -93,8 +95,10 @@ export async function processTrialLifecycleEmails(): Promise<TrialLifecycleResul
           }
         }
 
-        // Trial expired: days < 0 (includes day 0 as last day, not expired)
-        if (daysRemaining < 0) {
+        // Trial expired: days < 0 (includes day 0 as last day, not expired).
+        // Bounded to EXPIRED_EMAIL_WINDOW_DAYS so stale TRIALING tenants
+        // don't keep receiving expired emails indefinitely.
+        if (daysRemaining < 0 && daysRemaining >= -EXPIRED_EMAIL_WINDOW_DAYS) {
           if (!shouldSendExpiredEmail(tenant.lastTrialCheck, now)) continue;
 
           const adminEmail = await getAdminEmail(tenant.id);

@@ -4,8 +4,7 @@ import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { redirectToCustomerPortal } from '../../lib/payments/actions';
-import { useSubscription } from '../../hooks/useSubscription';
-import type { Tenant } from '@prisma/client';
+import { useSubscription, type TenantWithSubscriptionFlags } from '../../hooks/useSubscription';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -24,7 +23,7 @@ import { getPlanDisplay } from '../../lib/subscription/display';
 import { toast } from 'sonner';
 
 interface SubscriptionManagerProps {
-  tenant: Tenant;
+  tenant: TenantWithSubscriptionFlags;
   isActiveSubscription?: boolean;
 }
 
@@ -36,6 +35,7 @@ export function SubscriptionManager({ tenant, isActiveSubscription }: Subscripti
   const {
     isPastDue,
     isCanceled,
+    isCancelScheduled,
     planName,
     subscriptionEndsAt,
     hasActiveSubscription,
@@ -66,10 +66,12 @@ export function SubscriptionManager({ tenant, isActiveSubscription }: Subscripti
       currentUrl.searchParams.delete('from_portal');
       window.history.replaceState({}, '', currentUrl.toString());
 
-      // Force page refresh after a short delay to show updated data
-      setTimeout(() => {
-        router.refresh();
-      }, 2000);
+      // Pull the latest subscription state from Stripe before re-rendering:
+      // portal changes land via webhook, which may lag or not be configured
+      // outside production.
+      fetch('/api/stripe/sync-subscription', { method: 'POST' })
+        .catch(() => {})
+        .finally(() => router.refresh());
     }
   }, [searchParams, router]);
 
@@ -207,6 +209,18 @@ export function SubscriptionManager({ tenant, isActiveSubscription }: Subscripti
       };
     }
 
+    // Cancel scheduled in Stripe: still ACTIVE until the period ends
+    if (isCancelScheduled) {
+      return {
+        icon: AlertTriangle,
+        color: 'bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-950/30 dark:text-yellow-300 dark:border-yellow-800',
+        text: 'Cancelación programada',
+        description: subscriptionEndsAt
+          ? `Tu subscripción terminará el ${format(new Date(subscriptionEndsAt), 'dd MMMM yyyy', { locale: es })}. Puedes reactivarla desde el portal.`
+          : 'Tu subscripción terminará al final del periodo actual. Puedes reactivarla desde el portal.'
+      };
+    }
+
     switch (status) {
       case 'ACTIVE':
         return {
@@ -258,7 +272,7 @@ export function SubscriptionManager({ tenant, isActiveSubscription }: Subscripti
           ? 'bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/20 dark:to-rose-950/20 border-red-200 dark:border-red-800'
           : isInTrial
           ? 'bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-blue-200 dark:border-blue-800'
-          : needsPayment
+          : needsPayment || isCancelScheduled
           ? 'bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 border-yellow-200 dark:border-yellow-800'
           : 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800'
         }
@@ -266,8 +280,8 @@ export function SubscriptionManager({ tenant, isActiveSubscription }: Subscripti
         <div className="relative z-10">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className={`p-3 rounded-xl ${isTrialExpired || isSubscriptionExpired ? 'bg-red-100 dark:bg-red-900/40' : isInTrial ? 'bg-blue-100 dark:bg-blue-900/40' : needsPayment ? 'bg-yellow-100 dark:bg-yellow-900/40' : 'bg-green-100 dark:bg-green-900/40'}`}>
-                <StatusIcon className={`h-6 w-6 ${isTrialExpired || isSubscriptionExpired ? 'text-red-600 dark:text-red-400' : isInTrial ? 'text-blue-600 dark:text-blue-400' : needsPayment ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`} />
+              <div className={`p-3 rounded-xl ${isTrialExpired || isSubscriptionExpired ? 'bg-red-100 dark:bg-red-900/40' : isInTrial ? 'bg-blue-100 dark:bg-blue-900/40' : needsPayment || isCancelScheduled ? 'bg-yellow-100 dark:bg-yellow-900/40' : 'bg-green-100 dark:bg-green-900/40'}`}>
+                <StatusIcon className={`h-6 w-6 ${isTrialExpired || isSubscriptionExpired ? 'text-red-600 dark:text-red-400' : isInTrial ? 'text-blue-600 dark:text-blue-400' : needsPayment || isCancelScheduled ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`} />
               </div>
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Estado de la Subscripción</p>
@@ -300,7 +314,7 @@ export function SubscriptionManager({ tenant, isActiveSubscription }: Subscripti
               {subscriptionEndsAt && (
                 <div>
                   <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
-                    {isSubscriptionExpired ? 'Expiró' : isCanceled ? 'Termina' : isInTrial ? 'Prueba termina' : 'Renueva'}
+                    {isSubscriptionExpired ? 'Expiró' : (isCanceled || isCancelScheduled) ? 'Termina' : isInTrial ? 'Prueba termina' : 'Renueva'}
                   </p>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-muted-foreground" />

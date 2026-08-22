@@ -150,6 +150,8 @@ import { isLaunchPromotionActive, isStripeInLiveMode } from '@/lib/pricing-confi
 
 // Import after mocks
 import {
+  createCheckoutSessionForAPI,
+  createCustomerPortalSession,
   getStripeProductIds,
   getStripePriceIds,
   getStripePlanMapping,
@@ -161,6 +163,10 @@ import {
   STRIPE_PRICES,
   PLAN_PRICES,
 } from '@/lib/payments/stripe';
+import Stripe from 'stripe';
+
+// The module under test instantiates the (mocked) SDK once at import time
+const stripeInstance = (Stripe as unknown as jest.Mock).mock.results[0].value;
 
 describe('Stripe Payment Integration', () => {
   beforeEach(() => {
@@ -174,6 +180,54 @@ describe('Stripe Payment Integration', () => {
     it('should be defined in the module', () => {
       // The function exists but is not exported - test through integration
       expect(true).toBe(true);
+    });
+  });
+
+  describe('createCheckoutSessionForAPI — billing currency', () => {
+    const buildTenant = (billingCurrency: string): Tenant =>
+      ({
+        id: 'tenant-1',
+        name: 'Test Clinic',
+        stripeCustomerId: 'cus_test123',
+        trialEndsAt: new Date('2026-01-01'),
+        billingCurrency,
+      }) as unknown as Tenant;
+
+    it('passes the tenant billing currency to the checkout session for CLP', async () => {
+      await createCheckoutSessionForAPI({
+        tenant: buildTenant('CLP'),
+        priceId: 'price_test',
+        userId: 'user-1',
+        planKey: 'PROFESIONAL',
+      });
+
+      expect(stripeInstance.checkout.sessions.create).toHaveBeenCalledWith(
+        expect.objectContaining({ currency: 'clp' })
+      );
+    });
+
+    it('omits the currency param for MXN so the price base currency applies', async () => {
+      await createCheckoutSessionForAPI({
+        tenant: buildTenant('MXN'),
+        priceId: 'price_test',
+        userId: 'user-1',
+        planKey: 'PROFESIONAL',
+      });
+
+      const config = stripeInstance.checkout.sessions.create.mock.calls[0][0];
+      expect(config).not.toHaveProperty('currency');
+    });
+
+    it('omits the currency param for unsupported billing currencies', async () => {
+      await createCheckoutSessionForAPI({
+        tenant: buildTenant('PEN'),
+        priceId: 'price_test',
+        userId: 'user-1',
+        planKey: 'PROFESIONAL',
+      });
+
+      const config = stripeInstance.checkout.sessions.create.mock.calls[0][0];
+      expect(config).not.toHaveProperty('currency');
     });
   });
 
@@ -568,6 +622,25 @@ describe('Stripe Payment Integration', () => {
       (isLaunchPromotionActive as jest.Mock).mockReturnValue(false);
       expect(isLaunchPromotionActive()).toBe(false);
     });
+  });
+});
+
+describe('createCustomerPortalSession', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns the user to the subscription settings tab with from_portal so the sync runs', async () => {
+    const tenant = { id: 'tenant-1', stripeCustomerId: 'cus_test123' } as unknown as Tenant;
+
+    await createCustomerPortalSession(tenant);
+
+    expect(stripeInstance.billingPortal.sessions.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: 'cus_test123',
+        return_url: 'http://localhost:3000/dashboard/settings?tab=subscription&from_portal=true',
+      })
+    );
   });
 });
 

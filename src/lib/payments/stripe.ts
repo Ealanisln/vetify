@@ -5,6 +5,7 @@ import { prisma } from '../prisma';
 import { isLaunchPromotionActive, PRICING_CONFIG, isStripeInLiveMode } from '../pricing-config';
 import { getActivePromotion, checkPromotionAvailability } from '../promotions/queries';
 import { computeRetentionEndsAt } from '../retention/constants';
+import { checkoutCurrency } from './billing-prices';
 
 import type { Tenant, SubscriptionStatus, PlanType } from '@prisma/client';
 
@@ -24,6 +25,8 @@ interface StripeSubscriptionData {
 // Type for Stripe checkout session configuration
 interface StripeCheckoutSessionConfig {
   customer: string;
+  // Selects the matching currency_option on the price; omitted for MXN (base)
+  currency?: string;
   payment_method_types: string[];
   line_items: Array<{
     price: string;
@@ -384,6 +387,12 @@ export async function createCheckoutSession({
   }
   // For FREE_TRIAL, no discounts/promo codes needed (trial_period_days handles it)
 
+  // Charge in the tenant's billing currency (undefined for MXN, the base)
+  const sessionCurrency = checkoutCurrency(tenant.billingCurrency);
+  if (sessionCurrency) {
+    sessionConfig.currency = sessionCurrency;
+  }
+
   const session = await stripe.checkout.sessions.create(sessionConfig);
 
   redirect(session.url!);
@@ -488,6 +497,12 @@ export async function createCheckoutSessionForAPI({
     sessionConfig.allow_promotion_codes = true;
   }
 
+  // Charge in the tenant's billing currency (undefined for MXN, the base)
+  const sessionCurrency = checkoutCurrency(tenant.billingCurrency);
+  if (sessionCurrency) {
+    sessionConfig.currency = sessionCurrency;
+  }
+
   const session = await stripe.checkout.sessions.create(sessionConfig);
 
   return session;
@@ -550,9 +565,13 @@ export async function createCustomerPortalSession(tenant: Tenant) {
     }
   });
 
+  // Land on the subscription tab: SubscriptionManager is the component that
+  // reacts to `from_portal` (sync from Stripe + refresh). Returning to
+  // /dashboard silently skipped that sync because nothing mounted there
+  // consumes the flag.
   return stripe.billingPortal.sessions.create({
     customer: tenant.stripeCustomerId,
-    return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?from_portal=true`,
+    return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/settings?tab=subscription&from_portal=true`,
     configuration: configuration.id
   });
 }

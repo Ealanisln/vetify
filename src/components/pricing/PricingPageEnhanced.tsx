@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { useSubscription } from '../../hooks/useSubscription';
-import { COMPLETE_PLANS, formatPrice } from '../../lib/pricing-config';
+import { COMPLETE_PLANS } from '../../lib/pricing-config';
+import { formatBillingAmount, localizePlanPrices, resolveBillingCurrency } from '../../lib/pricing-localization';
+import { BILLING_PRICES, type BillingPlanKey } from '../../lib/payments/billing-prices';
 import { Check, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import type { Tenant } from '@prisma/client';
@@ -15,6 +17,8 @@ import { resolveCurrentPlanKey } from '@/lib/pricing/current-plan';
 
 interface PricingPageEnhancedProps {
   tenant?: Tenant | null;
+  /** Billing currency guessed server-side from geo IP for anonymous viewers. */
+  initialBillingCurrency?: string;
 }
 
 // Mapeo de IDs de Stripe a IDs locales para compatibilidad
@@ -24,9 +28,15 @@ const STRIPE_TO_LOCAL_ID_MAP: Record<string, string> = {
   'prod_TGDXxUkqhta3cp': 'corporativo'
 };
 
-export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
+export function PricingPageEnhanced({ tenant, initialBillingCurrency }: PricingPageEnhancedProps) {
   const [isYearly, setIsYearly] = useState(false);
   const [showUpgradeInfo, setShowUpgradeInfo] = useState(false);
+
+  // Moneda de cobro del viewer: geo (anónimo) hasta que /api/subscription/current
+  // responda con la del tenant (usuario autenticado)
+  const [billingCurrency, setBillingCurrency] = useState(
+    resolveBillingCurrency(initialBillingCurrency)
+  );
 
   // Subscription state management
   const [userPlan, setUserPlan] = useState<string | null>(null);
@@ -68,6 +78,11 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
       if (response.ok) {
         const data = await response.json();
         setSubscriptionData(data);
+
+        // Un usuario autenticado ve los precios en SU moneda de cobro
+        if (data.billingCurrency) {
+          setBillingCurrency(resolveBillingCurrency(data.billingCurrency));
+        }
 
         // Detectar plan actual: los tenants en trial sin suscripción de Stripe
         // no tienen plan actual — todos los planes deben ser seleccionables
@@ -373,16 +388,30 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
   };
 
   // Obtener precios para cada producto según el intervalo seleccionado
+  // Los planes llegan en MXN (Stripe/fallbacks); si el viewer cobra en otra
+  // moneda se sustituyen los montos desde la tabla canónica, así los cálculos
+  // de descuento/ahorro siguen funcionando sin conversión.
+  const localizedPlans = useMemo(
+    () => localizePlanPrices(pricingPlans, billingCurrency),
+    [pricingPlans, billingCurrency]
+  );
+
   const getProductPrice = (productId: string) => {
-    const plan = pricingPlans.find(p => p.id === productId);
+    const plan = localizedPlans.find(p => p.id === productId);
     if (!plan) return null;
 
     return isYearly ? plan.prices.yearly : plan.prices.monthly;
   };
 
-  // Formatear precio desde centavos
+  // Formatear un monto en minor units de la moneda activa (CLP es zero-decimal)
   const formatPriceFromCents = (amountInCents: number) => {
-    return formatPrice(Math.round(amountInCents / 100));
+    return formatBillingAmount(Math.round(amountInCents), billingCurrency);
+  };
+
+  // Precio mensual de lista en la moneda activa, en minor units
+  const listMonthlyMinor = (productId: string) => {
+    const table = BILLING_PRICES[productId.toUpperCase() as BillingPlanKey];
+    return table ? table.monthly[billingCurrency] : 0;
   };
 
   // Aplicar descuento del 25% (Early Adopter)
@@ -393,7 +422,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
   // Calcular descuento anual
   const calculateAnnualDiscount = (productId: string) => {
-    const plan = pricingPlans.find(p => p.id === productId);
+    const plan = localizedPlans.find(p => p.id === productId);
     if (!plan || !plan.prices.monthly || !plan.prices.yearly) return 0;
 
     const monthlyTotal = plan.prices.monthly.unitAmount * 12;
@@ -644,7 +673,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
       {!pricingLoading && !pricingError && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 pt-16">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 gap-y-16 items-stretch">
-            {pricingPlans.map((product: PricingPlan) => {
+            {localizedPlans.map((product: PricingPlan) => {
               const price = getProductPrice(product.id);
               const { isCurrentPlan, isUpgrade, isDowngrade } = getPlanStatus(product.id);
               const planConfig = COMPLETE_PLANS[product.id.toUpperCase() as keyof typeof COMPLETE_PLANS];
@@ -705,7 +734,7 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                         <>
                           {/* FREE_TRIAL Promotion — $0/mes */}
                           {(() => {
-                            const originalPriceMonthly = product.id === 'basico' ? 599 : 1199
+                            const originalMonthly = formatBillingAmount(listMonthlyMinor(product.id), billingCurrency)
 
                             return (
                               <>
@@ -725,12 +754,12 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
                                 <div className="flex items-center gap-2 text-sm">
                                   <span className="text-muted-foreground line-through">
-                                    {formatPrice(originalPriceMonthly)}/mes
+                                    {originalMonthly}/mes
                                   </span>
                                 </div>
 
                                 <p className="text-xs text-green-600 dark:text-green-400">
-                                  Por {activePromotion.durationMonths} meses • Luego {formatPrice(originalPriceMonthly)}/mes
+                                  Por {activePromotion.durationMonths} meses • Luego {originalMonthly}/mes
                                 </p>
 
                                 {activePromotion.spotsRemaining !== null && activePromotion.spotsRemaining !== undefined && (
@@ -752,8 +781,8 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
                           {(() => {
                             const originalPriceCents = isYearly ? price.unitAmount / 12 : price.unitAmount
                             const discountedPriceCents = Math.round(originalPriceCents * (1 - activePromotion.discountPercent / 100))
-                            const savingsPerMonth = Math.round((originalPriceCents - discountedPriceCents) / 100)
-                            const originalPriceMonthly = product.id === 'basico' ? 599 : 1199
+                            const savingsPerMonthMinor = Math.round(originalPriceCents - discountedPriceCents)
+                            const originalMonthly = formatBillingAmount(listMonthlyMinor(product.id), billingCurrency)
 
                             return (
                               <>
@@ -773,15 +802,15 @@ export function PricingPageEnhanced({ tenant }: PricingPageEnhancedProps) {
 
                                 <div className="flex items-center gap-2 text-sm">
                                   <span className="text-muted-foreground line-through">
-                                    {formatPrice(originalPriceMonthly)}/mes
+                                    {originalMonthly}/mes
                                   </span>
                                   <span className="text-orange-500 dark:text-orange-400 font-medium">
-                                    Ahorras {formatPrice(savingsPerMonth)}/mes
+                                    Ahorras {formatBillingAmount(savingsPerMonthMinor, billingCurrency)}/mes
                                   </span>
                                 </div>
 
                                 <p className="text-xs text-orange-600 dark:text-orange-400">
-                                  Por {activePromotion.durationMonths} meses • Luego {formatPrice(originalPriceMonthly)}/mes
+                                  Por {activePromotion.durationMonths} meses • Luego {originalMonthly}/mes
                                 </p>
 
                                 {isYearly && (

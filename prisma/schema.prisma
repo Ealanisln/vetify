@@ -35,6 +35,12 @@ model Tenant {
   subscriptionStatus   SubscriptionStatus @default(INACTIVE)
   subscriptionEndsAt   DateTime?
 
+  // Multi-currency billing: the country chosen at onboarding and the currency
+  // subscriptions are CHARGED in (MXN/CLP/COP/USD). Distinct from the display
+  // currency in TenantSettings.currencyCode. See 9_tenant_billing_currency.
+  countryCode     String?
+  billingCurrency String  @default("MXN")
+
   // Data retention (90 days post-cancellation)
   // Partial index "Tenant_dataRetention_idx" is created in raw SQL inside the
   // add_data_retention migration — Prisma does not manage WHERE-clause indexes.
@@ -829,8 +835,11 @@ model TenantSettings {
   enableSmsReminders      Boolean         @default(false)
   notificationPreferences Json? // Granular notification preferences by type
   taxRate                 Decimal         @default(0.16) @db.Decimal(5, 4)
-  currencyCode            String          @default("USD")
+  currencyCode            String          @default("MXN")
   currencySymbol          String          @default("$")
+  // False means the code guessed this currency; true means the clinic chose it.
+  // Drives the settings nudge so a guessed currency never silently sticks.
+  currencyConfirmed       Boolean         @default(false)
   appointmentDuration     Int             @default(30)
   defaultStartTime        String          @default("08:00")
   defaultEndTime          String          @default("18:00")

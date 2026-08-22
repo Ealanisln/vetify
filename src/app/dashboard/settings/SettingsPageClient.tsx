@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { Badge } from '../../../components/ui/badge';
 import { ServiceManagement } from '../../../components/settings/ServiceManagement';
 import { BusinessHoursSettings } from '../../../components/settings/BusinessHoursSettings';
+import { CurrencySettings } from '../../../components/settings/CurrencySettings';
 import { NotificationSettings } from '../../../components/settings/NotificationSettings';
 import { SubscriptionManager } from '../../../components/subscription';
 import type { TenantWithPlan } from '@/types';
@@ -21,7 +22,8 @@ import {
   QrCode,
   BarChart3,
   Lock,
-  Key
+  Key,
+  Coins
 } from 'lucide-react';
 import { PublicPageSettings } from '../../../components/settings/PublicPageSettings';
 import { QrCodeGenerator } from '../../../components/settings/QrCodeGenerator';
@@ -68,6 +70,14 @@ const settingsSections = [
     description: 'Gestione los servicios que ofrece su clínica',
     icon: Wrench,
     component: 'services',
+    requiresSubscription: true
+  },
+  {
+    id: 'regional',
+    title: 'Moneda y Región',
+    description: 'Defina la moneda y el impuesto de su país',
+    icon: Coins,
+    component: 'regional',
     requiresSubscription: true
   },
   {
@@ -154,6 +164,8 @@ export function SettingsPageClient({ tenant, isActiveSubscription }: SettingsPag
         return <BusinessHoursSettings tenantId={tenant.id} />;
       case 'services':
         return <ServiceManagement tenantId={tenant.id} />;
+      case 'regional':
+        return <CurrencySettings />;
       case 'subscription':
         return <SubscriptionManager tenant={tenant} isActiveSubscription={isActiveSubscription} />;
       case 'notifications':

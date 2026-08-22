@@ -42,17 +42,23 @@ const createMockStatus = (overrides: Partial<SubscriptionStatus> = {}): Subscrip
 
 describe('useSubscriptionStatus', () => {
   const originalReplaceState = window.history.replaceState;
+  const originalFetch = global.fetch;
   let mockReplaceState: jest.Mock;
+  let mockFetch: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
     mockGet.mockReturnValue(null);
     mockReplaceState = jest.fn();
     window.history.replaceState = mockReplaceState;
+    // Portal return triggers a sync-first call to /api/stripe/sync-subscription
+    mockFetch = jest.fn().mockResolvedValue({ ok: true });
+    global.fetch = mockFetch as unknown as typeof fetch;
   });
 
   afterEach(() => {
     window.history.replaceState = originalReplaceState;
+    global.fetch = originalFetch;
   });
 
   describe('Initial Load', () => {
@@ -138,6 +144,35 @@ describe('useSubscriptionStatus', () => {
       });
 
       expect(mockGetSubscriptionStatus).toHaveBeenCalled();
+    });
+
+    it('should sync with Stripe before refetching when returning from portal', async () => {
+      mockGet.mockReturnValue('true');
+      const mockStatus = createMockStatus();
+      mockGetSubscriptionStatus.mockResolvedValue(mockStatus);
+
+      const { result } = renderHook(() => useSubscriptionStatus());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith('/api/stripe/sync-subscription', { method: 'POST' });
+      expect(mockGetSubscriptionStatus).toHaveBeenCalled();
+    });
+
+    it('should NOT call the sync endpoint on normal loads', async () => {
+      mockGet.mockReturnValue(null);
+      const mockStatus = createMockStatus();
+      mockGetSubscriptionStatus.mockResolvedValue(mockStatus);
+
+      const { result } = renderHook(() => useSubscriptionStatus());
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('should clean URL when from_portal param is present', async () => {

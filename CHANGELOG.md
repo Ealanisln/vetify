@@ -7,6 +7,23 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.11.0] - 2026-08-22
+
+### Agregado
+- **Cobro de suscripciones en moneda local (MXN, CLP, COP, USD).** Cada tenant tiene ahora `countryCode` y `billingCurrency`, fijados en el onboarding a partir de un select de país con geodetección (default México). El checkout de Stripe cobra en esa moneda con precios fijados por país (Básico MXN $599 / CLP $29.900 / COP $129.900 / USD $35; Profesional MXN $1,199 / CLP $59.900 / COP $259.900 / USD $69). Los tenants existentes quedaron en MX/MXN, que es lo que ya se les cobraba.
+- **`/precios` en la moneda de cobro del visitante:** anónimo según el país de la IP, autenticado según la moneda del tenant.
+- **Moneda de visualización por clínica.** Nueva sección "Moneda y Región" en Configuración (13 monedas de LATAM e impuesto incluido) y un `CurrencyProvider` en el dashboard: el POS, el carrito, el resumen y el ticket impreso se muestran en la moneda del tenant con su formato local (por ejemplo `$25.000 CLP`). Cambiar la moneda de visualización solo re-etiqueta importes, nunca los convierte.
+- **Candado de moneda de cobro.** `billingCurrency` se expone como solo lectura en la configuración y ningún formulario puede modificarla; el cambio de moneda de cobro pasa por soporte, porque una suscripción de Stripe no puede cambiar de moneda en sitio.
+- Módulo canónico de monedas (`lib/currency.ts`) y tabla de precios en unidades mínimas de Stripe (`lib/payments/billing-prices.ts`, CLP sin decimales), con el script `pnpm stripe:currencies` para sincronizar `currency_options` en el catálogo.
+
+### Corregido
+- **`/api/pricing` devolvía `plans: []` en producción.** Los product IDs válidos estaban fijados a los productos de test; ahora se resuelven en runtime según el modo de Stripe.
+- **La cancelación desde el portal de Stripe nunca se reflejaba en la app.** Stripe mantiene la suscripción `active` con `cancel_at_period_end` hasta el fin del periodo y la UI solo reconocía `CANCELED`. Nuevo estado "Cancelación programada" con fecha de término, y sincronización inmediata al volver del portal (`POST /api/stripe/sync-subscription`); el portal regresa ahora a la pestaña de suscripción, que es donde ese sync efectivamente corre.
+- **Correos de "trial expirado" a tenants vencidos hace meses.** El recordatorio solo se envía si el trial venció dentro de los últimos 30 días.
+- **Las rutas de API protegidas por suscripción respondían 500 con trial vencido.** `requireActiveSubscription` redirigía dentro de un route handler; las rutas de mascotas, moneda e impuesto responden ahora `403` con `code: SUBSCRIPTION_REQUIRED`.
+- El aviso "Instalar Vetify" (PWA) ya no tapa los botones de acción alineados a la derecha en escritorio.
+- `TenantSettings.currencyCode` tenía default `USD` sin que ninguna pantalla lo leyera; se re-apuntó a `MXN` con backfill antes de que cualquier lector llegara a producción.
+
 ## [1.10.0] - 2026-08-07
 
 ### Corregido

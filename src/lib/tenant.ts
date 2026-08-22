@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { tenantCurrencyDefaults } from './onboarding-defaults';
 import type { SubscriptionStatus } from '@prisma/client';
 import type { ThemeId } from './themes';
 
@@ -132,6 +133,7 @@ export async function createTenantWithDefaults(data: {
   userId: string;
   planKey: 'BASICO' | 'PROFESIONAL' | 'CORPORATIVO' | 'CLINICA' | 'EMPRESA'; // Support both new and legacy plan keys
   billingInterval: 'monthly' | 'yearly';
+  countryCode?: string; // ISO alpha-2 from the onboarding selector
   phone?: string;
   address?: string;
   trialDays?: number; // Override default 30-day trial (e.g., 180 for FREE_TRIAL promotions)
@@ -146,6 +148,7 @@ export async function createTenantWithDefaults(data: {
   }
 
   const trialDays = data.trialDays ?? 30;
+  const currencyDefaults = tenantCurrencyDefaults(data.countryCode);
 
   return await prisma.$transaction(async (tx) => {
     // Create tenant with selected plan
@@ -155,6 +158,8 @@ export async function createTenantWithDefaults(data: {
         slug: data.slug,
         planType: data.planKey,
         status: 'ACTIVE',
+        countryCode: currencyDefaults.countryCode,
+        billingCurrency: currencyDefaults.billingCurrency,
         ...initializeTrialPeriod(trialDays),
       }
     });
@@ -178,9 +183,10 @@ export async function createTenantWithDefaults(data: {
         dateFormat: 'DD/MM/YYYY',
         enableEmailReminders: true,
         enableSmsReminders: false,
-        taxRate: 0.16,
-        currencyCode: 'USD',
-        currencySymbol: '$',
+        taxRate: currencyDefaults.taxRate,
+        currencyCode: currencyDefaults.currencyCode,
+        currencySymbol: currencyDefaults.currencySymbol,
+        currencyConfirmed: currencyDefaults.currencyConfirmed,
         appointmentDuration: 30,
       }
     });

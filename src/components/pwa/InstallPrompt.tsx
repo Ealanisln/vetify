@@ -61,7 +61,7 @@ export function InstallPrompt() {
   // iOS variant - show instructions
   if (isIOS) {
     return (
-      <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 z-50 animate-in slide-in-from-bottom-4 duration-300">
+      <div className="fixed bottom-20 left-4 right-4 sm:bottom-6 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-96 z-50 animate-in slide-in-from-bottom-4 duration-300">
         <div className="bg-card border border-border rounded-lg shadow-lg p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -114,7 +114,7 @@ export function InstallPrompt() {
 
   // Android/Chrome variant - show install button
   return (
-    <div className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 z-50 animate-in slide-in-from-bottom-4 duration-300">
+    <div className="fixed bottom-20 left-4 right-4 sm:bottom-6 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:w-96 z-50 animate-in slide-in-from-bottom-4 duration-300">
       <div className="bg-card border border-border rounded-lg shadow-lg p-4">
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">

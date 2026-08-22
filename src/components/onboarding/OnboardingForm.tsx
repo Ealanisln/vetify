@@ -13,6 +13,8 @@ import type { PromoInfo } from '../../app/onboarding/OnboardingPageClient';
 interface OnboardingFormProps {
   user: UserWithTenant;
   promoInfo?: PromoInfo | null;
+  /** ISO alpha-2 country pre-detected server-side (x-vercel-ip-country). */
+  detectedCountry?: string;
 }
 
 // El plan ya no se elige en el onboarding: el usuario entra con Profesional en
@@ -23,11 +25,12 @@ const DEFAULT_BILLING_INTERVAL = 'monthly' as const;
 interface ClinicInfoData {
   clinicName: string;
   slug: string;
+  countryCode: string;
   phone?: string;
   address?: string;
 }
 
-export function OnboardingForm({ user, promoInfo }: OnboardingFormProps) {
+export function OnboardingForm({ user, promoInfo, detectedCountry }: OnboardingFormProps) {
   const trialDays = promoInfo?.trialDays ?? TRIAL_PERIOD_DAYS;
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,6 +123,7 @@ export function OnboardingForm({ user, promoInfo }: OnboardingFormProps) {
         } : null}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
+        detectedCountry={detectedCountry}
       />
     </div>
   );

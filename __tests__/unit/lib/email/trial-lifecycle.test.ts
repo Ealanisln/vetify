@@ -135,6 +135,27 @@ describe('processTrialLifecycleEmails', () => {
     expect(result.expiredEmailsSent).toBe(0);
   });
 
+  it('skips the expired email for trials that expired beyond the resend window', async () => {
+    primeTenants([mockTenantRow({ trialEndsAt: daysFromNow(-45) })]);
+
+    const result = await processTrialLifecycleEmails();
+
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(result.expiredEmailsSent).toBe(0);
+  });
+
+  it('still sends the expired email inside the resend window', async () => {
+    primeTenants([mockTenantRow({ trialEndsAt: daysFromNow(-10) })]);
+
+    const result = await processTrialLifecycleEmails();
+
+    expect(mockSendEmail).toHaveBeenCalledTimes(1);
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ template: 'trial-expired', tenantId: 'tenant-1' })
+    );
+    expect(result.expiredEmailsSent).toBe(1);
+  });
+
   it('updates lastTrialCheck only after a successful send', async () => {
     primeTenants([mockTenantRow({ trialEndsAt: daysFromNow(2) })]);
     mockSendEmail.mockResolvedValue({ success: false });
