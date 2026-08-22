@@ -596,8 +596,16 @@ describe('medical-validation', () => {
       });
 
       it('should return true for current date', () => {
-        const now = new Date();
-        expect(validateDates.isNotPast(now)).toBe(true);
+        // isNotPast compares against its own `new Date()`; without a frozen
+        // clock a millisecond can tick between the two reads and the check
+        // flips to false (observed as a flaky CI failure).
+        jest.useFakeTimers({ now: new Date('2026-08-22T12:00:00Z') });
+        try {
+          const now = new Date();
+          expect(validateDates.isNotPast(now)).toBe(true);
+        } finally {
+          jest.useRealTimers();
+        }
       });
 
       it('should return true for future date', () => {
