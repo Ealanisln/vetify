@@ -1,10 +1,10 @@
  
 
-const mockRequireActiveSubscription = jest.fn();
+const mockRequireActiveSubscriptionApi = jest.fn();
 const mockRequirePermission = jest.fn();
 
 jest.mock('@/lib/auth', () => ({
-  requireActiveSubscription: () => mockRequireActiveSubscription(),
+  requireActiveSubscriptionApi: () => mockRequireActiveSubscriptionApi(),
   requirePermission: (...args: unknown[]) => mockRequirePermission(...args),
 }));
 
@@ -31,6 +31,7 @@ jest.mock('@/lib/security/audit-logger', () => ({
 
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { SubscriptionRequiredError } from '@/lib/subscription/subscription-required-error';
 import { GET, PUT } from '@/app/api/settings/currency/route';
 
 const settingsMock = prisma.tenantSettings as unknown as {
@@ -50,7 +51,7 @@ describe('/api/settings/currency', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.spyOn(console, 'error').mockImplementation();
-    mockRequireActiveSubscription.mockResolvedValue({ tenant: { id: 'tenant-1' } });
+    mockRequireActiveSubscriptionApi.mockResolvedValue({ tenant: { id: 'tenant-1' } });
     mockRequirePermission.mockResolvedValue({
       tenant: { id: 'tenant-1' },
       user: { id: 'user-1' },
@@ -63,6 +64,18 @@ describe('/api/settings/currency', () => {
   });
 
   describe('GET', () => {
+    it('answers 403 SUBSCRIPTION_REQUIRED instead of 500 when the tenant has no active plan', async () => {
+      mockRequireActiveSubscriptionApi.mockRejectedValue(new SubscriptionRequiredError());
+
+      const response = await GET();
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({
+        error: 'Suscripción requerida',
+        code: 'SUBSCRIPTION_REQUIRED',
+      });
+    });
+
     it("returns the tenant's currency, tax rate and sale count", async () => {
       settingsMock.findUnique.mockResolvedValue({
         currencyCode: 'COP',
@@ -84,7 +97,7 @@ describe('/api/settings/currency', () => {
     });
 
     it('exposes the tenant billing currency as read-only info', async () => {
-      mockRequireActiveSubscription.mockResolvedValue({
+      mockRequireActiveSubscriptionApi.mockResolvedValue({
         tenant: { id: 'tenant-1', billingCurrency: 'CLP' },
       });
       settingsMock.findUnique.mockResolvedValue({

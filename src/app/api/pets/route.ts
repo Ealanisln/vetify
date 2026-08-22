@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireActiveSubscription } from '../../../lib/auth';
+import { requireActiveSubscriptionApi } from '../../../lib/auth';
+import {
+  SubscriptionRequiredError,
+  subscriptionRequiredResponse,
+} from '../../../lib/subscription/subscription-required-error';
 import { createPet, createPetSchema, getPetsByTenant, PETS_ALLOWED_SORT_FIELDS } from '../../../lib/pets';
 import { validatePlanAction, PlanLimitError } from '../../../lib/plan-limits';
 import { validateDateOfBirth } from '../../../lib/utils/date-validation';
@@ -7,8 +11,8 @@ import { parsePaginationParams, parseSortParams, createPaginatedResponse } from 
 
 export async function POST(request: NextRequest) {
   try {
-    // CRITICAL FIX: Use requireActiveSubscription to block access with expired trial
-    const { tenant } = await requireActiveSubscription();
+    // Block access with an expired trial; the Api variant answers 403 instead of redirecting
+    const { tenant } = await requireActiveSubscriptionApi();
     const body = await request.json();
 
     // Check plan limits before creating pet (also checks trial expiration now)
@@ -79,6 +83,10 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating pet:', error);
+
+    if (error instanceof SubscriptionRequiredError) {
+      return subscriptionRequiredResponse();
+    }
     
     // Handle plan limit errors with specific messaging
     if (error instanceof PlanLimitError) {
@@ -110,8 +118,8 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // CRITICAL FIX: Use requireActiveSubscription to block access with expired trial
-    const { tenant } = await requireActiveSubscription();
+    // Block access with an expired trial; the Api variant answers 403 instead of redirecting
+    const { tenant } = await requireActiveSubscriptionApi();
     const { searchParams } = new URL(request.url);
     const locationId = searchParams.get('locationId') || undefined;
 
@@ -139,6 +147,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error fetching pets:', error);
+
+    if (error instanceof SubscriptionRequiredError) {
+      return subscriptionRequiredResponse();
+    }
+
     return NextResponse.json(
       { message: 'Error interno del servidor' },
       { status: 500 }

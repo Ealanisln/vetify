@@ -1,5 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { requireActiveSubscription, requirePermission } from '@/lib/auth';
+import { requireActiveSubscriptionApi, requirePermission } from '@/lib/auth';
+import {
+  SubscriptionRequiredError,
+  subscriptionRequiredResponse,
+} from '@/lib/subscription/subscription-required-error';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import {
@@ -22,7 +26,7 @@ const DEFAULT_TAX_RATE = 0.16;
  */
 export async function GET() {
   try {
-    const { tenant } = await requireActiveSubscription();
+    const { tenant } = await requireActiveSubscriptionApi();
 
     const [settings, saleCount] = await Promise.all([
       prisma.tenantSettings.findUnique({
@@ -47,6 +51,10 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching currency settings:', error);
+
+    if (error instanceof SubscriptionRequiredError) {
+      return subscriptionRequiredResponse();
+    }
 
     if (error instanceof Error && error.message.includes('Access denied')) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
