@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireActiveSubscription } from '@/lib/auth';
+import { requireActiveSubscriptionApi } from '@/lib/auth';
+import {
+  SubscriptionRequiredError,
+  subscriptionRequiredResponse,
+} from '@/lib/subscription/subscription-required-error';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { validateDateOfBirth } from '@/lib/utils/date-validation';
@@ -23,7 +27,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { tenant } = await requireActiveSubscription();
+    const { tenant } = await requireActiveSubscriptionApi();
     const { id } = await params;
 
     const pet = await prisma.pet.findFirst({
@@ -46,6 +50,10 @@ export async function GET(
     return NextResponse.json(pet);
   } catch (error) {
     console.error('Error fetching pet:', error);
+
+    if (error instanceof SubscriptionRequiredError) {
+      return subscriptionRequiredResponse();
+    }
     return NextResponse.json(
       { message: 'Error interno del servidor' },
       { status: 500 }
@@ -58,7 +66,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { tenant } = await requireActiveSubscription();
+    const { tenant } = await requireActiveSubscriptionApi();
     const { id } = await params;
     const body = await request.json();
 
@@ -106,6 +114,10 @@ export async function PUT(
   } catch (error) {
     console.error('Error updating pet:', error);
 
+    if (error instanceof SubscriptionRequiredError) {
+      return subscriptionRequiredResponse();
+    }
+
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { message: 'Datos invalidos', errors: error.errors },
@@ -132,7 +144,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { tenant } = await requireActiveSubscription();
+    const { tenant } = await requireActiveSubscriptionApi();
     const { id } = await params;
 
     // Verify pet belongs to tenant
@@ -159,6 +171,10 @@ export async function DELETE(
     });
   } catch (error) {
     console.error('Error deleting pet:', error);
+
+    if (error instanceof SubscriptionRequiredError) {
+      return subscriptionRequiredResponse();
+    }
     return NextResponse.json(
       { message: 'Error interno del servidor' },
       { status: 500 }

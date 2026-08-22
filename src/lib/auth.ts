@@ -5,6 +5,9 @@ import { findOrCreateUser, findUserById } from "./db/queries/users";
 import { UserWithTenant } from "@/types";
 import { prisma } from "./prisma";
 import type { StaffPositionType } from "./staff-positions";
+import { SubscriptionRequiredError } from "./subscription/subscription-required-error";
+
+export { SubscriptionRequiredError };
 
 export async function getAuthenticatedUser(): Promise<UserWithTenant> {
   const { getUser } = getKindeServerSession();
@@ -175,6 +178,24 @@ export async function requireActiveSubscription() {
 
   if (!hasActiveSubscription(tenant)) {
     redirect('/dashboard/settings?tab=subscription&reason=trial_expired');
+  }
+
+  return { user, tenant };
+}
+
+/**
+ * Route-handler variant of requireActiveSubscription().
+ *
+ * redirect() only works from server components and server actions: inside a
+ * route handler the NEXT_REDIRECT throw lands in the handler's try/catch and
+ * surfaces as a generic 500. Route handlers must use this variant and map
+ * SubscriptionRequiredError to subscriptionRequiredResponse() (403).
+ */
+export async function requireActiveSubscriptionApi() {
+  const { user, tenant } = await requireAuth();
+
+  if (!hasActiveSubscription(tenant)) {
+    throw new SubscriptionRequiredError();
   }
 
   return { user, tenant };

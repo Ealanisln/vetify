@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
-import { requireActiveSubscription } from '@/lib/auth';
+import { requireActiveSubscriptionApi } from '@/lib/auth';
+import {
+  SubscriptionRequiredError,
+  subscriptionRequiredResponse,
+} from '@/lib/subscription/subscription-required-error';
 import { prisma } from '@/lib/prisma';
 
 /**
@@ -11,7 +15,7 @@ import { prisma } from '@/lib/prisma';
  */
 export async function GET() {
   try {
-    const { tenant } = await requireActiveSubscription();
+    const { tenant } = await requireActiveSubscriptionApi();
 
     // Get only the tax rate from TenantSettings table
     const tenantSettings = await prisma.tenantSettings.findUnique({
@@ -29,6 +33,10 @@ export async function GET() {
     return NextResponse.json({ taxRate });
   } catch (error) {
     console.error('Error fetching tax rate:', error);
+
+    if (error instanceof SubscriptionRequiredError) {
+      return subscriptionRequiredResponse();
+    }
 
     if (error instanceof Error && error.message.includes('Access denied')) {
       return NextResponse.json(

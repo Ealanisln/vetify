@@ -565,9 +565,13 @@ export async function createCustomerPortalSession(tenant: Tenant) {
     }
   });
 
+  // Land on the subscription tab: SubscriptionManager is the component that
+  // reacts to `from_portal` (sync from Stripe + refresh). Returning to
+  // /dashboard silently skipped that sync because nothing mounted there
+  // consumes the flag.
   return stripe.billingPortal.sessions.create({
     customer: tenant.stripeCustomerId,
-    return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard?from_portal=true`,
+    return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/settings?tab=subscription&from_portal=true`,
     configuration: configuration.id
   });
 }

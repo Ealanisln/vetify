@@ -113,6 +113,37 @@ describe('InstallPrompt', () => {
     });
   });
 
+  describe('Desktop placement', () => {
+    const renderAfterDelay = async (isIOS: boolean) => {
+      mockUsePWAInstall.mockReturnValue({
+        isInstallable: !isIOS,
+        isIOS,
+        isStandalone: false,
+        isDismissed: false,
+        promptInstall: mockPromptInstall,
+        dismiss: mockDismiss,
+      });
+
+      const { container } = render(<InstallPrompt />);
+
+      await act(async () => {
+        jest.advanceTimersByTime(4000);
+      });
+
+      return container.firstElementChild as HTMLElement;
+    };
+
+    it.each([
+      ['Android/Chrome', false],
+      ['iOS', true],
+    ])('%s variant sits bottom-center on desktop, away from right-aligned form actions', async (_label, isIOS) => {
+      const card = await renderAfterDelay(isIOS);
+
+      expect(card).toHaveClass('sm:left-1/2', 'sm:-translate-x-1/2');
+      expect(card).not.toHaveClass('sm:right-4');
+    });
+  });
+
   describe('Android/Chrome Variant', () => {
     beforeEach(() => {
       mockUsePWAInstall.mockReturnValue({
