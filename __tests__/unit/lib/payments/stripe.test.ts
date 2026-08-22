@@ -151,6 +151,7 @@ import { isLaunchPromotionActive, isStripeInLiveMode } from '@/lib/pricing-confi
 // Import after mocks
 import {
   createCheckoutSessionForAPI,
+  createCustomerPortalSession,
   getStripeProductIds,
   getStripePriceIds,
   getStripePlanMapping,
@@ -621,6 +622,25 @@ describe('Stripe Payment Integration', () => {
       (isLaunchPromotionActive as jest.Mock).mockReturnValue(false);
       expect(isLaunchPromotionActive()).toBe(false);
     });
+  });
+});
+
+describe('createCustomerPortalSession', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns the user to the subscription settings tab with from_portal so the sync runs', async () => {
+    const tenant = { id: 'tenant-1', stripeCustomerId: 'cus_test123' } as unknown as Tenant;
+
+    await createCustomerPortalSession(tenant);
+
+    expect(stripeInstance.billingPortal.sessions.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customer: 'cus_test123',
+        return_url: 'http://localhost:3000/dashboard/settings?tab=subscription&from_portal=true',
+      })
+    );
   });
 });
 
