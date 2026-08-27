@@ -259,8 +259,10 @@ test.describe('P2 - Performance Indicators @weekly @p2', () => {
       }
     })
 
-    await page.goto('/')
-    await page.waitForLoadState('networkidle')
+    // The landing page keeps long-lived connections open (PWA, analytics),
+    // so 'networkidle' never settles; wait for the page to render instead.
+    await page.goto('/', { waitUntil: 'load' })
+    await expect(page.locator('h1').first()).toBeVisible()
 
     // Filter out expected/known/non-critical errors
     const criticalErrors = errors.filter((error) => {

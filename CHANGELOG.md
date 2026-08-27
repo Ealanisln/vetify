@@ -7,6 +7,15 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.11.1] - 2026-08-27
+
+### Corregido
+- **"Suscribirse Ahora" con trial vencido abría el checkout del plan Profesional aunque la clínica hubiera elegido Básico.** El plan se resolvía desde `planName`, que está vacío hasta que Stripe sincroniza una suscripción, y el valor por defecto era Profesional. Ahora se usa el plan elegido en el onboarding (`planType`) y `planName` solo como respaldo.
+- **La suite semanal de pruebas E2E fallaba todos los lunes desde julio.** El proyecto móvil pedía WebKit en un runner que solo instala Chromium, y una prueba esperaba `networkidle` en la landing, que nunca se alcanza por las conexiones persistentes de PWA y analítica.
+
+### Eliminado
+- Componentes `SubscriptionGuard` sin uso (`providers/` y `subscription/`); el control de acceso por suscripción vive en el middleware y en `FeatureGate`.
+
 ## [1.11.0] - 2026-08-22
 
 ### Agregado

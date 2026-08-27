@@ -52,11 +52,12 @@ export default defineConfig({
         viewport: { width: 1280, height: 720 },
       },
     },
-    // Mobile viewport for responsive tests (local)
+    // Mobile viewport for responsive tests (local).
+    // Pixel 5 runs on Chromium; iPhone devices need WebKit, which CI does not install.
     {
       name: 'mobile',
       use: {
-        ...devices['iPhone 12'],
+        ...devices['Pixel 5'],
       },
       // Only run tests tagged with @mobile
       grep: /@mobile/,
