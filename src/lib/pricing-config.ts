@@ -595,3 +595,24 @@ export function getLaunchPromotionDetails(planKey: 'BASICO' | 'PROFESIONAL' | 'C
     discountPercent: promo.discountPercent
   };
 } 
+const CHECKOUT_PLAN_KEYS = new Set(['BASICO', 'PROFESIONAL', 'CORPORATIVO']);
+
+/**
+ * Resolves the plan key to send to checkout for a tenant.
+ *
+ * `planType` is the source of truth (it is set during onboarding); `planName`
+ * only exists once Stripe has synced a subscription, so it is null for every
+ * trial tenant. Falling back to `getPlanKeyFromName` alone sent expired BASICO
+ * trials to the PROFESIONAL checkout.
+ */
+export function resolveCheckoutPlanKey(tenant: {
+  planType?: string | null;
+  planName?: string | null;
+}): string {
+  const planType = tenant.planType?.toUpperCase();
+  if (planType && CHECKOUT_PLAN_KEYS.has(planType)) {
+    return planType;
+  }
+
+  return getPlanKeyFromName(tenant.planName);
+}
