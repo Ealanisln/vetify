@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { getPlanKeyFromName } from '../../lib/pricing-config';
+import { resolveCheckoutPlanKey } from '../../lib/pricing-config';
 import { getPlanDisplay } from '../../lib/subscription/display';
 import { toast } from 'sonner';
 
@@ -122,7 +122,7 @@ export function SubscriptionManager({ tenant, isActiveSubscription }: Subscripti
       try {
         // Use the plan that the user selected during onboarding
         // Server will resolve the correct price ID based on environment (LIVE/TEST)
-        const userPlanKey = getPlanKeyFromName(tenant.planName);
+        const userPlanKey = resolveCheckoutPlanKey(tenant);
 
         const response = await fetch('/api/checkout', {
           method: 'POST',
