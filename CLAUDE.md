@@ -169,8 +169,7 @@ src/
 │   ├── closing-section.tsx    # Landing page closing section
 │   ├── features/
 │   │   └── FeatureGate.tsx    # Subscription-based feature gating
-│   ├── providers/
-│   │   └── SubscriptionGuard.tsx # Guard for subscription-protected content
+│   ├── providers/             # Client context providers (currency, location, toast, ...)
 │   └── subscription/
 │       └── NoActivePlanBanner.tsx # Warning banner for inactive plans
 ├── lib/
@@ -244,7 +243,6 @@ Protected routes/features require active trial or subscription:
 
 **Client Components**:
 - `FeatureGate`: Gate specific features based on subscription plan, shows upgrade prompt if not accessible
-- `SubscriptionGuard`: Guard protected content requiring active subscription, redirects if no active plan
 - `NoActivePlanBanner`: Warning banner displayed when user has no active plan
 
 **Hooks**:
