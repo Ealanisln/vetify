@@ -53,7 +53,16 @@ jest.mock('next/image', () => ({
 // Mock next/link
 jest.mock('next/link', () => ({
   __esModule: true,
-  default: ({ children, href, ...props }: { children: React.ReactNode; href: string }) => (
+  default: ({
+    children,
+    href,
+    prefetch: _prefetch,
+    ...props
+  }: {
+    children: React.ReactNode;
+    href: string;
+    prefetch?: boolean | null;
+  }) => (
     <a href={href} {...props}>
       {children}
     </a>

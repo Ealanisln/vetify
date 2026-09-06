@@ -171,6 +171,7 @@ function UserSection({ onNavigate, isMobile = false }: { onNavigate?: () => void
         <div className="space-y-1">
           <Link
             href="/api/auth/login"
+            prefetch={false}
             onClick={onNavigate}
             className="flex items-center px-4 py-3 text-base font-medium text-gray-800 dark:text-gray-100 hover:text-[#4DB8A3] dark:hover:text-[#4DB8A3] hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors duration-200"
           >
@@ -178,6 +179,7 @@ function UserSection({ onNavigate, isMobile = false }: { onNavigate?: () => void
           </Link>
           <Link
             href="/api/auth/register"
+            prefetch={false}
             onClick={onNavigate}
             className="flex items-center justify-center px-4 py-3 text-base font-semibold text-white bg-gradient-to-r from-[#4DB8A3] to-[#45635C] hover:from-[#45635C] hover:to-[#4DB8A3] rounded-lg transition-all duration-300 shadow-md"
           >
@@ -191,6 +193,7 @@ function UserSection({ onNavigate, isMobile = false }: { onNavigate?: () => void
       <div className="flex items-center space-x-3">
         <Link
           href="/api/auth/login"
+          prefetch={false}
           onClick={onNavigate}
           className="relative text-gray-700 hover:text-[#4DB8A3] dark:text-gray-200 dark:hover:text-[#4DB8A3] px-5 py-2.5 text-base font-medium transition-all duration-300 hover:bg-[#4DB8A3]/5 dark:hover:bg-[#4DB8A3]/10 rounded-xl group overflow-hidden"
         >
@@ -199,6 +202,7 @@ function UserSection({ onNavigate, isMobile = false }: { onNavigate?: () => void
         </Link>
         <Link
           href="/api/auth/register"
+          prefetch={false}
           onClick={onNavigate}
           className="relative bg-gradient-to-r from-[#4DB8A3] to-[#45635C] hover:from-[#45635C] hover:to-[#4DB8A3] text-white px-6 py-2.5 rounded-xl text-base font-semibold transition-all duration-500 shadow-lg shadow-[#4DB8A3]/30 hover:shadow-xl hover:shadow-[#4DB8A3]/40 hover:scale-105 focus:ring-2 focus:ring-[#4DB8A3] focus:ring-offset-2 dark:focus:ring-offset-gray-900 group overflow-hidden"
         >
