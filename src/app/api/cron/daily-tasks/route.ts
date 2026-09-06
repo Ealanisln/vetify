@@ -5,7 +5,7 @@
  * - Inventory alerts
  * - Appointment reminders
  * - Treatment reminders
- * - Trial lifecycle emails
+ * - Trial lifecycle emails (activation, expiring, expired)
  * - Retention warnings (T-7d email before deletion)
  * - Retention purge (delete tenants past 90-day grace)
  *
@@ -106,6 +106,9 @@ export async function GET(request: NextRequest) {
       tenantsChecked: trialResult.tenantsChecked,
       expiringEmailsSent: trialResult.expiringEmailsSent,
       expiredEmailsSent: trialResult.expiredEmailsSent,
+      welcomeEmailsSent: trialResult.welcomeEmailsSent,
+      activationNudgesSent: trialResult.activationNudgesSent,
+      checkinEmailsSent: trialResult.checkinEmailsSent,
     };
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error';

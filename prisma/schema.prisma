@@ -27,6 +27,12 @@ model Tenant {
   gracePeriodEnds DateTime?
   lastTrialCheck  DateTime?
 
+  // Trial activation emails: each is sent at most once per tenant.
+  // Kept separate from lastTrialCheck, which drives the expiring/expired cooldown.
+  welcomeEmailSentAt    DateTime?
+  activationNudgeSentAt DateTime?
+  trialCheckinSentAt    DateTime?
+
   // Enhanced Stripe Integration
   stripeCustomerId     String?            @unique
   stripeSubscriptionId String?            @unique

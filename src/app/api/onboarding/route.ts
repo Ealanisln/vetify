@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthenticatedUserWithOptionalTenant } from '../../../lib/auth';
 import { createTenantWithDefaults, isSlugAvailable, generateUniqueSlug } from '../../../lib/tenant';
 import { notifyNewUserRegistration } from '../../../lib/email/admin-notifications';
+import { sendTrialWelcomeEmail } from '../../../lib/email/trial-lifecycle';
 import { getActivePromotionFromDB } from '../../../lib/pricing-config';
 import { resolveReferralCode, createConversion } from '../../../lib/referrals/queries';
 import { z } from 'zod';
@@ -102,6 +103,12 @@ export async function POST(request: NextRequest) {
     }).catch(error => {
       // Log error but don't fail the request
       console.error('[ONBOARDING] Failed to send admin notification:', error);
+    });
+
+    // Day-0 welcome email to the clinic owner (non-blocking; the daily cron
+    // catches up if this fails)
+    sendTrialWelcomeEmail(result.tenant.id).catch(error => {
+      console.error('[ONBOARDING] Failed to send trial welcome email:', error);
     });
 
     return NextResponse.json({
