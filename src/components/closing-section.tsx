@@ -12,7 +12,7 @@ export function ClosingSection() {
           <p className="text-lg sm:text-xl text-foreground font-medium mb-8">
             Si tienes una clínica pequeña y buscas algo sencillo que funcione, probablemente Vetify es para ti.
           </p>
-          <Link href="/api/auth/register">
+          <Link href="/api/auth/register" prefetch={false}>
             <Button size="lg" className="h-12 px-8 text-base font-semibold">
               Crear cuenta gratis
             </Button>

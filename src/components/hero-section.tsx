@@ -38,7 +38,7 @@ export async function HeroSection() {
           </p>
 
           <div className="mt-6 sm:mt-10 flex flex-col items-center justify-center gap-4">
-            <Link href="/api/auth/register" data-testid="signup-button">
+            <Link href="/api/auth/register" prefetch={false} data-testid="signup-button">
               <Button size="lg" className="w-full sm:w-auto h-12 px-8 text-base font-semibold">
                 {promoActive && isFreeTrial && !isSoldOut
                   ? `Obtener ${promotion.trialDays ? Math.round(promotion.trialDays / 30) : 6} Meses Gratis`
