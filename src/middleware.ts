@@ -83,7 +83,7 @@ const ALLOWED_WITHOUT_PLAN = [
 // The `withAuth` middleware automatically handles authentication
 // for the routes specified in the `config.matcher` below.
 // All other routes will be publicly accessible by default.
-export default withAuth(
+const authMiddleware = withAuth(
   async function middleware(req: NextRequest) {
     const { pathname } = req.nextUrl;
     let userId: string | undefined;
@@ -380,6 +380,41 @@ export default withAuth(
     return response;
   }
 );
+
+const LOGIN_PATH = '/api/auth/login';
+
+function isLoginRedirect(response: NextResponse): boolean {
+  if (response.status < 300 || response.status > 399) return false;
+  const location = response.headers.get('location');
+  if (!location) return false;
+  try {
+    return new URL(location, 'http://localhost').pathname === LOGIN_PATH;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * API requests are made with fetch(), never by navigating the browser, so a
+ * redirect to the Kinde login page cannot be acted on. The client follows it
+ * cross-origin to the Kinde issuer, the CSP connect-src directive blocks it,
+ * and every logged-out visitor sees a console error (Nav fetches /api/user on
+ * public pages). Unauthenticated API callers get a 401 JSON response instead;
+ * page routes keep the login redirect.
+ */
+export default async function middleware(req: NextRequest) {
+  const response = await authMiddleware(req);
+
+  if (req.nextUrl.pathname.startsWith('/api/') && isLoginRedirect(response)) {
+    const unauthorized = NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+      unauthorized.headers.set(key, value);
+    });
+    return unauthorized;
+  }
+
+  return response;
+}
 
 // Configuración de las rutas que SÍ requieren autenticación
 // Los webhooks NO están incluidos aquí, por lo que serán públicos
