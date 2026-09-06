@@ -1,7 +1,7 @@
 import { requireAuth } from '../../lib/auth';
 import { getPlanDisplay } from '../../lib/subscription/display';
 import { getDashboardStats } from '../../lib/dashboard';
-import { StatsCard, RecentPetsCard, UpcomingAppointmentsCard, SubscriptionNotifications, WelcomeBanner } from '../../components/dashboard';
+import { StatsCard, RecentPetsCard, UpcomingAppointmentsCard, SubscriptionNotifications, WelcomeBanner, FirstRunCard } from '../../components/dashboard';
 import { PlanLimitsDisplay } from '../../components/subscription';
 import Link from 'next/link';
 import { Suspense } from 'react';
@@ -13,6 +13,7 @@ export default async function DashboardPage() {
   const { user, tenant } = await requireAuth();
   // Pass tenant object to avoid duplicate query
   const stats = await getDashboardStats(tenant.id, tenant);
+  const hasNoPets = stats.totalPets === 0;
 
   return (
     <div className="space-y-6">
@@ -32,6 +33,9 @@ export default async function DashboardPage() {
 
       {/* Subscription Notifications */}
       <SubscriptionNotifications tenant={tenant} />
+
+      {/* First-run guidance: the tenant has not registered a pet yet */}
+      {hasNoPets && <FirstRunCard />}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -108,18 +112,33 @@ export default async function DashboardPage() {
               </div>
             </Link>
 
-            <Link
-              href="/dashboard/appointments/new"
-              className="relative group bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 p-4 rounded-lg text-white transition-all duration-200 transform hover:scale-105"
-            >
-              <div className="flex items-center">
-                <span className="text-2xl mr-3">📅</span>
-                <div>
-                  <p className="text-sm font-medium">Nueva Cita</p>
-                  <p className="text-xs opacity-90">Programar cita</p>
+            {hasNoPets ? (
+              <Link
+                href="/dashboard/pets/new"
+                className="relative group bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 border border-dashed border-gray-300 dark:border-gray-600 p-4 rounded-lg text-gray-700 dark:text-gray-200 transition-all duration-200"
+              >
+                <div className="flex items-center">
+                  <span className="text-2xl mr-3">📅</span>
+                  <div>
+                    <p className="text-sm font-medium">Registra una mascota primero</p>
+                    <p className="text-xs opacity-90">Las citas se agendan a una mascota</p>
+                  </div>
                 </div>
-              </div>
-            </Link>
+              </Link>
+            ) : (
+              <Link
+                href="/dashboard/appointments/new"
+                className="relative group bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 p-4 rounded-lg text-white transition-all duration-200 transform hover:scale-105"
+              >
+                <div className="flex items-center">
+                  <span className="text-2xl mr-3">📅</span>
+                  <div>
+                    <p className="text-sm font-medium">Nueva Cita</p>
+                    <p className="text-xs opacity-90">Programar cita</p>
+                  </div>
+                </div>
+              </Link>
+            )}
 
             <Link
               href="/dashboard/inventory"

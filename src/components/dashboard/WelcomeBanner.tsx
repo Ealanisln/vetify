@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -12,7 +13,8 @@ import {
   X,
   CheckCircle,
   Gift,
-  Zap
+  Zap,
+  PawPrint
 } from 'lucide-react';
 import type { Tenant } from '@prisma/client';
 import { ANIMATION_DURATION_SHORT } from '../../lib/constants';
@@ -80,18 +82,21 @@ export function WelcomeBanner({ tenant }: WelcomeBannerProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
+  // `?success=subscription_created&plan=...` after checkout; `?welcome=1` after onboarding.
+  const isSubscriptionWelcome =
+    searchParams.get('success') === 'subscription_created' && !!searchParams.get('plan');
+  const isTrialWelcome = !isSubscriptionWelcome && searchParams.get('welcome') === '1';
+
   // Determine if we should show the banner
   const checkShouldShow = useCallback(() => {
-    // Check URL params for successful subscription
-    const success = searchParams.get('success');
-    const planParam = searchParams.get('plan');
-
-    if (success !== 'subscription_created' || !planParam) {
+    if (!isSubscriptionWelcome && !isTrialWelcome) {
       return false;
     }
 
     // Check localStorage to ensure we only show once (with expiry support)
-    const storageKey = getWelcomeBannerKey(tenant.id);
+    const storageKey = isTrialWelcome
+      ? `${getWelcomeBannerKey(tenant.id)}-trial`
+      : getWelcomeBannerKey(tenant.id);
     const hasBeenShown = getWithExpiry<boolean>(storageKey);
 
     if (hasBeenShown) {
@@ -101,7 +106,7 @@ export function WelcomeBanner({ tenant }: WelcomeBannerProps) {
     // Mark as shown in localStorage (no expiry - persists until plan change)
     setWithExpiry(storageKey, true, Number.MAX_SAFE_INTEGER);
     return true;
-  }, [searchParams, tenant.id]);
+  }, [isSubscriptionWelcome, isTrialWelcome, tenant.id]);
 
   // Show banner on mount if conditions are met
   useEffect(() => {
@@ -125,6 +130,56 @@ export function WelcomeBanner({ tenant }: WelcomeBannerProps) {
 
   if (!isVisible) {
     return null;
+  }
+
+  if (isTrialWelcome) {
+    return (
+      <div
+        className={`transition-[opacity,transform] duration-300 ease-in-out ${
+          isClosing ? 'opacity-0 scale-95 translate-y-2' : 'opacity-100 scale-100 translate-y-0'
+        }`}
+      >
+        <Card className="bg-gradient-to-br from-[#f2f7f5] via-emerald-50 to-teal-50 dark:from-gray-800 dark:via-emerald-900/30 dark:to-teal-900/30 border-2 border-[#d5e3df] dark:border-emerald-700/50 p-6 md:p-8 shadow-xl relative overflow-hidden">
+          <div className="relative z-10 flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
+            <div className="flex-shrink-0">
+              <div className="p-4 rounded-2xl bg-white/90 dark:bg-white/15 backdrop-blur-sm border border-white/50 dark:border-white/30 shadow-lg text-[#75a99c] dark:text-emerald-300">
+                <PawPrint className="h-8 w-8 md:h-10 md:w-10" />
+              </div>
+            </div>
+
+            <div className="flex-1 min-w-0 w-full">
+              <div className="flex items-start justify-between mb-3 gap-3">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    🎉 ¡Bienvenido a Vetify!
+                  </h2>
+                  <p className="text-sm md:text-base text-gray-700 dark:text-gray-200">
+                    Tu periodo de prueba ya está activo: la clínica queda lista en cuanto registres a tu primer paciente.
+                  </p>
+                </div>
+                <button
+                  onClick={handleClose}
+                  className="p-2 rounded-full hover:bg-white/40 dark:hover:bg-white/10 backdrop-blur-sm transition-colors text-gray-700 dark:text-gray-200 flex-shrink-0 border border-transparent hover:border-white/50 dark:hover:border-white/20"
+                  aria-label="Cerrar banner de bienvenida"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mt-4">
+                <Link
+                  href="/dashboard/pets/new"
+                  className="inline-flex items-center justify-center rounded-md bg-[#75a99c] hover:bg-[#5b9788] px-4 py-2 text-sm font-semibold text-white shadow-lg transition-colors"
+                >
+                  <Zap className="h-4 w-4 mr-2" />
+                  Registrar mi primera mascota
+                </Link>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   // Get plan configuration
