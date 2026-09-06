@@ -24,6 +24,9 @@ import type {
   StaffInvitationData,
   TrialExpiringData,
   TrialExpiredData,
+  TrialWelcomeData,
+  TrialActivationNudgeData,
+  TrialCheckinData,
   DataRetentionWarningData,
 } from './types';
 import { logEmailSend } from '../notifications/notification-logger';
@@ -42,6 +45,9 @@ import {
   StaffInvitationEmail,
   TrialExpiringEmail,
   TrialExpiredEmail,
+  TrialWelcomeEmail,
+  TrialActivationNudgeEmail,
+  TrialCheckinEmail,
   DataRetentionWarningEmail,
 } from './templates';
 import { formatDateLong, formatDateTimeLong, formatDate, formatCurrency } from '../utils/date-format';
@@ -462,6 +468,42 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
           ownerName: d.ownerName,
           expiredDate: expiredDateStr,
           upgradeUrl: d.upgradeUrl,
+        })
+      );
+    }
+
+    case 'trial-welcome': {
+      const d = (emailData as TrialWelcomeData).data;
+      const trialEndsDateStr = formatDateLong(d.trialEndsDate);
+      return await render(
+        TrialWelcomeEmail({
+          clinicName: d.clinicName,
+          ownerName: d.ownerName,
+          trialEndsDate: trialEndsDateStr,
+          createPetUrl: d.createPetUrl,
+          dashboardUrl: d.dashboardUrl,
+        })
+      );
+    }
+
+    case 'trial-activation-nudge': {
+      const d = (emailData as TrialActivationNudgeData).data;
+      return await render(
+        TrialActivationNudgeEmail({
+          clinicName: d.clinicName,
+          ownerName: d.ownerName,
+          createPetUrl: d.createPetUrl,
+        })
+      );
+    }
+
+    case 'trial-checkin': {
+      const d = (emailData as TrialCheckinData).data;
+      return await render(
+        TrialCheckinEmail({
+          clinicName: d.clinicName,
+          ownerName: d.ownerName,
+          dashboardUrl: d.dashboardUrl,
         })
       );
     }
