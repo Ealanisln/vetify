@@ -14,10 +14,12 @@ jest.mock('@/lib/subscription/display', () => ({
 }));
 jest.mock('@/components/dashboard', () => ({
   StatsCard: ({ title }: { title: string }) => <div data-testid="stats-card">{title}</div>,
-  RecentPetsCard: () => <div data-testid="recent-pets" />,
+  RecentPetsCard: jest.requireActual('@/components/dashboard/RecentPetsCard').RecentPetsCard,
   UpcomingAppointmentsCard: () => <div data-testid="upcoming-appointments" />,
   SubscriptionNotifications: () => null,
-  WelcomeBanner: () => null,
+  WelcomeBanner: ({ showFirstPetCta }: { showFirstPetCta?: boolean }) => (
+    <div data-testid="welcome-banner" data-show-first-pet-cta={String(showFirstPetCta)} />
+  ),
   FirstRunCard: jest.requireActual('@/components/dashboard/FirstRunCard').FirstRunCard,
 }));
 jest.mock('@/components/subscription', () => ({
@@ -75,6 +77,15 @@ describe('DashboardPage first-run guidance', () => {
       expect(screen.getAllByTestId('stats-card')).toHaveLength(3);
     });
 
+    it('keeps the first-run card as the only first-pet CTA outside the quick actions', async () => {
+      await renderPage();
+
+      expect(screen.getByText('No hay mascotas registradas aún')).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Registrar primera mascota' })).not.toBeInTheDocument();
+      expect(screen.getByTestId('welcome-banner')).toHaveAttribute('data-show-first-pet-cta', 'false');
+      expect(screen.getByRole('link', { name: 'Registrar mascota' })).toHaveAttribute('href', '/dashboard/pets/new');
+    });
+
     it('redirects the appointment quick action to pet registration', async () => {
       await renderPage();
 
@@ -93,6 +104,12 @@ describe('DashboardPage first-run guidance', () => {
       await renderPage();
 
       expect(screen.queryByRole('heading', { name: 'Registra tu primera mascota' })).not.toBeInTheDocument();
+    });
+
+    it('lets the welcome banner keep its first-pet CTA', async () => {
+      await renderPage();
+
+      expect(screen.getByTestId('welcome-banner')).toHaveAttribute('data-show-first-pet-cta', 'true');
     });
 
     it('keeps the regular appointment quick action', async () => {

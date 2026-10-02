@@ -22,6 +22,8 @@ import { setWithExpiry, getWithExpiry, getWelcomeBannerKey } from '../../lib/sto
 
 interface WelcomeBannerProps {
   tenant: Tenant;
+  /** Set to false while the dashboard's FirstRunCard already offers the first-pet CTA. */
+  showFirstPetCta?: boolean;
 }
 
 interface PlanConfig {
@@ -77,7 +79,7 @@ const PLAN_CONFIGS: Record<string, PlanConfig> = {
   }
 };
 
-export function WelcomeBanner({ tenant }: WelcomeBannerProps) {
+export function WelcomeBanner({ tenant, showFirstPetCta = true }: WelcomeBannerProps) {
   const searchParams = useSearchParams();
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -166,15 +168,17 @@ export function WelcomeBanner({ tenant }: WelcomeBannerProps) {
                 </button>
               </div>
 
-              <div className="mt-4">
-                <Link
-                  href="/dashboard/pets/new"
-                  className="inline-flex items-center justify-center rounded-md bg-[#75a99c] hover:bg-[#5b9788] px-4 py-2 text-sm font-semibold text-white shadow-lg transition-colors"
-                >
-                  <Zap className="h-4 w-4 mr-2" />
-                  Registrar mi primera mascota
-                </Link>
-              </div>
+              {showFirstPetCta && (
+                <div className="mt-4">
+                  <Link
+                    href="/dashboard/pets/new"
+                    className="inline-flex items-center justify-center rounded-md bg-[#75a99c] hover:bg-[#5b9788] px-4 py-2 text-sm font-semibold text-white shadow-lg transition-colors"
+                  >
+                    <Zap className="h-4 w-4 mr-2" />
+                    Registrar mi primera mascota
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </Card>
