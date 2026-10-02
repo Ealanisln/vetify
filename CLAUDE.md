@@ -170,8 +170,7 @@ src/
 │   ├── features/
 │   │   └── FeatureGate.tsx    # Subscription-based feature gating
 │   ├── providers/             # Client context providers (currency, location, toast, ...)
-│   └── subscription/
-│       └── NoActivePlanBanner.tsx # Warning banner for inactive plans
+│   └── subscription/          # Subscription UI (SubscriptionManager, PlanLimitsDisplay)
 ├── lib/
 │   ├── prisma.ts              # Shared Prisma client instance
 │   ├── auth.ts                # Authentication utilities
@@ -243,7 +242,6 @@ Protected routes/features require active trial or subscription:
 
 **Client Components**:
 - `FeatureGate`: Gate specific features based on subscription plan, shows upgrade prompt if not accessible
-- `NoActivePlanBanner`: Warning banner displayed when user has no active plan
 
 **Hooks**:
 - `useSubscriptionStatus()`: Client-side hook to fetch and manage subscription status

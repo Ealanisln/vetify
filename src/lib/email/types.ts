@@ -148,6 +148,8 @@ export interface NewUserRegistrationData extends BaseEmailData {
     userEmail: string;
     tenantName: string;
     tenantSlug: string;
+    /** Link to this tenant in the super-admin panel */
+    adminTenantUrl: string;
     registrationDate: Date;
     planType: 'TRIAL' | 'PAID';
     trialEndsAt?: Date;
@@ -164,6 +166,8 @@ export interface NewSubscriptionPaymentData extends BaseEmailData {
     userEmail: string;
     tenantName: string;
     tenantSlug: string;
+    /** Link to this tenant in the super-admin panel */
+    adminTenantUrl: string;
     planName: string;
     planAmount: number;
     currency: string;
@@ -182,6 +186,8 @@ export interface PaymentFailedAlertData extends BaseEmailData {
   data: {
     tenantName: string;
     tenantSlug: string;
+    /** Link to this tenant in the super-admin panel */
+    adminTenantUrl: string;
     userName?: string;
     userEmail?: string;
     failureReason: string;

@@ -434,7 +434,7 @@ export function AddPetForm() {
             />
           </div>
 
-          <div className="sm:col-span-2">
+          <div className="sm:col-span-2 empty:hidden">
             <LocationSelector
               value={formData.locationId}
               onChange={(locationId) => setFormData({ ...formData, locationId })}

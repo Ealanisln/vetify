@@ -367,6 +367,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
           userEmail: d.userEmail,
           tenantName: d.tenantName,
           tenantSlug: d.tenantSlug,
+          adminTenantUrl: d.adminTenantUrl,
           registrationDate: registrationDateStr,
           planType: d.planType,
           trialEndsAt: trialEndsStr,
@@ -384,6 +385,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
           userEmail: d.userEmail,
           tenantName: d.tenantName,
           tenantSlug: d.tenantSlug,
+          adminTenantUrl: d.adminTenantUrl,
           planName: d.planName,
           formattedAmount,
           billingInterval: d.billingInterval,
@@ -404,6 +406,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
         PaymentFailedAlertEmail({
           tenantName: d.tenantName,
           tenantSlug: d.tenantSlug,
+          adminTenantUrl: d.adminTenantUrl,
           userName: d.userName,
           userEmail: d.userEmail,
           failureReason: d.failureReason,
