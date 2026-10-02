@@ -34,7 +34,7 @@ export function FuncionalidadesCTA() {
             importante: hacer tu día a día más simple.
           </p>
 
-          <Link href="/api/auth/register">
+          <Link href="/api/auth/register" prefetch={false}>
             <Button size="lg" className="h-12 px-8 text-base font-semibold">
               Comenzar prueba gratis
             </Button>

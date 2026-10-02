@@ -7,6 +7,7 @@ import { Button } from '../ui/button';
 import { Phone, MapPin, Clock, Star } from 'lucide-react';
 import type { PublicTenant } from '../../lib/tenant';
 import { getTheme, getThemeClasses } from '../../lib/themes';
+import { getBaseUrl } from '../../lib/seo/config';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
 import { PLACEHOLDER_BLUR, imageSizes } from '@/lib/image-utils';
@@ -220,7 +221,7 @@ export function ClinicHero({ tenant }: ClinicHeroProps) {
 
               {/* Share button */}
               <ShareButtons
-                url={typeof window !== 'undefined' ? window.location.href : `https://vetify.app/${tenant.slug}`}
+                url={typeof window !== 'undefined' ? window.location.href : `${getBaseUrl()}/${tenant.slug}`}
                 title={`${tenant.name} - Clínica Veterinaria`}
                 description={tenant.publicDescription || `Agenda tu cita en ${tenant.name}`}
                 themeColor={themeColor}

@@ -20,7 +20,7 @@ export function FeaturesHeroSection({ hasPromoBanner = false }: FeaturesHeroSect
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link href="/api/auth/register">
+            <Link href="/api/auth/register" prefetch={false}>
               <Button size="lg" className="h-12 px-8 text-base font-semibold">
                 Probar 30 días gratis
               </Button>

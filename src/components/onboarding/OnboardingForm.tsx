@@ -64,8 +64,9 @@ export function OnboardingForm({ user, promoInfo, detectedCountry }: OnboardingF
 
       await response.json();
 
-      // Redirect to dashboard immediately (better UX)
-      router.push('/dashboard');
+      // Redirect to dashboard immediately (better UX). The welcome flag lets the
+      // dashboard greet the new trial and point to the first pet registration.
+      router.push('/dashboard?welcome=1');
       router.refresh();
 
       // Track conversion events in background (fire-and-forget)

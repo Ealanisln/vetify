@@ -182,7 +182,7 @@ export async function PricingSection() {
                 <p className="text-xs sm:text-sm text-muted-foreground">{plan.description}</p>
               </CardHeader>
               <CardContent className="p-4 sm:p-8 pt-0 flex flex-col flex-1">
-                <Link href={plan.isEnterprise ? "/contacto" : "/api/auth/register"}>
+                <Link href={plan.isEnterprise ? "/contacto" : "/api/auth/register"} prefetch={false}>
                   <Button className="mb-4 sm:mb-6 w-full text-xs sm:text-sm" variant={plan.popular ? "default" : "outline"} size="lg">
                     {plan.isEnterprise
                       ? "Contactar Ventas"

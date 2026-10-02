@@ -12,7 +12,7 @@ export function CTASection() {
           <p className="mx-auto max-w-xl text-base sm:text-lg text-muted-foreground mb-8">
             30 días para probarlo. Sin tarjeta de crédito.
           </p>
-          <Link href="/api/auth/register">
+          <Link href="/api/auth/register" prefetch={false}>
             <Button size="lg" className="h-12 px-8 text-base font-semibold">
               Empieza tu prueba gratis
             </Button>

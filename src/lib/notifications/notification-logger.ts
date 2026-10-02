@@ -19,9 +19,10 @@ export async function logEmailSend(
   try {
     const status: EmailStatus = result.success ? 'SENT' : 'FAILED';
 
-    // Template mapping from string literals to Prisma EmailTemplate enum
-    // Using EmailTemplate enum ensures type safety and catches any mismatches at compile time
-    const templateMap = {
+    // Template mapping from string literals to Prisma EmailTemplate enum.
+    // Keyed by every EmailData template, so adding a template without a
+    // mapping fails typecheck instead of silently dropping its EmailLog row.
+    const templateMap: Record<EmailData['template'], EmailTemplate> = {
       'appointment-confirmation': EmailTemplate.APPOINTMENT_CONFIRMATION,
       'appointment-reminder': EmailTemplate.APPOINTMENT_REMINDER,
       'appointment-cancellation': EmailTemplate.APPOINTMENT_CANCELLATION,
@@ -31,10 +32,16 @@ export async function logEmailSend(
       'treatment-reminder': EmailTemplate.TREATMENT_REMINDER,
       'new-user-registration': EmailTemplate.NEW_USER_REGISTRATION,
       'new-subscription-payment': EmailTemplate.NEW_SUBSCRIPTION_PAYMENT,
+      'payment-failed-alert': EmailTemplate.PAYMENT_FAILED_ALERT,
+      'testimonial-request': EmailTemplate.TESTIMONIAL_REQUEST,
       'staff-invitation': EmailTemplate.STAFF_INVITATION,
       'trial-expiring': EmailTemplate.TRIAL_EXPIRING,
       'trial-expired': EmailTemplate.TRIAL_EXPIRED,
-    } as const satisfies Record<string, EmailTemplate>;
+      'trial-welcome': EmailTemplate.TRIAL_WELCOME,
+      'trial-activation-nudge': EmailTemplate.TRIAL_ACTIVATION_NUDGE,
+      'trial-checkin': EmailTemplate.TRIAL_CHECKIN,
+      'data-retention-warning': EmailTemplate.DATA_RETENTION_WARNING,
+    };
 
     await prisma.emailLog.create({
       data: {

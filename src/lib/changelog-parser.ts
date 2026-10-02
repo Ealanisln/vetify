@@ -164,6 +164,21 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.12.0] - 2026-10-02
+
+### Agregado
+- **Correos de activación durante la prueba.** Bienvenida al crear la clínica, recordatorio al día 2 si todavía no hay mascotas registradas y un check-in al día 7. Antes, el primer correo que recibía una clínica en prueba llegaba hasta el día 27. Cada correo se envía una sola vez por clínica y solo a clínicas creadas en los últimos 10 días.
+- **Guía de primer uso en el dashboard.** Las clínicas nuevas llegan a \`/dashboard?welcome=1\` con una tarjeta que las lleva a registrar su primera mascota; el formulario abre directo en "Crear Nuevo Cliente" y la tarjeta desaparece al registrar la primera mascota.
+
+### Corregido
+- **Seis tipos de correo no quedaban registrados en el historial de envíos.** Bienvenida, recordatorio, check-in, alerta de pago fallido, aviso de retención de datos y solicitud de testimonio se enviaban, pero el registro en \`EmailLog\` fallaba y Resend no podía actualizar su estado de entrega.
+- **El onboarding mostraba la URL de la clínica como \`vetify.app/…\`**, un dominio que no es de Vetify; el pie de página público de las clínicas también enlazaba ahí. Ahora se usa el dominio real.
+- **Las descripciones del sitio en buscadores anunciaban una prueba de 14 días**; la prueba es de 30.
+- **La tarjeta "Uso del Plan" decía "Plan Básico" durante la prueba del plan Profesional.**
+- **El aviso "Instalar Vetify" tapaba el botón para crear la clínica** en el onboarding.
+- **Las rutas de API sin sesión redirigían al login** en lugar de responder \`401\`, lo que llenaba la consola de errores de CSP.
+- Los enlaces de login y registro ya no se precargan, lo que generaba errores de CSP con Kinde.
+
 ## [1.11.1] - 2026-08-27
 
 ### Corregido

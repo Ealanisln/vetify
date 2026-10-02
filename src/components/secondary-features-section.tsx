@@ -66,7 +66,7 @@ export function SecondaryFeaturesSection() {
             Comienza con 30 días gratis. Sin tarjeta de crédito.
           </p>
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-            <Link href="/api/auth/register">
+            <Link href="/api/auth/register" prefetch={false}>
               <Button size="lg" className="h-12 px-8 text-base font-semibold">
                 Probar 30 días gratis
               </Button>

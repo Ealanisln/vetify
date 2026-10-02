@@ -19,6 +19,9 @@ export type EmailTemplate =
   | 'staff-invitation'
   | 'trial-expiring'
   | 'trial-expired'
+  | 'trial-welcome'
+  | 'trial-activation-nudge'
+  | 'trial-checkin'
   | 'data-retention-warning';
 
 export type EmailStatus =
@@ -311,6 +314,44 @@ export interface TrialExpiredData extends BaseEmailData {
 }
 
 /**
+ * Trial Welcome Email Data (day 0)
+ */
+export interface TrialWelcomeData extends BaseEmailData {
+  template: 'trial-welcome';
+  data: {
+    clinicName: string;
+    ownerName: string;
+    trialEndsDate: Date;
+    createPetUrl: string;
+    dashboardUrl: string;
+  };
+}
+
+/**
+ * Trial Activation Nudge Email Data (day 2, tenant has no pets yet)
+ */
+export interface TrialActivationNudgeData extends BaseEmailData {
+  template: 'trial-activation-nudge';
+  data: {
+    clinicName: string;
+    ownerName: string;
+    createPetUrl: string;
+  };
+}
+
+/**
+ * Trial Check-in Email Data (day 7)
+ */
+export interface TrialCheckinData extends BaseEmailData {
+  template: 'trial-checkin';
+  data: {
+    clinicName: string;
+    ownerName: string;
+    dashboardUrl: string;
+  };
+}
+
+/**
  * Data Retention Warning Email Data
  */
 export interface DataRetentionWarningData extends BaseEmailData {
@@ -342,6 +383,9 @@ export type EmailData =
   | StaffInvitationData
   | TrialExpiringData
   | TrialExpiredData
+  | TrialWelcomeData
+  | TrialActivationNudgeData
+  | TrialCheckinData
   | DataRetentionWarningData;
 
 /**

@@ -18,5 +18,8 @@ export { TestimonialRequestEmail } from './testimonial-request';
 export { StaffInvitationEmail } from './staff-invitation';
 export { TrialExpiringEmail } from './trial-expiring';
 export { TrialExpiredEmail } from './trial-expired';
+export { TrialWelcomeEmail } from './trial-welcome';
+export { TrialActivationNudgeEmail } from './trial-activation-nudge';
+export { TrialCheckinEmail } from './trial-checkin';
 export { DataRetentionWarningEmail } from './data-retention-warning';
 export { BaseLayout, BRAND_COLOR } from './base-layout';

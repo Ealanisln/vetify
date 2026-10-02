@@ -138,7 +138,7 @@ Common error codes:
       `.trim(),
       contact: {
         name: 'Vetify Support',
-        email: 'support@vetify.app',
+        email: 'contacto@vetify.pro',
       },
     },
     servers: [

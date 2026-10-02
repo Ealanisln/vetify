@@ -5,7 +5,7 @@
  * It requires VAPID keys to be set in environment variables:
  * - VAPID_PUBLIC_KEY
  * - VAPID_PRIVATE_KEY
- * - VAPID_SUBJECT (e.g., "mailto:admin@vetify.app")
+ * - VAPID_SUBJECT (e.g., "mailto:contacto@vetify.pro")
  *
  * Generate VAPID keys using: npx web-push generate-vapid-keys
  */
@@ -15,7 +15,7 @@ import webpush from 'web-push';
 // VAPID configuration
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || '';
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@vetify.app';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:contacto@vetify.pro';
 
 // Configure web-push if keys are available
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {

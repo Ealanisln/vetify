@@ -1,6 +1,11 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 
+const mockUsePathname = jest.fn(() => '/');
+jest.mock('next/navigation', () => ({
+  usePathname: () => mockUsePathname(),
+}));
+
 // Mock the usePWAInstall hook
 const mockPromptInstall = jest.fn();
 const mockDismiss = jest.fn();
@@ -24,6 +29,7 @@ describe('InstallPrompt', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
+    mockUsePathname.mockReturnValue('/');
   });
 
   afterEach(() => {
@@ -402,6 +408,30 @@ describe('InstallPrompt', () => {
         const button = screen.getByRole('button', { name: /Instalando/i });
         expect(button).toBeDisabled();
       });
+    });
+  });
+  // Regression: ISSUE-005 — install prompt covered the onboarding submit button
+  // Found by /qa on 2026-10-02
+  // Report: .gstack/qa-reports/run-20261002T185412Z/qa-report-development-vetify-pro-2026-10-02.md
+  describe('Onboarding', () => {
+    it('stays hidden on /onboarding even when installable', async () => {
+      mockUsePathname.mockReturnValue('/onboarding');
+      mockUsePWAInstall.mockReturnValue({
+        isInstallable: true,
+        isIOS: false,
+        isStandalone: false,
+        isDismissed: false,
+        promptInstall: mockPromptInstall,
+        dismiss: mockDismiss,
+      });
+
+      const { container } = render(<InstallPrompt />);
+
+      await act(async () => {
+        jest.advanceTimersByTime(4000);
+      });
+
+      expect(container.firstChild).toBeNull();
     });
   });
 });

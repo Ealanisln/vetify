@@ -147,6 +147,58 @@ describe('AddPetForm', () => {
     });
   });
 
+  describe('First-run guidance (no customers yet)', () => {
+    beforeEach(() => {
+      mockFetch.mockResolvedValue({ ok: true, json: async () => [] } as Response);
+    });
+
+    it('opens the new customer form automatically', async () => {
+      render(<AddPetForm />);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Ej: Juan Pérez')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByTestId('pet-owner-select')).not.toBeInTheDocument();
+    });
+
+    it('explains that the pet needs an owner first', async () => {
+      render(<AddPetForm />);
+
+      await waitFor(() => {
+        expect(screen.getByText(/Primero registra al dueño de la mascota/)).toBeInTheDocument();
+      });
+    });
+
+    it('does not show the helper when customers exist', async () => {
+      mockFetch.mockResolvedValue({ ok: true, json: async () => mockCustomers } as Response);
+      render(<AddPetForm />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Juan Pérez (+52 55 1234 5678)')).toBeInTheDocument();
+      });
+
+      expect(screen.queryByText(/Primero registra al dueño de la mascota/)).not.toBeInTheDocument();
+    });
+
+    it('still lets the user switch back to the existing customer selector', async () => {
+      render(<AddPetForm />);
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Ej: Juan Pérez')).toBeInTheDocument();
+      });
+
+      const existingCustomerButton = screen.getAllByRole('button').find(btn =>
+        btn.textContent?.includes('Cliente Existente')
+      );
+      fireEvent.click(existingCustomerButton!);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('pet-owner-select')).toBeInTheDocument();
+      });
+    });
+  });
+
   describe('Customer Mode Toggle', () => {
     it('should show existing customer mode by default', async () => {
       render(<AddPetForm />);
@@ -477,8 +529,9 @@ describe('AddPetForm', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Registrar Mascota' }));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith('Email already exists');
+        expect(screen.getByRole('alert')).toHaveTextContent('Email already exists');
       });
+      expect(mockAlert).not.toHaveBeenCalled();
     });
   });
 
@@ -501,8 +554,9 @@ describe('AddPetForm', () => {
       fireEvent.submit(form);
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith('Debe seleccionar o crear un cliente');
+        expect(screen.getByRole('alert')).toHaveTextContent('Debe seleccionar o crear un cliente');
       });
+      expect(mockAlert).not.toHaveBeenCalled();
     });
 
     it('should show error when pet creation fails', async () => {
@@ -531,8 +585,9 @@ describe('AddPetForm', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Registrar Mascota' }));
 
       await waitFor(() => {
-        expect(mockAlert).toHaveBeenCalledWith('Microchip already registered');
+        expect(screen.getByRole('alert')).toHaveTextContent('Microchip already registered');
       });
+      expect(mockAlert).not.toHaveBeenCalled();
     });
   });
 

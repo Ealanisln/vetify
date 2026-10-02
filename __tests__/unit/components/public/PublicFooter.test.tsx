@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { PublicFooter } from '@/components/public/PublicFooter';
+import { getBaseUrl } from '@/lib/seo/config';
 import {
   createMockPublicTenant,
   createMinimalPublicTenant,
@@ -196,7 +197,7 @@ describe('PublicFooter', () => {
       render(<PublicFooter tenant={tenant} />);
 
       const vetifyLink = screen.getByRole('link', { name: 'Vetify' });
-      expect(vetifyLink).toHaveAttribute('href', 'https://vetify.app');
+      expect(vetifyLink).toHaveAttribute('href', getBaseUrl());
     });
   });
 
@@ -263,7 +264,7 @@ describe('PublicFooter', () => {
       render(<PublicFooter tenant={tenant} />);
 
       const vetifyLink = screen.getByRole('link', { name: 'Vetify' });
-      expect(vetifyLink).toHaveAttribute('href', 'https://vetify.app');
+      expect(vetifyLink).toHaveAttribute('href', getBaseUrl());
     });
 
     it('should use default theme color when not provided', () => {

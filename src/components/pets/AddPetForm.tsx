@@ -18,6 +18,7 @@ export function AddPetForm() {
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     species: 'dog',
@@ -51,7 +52,13 @@ export function AddPetForm() {
         const response = await fetch('/api/customers');
         if (response.ok) {
           const data = await response.json();
-          setCustomers(Array.isArray(data) ? data : (data.data || []));
+          const loadedCustomers: Customer[] = Array.isArray(data) ? data : (data.data || []);
+          setCustomers(loadedCustomers);
+          // First run: with no customers to pick from, the pet cannot be saved
+          // until an owner exists, so open the new-customer form by default.
+          if (loadedCustomers.length === 0) {
+            setShowNewCustomerForm(true);
+          }
         }
       } catch (error) {
         console.error('Error loading customers:', error);
@@ -66,7 +73,8 @@ export function AddPetForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+    setSubmitError(null);
+
     try {
       let customerId = formData.customerId;
 
@@ -116,7 +124,7 @@ export function AddPetForm() {
       router.refresh();
     } catch (error) {
       console.error('Error creating pet:', error);
-      alert(error instanceof Error ? error.message : 'Error creating pet');
+      setSubmitError(error instanceof Error ? error.message : 'Error creating pet');
     } finally {
       setIsSubmitting(false);
     }
@@ -139,6 +147,7 @@ export function AddPetForm() {
   };
 
   const selectedCustomer = customers.find(c => c.id === formData.customerId);
+  const hasNoCustomers = !loadingCustomers && customers.length === 0;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
@@ -147,7 +156,13 @@ export function AddPetForm() {
         <h3 className={`text-base md:text-lg font-medium ${getThemeClasses('text.primary')} mb-4`}>
           👤 Información del Dueño
         </h3>
-        
+
+        {hasNoCustomers && (
+          <p className="mb-4 text-sm text-gray-600 dark:text-gray-300">
+            Primero registra al dueño de la mascota.
+          </p>
+        )}
+
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
             <button
@@ -443,6 +458,15 @@ export function AddPetForm() {
           </div>
         </div>
       </div>
+
+      {submitError && (
+        <div
+          role="alert"
+          className="rounded-md border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 p-3 text-sm text-red-700 dark:text-red-300"
+        >
+          {submitError}
+        </div>
+      )}
 
       <div className="flex justify-end space-x-3">
         <button

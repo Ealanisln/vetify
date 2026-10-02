@@ -35,7 +35,7 @@ export function Navigation() {
           </Link>
         </div>
 
-        <Link href="/api/auth/login">
+        <Link href="/api/auth/login" prefetch={false}>
           <Button size="sm" className="font-semibold text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-9" data-testid="login-button">
             Comenzar gratis
           </Button>

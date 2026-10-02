@@ -31,7 +31,9 @@ const createMockTenant = (overrides: Partial<Tenant> = {}): Tenant =>
     subscriptionStatus: 'ACTIVE',
     isTrialPeriod: false,
     trialEndsAt: null,
-    subscriptionEndsAt: new Date('2026-09-07'),
+    // Relative to now: a fixed date turns this ACTIVE fixture into an
+    // expired subscription once the calendar passes it.
+    subscriptionEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     stripeCustomerId: 'cus_123',
     stripeSubscriptionId: 'sub_123',
     stripeProductId: 'prod_123',
