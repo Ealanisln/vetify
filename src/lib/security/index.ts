@@ -10,10 +10,12 @@
  */
 
 import { z } from 'zod';
+import { buildContentSecurityPolicy } from './content-security-policy';
 
 export * from './rate-limiter';
 export * from './input-sanitization';
 export * from './audit-logger';
+export { buildContentSecurityPolicy } from './content-security-policy';
 
 // Security constants
 export const SECURITY_CONFIG = {
@@ -40,7 +42,7 @@ export const SECURITY_CONFIG = {
   MAX_NAME_LENGTH: 100,
   
   // Security headers
-  CSP_POLICY: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://analytics.alanis.dev; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.stripe.com https://*.upstash.io https://analytics.alanis.dev https://glitchtip.alanis.dev; frame-src https://js.stripe.com;",
+  CSP_POLICY: buildContentSecurityPolicy(),
 } as const;
 
 /**
