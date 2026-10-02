@@ -13,8 +13,11 @@ const config: Config = {
     '**/__tests__/integration/**/*.test.ts',
   ],
   transform: {
-    '^.+\\.tsx?$': ['ts-jest', {
+    // .js too: src/lib/security/content-security-policy.js is plain ESM so
+    // next.config.js can import it without a TypeScript loader.
+    '^.+\\.[tj]sx?$': ['ts-jest', {
       tsconfig: {
+        allowJs: true,
         jsx: 'react',
         esModuleInterop: true,
         allowSyntheticDefaultImports: true,

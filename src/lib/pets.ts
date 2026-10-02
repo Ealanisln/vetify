@@ -18,6 +18,7 @@ export const createPetSchema = z.object({
   microchipNumber: z.string().optional(),
   isNeutered: z.boolean().default(false),
   customerId: z.string().min(1, 'Cliente es requerido'),
+  locationId: z.string().min(1).nullable().optional(),
 });
 
 export type CreatePetInput = z.infer<typeof createPetSchema>;
@@ -48,6 +49,17 @@ export async function createPet(
     throw new Error('Cliente no encontrado o no pertenece a esta clínica');
   }
 
+  if (data.locationId) {
+    const location = await prisma.location.findFirst({
+      where: { id: data.locationId, tenantId },
+      select: { id: true },
+    });
+
+    if (!location) {
+      throw new Error('Ubicación no encontrada o no pertenece a esta clínica');
+    }
+  }
+
   const pet = await prisma.pet.create({
     data: {
       name: data.name,
@@ -61,6 +73,7 @@ export async function createPet(
       isNeutered: data.isNeutered,
       tenantId,
       customerId: data.customerId,
+      locationId: data.locationId || null,
     },
     include: {
       customer: true,

@@ -164,6 +164,21 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.12.1] - 2026-10-02
+
+### Corregido
+- **El botón "Comenzar gratis" de la página principal llevaba al inicio de sesión** en lugar del registro. Ahora abre el registro y hay un enlace aparte de "Iniciar sesión".
+- **La ubicación elegida al registrar una mascota no se guardaba.** Ahora se guarda y se valida que pertenezca a la clínica.
+- **Las clínicas sin ubicaciones veían "No hay ubicaciones activas disponibles"** al registrar una mascota; el selector ya no aparece cuando no hace falta.
+- **El dashboard de una clínica nueva repetía cuatro veces la invitación a registrar la primera mascota.** Queda una sola, en la tarjeta de primeros pasos.
+- **La insignia "Plan Gratuito" aparecía por un instante** durante la prueba al cargar el dashboard.
+- **Los eventos del Meta Pixel se bloqueaban en el dashboard.** La política de seguridad de contenido (CSP) tenía tres copias desincronizadas; ahora se genera desde un solo lugar.
+- La lista de mascotas ya no muestra un separador suelto ("• Macho") cuando falta la raza.
+- Los correos internos de aviso enlazaban a un dominio inexistente; ahora llevan al panel de administración.
+
+### Eliminado
+- Pasos del onboarding anterior (\`Confirmation\`, \`PlanSelection\`) y el componente \`NoActivePlanBanner\`, que ya no se usaban.
+
 ## [1.12.0] - 2026-10-02
 
 ### Agregado

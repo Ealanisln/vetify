@@ -28,7 +28,7 @@ export default async function DashboardPage() {
 
       {/* Welcome Banner - Shows once after successful subscription */}
       <Suspense fallback={null}>
-        <WelcomeBanner tenant={tenant} />
+        <WelcomeBanner tenant={tenant} showFirstPetCta={!hasNoPets} />
       </Suspense>
 
       {/* Subscription Notifications */}

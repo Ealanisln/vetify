@@ -82,6 +82,9 @@ export default function LocationSelector({
   }
 
   if (locations.length === 0) {
+    // Locations are optional: a clinic without any just doesn't see the picker
+    if (!required) return null;
+
     return (
       <div className="text-sm text-gray-500 dark:text-gray-400">
         No hay ubicaciones activas disponibles

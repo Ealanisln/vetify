@@ -35,11 +35,21 @@ export function Navigation() {
           </Link>
         </div>
 
-        <Link href="/api/auth/login" prefetch={false}>
-          <Button size="sm" className="font-semibold text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-9" data-testid="login-button">
-            Comenzar gratis
-          </Button>
-        </Link>
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Link
+            href="/api/auth/login"
+            prefetch={false}
+            className="text-xs sm:text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            data-testid="login-button"
+          >
+            Iniciar sesión
+          </Link>
+          <Link href="/api/auth/register" prefetch={false}>
+            <Button size="sm" className="font-semibold text-xs sm:text-sm px-3 sm:px-4 h-8 sm:h-9" data-testid="signup-button">
+              Comenzar gratis
+            </Button>
+          </Link>
+        </div>
       </div>
     </nav>
   )

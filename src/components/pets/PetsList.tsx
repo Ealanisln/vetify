@@ -5,6 +5,7 @@ import { PetWithOwner } from '@/types';
 import Link from 'next/link';
 import { MagnifyingGlassIcon, MapPinIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import type { SortOrder } from '../ui/ResponsiveTable';
+import { mapSpeciesToSpanish, mapGenderToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface PetsListProps {
   pets: PetWithOwner[];
@@ -215,7 +216,13 @@ export function PetsList({
                           {pet.name}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                          {pet.breed} • {pet.gender === 'male' ? 'Macho' : 'Hembra'}
+                          {[
+                            mapSpeciesToSpanish(pet.species),
+                            pet.breed?.trim(),
+                            pet.gender ? mapGenderToSpanish(pet.gender) : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' • ')}
                         </p>
                         <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-gray-500">
                           <span className="truncate">

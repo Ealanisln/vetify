@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import type { Tenant } from '@prisma/client';
 
 // The tenant coming from requireAuth/requirePermission includes the
@@ -10,29 +9,21 @@ export type TenantWithSubscriptionFlags = Tenant & {
 };
 
 export function useSubscription(tenant: TenantWithSubscriptionFlags | null) {
-  const [isActive, setIsActive] = useState(false);
-  const [isTrialing, setIsTrialing] = useState(false);
-  const [isPastDue, setIsPastDue] = useState(false);
-  const [isCanceled, setIsCanceled] = useState(false);
-  const [planName, setPlanName] = useState<string | null>(null);
-  const [subscriptionEndsAt, setSubscriptionEndsAt] = useState<Date | null>(null);
+  // Pure derivations from `tenant`, computed during render so the server render
+  // and the first client paint already reflect the real status.
+  const status = tenant?.subscriptionStatus;
+  const isActive = status === 'ACTIVE';
+  const isTrialing = status === 'TRIALING';
+  const isPastDue = status === 'PAST_DUE';
+  const isCanceled = status === 'CANCELED';
+  const planName = tenant?.planName ?? null;
 
-  useEffect(() => {
-    if (tenant) {
-      setIsActive(tenant.subscriptionStatus === 'ACTIVE');
-      setIsTrialing(tenant.subscriptionStatus === 'TRIALING');
-      setIsPastDue(tenant.subscriptionStatus === 'PAST_DUE');
-      setIsCanceled(tenant.subscriptionStatus === 'CANCELED');
-      setPlanName(tenant.planName);
-      
-      // HOTFIX: Use trialEndsAt for trial periods, subscriptionEndsAt for paid subscriptions
-      if (tenant.isTrialPeriod && tenant.trialEndsAt) {
-        setSubscriptionEndsAt(tenant.trialEndsAt);
-      } else {
-        setSubscriptionEndsAt(tenant.subscriptionEndsAt);
-      }
-    }
-  }, [tenant]);
+  // HOTFIX: Use trialEndsAt for trial periods, subscriptionEndsAt for paid subscriptions
+  const subscriptionEndsAt: Date | null = !tenant
+    ? null
+    : tenant.isTrialPeriod && tenant.trialEndsAt
+      ? tenant.trialEndsAt
+      : tenant.subscriptionEndsAt;
 
   // Check if a paid subscription (status ACTIVE, not trial) has expired beyond the 7-day grace period.
   // This mirrors the server-side check in auth.ts hasActiveSubscription().

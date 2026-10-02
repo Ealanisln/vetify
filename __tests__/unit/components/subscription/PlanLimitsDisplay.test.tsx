@@ -3,6 +3,7 @@
 // Report: .gstack/qa-reports/run-20261002T185412Z/qa-report-development-vetify-pro-2026-10-02.md
 
 import { render, screen } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import type { Tenant } from '@prisma/client';
 import { PlanLimitsDisplay } from '@/components/subscription/PlanLimitsDisplay';
 
@@ -47,5 +48,24 @@ describe('PlanLimitsDisplay plan label', () => {
     );
 
     expect(screen.getByText('Plan: Plan Profesional')).toBeInTheDocument();
+  });
+});
+
+describe('PlanLimitsDisplay free-plan badge', () => {
+  it('does not flash "Plan Gratuito" on the initial (server) render of a trial', () => {
+    const html = renderToString(<PlanLimitsDisplay tenant={createTenant()} />);
+
+    expect(html).toContain('Prueba gratuita');
+    expect(html).not.toContain('Plan Gratuito');
+  });
+
+  it('shows "Plan Gratuito" when the tenant has no active subscription', () => {
+    render(
+      <PlanLimitsDisplay
+        tenant={createTenant({ subscriptionStatus: 'CANCELED', isTrialPeriod: false, trialEndsAt: null })}
+      />
+    );
+
+    expect(screen.getByText('Plan Gratuito')).toBeInTheDocument();
   });
 });

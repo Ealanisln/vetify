@@ -5,6 +5,7 @@
  */
 
 import { sendEmail } from './email-service';
+import { getBaseUrl } from '../seo/config';
 import type {
   NewUserRegistrationData,
   NewSubscriptionPaymentData,
@@ -14,6 +15,14 @@ import type {
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'emmanuel@vetify.pro';
 const ADMIN_NAME = 'Emmanuel Alanis';
+
+/**
+ * Super-admin tenants list filtered to this clinic (there is no per-tenant
+ * admin page; the list searches by name and slug).
+ */
+function getAdminTenantUrl(tenantSlug: string): string {
+  return `${getBaseUrl()}/admin/tenants?search=${encodeURIComponent(tenantSlug)}`;
+}
 
 /**
  * Send notification when a new user registers
@@ -54,6 +63,7 @@ export async function notifyNewUserRegistration(data: {
       userEmail: data.userEmail,
       tenantName: data.tenantName,
       tenantSlug: data.tenantSlug,
+      adminTenantUrl: getAdminTenantUrl(data.tenantSlug),
       registrationDate: new Date(),
       planType: data.planType,
       trialEndsAt: data.trialEndsAt,
@@ -136,6 +146,7 @@ export async function notifyNewSubscriptionPayment(data: {
       userEmail: data.userEmail,
       tenantName: data.tenantName,
       tenantSlug: data.tenantSlug,
+      adminTenantUrl: getAdminTenantUrl(data.tenantSlug),
       planName: data.planName,
       planAmount: data.planAmount,
       currency: data.currency,
@@ -209,6 +220,7 @@ export async function notifyPaymentFailed(data: {
     data: {
       tenantName: data.tenantName,
       tenantSlug: data.tenantSlug,
+      adminTenantUrl: getAdminTenantUrl(data.tenantSlug),
       userName: data.userName,
       userEmail: data.userEmail,
       failureReason: data.failureReason,

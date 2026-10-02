@@ -13,6 +13,7 @@ interface NewSubscriptionPaymentEmailProps {
   userEmail: string;
   tenantName: string;
   tenantSlug: string;
+  adminTenantUrl: string;
   planName: string;
   formattedAmount: string;
   billingInterval: 'month' | 'year';
@@ -26,6 +27,7 @@ export function NewSubscriptionPaymentEmail({
   userEmail,
   tenantName,
   tenantSlug,
+  adminTenantUrl,
   planName,
   formattedAmount,
   billingInterval,
@@ -111,10 +113,10 @@ export function NewSubscriptionPaymentEmail({
         <Text style={sectionTitle}>🔗 Enlaces R&aacute;pidos</Text>
         <Text style={linkItem}>
           <Link
-            href={`https://app.vetify.pro/${tenantSlug}`}
+            href={adminTenantUrl}
             style={linkStyle}
           >
-            📊 Ver Dashboard del Tenant
+            📊 Ver cl&iacute;nica en el panel de admin
           </Link>
         </Text>
         <Text style={linkItem}>
