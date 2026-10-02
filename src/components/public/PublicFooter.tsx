@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Phone, MapPin, Mail, Clock, Heart } from 'lucide-react';
 import type { PublicTenant } from '../../lib/tenant';
+import { getBaseUrl } from '../../lib/seo/config';
 
 interface PublicFooterProps {
   tenant: PublicTenant;
@@ -158,7 +159,7 @@ export function PublicFooter({ tenant }: PublicFooterProps) {
               <Heart className="h-4 w-4 mx-1" fill="currentColor" style={{ color: themeColor }} />
               <span>por</span>
               <Link 
-                href="https://vetify.app" 
+                href={getBaseUrl()} 
                 className="ml-1 hover:text-white transition-colors"
                 style={{ color: themeColor }}
               >
