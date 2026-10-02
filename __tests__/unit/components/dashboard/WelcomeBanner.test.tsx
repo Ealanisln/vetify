@@ -41,6 +41,17 @@ describe('WelcomeBanner', () => {
       expect(cta).toHaveAttribute('href', '/dashboard/pets/new');
     });
 
+    it('keeps the greeting but drops the first-pet CTA when the first-run card owns it', async () => {
+      render(<WelcomeBanner tenant={tenant} showFirstPetCta={false} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /bienvenido a vetify/i })).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/prueba/i)).toBeInTheDocument();
+      expect(screen.queryByRole('link', { name: 'Registrar mi primera mascota' })).not.toBeInTheDocument();
+    });
+
     it('does not repeat the first-run card copy', async () => {
       render(<WelcomeBanner tenant={tenant} />);
 

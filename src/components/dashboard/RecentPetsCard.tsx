@@ -27,13 +27,8 @@ export function RecentPetsCard({ pets }: RecentPetsCardProps) {
               <li className="py-4">
                 <div className="text-center text-gray-500 dark:text-gray-400">
                   <span className="text-4xl mb-2 block">🐕</span>
+                  {/* Text only: the dashboard's FirstRunCard owns the first-pet CTA. */}
                   <p>No hay mascotas registradas aún</p>
-                  <Link
-                    href="/dashboard/pets/new"
-                    className="mt-2 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-[#75a99c] hover:bg-[#5b9788] transition-colors"
-                  >
-                    Registrar primera mascota
-                  </Link>
                 </div>
               </li>
             ) : (
