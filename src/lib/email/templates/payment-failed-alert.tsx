@@ -11,6 +11,7 @@ import { BaseLayout, BRAND_COLOR } from './base-layout';
 interface PaymentFailedAlertEmailProps {
   tenantName: string;
   tenantSlug: string;
+  adminTenantUrl: string;
   userName?: string;
   userEmail?: string;
   failureReason: string;
@@ -24,6 +25,7 @@ interface PaymentFailedAlertEmailProps {
 export function PaymentFailedAlertEmail({
   tenantName,
   tenantSlug,
+  adminTenantUrl,
   userName,
   userEmail,
   failureReason,
@@ -141,10 +143,10 @@ export function PaymentFailedAlertEmail({
         )}
         <Text style={linkItem}>
           <Link
-            href={`https://app.vetify.pro/${tenantSlug}`}
+            href={adminTenantUrl}
             style={linkStyle}
           >
-            &#x1F4CA; Ver Dashboard del Tenant
+            &#x1F4CA; Ver cl&iacute;nica en el panel de admin
           </Link>
         </Text>
       </Section>

@@ -13,6 +13,7 @@ interface NewUserRegistrationEmailProps {
   userEmail: string;
   tenantName: string;
   tenantSlug: string;
+  adminTenantUrl: string;
   registrationDate: string;
   planType: 'TRIAL' | 'PAID';
   trialEndsAt?: string;
@@ -23,6 +24,7 @@ export function NewUserRegistrationEmail({
   userEmail,
   tenantName,
   tenantSlug,
+  adminTenantUrl,
   registrationDate,
   planType,
   trialEndsAt,
@@ -84,10 +86,10 @@ export function NewUserRegistrationEmail({
         <Text style={sectionTitle}>🔗 Enlaces R&aacute;pidos</Text>
         <Text style={linkItem}>
           <Link
-            href={`https://app.vetify.pro/${tenantSlug}`}
+            href={adminTenantUrl}
             style={linkStyle}
           >
-            📊 Ver Dashboard del Tenant
+            📊 Ver cl&iacute;nica en el panel de admin
           </Link>
         </Text>
         <Text style={linkItem}>
