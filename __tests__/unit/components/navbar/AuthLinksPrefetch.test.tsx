@@ -107,12 +107,29 @@ describe('Auth links prefetch', () => {
     });
   });
 
-  it('Navigation renders its login link with prefetch disabled', () => {
+  it('Navigation renders login and register links with prefetch disabled', () => {
     render(<Navigation />);
 
     const links = getAuthLinks();
-    expect(links).toHaveLength(1);
-    expect(links[0]).toHaveAttribute('href', '/api/auth/login');
-    expect(links[0]).toHaveAttribute('data-prefetch', 'false');
+    expect(links.map((a) => a.getAttribute('href')).sort()).toEqual([...AUTH_HREFS].sort());
+    links.forEach((link) => {
+      expect(link).toHaveAttribute('data-prefetch', 'false');
+    });
+  });
+
+  it('Navigation sends "Comenzar gratis" to signup, not login', () => {
+    render(<Navigation />);
+
+    const signupLink = screen.getByTestId('signup-button').closest('a');
+    expect(signupLink).toHaveAttribute('href', '/api/auth/register');
+    expect(signupLink).toHaveTextContent('Comenzar gratis');
+  });
+
+  it('Navigation keeps an "Iniciar sesión" login link for returning users', () => {
+    render(<Navigation />);
+
+    const loginLink = screen.getByTestId('login-button').closest('a');
+    expect(loginLink).toHaveAttribute('href', '/api/auth/login');
+    expect(loginLink).toHaveTextContent('Iniciar sesión');
   });
 });
