@@ -1,4 +1,5 @@
 import type { SiteMetadata, SupportedLanguage } from './types';
+import { TRIAL_PERIOD_DAYS } from '../constants';
 
 // Base URL configuration - use environment variable in production
 export const getBaseUrl = (): string => {
@@ -13,6 +14,11 @@ export const getBaseUrl = (): string => {
   return 'http://localhost:3000';
 };
 
+// Base URL without protocol or trailing slash, for showing a URL as text
+// (e.g. "vetify.pro/mi-clinica").
+export const getDisplayHost = (): string =>
+  getBaseUrl().replace(/^https?:\/\//, '').replace(/\/+$/, '');
+
 // Default language configuration
 export const DEFAULT_LANGUAGE: SupportedLanguage = 'es';
 export const SPANISH_VARIANT: 'es-ES' | 'es-MX' = 'es-MX'; // Change to es-ES if targeting Spain
@@ -24,8 +30,8 @@ export const SITE_METADATA: SiteMetadata = {
     en: 'Vetify - Veterinary Management Software', // For future use
   },
   siteDescription: {
-    es: 'Sistema integral de gestión para clínicas veterinarias. Administra citas, historiales médicos, inventario y más. Prueba gratis por 14 días.',
-    en: 'Comprehensive management system for veterinary clinics. Manage appointments, medical records, inventory and more. Try free for 14 days.',
+    es: `Sistema integral de gestión para clínicas veterinarias. Administra citas, historiales médicos, inventario y más. Prueba gratis por ${TRIAL_PERIOD_DAYS} días.`,
+    en: `Comprehensive management system for veterinary clinics. Manage appointments, medical records, inventory and more. Try free for ${TRIAL_PERIOD_DAYS} days.`,
   },
   siteKeywords: {
     es: [
@@ -88,8 +94,8 @@ export const PAGE_METADATA = {
       en: 'Vetify - Management Software for Veterinary Clinics',
     },
     description: {
-      es: 'Transforma tu clínica veterinaria con Vetify. Sistema completo para gestionar citas, historiales médicos, inventario y facturación. Prueba gratis 14 días.',
-      en: 'Transform your veterinary clinic with Vetify. Complete system to manage appointments, medical records, inventory and billing. Try free for 14 days.',
+      es: `Transforma tu clínica veterinaria con Vetify. Sistema completo para gestionar citas, historiales médicos, inventario y facturación. Prueba gratis ${TRIAL_PERIOD_DAYS} días.`,
+      en: `Transform your veterinary clinic with Vetify. Complete system to manage appointments, medical records, inventory and billing. Try free for ${TRIAL_PERIOD_DAYS} days.`,
     },
     keywords: {
       es: [
@@ -117,8 +123,8 @@ export const PAGE_METADATA = {
       en: 'Pricing & Plans - Vetify',
     },
     description: {
-      es: 'Planes accesibles para clínicas veterinarias de todos los tamaños. Desde pequeñas consultas hasta grandes hospitales veterinarios. Prueba gratis 14 días.',
-      en: 'Affordable plans for veterinary clinics of all sizes. From small practices to large veterinary hospitals. Try free for 14 days.',
+      es: `Planes accesibles para clínicas veterinarias de todos los tamaños. Desde pequeñas consultas hasta grandes hospitales veterinarios. Prueba gratis ${TRIAL_PERIOD_DAYS} días.`,
+      en: `Affordable plans for veterinary clinics of all sizes. From small practices to large veterinary hospitals. Try free for ${TRIAL_PERIOD_DAYS} days.`,
     },
   },
   features: {

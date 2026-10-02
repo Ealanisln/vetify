@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { generateSlugFromName, removeAccents } from '../../../lib/tenant';
 import { ONBOARDING_COUNTRIES } from '../../../lib/onboarding-defaults';
+import { getDisplayHost } from '../../../lib/seo/config';
 
 interface ClinicInfoProps {
   user: {
@@ -124,7 +125,7 @@ export function ClinicInfo({ onSubmit, isSubmitting, detectedCountry, initialDat
           </label>
           <div className="mt-1 flex rounded-md shadow-sm">
             <span className="inline-flex items-center rounded-l-md border border-r-0 border-gray-300 bg-gray-50 px-3 text-sm text-gray-500 dark:border-gray-600 dark:bg-gray-600 dark:text-gray-400">
-              vetify.app/
+              {getDisplayHost()}/
             </span>
             <input
               type="text"
@@ -150,7 +151,7 @@ export function ClinicInfo({ onSubmit, isSubmitting, detectedCountry, initialDat
           )}
           {!isCheckingSlug && slugAvailable === false && slugSuggestion && (
             <p className="mt-1 text-sm text-amber-600 dark:text-amber-500">
-              Esa URL ya está ocupada — usaremos <span className="font-medium">vetify.app/{slugSuggestion}</span>
+              Esa URL ya está ocupada — usaremos <span className="font-medium">{getDisplayHost()}/{slugSuggestion}</span>
             </p>
           )}
         </div>

@@ -3,6 +3,7 @@
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { useSubscription } from '../../hooks/useSubscription';
+import { getPlanDisplay } from '../../lib/subscription/display';
 import type { Tenant } from '@prisma/client';
 import {
   Users,
@@ -19,6 +20,7 @@ interface PlanLimitsDisplayProps {
     } | null;
     tenantSubscription?: {
       plan: {
+        name?: string | null;
         maxUsers: number;
         maxPets: number;
       };
@@ -27,7 +29,14 @@ interface PlanLimitsDisplayProps {
 }
 
 export function PlanLimitsDisplay({ tenant }: PlanLimitsDisplayProps) {
-  const { hasActiveSubscription, planName } = useSubscription(tenant);
+  const { hasActiveSubscription } = useSubscription(tenant);
+  const planLabel = getPlanDisplay({
+    isTrialPeriod: tenant.isTrialPeriod,
+    trialEndsAt: tenant.trialEndsAt,
+    stripeSubscriptionId: tenant.stripeSubscriptionId,
+    planName: tenant.planName,
+    subscriptionPlanName: tenant.tenantSubscription?.plan?.name,
+  }).label;
 
   // Valores por defecto para plan gratuito/inactivo
   const defaultLimits = {
@@ -92,7 +101,7 @@ export function PlanLimitsDisplay({ tenant }: PlanLimitsDisplayProps) {
             Uso del Plan
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Plan: {planName || 'Plan Básico'}
+            Plan: {planLabel}
           </p>
         </div>
         {!hasActiveSubscription && (
