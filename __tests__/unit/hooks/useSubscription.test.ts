@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { renderHook, act } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { useSubscription } from '@/hooks/useSubscription';
 import type { Tenant } from '@prisma/client';
 
@@ -310,9 +310,30 @@ describe('useSubscription', () => {
 
       rerender({ tenant: null });
 
-      // Note: State doesn't reset when tenant becomes null (current implementation)
-      // This test documents the current behavior
+      expect(result.current.isActive).toBe(false);
+      expect(result.current.hasActiveSubscription).toBe(false);
       expect(result.current.subscriptionStatus).toBe('INACTIVE');
+    });
+
+    it('derives the flags on the first render, without waiting for an effect', () => {
+      const trialEndsAt = new Date('2025-12-15');
+      const tenant = createMockTenant({
+        subscriptionStatus: 'TRIALING',
+        isTrialPeriod: true,
+        trialEndsAt,
+      });
+      const renders: ReturnType<typeof useSubscription>[] = [];
+
+      renderHook(() => {
+        const value = useSubscription(tenant);
+        renders.push(value);
+        return value;
+      });
+
+      expect(renders[0].isTrialing).toBe(true);
+      expect(renders[0].hasActiveSubscription).toBe(true);
+      expect(renders[0].planName).toBe('Profesional');
+      expect(renders[0].subscriptionEndsAt).toEqual(trialEndsAt);
     });
 
     it('should handle expired trial date', () => {
