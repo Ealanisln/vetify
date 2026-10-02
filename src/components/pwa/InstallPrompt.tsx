@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Download, Share, X, Smartphone } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 
@@ -15,6 +16,7 @@ import { usePWAInstall } from '@/hooks/usePWAInstall';
  * - App is already installed (standalone mode)
  * - User dismissed it recently (7 days)
  * - Browser doesn't support installation (desktop Firefox, etc.)
+ * - The user is on onboarding, where it would cover the signup form
  */
 export function InstallPrompt() {
   const {
@@ -26,6 +28,9 @@ export function InstallPrompt() {
     dismiss,
   } = usePWAInstall();
 
+  const pathname = usePathname();
+  const isOnboarding = pathname?.startsWith('/onboarding') ?? false;
+
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
 
@@ -33,12 +38,13 @@ export function InstallPrompt() {
     // Delay showing the prompt to avoid being intrusive
     const timer = setTimeout(() => {
       // Show if: not installed, not dismissed, and (installable OR iOS)
-      const shouldShow = !isStandalone && !isDismissed && (isInstallable || isIOS);
+      const shouldShow =
+        !isOnboarding && !isStandalone && !isDismissed && (isInstallable || isIOS);
       setShowPrompt(shouldShow);
     }, 3000); // 3 second delay
 
     return () => clearTimeout(timer);
-  }, [isInstallable, isIOS, isStandalone, isDismissed]);
+  }, [isInstallable, isIOS, isStandalone, isDismissed, isOnboarding]);
 
   const handleInstall = async () => {
     setIsInstalling(true);
