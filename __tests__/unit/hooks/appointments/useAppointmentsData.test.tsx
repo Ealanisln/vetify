@@ -469,9 +469,9 @@ describe('useCalendarEvents', () => {
 
     const { result } = renderHook(() => useCalendarEvents(appointments));
 
-    // End should be 45 minutes after start
-    expect(result.current[0].start).toContain('14:00');
-    expect(result.current[0].end).toContain('14:45');
+    // End should be 45 minutes after start (absolute instants)
+    expect(result.current[0].start).toBe(startTime.toISOString());
+    expect(result.current[0].end).toBe(new Date(startTime.getTime() + 45 * 60000).toISOString());
   });
 
   it('should set colors based on status', () => {

@@ -3,6 +3,7 @@
  * derived from the clinic's saved weekly schedule and widened so no
  * appointment falls outside the visible window.
  */
+import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { buildDefaultWeek, timeToMinutes } from '@/lib/business-hours';
 
 export interface CalendarDayHours {
@@ -24,7 +25,10 @@ export interface CalendarHoursConfig {
   slotMaxTime: string;
 }
 
-/** Event bounds as FullCalendar receives them: Date or local "YYYY-MM-DDTHH:mm:ss". */
+/**
+ * Event bounds as FullCalendar receives them: a Date, an ISO instant, or a
+ * wall time without offset ("YYYY-MM-DDTHH:mm:ss", read in the calendar's zone).
+ */
 export interface CalendarEventBounds {
   start: Date | string;
   end: Date | string;
@@ -40,21 +44,32 @@ function toDuration(minutes: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
 }
 
-function minutesOfDay(date: Date): number {
-  return date.getHours() * 60 + date.getMinutes();
+/** Wall-clock reading of an instant: browser-local, or in `timeZone` when given. */
+function wallClock(date: Date, timeZone?: string): { day: string; minutes: number } {
+  if (timeZone) {
+    const [day, hh, mm] = formatInTimeZone(date, timeZone, 'yyyy-MM-dd|H|m').split('|');
+    return { day, minutes: Number(hh) * 60 + Number(mm) };
+  }
+  return {
+    day: `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`,
+    minutes: date.getHours() * 60 + date.getMinutes(),
+  };
 }
 
-function isSameLocalDay(a: Date, b: Date): boolean {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
+function parseBound(value: Date | string, timeZone?: string): Date {
+  if (value instanceof Date || !timeZone) return new Date(value);
+  // Offset-less strings are wall time in the calendar's zone, as in FullCalendar
+  return toDate(value, { timeZone });
 }
 
+/**
+ * @param timeZone The calendar's (clinic's) IANA zone. Slot times are wall
+ *   clock in that zone; without it, the browser's zone is used.
+ */
 export function buildCalendarHours(
   days: CalendarDayHours[] | null | undefined,
-  events: CalendarEventBounds[] = []
+  events: CalendarEventBounds[] = [],
+  timeZone?: string
 ): CalendarHoursConfig {
   const week: CalendarDayHours[] = days && days.length > 0 ? days : buildDefaultWeek();
   const open = week.filter((day) => day.isWorkingDay);
@@ -69,13 +84,15 @@ export function buildCalendarHours(
   let max = open.length > 0 ? Math.max(...open.map((d) => timeToMinutes(d.endTime))) : FALLBACK_END_MIN;
 
   for (const event of events) {
-    const start = new Date(event.start);
-    const end = new Date(event.end);
+    const start = parseBound(event.start, timeZone);
+    const end = parseBound(event.end, timeZone);
     if (isNaN(start.getTime())) continue;
 
-    min = Math.min(min, minutesOfDay(start));
+    const startClock = wallClock(start, timeZone);
+    min = Math.min(min, startClock.minutes);
     if (!isNaN(end.getTime())) {
-      max = Math.max(max, isSameLocalDay(start, end) ? minutesOfDay(end) : DAY_MIN);
+      const endClock = wallClock(end, timeZone);
+      max = Math.max(max, endClock.day === startClock.day ? endClock.minutes : DAY_MIN);
     }
   }
 
