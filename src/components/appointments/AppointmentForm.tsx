@@ -44,6 +44,7 @@ interface AppointmentFormProps {
   staff: Staff[];
   initialData?: Partial<AppointmentFormData>;
   appointmentId?: string; // For edit mode - excludes this appointment from availability check
+  initialLocationId?: string | null; // For edit mode - the appointment's stored location
   onSubmit: (data: AppointmentFormData) => Promise<void>;
   onCancel: () => void;
   loading?: boolean;
@@ -56,6 +57,7 @@ export function AppointmentForm({
   staff,
   initialData,
   appointmentId,
+  initialLocationId,
   onSubmit,
   onCancel,
   loading = false,
@@ -67,10 +69,15 @@ export function AppointmentForm({
   const [selectedCustomer, setSelectedCustomer] = useState<string>(
     initialData?.customerId || ''
   );
-  const [locationId, setLocationId] = useState<string>('');
+  const isEditing = Boolean(appointmentId);
+  // Editing keeps the stored location (or none); only new appointments
+  // default to the primary location.
+  const [locationId, setLocationId] = useState<string>(initialLocationId ?? '');
   const [availablePets, setAvailablePets] = useState<Pet[]>([]);
   // Store the selected time slot string for comparison (matches API format)
-  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(
+    isEditing && initialData?.dateTime ? new Date(initialData.dateTime).toISOString() : null
+  );
   // A time counts as chosen only when the user picked a slot, or when editing
   // an existing appointment (its stored time). Never default to "now".
   const [timeChosen, setTimeChosen] = useState<boolean>(
@@ -476,7 +483,7 @@ export function AppointmentForm({
         <LocationSelector
           value={locationId}
           onChange={setLocationId}
-          defaultToPrimary={true}
+          defaultToPrimary={!isEditing}
         />
       </div>
 
@@ -530,7 +537,7 @@ export function AppointmentForm({
           data-testid="submit-appointment-button"
         >
           {(isSubmitting || loading) && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-          {initialData ? 'Actualizar Cita' : 'Crear Cita'}
+          {isEditing ? 'Actualizar Cita' : 'Crear Cita'}
         </Button>
       </div>
     </form>

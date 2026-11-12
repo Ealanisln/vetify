@@ -41,6 +41,11 @@ export interface AppointmentWithDetails {
     name: string;
     position: string;
   };
+  locationId?: string | null;
+  location?: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 interface UseAppointmentsReturn {

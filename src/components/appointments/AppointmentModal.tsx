@@ -133,6 +133,8 @@ export function AppointmentModal({
             pets={pets}
             staff={staff}
             initialData={getInitialData()}
+            appointmentId={appointment?.id}
+            initialLocationId={appointment ? appointment.location?.id ?? appointment.locationId ?? null : undefined}
             onSubmit={handleSubmit}
             onCancel={handleCancel}
             loading={loading}

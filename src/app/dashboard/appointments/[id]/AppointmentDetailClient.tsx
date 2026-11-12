@@ -174,6 +174,7 @@ export default function AppointmentDetailClient({
               pets={pets}
               staff={staff}
               appointmentId={appointment.id}
+              initialLocationId={appointment.location?.id ?? appointment.locationId ?? null}
               initialData={{
                 customerId: appointment.customer.id,
                 petId: appointment.pet.id,
