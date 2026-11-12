@@ -145,7 +145,9 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
       });
 
       if (response.ok) {
-        router.push('/dashboard/medical-history');
+        // Open the saved record (it offers "Agendar seguimiento")
+        const created = await response.json().catch(() => null);
+        router.push(created?.id ? `/dashboard/medical-history/${created.id}` : '/dashboard/medical-history');
       } else {
         const error = await response.json();
         alert(error.error || 'Error al crear la historia clínica');

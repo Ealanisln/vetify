@@ -55,7 +55,8 @@ describe('NewMedicalHistoryForm', () => {
     fireEvent.change(screen.getByPlaceholderText('Nombre del medicamento'), { target: { value: 'Amoxicilina' } });
     fireEvent.click(screen.getByRole('button', { name: /Guardar Consulta/ }));
 
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/dashboard/medical-history'));
+    // Opens the saved record, where "Agendar seguimiento" lives
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/dashboard/medical-history/history-1'));
     const post = mockFetch.mock.calls.find(([url]) => url === '/api/medical-history');
     const body = JSON.parse((post?.[1] as RequestInit).body as string);
     expect(body.prescriptions[0].productName).toBe('Amoxicilina');

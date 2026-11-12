@@ -15,6 +15,9 @@ import { getMedicalHistoryById } from '@/lib/medical-history';
 import { formatClinicDate, getTenantTimeZone } from '@/lib/clinical-dates';
 import type { MedicalHistoryWithDetails } from '@/types';
 
+// Appointment reasons accept up to 500 characters; keep the suggestion short
+const FOLLOW_UP_REASON_MAX = 200;
+
 interface MedicalHistoryDetailProps {
   tenantId: string;
   historyId: string;
@@ -55,6 +58,13 @@ export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHisto
   }
 
   const petWeight = history.pet.weight === null ? null : Number(history.pet.weight);
+
+  // Opens the regular appointment form (slot still required) prefilled for this patient
+  const followUpHref = `/dashboard/appointments/new?${new URLSearchParams({
+    customerId: history.pet.customer.id,
+    petId: history.pet.id,
+    reason: `Seguimiento: ${history.reasonForVisit}`.slice(0, FOLLOW_UP_REASON_MAX),
+  }).toString()}`;
 
   const getDiagnosisColor = (diagnosis?: string | null) => {
     if (!diagnosis) return 'secondary';
@@ -136,7 +146,13 @@ export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHisto
           </div>
           
           <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
+              <Link href={followUpHref}>
+                <Button size="sm">
+                  <CalendarIcon className="h-4 w-4 mr-2" />
+                  Agendar seguimiento
+                </Button>
+              </Link>
               <Link href={`/dashboard/pets/${history.pet.id}`}>
                 <Button variant="outline" size="sm">
                   Ver Perfil de Mascota
