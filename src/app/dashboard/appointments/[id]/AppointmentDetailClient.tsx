@@ -8,7 +8,7 @@ import { useAppointments, AppointmentWithDetails } from '@/hooks/useAppointments
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Calendar, Clock, User, FileText, AlertCircle, Edit, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, User, FileText, AlertCircle, Edit, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -86,6 +86,13 @@ const statusConfig = {
   },
 } as const;
 
+type DetailStatus = keyof typeof statusConfig;
+
+// Only scheduled or confirmed appointments can still be rescheduled/edited
+const EDITABLE_STATUSES: readonly DetailStatus[] = ['SCHEDULED', 'CONFIRMED'];
+// Finished, cancelled or no-show appointments can't be cancelled again
+const CANCELLABLE_STATUSES: readonly DetailStatus[] = ['SCHEDULED', 'CONFIRMED', 'CHECKED_IN', 'IN_PROGRESS'];
+
 export default function AppointmentDetailClient({
   appointment,
   customers,
@@ -94,12 +101,14 @@ export default function AppointmentDetailClient({
 }: AppointmentDetailClientProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const { updateAppointment, deleteAppointment, quickAction } = useAppointments();
   const [loading, setLoading] = useState(false);
 
   const statusInfo = statusConfig[appointment.status];
   const StatusIcon = statusInfo.icon;
+  const canEdit = EDITABLE_STATUSES.includes(appointment.status);
+  const canCancel = CANCELLABLE_STATUSES.includes(appointment.status);
 
   const handleUpdate = async (data: AppointmentFormData) => {
     setLoading(true);
@@ -119,18 +128,19 @@ export default function AppointmentDetailClient({
     }
   };
 
-  const handleDelete = async () => {
+  // DELETE only cancels the appointment (status CANCELLED_CLINIC); it stays on record
+  const handleCancelAppointment = async () => {
     setLoading(true);
     try {
       await deleteAppointment(appointment.id);
-      toast.success('Cita eliminada exitosamente');
-      router.push('/dashboard/appointments');
+      toast.success('Cita cancelada');
+      router.refresh();
     } catch (error) {
-      toast.error('Error al eliminar la cita');
-      console.error('Error deleting appointment:', error);
+      toast.error(error instanceof Error && error.message ? error.message : 'Error al cancelar la cita');
+      console.error('Error cancelling appointment:', error);
     } finally {
       setLoading(false);
-      setShowDeleteConfirm(false);
+      setShowCancelConfirm(false);
     }
   };
 
@@ -214,22 +224,26 @@ export default function AppointmentDetailClient({
         </div>
 
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setIsEditing(true)}
-            disabled={loading}
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Editar
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={() => setShowDeleteConfirm(true)}
-            disabled={loading}
-          >
-            <Trash2 className="h-4 w-4 mr-2" />
-            Eliminar
-          </Button>
+          {canEdit && (
+            <Button
+              variant="outline"
+              onClick={() => setIsEditing(true)}
+              disabled={loading}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
+          )}
+          {canCancel && (
+            <Button
+              variant="destructive"
+              onClick={() => setShowCancelConfirm(true)}
+              disabled={loading}
+            >
+              <XCircle className="h-4 w-4 mr-2" />
+              Cancelar cita
+            </Button>
+          )}
         </div>
       </div>
 
@@ -321,9 +335,7 @@ export default function AppointmentDetailClient({
       </div>
 
       {/* Quick Actions */}
-      {appointment.status !== 'COMPLETED' &&
-       appointment.status !== 'CANCELLED_CLIENT' &&
-       appointment.status !== 'CANCELLED_CLINIC' && (
+      {canCancel && (
         <Card>
           <CardHeader>
             <CardTitle>Acciones Rápidas</CardTitle>
@@ -339,7 +351,9 @@ export default function AppointmentDetailClient({
                 Confirmar Cita
               </Button>
             )}
-            {(appointment.status === 'SCHEDULED' || appointment.status === 'CONFIRMED') && (
+            {(appointment.status === 'SCHEDULED' ||
+              appointment.status === 'CONFIRMED' ||
+              appointment.status === 'CHECKED_IN') && (
               <Button
                 variant="outline"
                 onClick={() => handleQuickAction('start')}
@@ -359,47 +373,38 @@ export default function AppointmentDetailClient({
                 Marcar como Completada
               </Button>
             )}
-            <Button
-              variant="outline"
-              onClick={() => handleQuickAction('cancel')}
-              disabled={loading}
-              className="text-destructive hover:text-destructive"
-            >
-              <XCircle className="h-4 w-4 mr-2" />
-              Cancelar Cita
-            </Button>
           </CardContent>
         </Card>
       )}
 
-      {/* Delete Confirmation Dialog */}
-      {showDeleteConfirm && (
+      {/* Cancel Confirmation Dialog */}
+      {showCancelConfirm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <Card className="max-w-md">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-destructive">
                 <AlertCircle className="h-5 w-5" />
-                Confirmar Eliminación
+                Cancelar cita
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <p>
-                ¿Estás seguro de que deseas eliminar esta cita? Esta acción no se puede deshacer.
+                ¿Seguro que quieres cancelar la cita de {appointment.pet.name}? Quedará registrada como cancelada por la clínica.
               </p>
               <div className="flex gap-2 justify-end">
                 <Button
                   variant="outline"
-                  onClick={() => setShowDeleteConfirm(false)}
+                  onClick={() => setShowCancelConfirm(false)}
                   disabled={loading}
                 >
-                  Cancelar
+                  Volver
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={handleDelete}
+                  onClick={handleCancelAppointment}
                   disabled={loading}
                 >
-                  {loading ? 'Eliminando...' : 'Eliminar'}
+                  {loading ? 'Cancelando...' : 'Sí, cancelar cita'}
                 </Button>
               </div>
             </CardContent>
