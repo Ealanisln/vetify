@@ -6,12 +6,18 @@ import {
   deleteStaff,
   updateStaffSchema
 } from '../../../../lib/staff';
+import { staffErrorResponse } from '../../../../lib/staff-errors';
 
 /**
  * Helper to handle permission errors
  */
 function handleError(error: unknown, context: string) {
   console.error(`Error ${context}:`, error);
+
+  const known = staffErrorResponse(error);
+  if (known) {
+    return NextResponse.json(known.body, { status: known.status });
+  }
 
   if (error instanceof Error) {
     if (error.message.includes('Access denied')) {

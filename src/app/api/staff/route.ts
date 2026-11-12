@@ -6,6 +6,7 @@ import {
   getStaffByTenant
 } from '../../../lib/staff';
 import { parsePagination } from '../../../lib/security/validation-schemas';
+import { staffErrorResponse } from '../../../lib/staff-errors';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +21,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error creating staff:', error);
+
+    const known = staffErrorResponse(error);
+    if (known) {
+      return NextResponse.json(known.body, { status: known.status });
+    }
 
     if (error instanceof Error) {
       if (error.message.includes('Access denied')) {
