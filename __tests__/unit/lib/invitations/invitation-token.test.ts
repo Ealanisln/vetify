@@ -6,7 +6,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { prismaMock } from '../../../mocks/prisma';
 import { addDays, subDays } from 'date-fns';
-import { generateStaffInvitation } from '@/lib/invitations/invitation-token';
+import { generateStaffInvitation, acceptInvitation } from '@/lib/invitations/invitation-token';
 
 function uniqueConstraintError(field: string) {
   return Object.assign(
@@ -107,5 +107,93 @@ describe('generateStaffInvitation', () => {
     const where = (prismaMock.tenantInvitation.findFirst.mock.calls[0][0] as any).where;
     expect(where).toMatchObject({ staffId: 'staff-1', status: 'PENDING' });
     expect(where.expiresAt.gt.getTime()).toBeGreaterThan(subDays(new Date(), 1).getTime());
+  });
+});
+
+describe('acceptInvitation', () => {
+  const invitation = {
+    ...invitationRow({ token: 'tok-1' }),
+    tenant: { id: 'tenant-1', name: 'Clínica Norte', logo: null },
+    staff: { id: 'staff-1', name: 'Ana', position: 'VETERINARIAN', email: 'ana@example.com' },
+  };
+
+  function mockStaffLookups(opts: { invitedStaffUserId?: string | null; userStaff?: any } = {}) {
+    prismaMock.staff.findUnique.mockImplementation((async (args: any) => {
+      if (args.where.id === 'staff-1') return { userId: opts.invitedStaffUserId ?? null };
+      if (args.where.userId) return opts.userStaff ?? null;
+      return null;
+    }) as any);
+  }
+
+  beforeEach(() => {
+    prismaMock.tenantInvitation.findUnique.mockResolvedValue(invitation as any);
+    prismaMock.$transaction.mockImplementation((async (fn: any) => fn(prismaMock)) as any);
+  });
+
+  it('refuses to move a user who already belongs to another clinic', async () => {
+    mockStaffLookups();
+    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1', tenantId: 'tenant-2' } as any);
+
+    const result = await acceptInvitation('tok-1', 'user-1');
+
+    expect(result).toMatchObject({ success: false, code: 'USER_IN_OTHER_TENANT' });
+    expect((result as any).error).toMatch(/otra clínica/);
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it('refuses when the user is already linked to another staff record', async () => {
+    mockStaffLookups({ userStaff: { id: 'staff-9', tenantId: 'tenant-1' } });
+    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1' } as any);
+
+    const result = await acceptInvitation('tok-1', 'user-1');
+
+    expect(result).toMatchObject({ success: false, code: 'USER_ALREADY_LINKED' });
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('refuses when the staff record is linked to a different user', async () => {
+    mockStaffLookups({ invitedStaffUserId: 'someone-else' });
+    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1', tenantId: null } as any);
+
+    const result = await acceptInvitation('tok-1', 'user-1');
+
+    expect(result).toMatchObject({ success: false, code: 'STAFF_ALREADY_LINKED' });
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('is idempotent when the staff record is already linked to this user', async () => {
+    mockStaffLookups({ invitedStaffUserId: 'user-1' });
+    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1' } as any);
+
+    const result = await acceptInvitation('tok-1', 'user-1');
+
+    expect(result).toEqual({ success: true, staffId: 'staff-1' });
+    expect(prismaMock.user.update).not.toHaveBeenCalled();
+  });
+
+  it('links a user without a clinic', async () => {
+    mockStaffLookups();
+    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1', tenantId: null } as any);
+
+    const result = await acceptInvitation('tok-1', 'user-1');
+
+    expect(result).toEqual({ success: true, staffId: 'staff-1' });
+    expect(prismaMock.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'user-1' }, data: { tenantId: 'tenant-1' } })
+    );
+    expect(prismaMock.staff.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'staff-1' }, data: { userId: 'user-1' } })
+    );
+  });
+
+  it('maps a unique-constraint race to a Spanish error instead of throwing', async () => {
+    mockStaffLookups();
+    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1', tenantId: null } as any);
+    prismaMock.$transaction.mockRejectedValue(uniqueConstraintError('userId'));
+
+    const result = await acceptInvitation('tok-1', 'user-1');
+
+    expect(result).toMatchObject({ success: false, code: 'USER_ALREADY_LINKED' });
   });
 });

@@ -93,19 +93,11 @@ export async function POST(request: NextRequest) {
     const result = await acceptInvitation(token, user.id);
 
     if (!result.success) {
-      // One more check: if it failed because "already linked", and user has tenant, treat as success
-      if (result.error === 'Este personal ya tiene una cuenta vinculada' && user.tenantId) {
-        return NextResponse.json({
-          success: true,
-          message: '¡Invitación aceptada! Ahora tienes acceso al sistema.',
-          tenantName: invitation.tenant.name,
-          alreadyAccepted: true,
-        });
-      }
-
+      // Conflicts with an existing account link are 409 so the page can
+      // offer to switch accounts instead of retrying.
       return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 400 }
+        { success: false, error: result.error, code: result.code },
+        { status: result.code ? 409 : 400 }
       );
     }
 

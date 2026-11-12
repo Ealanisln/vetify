@@ -37,6 +37,15 @@ export interface InvitationWithDetails {
   } | null;
 }
 
+export type AcceptInvitationErrorCode =
+  | 'USER_IN_OTHER_TENANT'
+  | 'USER_ALREADY_LINKED'
+  | 'STAFF_ALREADY_LINKED';
+
+export type AcceptInvitationResult =
+  | { success: true; staffId: string }
+  | { success: false; error: string; code?: AcceptInvitationErrorCode };
+
 export type ValidationResult =
   | { valid: true; invitation: InvitationWithDetails }
   | { valid: false; reason: string };
@@ -195,7 +204,7 @@ export async function validateInvitation(token: string): Promise<ValidationResul
 export async function acceptInvitation(
   token: string,
   userId: string
-): Promise<{ success: true; staffId: string } | { success: false; error: string }> {
+): Promise<AcceptInvitationResult> {
   const validation = await validateInvitation(token);
 
   if (!validation.valid) {
@@ -215,10 +224,76 @@ export async function acceptInvitation(
     select: { userId: true },
   });
 
-  if (existingStaff?.userId) {
-    return { success: false, error: 'Este personal ya tiene una cuenta vinculada' };
+  if (existingStaff?.userId === userId) {
+    // Already linked to this same user (e.g. auto-accepted on login)
+    return { success: true, staffId: invitation.staff.id };
   }
 
+  if (existingStaff?.userId) {
+    return {
+      success: false,
+      code: 'STAFF_ALREADY_LINKED',
+      error: 'Este personal ya tiene una cuenta vinculada',
+    };
+  }
+
+  // Never move a user out of the clinic they already belong to
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, tenantId: true },
+  });
+
+  if (user?.tenantId && user.tenantId !== invitation.tenantId) {
+    return {
+      success: false,
+      code: 'USER_IN_OTHER_TENANT',
+      error: USER_IN_OTHER_TENANT_ERROR,
+    };
+  }
+
+  // Staff.userId is unique: one account can be linked to one staff record
+  const staffOfUser = await prisma.staff.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+
+  if (staffOfUser) {
+    return {
+      success: false,
+      code: 'USER_ALREADY_LINKED',
+      error: USER_ALREADY_LINKED_ERROR,
+    };
+  }
+
+  try {
+    await linkUserToInvitation(invitation, userId);
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      console.error('[acceptInvitation] Unique constraint while linking:', error);
+      return { success: false, code: 'USER_ALREADY_LINKED', error: USER_ALREADY_LINKED_ERROR };
+    }
+    throw error;
+  }
+
+  return { success: true, staffId: invitation.staff.id };
+}
+
+const USER_IN_OTHER_TENANT_ERROR =
+  'Tu cuenta ya pertenece a otra clínica en Vetify. Para unirte a este equipo, cierra sesión e inicia con otro correo, o pide a la clínica que te invite con un correo distinto.';
+
+const USER_ALREADY_LINKED_ERROR =
+  'Tu cuenta ya está vinculada a otro registro de personal. Cierra sesión e inicia con el correo de la invitación.';
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    !!error &&
+    typeof error === 'object' &&
+    'code' in error &&
+    (error as { code: unknown }).code === 'P2002'
+  );
+}
+
+async function linkUserToInvitation(invitation: InvitationWithDetails, userId: string) {
   // Perform all updates in a transaction
   await prisma.$transaction(async (tx) => {
     // 1. Update User with tenant ID
@@ -239,8 +314,6 @@ export async function acceptInvitation(
       data: { status: 'ACCEPTED' },
     });
   });
-
-  return { success: true, staffId: invitation.staff.id };
 }
 
 // =============================================================================
