@@ -120,7 +120,8 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Invalid data provided');
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('Datos inválidos');
       expect(data.details).toBeDefined();
     });
 
@@ -138,7 +139,7 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(404);
-      expect(data.error).toBe('Booking not available for this clinic');
+      expect(data.error).toBe('La reserva en línea no está disponible para esta clínica');
     });
 
     it('should return 404 when publicBookingEnabled is false', async () => {
@@ -158,7 +159,7 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(404);
-      expect(data.error).toBe('Booking not available for this clinic');
+      expect(data.error).toBe('La reserva en línea no está disponible para esta clínica');
     });
 
     it('should return 409 for conflicting appointment time slot', async () => {
@@ -532,7 +533,7 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Invalid data provided');
+      expect(data.error).toBe('Datos inválidos');
     });
 
     it('should accept empty string for optional email', async () => {
@@ -565,6 +566,21 @@ describe('Public Appointments API', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
+    });
+
+    it('should answer unexpected failures in Spanish', async () => {
+      mockGetTenantBySlug.mockRejectedValue(new Error('db down'));
+
+      const response = await POST(createMockRequest({
+        tenantSlug: 'test-clinic',
+        customerName: 'Juan García',
+        customerPhone: '+52 55 1234 5678',
+        petName: 'Firulais',
+      }));
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data).toEqual({ success: false, error: 'Error interno del servidor' });
     });
 
     it('should create appointment request with date and time', async () => {

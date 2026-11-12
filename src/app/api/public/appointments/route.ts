@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     
     if (!tenant || !tenant.publicBookingEnabled) {
       return NextResponse.json(
-        { error: 'Booking not available for this clinic' },
+        { success: false, error: 'La reserva en línea no está disponible para esta clínica' },
         { status: 404 }
       );
     }
@@ -211,13 +211,13 @@ export async function POST(request: NextRequest) {
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid data provided', details: error.errors },
+        { success: false, error: 'Datos inválidos', details: error.errors },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: 'Error interno del servidor' },
       { status: 500 }
     );
   }
