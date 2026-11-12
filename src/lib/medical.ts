@@ -1,5 +1,8 @@
 import { prisma } from './prisma';
-import { TreatmentType } from '@prisma/client';
+import { TreatmentType, type VaccinationStage } from '@prisma/client';
+import { clinicDateAtNoon, clinicDaysBetween, getTenantTimeZone } from './clinical-dates';
+import { buildTreatmentReminderData } from './treatment-reminder-content';
+import { VITAL_SIGNS_REASON } from './treatment-labels';
 // NOTE: n8nService import removed - integration temporarily disabled for future implementation
 import type {
   ConsultationFormData,
@@ -7,6 +10,59 @@ import type {
   VaccinationFormData,
   VitalSignsFormData
 } from './medical-validation';
+
+type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+interface NextDoseInput {
+  petId: string;
+  tenantId: string;
+  treatmentType: TreatmentType;
+  productName: string;
+  /** Date picked in the form ("Próxima aplicación" / next vaccine dose). */
+  nextDueDate: Date;
+  timeZone: string;
+  vaccineStage?: VaccinationStage;
+}
+
+/**
+ * Schedules the next dose of a treatment and, when it is not already past,
+ * the owner's TREATMENT reminder for it (same transaction).
+ */
+async function scheduleNextDose(tx: TransactionClient, input: NextDoseInput) {
+  const dueDate = clinicDateAtNoon(input.nextDueDate, input.timeZone);
+  await tx.treatmentSchedule.create({
+    data: {
+      petId: input.petId,
+      tenantId: input.tenantId,
+      treatmentType: input.treatmentType,
+      productName: input.productName,
+      scheduledDate: dueDate,
+      status: 'SCHEDULED',
+      vaccineStage: input.vaccineStage,
+    },
+  });
+
+  if (clinicDaysBetween(new Date(), dueDate, input.timeZone) < 0) return;
+
+  const pet = await tx.pet.findFirst({
+    where: { id: input.petId, tenantId: input.tenantId },
+    select: { name: true, customerId: true },
+  });
+  if (!pet) return;
+
+  await tx.reminder.create({
+    data: buildTreatmentReminderData({
+      tenantId: input.tenantId,
+      petId: input.petId,
+      petName: pet.name,
+      customerId: pet.customerId,
+      treatmentType: input.treatmentType,
+      productName: input.productName,
+      dueDate,
+      timeZone: input.timeZone,
+    }),
+  });
+}
 
 // Create a new consultation (medical history entry)
 export async function createConsultation(
@@ -77,39 +133,57 @@ export async function createTreatment(
   veterinarianId?: string
 ) {
   try {
-    const treatment = await prisma.treatmentRecord.create({
-      data: {
-        petId,
-        tenantId,
-        treatmentType: data.treatment_type,
-        productName: data.medication_name,
-        administrationDate: data.start_date,
-        staffId: data.veterinarian_id || veterinarianId,
-        notes: `Dosis: ${data.dosage}\nFrecuencia: ${data.frequency}\nDuración: ${data.duration_days} días\nInstrucciones: ${data.instructions}`,
-      },
-      include: {
-        pet: {
-          include: {
-            customer: true,
-          },
-        },
-        staff: true,
-      },
-    });
+    const timeZone = data.next_due_date ? await getTenantTimeZone(tenantId) : null;
 
-    // Create treatment schedule for follow-ups if needed
-    if (data.duration_days > 1) {
-      await prisma.treatmentSchedule.create({
+    const treatment = await prisma.$transaction(async (tx) => {
+      const record = await tx.treatmentRecord.create({
         data: {
           petId,
           tenantId,
           treatmentType: data.treatment_type,
           productName: data.medication_name,
-          scheduledDate: new Date(data.start_date.getTime() + data.duration_days * 24 * 60 * 60 * 1000),
-          status: 'SCHEDULED',
+          administrationDate: data.start_date,
+          staffId: data.veterinarian_id || veterinarianId,
+          notes: `Dosis: ${data.dosage}\nFrecuencia: ${data.frequency}\nDuración: ${data.duration_days} días\nInstrucciones: ${data.instructions}`,
+        },
+        include: {
+          pet: {
+            include: {
+              customer: true,
+            },
+          },
+          staff: true,
         },
       });
-    }
+
+      // Create treatment schedule for follow-ups if needed
+      if (data.duration_days > 1) {
+        await tx.treatmentSchedule.create({
+          data: {
+            petId,
+            tenantId,
+            treatmentType: data.treatment_type,
+            productName: data.medication_name,
+            scheduledDate: new Date(data.start_date.getTime() + data.duration_days * 24 * 60 * 60 * 1000),
+            status: 'SCHEDULED',
+          },
+        });
+      }
+
+      // "Próxima aplicación" (deworming, flea/tick): next dose + owner reminder
+      if (data.next_due_date && timeZone) {
+        await scheduleNextDose(tx, {
+          petId,
+          tenantId,
+          treatmentType: data.treatment_type,
+          productName: data.medication_name,
+          nextDueDate: data.next_due_date,
+          timeZone,
+        });
+      }
+
+      return record;
+    });
 
     // NOTE: N8N integration temporarily disabled - will be enabled later
     /*
@@ -141,43 +215,47 @@ export async function createVaccination(
   data: VaccinationFormData
 ) {
   try {
-    const vaccination = await prisma.treatmentRecord.create({
-      data: {
-        petId,
-        tenantId,
-        treatmentType: TreatmentType.VACCINATION,
-        productName: data.vaccine_brand,
-        administrationDate: data.administered_date,
-        batchNumber: data.batch_number,
-        manufacturer: data.manufacturer,
-        staffId: data.veterinarian_id,
-        notes: data.side_effects ? `Efectos secundarios: ${data.side_effects}\n${data.notes || ''}` : data.notes,
-        vaccineStage: data.vaccine_stage,
-      },
-      include: {
-        pet: {
-          include: {
-            customer: true,
-          },
-        },
-        staff: true,
-      },
-    });
+    const timeZone = await getTenantTimeZone(tenantId);
 
-    // Schedule next vaccination if provided
-    if (data.next_due_date) {
-      await prisma.treatmentSchedule.create({
+    const vaccination = await prisma.$transaction(async (tx) => {
+      const record = await tx.treatmentRecord.create({
         data: {
           petId,
           tenantId,
           treatmentType: TreatmentType.VACCINATION,
           productName: data.vaccine_brand,
-          scheduledDate: data.next_due_date,
-          status: 'SCHEDULED',
+          administrationDate: clinicDateAtNoon(data.administered_date, timeZone),
+          batchNumber: data.batch_number,
+          manufacturer: data.manufacturer,
+          staffId: data.veterinarian_id,
+          notes: data.side_effects ? `Efectos secundarios: ${data.side_effects}\n${data.notes || ''}` : data.notes,
           vaccineStage: data.vaccine_stage,
         },
+        include: {
+          pet: {
+            include: {
+              customer: true,
+            },
+          },
+          staff: true,
+        },
       });
-    }
+
+      // Schedule the next dose and its owner reminder together
+      if (data.next_due_date) {
+        await scheduleNextDose(tx, {
+          petId,
+          tenantId,
+          treatmentType: TreatmentType.VACCINATION,
+          productName: data.vaccine_brand,
+          nextDueDate: data.next_due_date,
+          timeZone,
+          vaccineStage: data.vaccine_stage,
+        });
+      }
+
+      return record;
+    });
 
     // NOTE: N8N integration temporarily disabled - will be enabled later
     /*
@@ -208,31 +286,44 @@ export async function recordVitalSigns(
   data: VitalSignsFormData
 ) {
   try {
-    // For now, we'll store vital signs as a special medical history entry
-    // In a real implementation, you might want a separate VitalSigns model
-    const vitals = await prisma.medicalHistory.create({
-      data: {
-        petId,
-        tenantId,
-        visitDate: data.recorded_date,
-        reasonForVisit: 'Registro de Signos Vitales',
-        diagnosis: 'N/A',
-        treatment: 'N/A',
-        notes: `SIGNOS VITALES:
-Peso: ${data.weight} kg
-Temperatura: ${data.temperature}°C
-Frecuencia Cardíaca: ${data.heart_rate} lpm
-Frecuencia Respiratoria: ${data.respiratory_rate} rpm
-${data.blood_pressure ? `Presión Arterial: ${data.blood_pressure}` : ''}
-${data.notes ? `Observaciones: ${data.notes}` : ''}`,
-      },
-      include: {
-        pet: {
-          include: {
-            customer: true,
+    // Vital signs have no dedicated model: they are stored as a MedicalHistory
+    // row marked by VITAL_SIGNS_REASON, with no diagnosis/treatment, so stats
+    // and the timeline do not treat them as a consultation.
+    const vitals = await prisma.$transaction(async (tx) => {
+      const entry = await tx.medicalHistory.create({
+        data: {
+          petId,
+          tenantId,
+          visitDate: data.recorded_date,
+          reasonForVisit: VITAL_SIGNS_REASON,
+          diagnosis: null,
+          treatment: null,
+          notes: [
+            'SIGNOS VITALES:',
+            `Peso: ${data.weight} kg`,
+            `Temperatura: ${data.temperature}°C`,
+            `Frecuencia Cardíaca: ${data.heart_rate} lpm`,
+            `Frecuencia Respiratoria: ${data.respiratory_rate} rpm`,
+            data.blood_pressure ? `Presión Arterial: ${data.blood_pressure}` : null,
+            data.notes ? `Observaciones: ${data.notes}` : null,
+          ].filter(Boolean).join('\n'),
+        },
+        include: {
+          pet: {
+            include: {
+              customer: true,
+            },
           },
         },
-      },
+      });
+
+      // Keep the pet's current weight in sync with the latest measurement
+      await tx.pet.updateMany({
+        where: { id: petId, tenantId },
+        data: { weight: data.weight, weightUnit: 'kg' },
+      });
+
+      return entry;
     });
 
     // NOTE: N8N integration temporarily disabled - will be enabled later

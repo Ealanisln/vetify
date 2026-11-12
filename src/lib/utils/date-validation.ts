@@ -28,14 +28,14 @@
  * try {
  *   validateDateOfBirth('15/01/2020'); // Throws error
  * } catch (error) {
- *   console.error(error.message); // "Invalid date format..."
+ *   console.error(error.message); // "La fecha de nacimiento no es válida..."
  * }
  *
  * // Future date
  * try {
  *   validateDateOfBirth('2030-01-01'); // Throws error
  * } catch (error) {
- *   console.error(error.message); // "Date of birth cannot be in the future..."
+ *   console.error(error.message); // "La fecha de nacimiento no puede ser una fecha futura."
  * }
  * ```
  */
@@ -50,7 +50,7 @@ export function validateDateOfBirth(dateStr: string): Date {
   // Check if the date is valid
   if (isNaN(date.getTime())) {
     throw new Error(
-      'Invalid date format for dateOfBirth. Expected YYYY-MM-DD (ISO 8601 format).'
+      'La fecha de nacimiento no es válida. Usa el formato AAAA-MM-DD.'
     );
   }
 
@@ -62,14 +62,14 @@ export function validateDateOfBirth(dateStr: string): Date {
   // Validate date is not before 1900
   if (date < minDate) {
     throw new Error(
-      'Date of birth cannot be before January 1, 1900.'
+      'La fecha de nacimiento no puede ser anterior a 1900.'
     );
   }
 
   // Validate date is not in the future
   if (date > maxDate) {
     throw new Error(
-      'Date of birth cannot be in the future. Please enter a valid past date.'
+      'La fecha de nacimiento no puede ser una fecha futura.'
     );
   }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { runAfterResponse } from '@/lib/after-response';
 import { requireAuth, requirePermission } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
@@ -7,6 +8,14 @@ import type { AppointmentConfirmationData, AppointmentStaffNotificationData } fr
 import { shouldSendNotification } from '@/lib/enhanced-settings';
 import { parsePaginationParams, createPaginatedResponse } from '@/lib/pagination';
 import { appointmentSchema } from '@/lib/validations/appointments-api';
+import { getClinicTimeZone } from '@/lib/clinic-timezone';
+import { formatTime } from '@/lib/utils/date-format';
+import { conflictMessage, findConflictingAppointment } from '@/lib/appointments/conflicts';
+
+// The month view asks for ~3 months; anything longer is not a calendar query.
+const MAX_CALENDAR_RANGE_MS = 100 * 24 * 60 * 60 * 1000;
+// Safety cap for a single calendar range response.
+const MAX_CALENDAR_RANGE_ROWS = 2000;
 
 export async function GET(request: Request) {
   try {
@@ -18,8 +27,19 @@ export async function GET(request: Request) {
     const status = searchParams.get('status');
     const locationId = searchParams.get('locationId') || undefined;
 
-    // Parse pagination params
-    const paginationParams = parsePaginationParams(searchParams);
+    // A calendar range (both dates, no explicit page/limit) returns every
+    // appointment in it; anything else keeps the paginated behavior.
+    const rangeStart = startDate ? new Date(startDate) : null;
+    const rangeEnd = endDate ? new Date(endDate) : null;
+    const isCalendarRange =
+      !!rangeStart && !!rangeEnd &&
+      !isNaN(rangeStart.getTime()) && !isNaN(rangeEnd.getTime()) &&
+      !searchParams.has('page') && !searchParams.has('limit') &&
+      rangeEnd.getTime() - rangeStart.getTime() <= MAX_CALENDAR_RANGE_MS;
+
+    const paginationParams = isCalendarRange
+      ? { page: 1, limit: MAX_CALENDAR_RANGE_ROWS, skip: 0 }
+      : parsePaginationParams(searchParams);
 
     // Construir filtros
     const where: Record<string, unknown> = {
@@ -158,46 +178,24 @@ export async function POST(request: Request) {
       }
     }
     
-    // Verificar disponibilidad (no permitir citas superpuestas para el mismo veterinario)
+    // Verificar disponibilidad: sin choques con el mismo veterinario o, si no
+    // hay veterinario asignado, con ninguna otra cita de la clínica
     const appointmentDateTime = new Date(validatedData.dateTime);
-    const endDateTime = new Date(appointmentDateTime.getTime() + validatedData.duration * 60000);
+    const conflictingAppointment = await findConflictingAppointment({
+      tenantId: tenant.id,
+      start: appointmentDateTime,
+      durationMinutes: validatedData.duration,
+      staffId: validatedData.staffId,
+      locationId: validatedData.locationId,
+    });
 
-    // Solo verificar conflictos si hay un staff asignado
-    if (validatedData.staffId) {
-      const conflictingAppointment = await prisma.appointment.findFirst({
-        where: {
-          tenantId: tenant.id,
-          staffId: validatedData.staffId, // Solo conflictos con el mismo veterinario
-          status: {
-            notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']
-          },
-          AND: [
-            {
-              dateTime: {
-                lt: endDateTime
-              }
-            },
-            {
-              dateTime: {
-                gte: new Date(appointmentDateTime.getTime() - (validatedData.duration * 60000))
-              }
-            }
-          ]
-        },
-        include: {
-          staff: { select: { name: true } }
-        }
-      });
-
-      if (conflictingAppointment) {
-        const staffName = conflictingAppointment.staff?.name || 'este veterinario';
-        return NextResponse.json(
-          { success: false, error: `${staffName} ya tiene una cita en este horario` },
-          { status: 409 }
-        );
-      }
+    if (conflictingAppointment) {
+      return NextResponse.json(
+        { success: false, error: conflictMessage(validatedData.staffId, conflictingAppointment) },
+        { status: 409 }
+      );
     }
-    
+
     // Crear la cita
     const appointment = await prisma.appointment.create({
       data: {
@@ -249,6 +247,8 @@ export async function POST(request: Request) {
             name: true,
             publicPhone: true,
             publicAddress: true,
+            countryCode: true,
+            tenantSettings: { select: { timezone: true } },
           }
         }
       }
@@ -256,12 +256,11 @@ export async function POST(request: Request) {
 
     // Send confirmation email asynchronously (don't block response)
     // Check notification preference before sending
+    // Emails show the clinic's local time, not the server's (UTC)
+    const clinicTimeZone = getClinicTimeZone(appointment.tenant);
     const sendConfirmation = await shouldSendNotification(tenant.id, 'appointmentConfirmation');
     if (sendConfirmation && appointment.customer.email) {
-      const appointmentTime = appointmentDateTime.toLocaleTimeString('es-MX', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const appointmentTime = formatTime(appointmentDateTime, clinicTimeZone);
 
       const emailData: AppointmentConfirmationData = {
         template: 'appointment-confirmation',
@@ -271,6 +270,7 @@ export async function POST(request: Request) {
         },
         subject: `Confirmación de Cita - ${appointment.pet.name}`,
         tenantId: tenant.id,
+        timeZone: clinicTimeZone,
         data: {
           appointmentId: appointment.id,
           petName: appointment.pet.name,
@@ -286,10 +286,10 @@ export async function POST(request: Request) {
         },
       };
 
-      // Send email without awaiting (fire and forget)
-      sendAppointmentConfirmation(emailData).catch((error) => {
-        console.error('[APPOINTMENT] Failed to send confirmation email:', error);
-      });
+      runAfterResponse(
+        () => sendAppointmentConfirmation(emailData),
+        '[APPOINTMENT] Failed to send confirmation email:'
+      );
     }
 
     // Send notification to assigned staff if exists
@@ -303,10 +303,7 @@ export async function POST(request: Request) {
       });
 
       if (staffWithEmail?.email) {
-        const appointmentTime = appointmentDateTime.toLocaleTimeString('es-MX', {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        const appointmentTime = formatTime(appointmentDateTime, clinicTimeZone);
 
         const staffEmailData: AppointmentStaffNotificationData = {
           template: 'appointment-staff-notification',
@@ -316,6 +313,7 @@ export async function POST(request: Request) {
           },
           subject: `Nueva Cita Asignada - ${appointment.pet.name}`,
           tenantId: tenant.id,
+          timeZone: clinicTimeZone,
           data: {
             appointmentId: appointment.id,
             staffName: staffWithEmail.name,
@@ -332,10 +330,10 @@ export async function POST(request: Request) {
           },
         };
 
-        // Send email without awaiting (fire and forget)
-        sendAppointmentStaffNotification(staffEmailData).catch((error) => {
-          console.error('[APPOINTMENT] Failed to send staff notification email:', error);
-        });
+        runAfterResponse(
+          () => sendAppointmentStaffNotification(staffEmailData),
+          '[APPOINTMENT] Failed to send staff notification email:'
+        );
       }
     }
 

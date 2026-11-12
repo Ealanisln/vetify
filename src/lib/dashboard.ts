@@ -2,6 +2,11 @@ import { prisma } from './prisma';
 import { DashboardStats } from '@/types';
 import { serializePets, serializeObject } from './serializers';
 import type { Tenant } from '@prisma/client';
+import { getClinicTimeZone } from './clinic-timezone';
+import { ACTIVE_OWNER_PETS } from './pets';
+
+// Not shown as "Próximas citas": the visit is not going to happen.
+const INACTIVE_APPOINTMENT_STATUSES = ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW'] as const;
 
 /**
  * Get dashboard statistics for a tenant
@@ -20,13 +25,14 @@ export async function getDashboardStats(
     totalPets,
     totalAppointments,
     recentPets,
-    upcomingAppointments
+    upcomingAppointments,
+    tenantSettings
   ] = await Promise.all([
-    prisma.pet.count({ where: { tenantId } }),
+    prisma.pet.count({ where: { tenantId, ...ACTIVE_OWNER_PETS } }),
     prisma.appointment.count({ where: { tenantId } }),
     // Optimized: Only select fields needed for dashboard display
     prisma.pet.findMany({
-      where: { tenantId },
+      where: { tenantId, ...ACTIVE_OWNER_PETS },
       select: {
         id: true,
         name: true,
@@ -58,7 +64,8 @@ export async function getDashboardStats(
     prisma.appointment.findMany({
       where: {
         tenantId,
-        dateTime: { gte: new Date() }
+        dateTime: { gte: new Date() },
+        status: { notIn: [...INACTIVE_APPOINTMENT_STATUSES] }
       },
       select: {
         id: true,
@@ -74,6 +81,7 @@ export async function getDashboardStats(
             customer: {
               select: {
                 id: true,
+                name: true,
                 firstName: true,
                 lastName: true
               }
@@ -91,6 +99,10 @@ export async function getDashboardStats(
       },
       orderBy: { dateTime: 'asc' },
       take: 5
+    }),
+    prisma.tenantSettings.findUnique({
+      where: { tenantId },
+      select: { timezone: true }
     })
   ]);
 
@@ -108,6 +120,7 @@ export async function getDashboardStats(
     totalAppointments,
     recentPets: serializedRecentPets || [],
     upcomingAppointments: serializedUpcomingAppointments || [],
+    timeZone: getClinicTimeZone({ countryCode: tenant?.countryCode, tenantSettings }),
     planLimits: {
       maxPets: plan?.maxPets || 150, // Default STARTER plan
       maxUsers: plan?.maxUsers || 2,

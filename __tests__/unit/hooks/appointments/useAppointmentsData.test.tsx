@@ -395,6 +395,17 @@ describe('useAppointmentStatsFromData', () => {
     expect(result.current.completionRate).toBe(50);
   });
 
+  it('should not count appointments after this week or this month', () => {
+    const farFuture = addDays(new Date(), 45);
+
+    const appointments = [createMockAppointment({ id: 'later', dateTime: farFuture })];
+
+    const { result } = renderHook(() => useAppointmentStatsFromData(appointments));
+
+    expect(result.current.thisWeek).toBe(0);
+    expect(result.current.thisMonth).toBe(0);
+  });
+
   it('should return 0 completion rate when no month appointments', () => {
     const lastMonth = subDays(startOfMonth(new Date()), 5);
 
@@ -458,9 +469,9 @@ describe('useCalendarEvents', () => {
 
     const { result } = renderHook(() => useCalendarEvents(appointments));
 
-    // End should be 45 minutes after start
-    expect(result.current[0].start).toContain('14:00');
-    expect(result.current[0].end).toContain('14:45');
+    // End should be 45 minutes after start (absolute instants)
+    expect(result.current[0].start).toBe(startTime.toISOString());
+    expect(result.current[0].end).toBe(new Date(startTime.getTime() + 45 * 60000).toISOString());
   });
 
   it('should set colors based on status', () => {

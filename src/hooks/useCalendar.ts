@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppointmentWithDetails } from './useAppointments';
+import type { CalendarDayHours } from '@/lib/appointments/calendar-hours';
 
 export interface CalendarEvent {
   id: string;
@@ -19,7 +20,9 @@ export interface CalendarEvent {
 }
 
 export interface AvailableSlot {
+  /** Absolute instant (ISO-8601 with Z). Send it back unchanged when booking. */
   dateTime: string;
+  /** Clinic wall-clock label, HH:mm */
   time: string;
   displayTime: string;
   period: 'morning' | 'afternoon';
@@ -28,6 +31,8 @@ export interface AvailableSlot {
 export interface AvailabilityData {
   date: string;
   duration: number;
+  /** IANA timezone of the clinic; slot labels are in this zone */
+  timeZone?: string;
   availableSlots: AvailableSlot[];
   totalSlots: number;
   availableCount: number;
@@ -49,21 +54,6 @@ export interface AvailabilityData {
 
 export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
 
-/**
- * Formats a Date object as local time string for FullCalendar.
- * FullCalendar with timeZone='local' needs dates without Z indicator
- * to interpret them correctly in the local timezone.
- */
-function formatLocalDateTime(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-}
 
 interface UseCalendarReturn {
   events: CalendarEvent[];
@@ -144,9 +134,9 @@ export const useCalendar = (initialView: CalendarView = 'timeGridWeek', enabled:
     return {
       id: appointment.id,
       title: `${appointment.pet.name} - ${appointment.customer.name}`,
-      // Usar formato local sin Z para que FullCalendar interprete correctamente
-      start: formatLocalDateTime(startTime),
-      end: formatLocalDateTime(endTime),
+      // Absolute instants: the calendar shows them in the clinic's timezone
+      start: startTime.toISOString(),
+      end: endTime.toISOString(),
       backgroundColor: colors.bg,
       borderColor: colors.border,
       textColor: colors.text,
@@ -332,17 +322,53 @@ function getPriority(reason: string): 'low' | 'medium' | 'high' | 'emergency' {
   return 'medium';
 }
 
+export interface ClinicCalendarSettings {
+  /** Saved weekly hours; null until loaded or if the request fails */
+  days: CalendarDayHours[] | null;
+  /** Clinic IANA timezone (resolved server-side by getClinicTimeZone); null until loaded */
+  timeZone: string | null;
+}
+
+/**
+ * The clinic's saved weekly hours and timezone, read from the staff-readable
+ * /api/appointments/business-hours endpoint. Fields stay null until loaded
+ * (or if the request fails); callers fall back to the default week and to
+ * DEFAULT_CLINIC_TIME_ZONE. Pass enabled=false when a parent already loaded them.
+ */
+export const useClinicCalendarSettings = (enabled: boolean = true): ClinicCalendarSettings => {
+  const [settings, setSettings] = useState<ClinicCalendarSettings>({ days: null, timeZone: null });
+
+  useEffect(() => {
+    if (!enabled) return;
+    let cancelled = false;
+    Promise.resolve()
+      .then(() => fetch('/api/appointments/business-hours'))
+      .then(async (response) => {
+        if (!response?.ok) return;
+        const result = await response.json();
+        if (cancelled) return;
+        setSettings({
+          days: Array.isArray(result?.data?.days) ? result.data.days : null,
+          timeZone: typeof result?.data?.timeZone === 'string' ? result.data.timeZone : null,
+        });
+      })
+      .catch(() => {
+        // Keep the defaults; the grid still widens to fit appointments
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+
+  return settings;
+};
+
+// Grid window and shaded business hours come from buildCalendarHours (saved
+// clinic hours, widened to fit every appointment); see FullCalendarView.
 export const useCalendarConfig = () => {
   return {
     locale: 'es',
-    businessHours: {
-      daysOfWeek: [1, 2, 3, 4, 5, 6],
-      startTime: '08:00',
-      endTime: '18:00'
-    },
     slotDuration: '00:15:00',
-    slotMinTime: '08:00:00',
-    slotMaxTime: '18:00:00',
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',

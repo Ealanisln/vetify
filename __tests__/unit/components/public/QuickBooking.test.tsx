@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QuickBooking } from '@/components/public/QuickBooking';
-import { createMockPublicTenant, createMockFeaturedService } from '../../../utils/public-test-factories';
+import { createMockPublicTenant, createMockPublicService } from '../../../utils/public-test-factories';
 
 // Mock next/link
 jest.mock('next/link', () => ({
@@ -77,8 +77,8 @@ describe('QuickBooking', () => {
   const defaultTenant = createMockPublicTenant({
     slug: 'test-clinic',
     publicServices: [
-      createMockFeaturedService({ title: 'Consulta General', description: 'General consultation', price: '$500' }),
-      createMockFeaturedService({ title: 'Vacunación', description: 'Pet vaccinations', price: '$300' }),
+      createMockPublicService({ title: 'Consulta General', description: 'General consultation', price: '$500' }),
+      createMockPublicService({ title: 'Vacunación', description: 'Pet vaccinations', price: '$300' }),
     ],
   });
 
@@ -159,6 +159,28 @@ describe('QuickBooking', () => {
       expect(options[3].textContent).toContain('Emergencia');
     });
 
+    it("should list the clinic's catalog services over the legacy config", () => {
+      render(
+        <QuickBooking
+          tenant={defaultTenant}
+          services={[
+            { name: 'Consulta Felina', price: 450, publicPriceLabel: null },
+            { name: 'Pensión', price: 0, publicPriceLabel: 'Consultar' },
+          ]}
+        />
+      );
+
+      const serviceSelect = screen.getByLabelText(/tipo de servicio/i);
+      const options = Array.from(serviceSelect.querySelectorAll('option')).map((o) => o.textContent);
+
+      expect(options).toEqual([
+        'Selecciona un servicio',
+        'Consulta Felina - $450.00',
+        'Pensión - Consultar',
+        'Otro (especificar)',
+      ]);
+    });
+
     it('should have "Otro" option in services', () => {
       render(<QuickBooking tenant={defaultTenant} />);
 
@@ -181,38 +203,49 @@ describe('QuickBooking', () => {
   });
 
   describe('Customer Lookup', () => {
-    it('should trigger lookup after debounce when phone is entered', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          found: false,
-        }),
-      });
+    const lookupResponse = (pets: Array<{ id: string; name: string }>) => ({
+      ok: true,
+      json: () => Promise.resolve({ success: true, pets }),
+    });
 
-      render(<QuickBooking tenant={defaultTenant} />);
-
-      const phoneInput = screen.getByLabelText(/teléfono/i);
+    async function typeNameAndPhone(name: string, phone: string) {
       await act(async () => {
-        fireEvent.change(phoneInput, { target: { value: '5512345678' } });
+        fireEvent.change(screen.getByLabelText(/nombre completo/i), { target: { value: name } });
+        fireEvent.change(screen.getByLabelText(/teléfono/i), { target: { value: phone } });
       });
-
-      // Wait for debounce
       await act(async () => {
         jest.advanceTimersByTime(500);
       });
+    }
+
+    it('should send the full phone and the name as second factor after debounce', async () => {
+      mockFetch.mockResolvedValueOnce(lookupResponse([]));
+
+      render(<QuickBooking tenant={defaultTenant} />);
+      await typeNameAndPhone('Juan García', '55 1234 5678');
 
       expect(mockFetch).toHaveBeenCalledWith('/api/public/customer-lookup', expect.any(Object));
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body).toEqual({
+        tenantSlug: 'test-clinic',
+        phone: '55 1234 5678',
+        customerName: 'Juan García',
+      });
     });
 
     it('should not trigger lookup with invalid phone (less than 10 digits)', async () => {
       render(<QuickBooking tenant={defaultTenant} />);
+      await typeNameAndPhone('Juan García', '12345');
 
-      const phoneInput = screen.getByLabelText(/teléfono/i);
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should not trigger lookup with a phone but no name or email', async () => {
+      render(<QuickBooking tenant={defaultTenant} />);
+
       await act(async () => {
-        fireEvent.change(phoneInput, { target: { value: '12345' } });
+        fireEvent.change(screen.getByLabelText(/teléfono/i), { target: { value: '5512345678' } });
       });
-
       await act(async () => {
         jest.advanceTimersByTime(500);
       });
@@ -220,199 +253,81 @@ describe('QuickBooking', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
-    it('should show recognized customer UI when customer is found', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          found: true,
-          customer: {
-            id: 'customer-1',
-            name: 'Juan García',
-            hasPhone: true,
-            hasEmail: true,
-          },
-          pets: [
-            { id: 'pet-1', name: 'Firulais', species: 'DOG' },
-            { id: 'pet-2', name: 'Luna', species: 'CAT' },
-          ],
-        }),
-      });
+    it('should show the caller pets as selection buttons when the lookup returns them', async () => {
+      mockFetch.mockResolvedValueOnce(lookupResponse([
+        { id: 'pet-1', name: 'Firulais' },
+        { id: 'pet-2', name: 'Luna' },
+      ]));
 
       render(<QuickBooking tenant={defaultTenant} />);
-
-      const phoneInput = screen.getByLabelText(/teléfono/i);
-      await act(async () => {
-        fireEvent.change(phoneInput, { target: { value: '5512345678' } });
-      });
-
-      await act(async () => {
-        jest.advanceTimersByTime(500);
-      });
+      await typeNameAndPhone('Juan García', '5512345678');
 
       await waitFor(() => {
-        expect(screen.getByText(/te reconocemos/i)).toBeInTheDocument();
-      });
-    });
-
-    it('should show existing pets as selection buttons', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          found: true,
-          customer: {
-            id: 'customer-1',
-            name: 'Juan García',
-            hasPhone: true,
-            hasEmail: false,
-          },
-          pets: [
-            { id: 'pet-1', name: 'Firulais', species: 'DOG' },
-            { id: 'pet-2', name: 'Luna', species: 'CAT' },
-          ],
-        }),
-      });
-
-      render(<QuickBooking tenant={defaultTenant} />);
-
-      const phoneInput = screen.getByLabelText(/teléfono/i);
-      await act(async () => {
-        fireEvent.change(phoneInput, { target: { value: '5512345678' } });
-      });
-
-      await act(async () => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
+        expect(screen.getByText(/selecciona una de tus mascotas/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /firulais/i })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /luna/i })).toBeInTheDocument();
-      });
-    });
-
-    it('should show "Nueva mascota" option when pets exist', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          found: true,
-          customer: { id: 'customer-1', name: 'Test' },
-          pets: [{ id: 'pet-1', name: 'Firulais', species: 'DOG' }],
-        }),
-      });
-
-      render(<QuickBooking tenant={defaultTenant} />);
-
-      const phoneInput = screen.getByLabelText(/teléfono/i);
-      await act(async () => {
-        fireEvent.change(phoneInput, { target: { value: '5512345678' } });
-      });
-
-      await act(async () => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
         expect(screen.getByRole('button', { name: /nueva mascota/i })).toBeInTheDocument();
       });
     });
 
-    it('should auto-fill customer name when found', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          found: true,
-          customer: {
-            id: 'customer-1',
-            name: 'Juan García',
-            hasPhone: true,
-            hasEmail: false,
-          },
-          pets: [],
-        }),
-      });
+    it('should keep the plain pet input when the lookup returns no pets', async () => {
+      mockFetch.mockResolvedValueOnce(lookupResponse([]));
 
       render(<QuickBooking tenant={defaultTenant} />);
-
-      const phoneInput = screen.getByLabelText(/teléfono/i);
-      await act(async () => {
-        fireEvent.change(phoneInput, { target: { value: '5512345678' } });
-      });
-
-      await act(async () => {
-        jest.advanceTimersByTime(500);
-      });
+      await typeNameAndPhone('Juan García', '5512345678');
 
       await waitFor(() => {
-        const nameInput = screen.getByLabelText(/nombre completo/i) as HTMLInputElement;
-        expect(nameInput.value).toBe('Juan García');
+        expect(screen.getByPlaceholderText(/nombre de tu mascota/i)).toBeInTheDocument();
       });
+      expect(screen.queryByText(/te reconocemos/i)).not.toBeInTheDocument();
     });
-  });
 
-  describe('Pet Selection', () => {
-    it('should select pet when clicked', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          found: true,
-          customer: { id: 'customer-1', name: 'Test' },
-          pets: [{ id: 'pet-1', name: 'Firulais', species: 'DOG' }],
-        }),
-      });
+    it('should not change the name the caller typed', async () => {
+      mockFetch.mockResolvedValueOnce(lookupResponse([{ id: 'pet-1', name: 'Firulais' }]));
 
       render(<QuickBooking tenant={defaultTenant} />);
-
-      const phoneInput = screen.getByLabelText(/teléfono/i);
-      await act(async () => {
-        fireEvent.change(phoneInput, { target: { value: '5512345678' } });
-      });
-
-      await act(async () => {
-        jest.advanceTimersByTime(500);
-      });
+      await typeNameAndPhone('juan garcia', '5512345678');
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /firulais/i })).toBeInTheDocument();
       });
+      expect((screen.getByLabelText(/nombre completo/i) as HTMLInputElement).value).toBe('juan garcia');
+    });
+  });
+
+  describe('Pet Selection', () => {
+    async function showPets() {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ success: true, pets: [{ id: 'pet-1', name: 'Firulais' }] }),
+      });
+
+      render(<QuickBooking tenant={defaultTenant} />);
+      await act(async () => {
+        fireEvent.change(screen.getByLabelText(/nombre completo/i), { target: { value: 'Juan García' } });
+        fireEvent.change(screen.getByLabelText(/teléfono/i), { target: { value: '5512345678' } });
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(500);
+      });
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /firulais/i })).toBeInTheDocument();
+      });
+    }
+
+    it('should select pet when clicked', async () => {
+      await showPets();
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /firulais/i }));
       });
 
       // Button should be styled as selected (has theme color background)
-      const petButton = screen.getByRole('button', { name: /firulais/i });
-      expect(petButton).toHaveClass('text-white');
+      expect(screen.getByRole('button', { name: /firulais/i })).toHaveClass('text-white');
     });
 
     it('should show name input when "Nueva mascota" is selected', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          found: true,
-          customer: { id: 'customer-1', name: 'Test' },
-          pets: [{ id: 'pet-1', name: 'Firulais', species: 'DOG' }],
-        }),
-      });
-
-      render(<QuickBooking tenant={defaultTenant} />);
-
-      const phoneInput = screen.getByLabelText(/teléfono/i);
-      await act(async () => {
-        fireEvent.change(phoneInput, { target: { value: '5512345678' } });
-      });
-
-      await act(async () => {
-        jest.advanceTimersByTime(500);
-      });
-
-      await waitFor(() => {
-        expect(screen.getByRole('button', { name: /nueva mascota/i })).toBeInTheDocument();
-      });
+      await showPets();
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /nueva mascota/i }));
@@ -423,13 +338,18 @@ describe('QuickBooking', () => {
   });
 
   describe('Date Selection', () => {
-    it('should set min date to today', () => {
-      render(<QuickBooking tenant={defaultTenant} />);
+    // Regression: min used the UTC date, so from 18:00 in Mexico City the
+    // clinic's own today could no longer be picked.
+    it('should set min date to today in the clinic timezone', () => {
+      jest.useFakeTimers({ now: new Date('2026-11-17T03:00:00.000Z') }); // 21:00 on the 16th in CDMX
+      try {
+        render(<QuickBooking tenant={{ ...defaultTenant, timeZone: 'America/Mexico_City' }} />);
 
-      const dateInput = screen.getByLabelText(/fecha preferida/i);
-      const today = new Date().toISOString().split('T')[0];
-
-      expect(dateInput).toHaveAttribute('min', today);
+        const dateInput = screen.getByLabelText(/fecha preferida/i);
+        expect(dateInput).toHaveAttribute('min', '2026-11-16');
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('should fetch availability when date is selected', async () => {
@@ -584,10 +504,6 @@ describe('QuickBooking', () => {
               preferredDate: '2025-02-15',
               status: 'PENDING',
             },
-            customerStatus: 'new',
-            existingPets: [],
-            hasAccount: false,
-            confidence: 'high',
           },
         }),
       });
@@ -705,17 +621,14 @@ describe('QuickBooking', () => {
   });
 
   describe('Success State', () => {
-    it('should show recognized customer message for existing customers', async () => {
+    it('should show a generic confirmation without identifying the caller', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
         json: () => Promise.resolve({
           success: true,
+          message: 'Solicitud de cita recibida',
           data: {
             appointmentRequest: { id: 'appt-1', petName: 'Firulais', status: 'PENDING' },
-            customerStatus: 'existing',
-            existingPets: [{ id: 'pet-1', name: 'Firulais', species: 'DOG' }],
-            hasAccount: false,
-            confidence: 'high',
           },
         }),
       });
@@ -733,77 +646,10 @@ describe('QuickBooking', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getByText(/te reconocemos/i)).toBeInTheDocument();
+        expect(screen.getByText('¡Solicitud Enviada!')).toBeInTheDocument();
       });
-    });
-
-    it('should show login prompt when customer has account', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          data: {
-            appointmentRequest: { id: 'appt-1', petName: 'Firulais', status: 'PENDING' },
-            customerStatus: 'existing',
-            existingPets: [],
-            hasAccount: true,
-            confidence: 'high',
-            loginPrompt: {
-              message: '¡Te reconocemos! Inicia sesión para ver tu historial completo',
-              loginUrl: '/sign-in?redirect=dashboard',
-            },
-          },
-        }),
-      });
-
-      render(<QuickBooking tenant={defaultTenant} />);
-
-      await act(async () => {
-        fireEvent.change(screen.getByLabelText(/nombre completo/i), { target: { value: 'Juan' } });
-        fireEvent.change(screen.getByLabelText(/teléfono/i), { target: { value: '5551234567' } });
-        fireEvent.change(screen.getByPlaceholderText(/nombre de tu mascota/i), { target: { value: 'Firulais' } });
-      });
-
-      await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Solicitar Cita' }));
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText(/inicia sesión/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /iniciar sesión/i })).toBeInTheDocument();
-      });
-    });
-
-    it('should show needs_review message for ambiguous customer', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({
-          success: true,
-          data: {
-            appointmentRequest: { id: 'appt-1', petName: 'Firulais', status: 'PENDING' },
-            customerStatus: 'needs_review',
-            existingPets: [],
-            hasAccount: false,
-            confidence: 'low',
-          },
-        }),
-      });
-
-      render(<QuickBooking tenant={defaultTenant} />);
-
-      await act(async () => {
-        fireEvent.change(screen.getByLabelText(/nombre completo/i), { target: { value: 'Juan' } });
-        fireEvent.change(screen.getByLabelText(/teléfono/i), { target: { value: '5551234567' } });
-        fireEvent.change(screen.getByPlaceholderText(/nombre de tu mascota/i), { target: { value: 'Firulais' } });
-      });
-
-      await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Solicitar Cita' }));
-      });
-
-      await waitFor(() => {
-        expect(screen.getByText(/información recibida/i)).toBeInTheDocument();
-      });
+      expect(screen.queryByText(/te reconocemos/i)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /iniciar sesión/i })).not.toBeInTheDocument();
     });
 
     it('should show appointment summary after submission', async () => {
@@ -813,10 +659,6 @@ describe('QuickBooking', () => {
           success: true,
           data: {
             appointmentRequest: { id: 'appt-1', petName: 'Firulais', service: 'Consulta', status: 'PENDING' },
-            customerStatus: 'new',
-            existingPets: [],
-            hasAccount: false,
-            confidence: 'high',
           },
         }),
       });
@@ -847,10 +689,6 @@ describe('QuickBooking', () => {
           success: true,
           data: {
             appointmentRequest: { id: 'appt-1', petName: 'Firulais', status: 'PENDING' },
-            customerStatus: 'new',
-            existingPets: [],
-            hasAccount: false,
-            confidence: 'high',
           },
         }),
       });
@@ -913,6 +751,7 @@ describe('QuickBooking', () => {
       render(<QuickBooking tenant={defaultTenant} />);
 
       await act(async () => {
+        fireEvent.change(screen.getByLabelText(/nombre completo/i), { target: { value: 'Juan García' } });
         fireEvent.change(screen.getByLabelText(/teléfono/i), { target: { value: '5512345678' } });
       });
 
@@ -928,7 +767,7 @@ describe('QuickBooking', () => {
       if (resolvePromise) {
         resolvePromise({
           ok: true,
-          json: () => Promise.resolve({ success: true, found: false }),
+          json: () => Promise.resolve({ success: true, pets: [] }),
         });
       }
     });

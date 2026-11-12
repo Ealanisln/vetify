@@ -43,6 +43,9 @@ interface Customer {
 
 interface CustomersListProps {
   customers: Customer[];
+  /** Search term; the parent sends it to the API, which searches every row. */
+  searchTerm: string;
+  onSearchChange: (term: string) => void;
   sortBy?: string;
   sortOrder?: SortOrder;
   onSort?: (sortBy: string, sortOrder: SortOrder) => void;
@@ -51,22 +54,19 @@ interface CustomersListProps {
 
 export function CustomersList({
   customers,
+  searchTerm,
+  onSearchChange,
   sortBy,
   sortOrder,
   onSort,
   isLoading = false,
 }: CustomersListProps) {
   const router = useRouter();
-  const [searchTerm, setSearchTerm] = useState('');
   const [customerToArchive, setCustomerToArchive] = useState<Customer | null>(null);
   const [isArchiving, setIsArchiving] = useState(false);
 
-  // Client-side search filter (works on current page data)
-  const filteredCustomers = customers.filter(customer =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.phone?.includes(searchTerm)
-  );
+  // Already filtered by the API (all rows, ignoring accents and phone format)
+  const filteredCustomers = customers;
 
   const handleSort = (columnKey: string) => {
     if (!onSort) return;
@@ -128,9 +128,10 @@ export function CustomersList({
             </div>
             <input
               type="text"
-              placeholder="Buscar en esta página..."
+              placeholder="Buscar por nombre, email o teléfono"
+              aria-label="Buscar clientes"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => onSearchChange(e.target.value)}
               className={`${getThemeClasses('input.base')} block w-full pl-10 pr-3 py-2 border rounded-md leading-5 placeholder-opacity-75 focus:outline-none focus:ring-1 ${getThemeClasses('input.focus')}`}
               data-testid="customer-search-input"
             />

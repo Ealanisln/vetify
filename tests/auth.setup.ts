@@ -1,56 +1,42 @@
-import { test as setup } from '@playwright/test';
-// import { prisma } from './helpers/test-db'; // Will be needed when auth setup is fully implemented
+import { test as setup, expect } from '@playwright/test';
+import {
+  AUTH_STATE_PATH,
+  FAKE_SERVICES_URL,
+  SEEDED_OWNER,
+  TEST_AUTH_SECRET_HEADER,
+} from './e2e/support/constants';
 
 /**
- * Playwright Auth Setup
+ * Logs in as the seeded clinic owner and saves the session for the desktop
+ * projects (playwright.config.ts only adds this project when
+ * TEST_AUTH_ENABLED=true).
  *
- * This setup creates a test session for E2E tests that require authentication.
- * It uses the test-auth bypass API (only available when NODE_ENV=test) to
- * create an authenticated session without going through the full OAuth flow.
+ * The fake Kinde issuer (tests/e2e/support/fake-services.ts) mints the
+ * access_token and id_token cookies Kinde would set after a real login. The
+ * app validates them against the issuer's JWKS, as it does in production.
  *
- * The authenticated state is saved to storageState and reused across tests.
- *
- * Prerequisites:
- * - TEST_AUTH_ENABLED=true environment variable
- * - Test user seeded in the database (via seed-ci-test-data.ts)
- * - /api/test-auth route available (NODE_ENV=test only)
+ * Prerequisites: scripts/seed-ci-test-data.ts has run, and the app runs with
+ * KINDE_ISSUER_URL and RESEND_BASE_URL pointing at FAKE_SERVICES_URL.
  */
-
-const TEST_USER = {
-  email: 'e2e-test@vetify-ci.com',
-  kindeId: 'kp_e2e_test_user_ci',
-};
-
-setup('authenticate', async ({ page }) => {
-  // Skip if auth tests are not enabled
-  if (process.env.TEST_AUTH_ENABLED !== 'true') {
-    return;
-  }
-
-  // Use the test-auth bypass to create an authenticated session
-  const response = await page.request.post('/api/test-auth', {
-    data: {
-      email: TEST_USER.email,
-      kindeId: TEST_USER.kindeId,
-    },
-    headers: {
-      'x-test-secret': process.env.TEST_AUTH_SECRET || 'ci-test-secret',
-    },
+setup('authenticate as the seeded clinic owner', async ({ page, baseURL }) => {
+  const response = await page.request.post(`${FAKE_SERVICES_URL}/test-auth/token`, {
+    data: SEEDED_OWNER,
+    headers: { [TEST_AUTH_SECRET_HEADER]: process.env.TEST_AUTH_SECRET ?? '' },
   });
+  expect(response.status(), 'fake issuer refused to mint a session').toBe(200);
+  const { access_token, id_token } = await response.json();
 
-  if (response.ok()) {
-    // Navigate to dashboard to establish cookies
-    await page.goto('/dashboard');
-    await page.waitForLoadState('networkidle');
+  const cookie = { url: baseURL!, httpOnly: true, sameSite: 'Lax' as const };
+  await page.context().addCookies([
+    { ...cookie, name: 'access_token', value: access_token },
+    { ...cookie, name: 'id_token', value: id_token },
+  ]);
 
-    // Save authenticated state
-    await page.context().storageState({
-      path: 'tests/.auth/user.json',
-    });
-  } else {
-    console.warn(
-      `Auth setup failed with status ${response.status()}. ` +
-      'Ensure /api/test-auth route exists and TEST_AUTH_SECRET is set.'
-    );
-  }
+  await page.goto('/dashboard');
+  // A rejected session redirects to /api/auth/login (and on to the issuer)
+  await expect(page).toHaveURL(/\/dashboard(?:[/?#]|$)/);
+  // Only owners/managers see Configuración, so this also proves the role
+  await expect(page.locator('a[href="/dashboard/settings"]').filter({ visible: true }).first()).toBeVisible();
+
+  await page.context().storageState({ path: AUTH_STATE_PATH });
 });

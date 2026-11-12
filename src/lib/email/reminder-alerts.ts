@@ -5,6 +5,11 @@
  */
 
 import { prisma } from '../prisma';
+import { clinicDaysBetween, getClinicTimeZoneFor } from '../clinical-dates';
+import {
+  TREATMENT_REMINDER_LEAD_DAYS,
+  emailTreatmentTypeFromTitle,
+} from '../treatment-reminder-content';
 import {
   sendTreatmentReminder,
   sendAppointmentReminder,
@@ -14,6 +19,9 @@ import type {
   AppointmentReminderData,
 } from './types';
 import { formatTime } from '../utils/date-format';
+import { clinicDayRange, clinicToday, getClinicTimeZone } from '../clinic-timezone';
+import { shouldSendNotification } from '../enhanced-settings';
+import type { AppointmentStatus } from '@prisma/client';
 
 /**
  * Process pending treatment reminders and send emails
@@ -30,13 +38,17 @@ export async function processTreatmentReminders(): Promise<{
   try {
     const now = new Date();
 
-    // Get pending reminders that are due
+    // Reminder.dueDate is the treatment date (see treatment-reminder-content.ts).
+    // Fetch one extra day so clinic-day rounding never skips the first send day.
+    const windowEnd = new Date(
+      now.getTime() + (TREATMENT_REMINDER_LEAD_DAYS + 1) * 24 * 60 * 60 * 1000
+    );
     const pendingReminders = await prisma.reminder.findMany({
       where: {
         status: 'PENDING',
         type: 'TREATMENT',
         dueDate: {
-          lte: now,
+          lte: windowEnd,
         },
       },
       include: {
@@ -51,6 +63,8 @@ export async function processTreatmentReminders(): Promise<{
             id: true,
             name: true,
             publicPhone: true,
+            countryCode: true,
+            tenantSettings: { select: { timezone: true } },
           },
         },
       },
@@ -62,30 +76,31 @@ export async function processTreatmentReminders(): Promise<{
 
     for (const reminder of pendingReminders) {
       try {
-        // Skip if customer has no email
-        if (!reminder.customer.email) {
+        const treatmentDate = reminder.dueDate;
+        const timeZone = getClinicTimeZoneFor(reminder.tenant);
+        const daysUntil = clinicDaysBetween(now, treatmentDate, timeZone);
+
+        // Not yet within the reminder window
+        if (daysUntil > TREATMENT_REMINDER_LEAD_DAYS) continue;
+
+        // The treatment date already passed: an email would be useless
+        if (daysUntil < 0) {
+          await prisma.reminder.update({
+            where: { id: reminder.id },
+            data: { status: 'DISMISSED' },
+          });
+          continue;
+        }
+
+        // Skip if there is no owner email or the pet was removed
+        if (!reminder.customer?.email || !reminder.pet) {
           console.warn(
-            `[TREATMENT_REMINDERS] No email for customer ${reminder.customer.id}`
+            `[TREATMENT_REMINDERS] No customer email or pet for reminder ${reminder.id}`
           );
           continue;
         }
 
-        // Calculate days until treatment
-        const treatmentDate = reminder.dueDate;
-        const daysUntil = Math.ceil(
-          (treatmentDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        // Get treatment type from reminder title
-        let treatmentType: 'VACCINATION' | 'MEDICATION' | 'CHECKUP' | 'OTHER' =
-          'OTHER';
-        if (reminder.title.toLowerCase().includes('vacun')) {
-          treatmentType = 'VACCINATION';
-        } else if (reminder.title.toLowerCase().includes('desparasit')) {
-          treatmentType = 'MEDICATION';
-        } else if (reminder.title.toLowerCase().includes('revision')) {
-          treatmentType = 'CHECKUP';
-        }
+        const treatmentType = emailTreatmentTypeFromTitle(reminder.title);
 
         const emailData: TreatmentReminderData = {
           template: 'treatment-reminder',
@@ -105,7 +120,7 @@ export async function processTreatmentReminders(): Promise<{
             clinicName: reminder.tenant.name,
             clinicPhone: reminder.tenant.publicPhone || undefined,
             notes: reminder.message || undefined,
-            daysUntilDue: Math.max(0, daysUntil),
+            daysUntilDue: daysUntil,
           },
         };
 
@@ -156,8 +171,27 @@ export async function processTreatmentReminders(): Promise<{
   }
 }
 
+/** Statuses that still expect the client to show up */
+const REMINDABLE_APPOINTMENT_STATUSES: AppointmentStatus[] = ['SCHEDULED', 'CONFIRMED'];
+
 /**
- * Process upcoming appointments and send reminder emails (24 hours before)
+ * The cron runs once a day, so the candidate window must cover "tomorrow" in
+ * every clinic timezone (UTC-12..UTC+14): the next 3 days are always enough.
+ * The exact clinic-local day is checked per appointment.
+ */
+const CANDIDATE_WINDOW_MS = 3 * 24 * 60 * 60 * 1000;
+
+/** The calendar day after `date` (yyyy-MM-dd) */
+function nextCalendarDay(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}
+
+/**
+ * Send a reminder for every appointment on the NEXT clinic-local calendar
+ * day. Meant to run once a day; each appointment gets at most one reminder
+ * (a non-failed APPOINTMENT_REMINDER EmailLog row blocks a second one), so
+ * re-running the cron the same day is safe.
  */
 export async function processAppointmentReminders(): Promise<{
   success: boolean;
@@ -170,18 +204,15 @@ export async function processAppointmentReminders(): Promise<{
 
   try {
     const now = new Date();
-    const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const twentyFiveHoursFromNow = new Date(now.getTime() + 25 * 60 * 60 * 1000);
 
-    // Get appointments that are 24-25 hours away and haven't had reminders sent
-    const upcomingAppointments = await prisma.appointment.findMany({
+    const candidates = await prisma.appointment.findMany({
       where: {
         dateTime: {
-          gte: twentyFourHoursFromNow,
-          lte: twentyFiveHoursFromNow,
+          gt: now,
+          lte: new Date(now.getTime() + CANDIDATE_WINDOW_MS),
         },
         status: {
-          in: ['SCHEDULED', 'CONFIRMED'],
+          in: REMINDABLE_APPOINTMENT_STATUSES,
         },
       },
       include: {
@@ -210,16 +241,32 @@ export async function processAppointmentReminders(): Promise<{
             name: true,
             publicPhone: true,
             publicAddress: true,
+            countryCode: true,
+            tenantSettings: { select: { timezone: true } },
           },
         },
       },
     });
 
+    // Keep only appointments on tomorrow's date in their clinic's timezone
+    const upcomingAppointments = candidates
+      .map((appointment) => ({
+        appointment,
+        timeZone: getClinicTimeZone(appointment.tenant),
+      }))
+      .filter(({ appointment, timeZone }) => {
+        const tomorrow = nextCalendarDay(clinicToday(timeZone, now));
+        const { start, end } = clinicDayRange(tomorrow, timeZone);
+        return appointment.dateTime >= start && appointment.dateTime <= end;
+      });
+
     console.log(
       `[APPOINTMENT_REMINDERS] Processing ${upcomingAppointments.length} appointments`
     );
 
-    for (const appointment of upcomingAppointments) {
+    const reminderEnabled = new Map<string, boolean>();
+
+    for (const { appointment, timeZone } of upcomingAppointments) {
       try {
         // Skip if customer has no email
         if (!appointment.customer.email) {
@@ -229,18 +276,24 @@ export async function processAppointmentReminders(): Promise<{
           continue;
         }
 
-        // Check if reminder was already sent (look for recent email log)
+        if (!reminderEnabled.has(appointment.tenantId)) {
+          reminderEnabled.set(
+            appointment.tenantId,
+            await shouldSendNotification(appointment.tenantId, 'appointmentReminder')
+          );
+        }
+        if (!reminderEnabled.get(appointment.tenantId)) continue;
+
+        // At most one reminder per appointment, ever. Failed attempts don't
+        // count, so a re-run the same day retries them.
         const existingReminder = await prisma.emailLog.findFirst({
           where: {
             tenantId: appointment.tenantId,
-            recipientEmail: appointment.customer.email,
             template: 'APPOINTMENT_REMINDER',
+            status: { not: 'FAILED' },
             metadata: {
               path: ['data', 'appointmentId'],
               equals: appointment.id,
-            },
-            createdAt: {
-              gte: new Date(now.getTime() - 2 * 60 * 60 * 1000), // Last 2 hours
             },
           },
         });
@@ -257,7 +310,7 @@ export async function processAppointmentReminders(): Promise<{
           (appointment.dateTime.getTime() - now.getTime()) / (1000 * 60 * 60)
         );
 
-        const appointmentTime = formatTime(appointment.dateTime);
+        const appointmentTime = formatTime(appointment.dateTime, timeZone);
 
         const emailData: AppointmentReminderData = {
           template: 'appointment-reminder',
@@ -267,6 +320,7 @@ export async function processAppointmentReminders(): Promise<{
           },
           subject: `Recordatorio de Cita - ${appointment.pet.name}`,
           tenantId: appointment.tenantId,
+          timeZone,
           data: {
             appointmentId: appointment.id,
             petName: appointment.pet.name,

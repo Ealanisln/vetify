@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { generateSetupToken } from './setup-token';
+import { getAppUrl } from '../app-url';
 
 // Lazy-load Resend client to avoid initialization during build
 function getResendClient(): Resend {
@@ -11,13 +12,12 @@ function getResendClient(): Resend {
 }
 
 const FROM_EMAIL = process.env.SETUP_FROM_EMAIL || 'soporte@vetify.pro';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
 export async function sendSetupVerificationEmail(email: string) {
   // Create or reuse active token
   const tokenRecord = await generateSetupToken(email);
 
-  const verifyUrl = `${APP_URL}/setup?token=${tokenRecord.token}`;
+  const verifyUrl = `${getAppUrl()}/setup?token=${tokenRecord.token}`;
 
   const html = `
     <p>Hola,</p>
@@ -30,12 +30,17 @@ export async function sendSetupVerificationEmail(email: string) {
   `;
 
   const resend = getResendClient();
-  await resend.emails.send({
+  const response = await resend.emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: 'Completa la configuración inicial de Vetify',
     html,
   });
+
+  // Resend resolves (does not throw) on API errors such as an unverified domain
+  if (response.error) {
+    throw new Error(`Resend error (${response.error.name}): ${response.error.message}`);
+  }
 
   return { success: true } as const;
 } 

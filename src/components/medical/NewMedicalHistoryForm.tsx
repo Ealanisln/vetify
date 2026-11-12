@@ -13,8 +13,8 @@ import {
   PlusIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
-import { format } from 'date-fns';
 import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
+import { PrescriptionProductInput, type InventoryProductOption } from './PrescriptionProductInput';
 
 interface NewMedicalHistoryFormProps {
   tenantId: string;
@@ -41,7 +41,8 @@ interface MedicalHistoryFormData {
   treatment: string;
   notes: string;
   prescriptions: Array<{
-    productId: string;
+    // Set only when picked from the inventory; free text sends no productId
+    productId?: string;
     productName: string;
     quantity: number;
     dosage: string;
@@ -61,7 +62,8 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
   
   const [formData, setFormData] = useState<MedicalHistoryFormData>({
     petId: '',
-    visitDate: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm'),
+    // Empty means "now": the server stamps it in the clinic timezone
+    visitDate: '',
     reasonForVisit: '',
     diagnosis: '',
     treatment: '',
@@ -74,8 +76,9 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
     try {
       const response = await fetch(`/api/pets?search=${encodeURIComponent(searchQuery)}&limit=10`);
       if (response.ok) {
-        const data = await response.json();
-        setPets(data.pets || data);
+        const body = await response.json();
+        // /api/pets answers { success, data, pagination }
+        setPets(Array.isArray(body) ? body : body.data ?? []);
       }
     } catch (error) {
       console.error('Error fetching pets:', error);
@@ -103,7 +106,6 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
     setFormData(prev => ({
       ...prev,
       prescriptions: [...prev.prescriptions, {
-        productId: '',
         productName: '',
         quantity: 1,
         dosage: '',
@@ -130,6 +132,25 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
     }));
   };
 
+  // Typing a name unlinks any inventory product picked before
+  const setPrescriptionName = (index: number, productName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      prescriptions: prev.prescriptions.map((prescription, i) =>
+        i === index ? { ...prescription, productName, productId: undefined } : prescription
+      )
+    }));
+  };
+
+  const linkPrescriptionProduct = (index: number, product: InventoryProductOption) => {
+    setFormData(prev => ({
+      ...prev,
+      prescriptions: prev.prescriptions.map((prescription, i) =>
+        i === index ? { ...prescription, productName: product.name, productId: product.id } : prescription
+      )
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPet || !formData.reasonForVisit) return;
@@ -141,11 +162,16 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          visitDate: formData.visitDate || undefined,
+        }),
       });
 
       if (response.ok) {
-        router.push('/dashboard/medical-history');
+        // Open the saved record (it offers "Agendar seguimiento")
+        const created = await response.json().catch(() => null);
+        router.push(created?.id ? `/dashboard/medical-history/${created.id}` : '/dashboard/medical-history');
       } else {
         const error = await response.json();
         alert(error.error || 'Error al crear la historia clínica');
@@ -205,7 +231,7 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                   placeholder="Buscar mascota por nombre o cliente..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
               
@@ -216,21 +242,21 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
               )}
               
               {pets.length > 0 && (
-                <div className="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+                <div className="max-h-60 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
                   {pets.map((pet) => (
                     <button
                       key={pet.id}
                       type="button"
                       onClick={() => selectPet(pet)}
-                      className="w-full p-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                      className="w-full p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-800 last:border-b-0"
                     >
                       <div className="flex items-center gap-3">
                         <HeartIcon className="h-4 w-4 text-red-500" />
                         <div>
-                          <div className="font-medium text-gray-900">
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
                             {pet.name} ({mapSpeciesToSpanish(pet.species)})
                           </div>
-                          <div className="text-sm text-gray-600">
+                          <div className="text-sm text-gray-600 dark:text-gray-400">
                             {pet.customer.name}
                             {pet.customer.phone && ` • ${pet.customer.phone}`}
                           </div>
@@ -255,21 +281,25 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Fecha y Hora de Consulta *
+                  <label htmlFor="visitDate" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Fecha y Hora de Consulta
                   </label>
                   <input
+                    id="visitDate"
                     type="datetime-local"
-                    required
+                    aria-describedby="visitDate-help"
                     value={formData.visitDate}
                     onChange={(e) => setFormData(prev => ({ ...prev, visitDate: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   />
+                  <p id="visitDate-help" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Si la dejas vacía se usa la fecha y hora actual.
+                  </p>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Motivo de Consulta *
                 </label>
                 <input
@@ -278,12 +308,12 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                   placeholder="Ej: Control rutinario, vacunación, consulta por síntomas..."
                   value={formData.reasonForVisit}
                   onChange={(e) => setFormData(prev => ({ ...prev, reasonForVisit: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Diagnóstico
                 </label>
                 <input
@@ -291,12 +321,12 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                   placeholder="Diagnóstico médico..."
                   value={formData.diagnosis}
                   onChange={(e) => setFormData(prev => ({ ...prev, diagnosis: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Tratamiento
                 </label>
                 <textarea
@@ -304,12 +334,12 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                   placeholder="Descripción del tratamiento aplicado o recomendado..."
                   value={formData.treatment}
                   onChange={(e) => setFormData(prev => ({ ...prev, treatment: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Notas Adicionales
                 </label>
                 <textarea
@@ -317,7 +347,7 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                   placeholder="Observaciones, recomendaciones, próximas citas..."
                   value={formData.notes}
                   onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
             </CardContent>
@@ -341,15 +371,15 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
             </CardHeader>
             <CardContent>
               {formData.prescriptions.length === 0 ? (
-                <p className="text-gray-500 text-center py-4">
+                <p className="text-gray-500 dark:text-gray-400 text-center py-4">
                   No hay prescripciones agregadas
                 </p>
               ) : (
                 <div className="space-y-4">
                   {formData.prescriptions.map((prescription, index) => (
-                    <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                    <div key={index} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-medium text-gray-900">
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100">
                           Medicamento {index + 1}
                         </h4>
                         <Button
@@ -364,19 +394,18 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Nombre del Medicamento
                           </label>
-                          <input
-                            type="text"
-                            placeholder="Nombre del medicamento"
+                          <PrescriptionProductInput
                             value={prescription.productName}
-                            onChange={(e) => updatePrescription(index, 'productName', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            productId={prescription.productId}
+                            onChange={(name) => setPrescriptionName(index, name)}
+                            onSelectProduct={(product) => linkPrescriptionProduct(index, product)}
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Cantidad
                           </label>
                           <input
@@ -384,11 +413,11 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                             min="1"
                             value={prescription.quantity}
                             onChange={(e) => updatePrescription(index, 'quantity', parseInt(e.target.value))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Dosis
                           </label>
                           <input
@@ -396,11 +425,11 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                             placeholder="Ej: 1 tableta, 5ml"
                             value={prescription.dosage}
                             onChange={(e) => updatePrescription(index, 'dosage', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Frecuencia
                           </label>
                           <input
@@ -408,11 +437,11 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                             placeholder="Ej: Cada 8 horas, 2 veces al día"
                             value={prescription.frequency}
                             onChange={(e) => updatePrescription(index, 'frequency', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Duración
                           </label>
                           <input
@@ -420,11 +449,11 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                             placeholder="Ej: 7 días, 2 semanas"
                             value={prescription.duration}
                             onChange={(e) => updatePrescription(index, 'duration', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Instrucciones
                           </label>
                           <input
@@ -432,7 +461,7 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                             placeholder="Ej: Con alimento, en ayunas"
                             value={prescription.instructions}
                             onChange={(e) => updatePrescription(index, 'instructions', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
                       </div>

@@ -1,8 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
-import { addMinutes, format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import {
+  filterAvailableSlots,
+  generateDaySlots,
+  serializeSlot,
+  type BusinessHours,
+} from '../../../../lib/appointments/availability';
+import {
+  clinicDayRange,
+  clinicToday,
+  dayOfWeekForDate,
+  getClinicTimeZone,
+  parseClinicDate,
+} from '../../../../lib/clinic-timezone';
+import { defaultDayHours } from '../../../../lib/business-hours';
 
 const availabilitySchema = z.object({
   tenantSlug: z.string().min(1),
@@ -11,18 +23,6 @@ const availabilitySchema = z.object({
   }),
   duration: z.number().min(15).max(300).optional().default(30),
 });
-
-interface BusinessHours {
-  start: number;
-  startMinute: number;
-  end: number;
-  endMinute: number;
-  lunchStart: number | null;
-  lunchStartMinute: number;
-  lunchEnd: number | null;
-  lunchEndMinute: number;
-  slotDuration: number;
-}
 
 // Get business hours from database for a tenant
 async function getBusinessHours(tenantId: string, dayOfWeek: number): Promise<BusinessHours | null> {
@@ -36,7 +36,8 @@ async function getBusinessHours(tenantId: string, dayOfWeek: number): Promise<Bu
       }
     });
 
-    const dayBusinessHours = tenantSettings?.businessHours?.[0];
+    // No row yet (tenant predates signup seeding): use the default week
+    const dayBusinessHours = tenantSettings?.businessHours?.[0] ?? defaultDayHours(dayOfWeek, tenantSettings);
 
     if (!dayBusinessHours?.isWorkingDay) {
       return null;
@@ -68,46 +69,6 @@ async function getBusinessHours(tenantId: string, dayOfWeek: number): Promise<Bu
       slotDuration: 30,
     };
   }
-}
-
-function generateDaySlots(date: Date, businessHours: BusinessHours) {
-  const slots = [];
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
-
-  // Morning slots
-  const morningEnd = businessHours.lunchStart ?? businessHours.end;
-  for (let hour = businessHours.start; hour < morningEnd; hour++) {
-    const startMinute = hour === businessHours.start ? businessHours.startMinute : 0;
-    const endMinute = 60;
-
-    for (let minute = startMinute; minute < endMinute; minute += businessHours.slotDuration) {
-      const slotTime = new Date(year, month, day, hour, minute, 0, 0);
-      slots.push({
-        dateTime: slotTime,
-        period: 'morning'
-      });
-    }
-  }
-
-  // Afternoon slots (if there's a lunch break)
-  if (businessHours.lunchStart && businessHours.lunchEnd) {
-    for (let hour = businessHours.lunchEnd; hour < businessHours.end; hour++) {
-      const startMinute = hour === businessHours.lunchEnd ? businessHours.lunchEndMinute : 0;
-      const endMinute = hour === businessHours.end - 1 ? (businessHours.endMinute || 60) : 60;
-
-      for (let minute = startMinute; minute < endMinute; minute += businessHours.slotDuration) {
-        const slotTime = new Date(year, month, day, hour, minute, 0, 0);
-        slots.push({
-          dateTime: slotTime,
-          period: 'afternoon'
-        });
-      }
-    }
-  }
-
-  return slots;
 }
 
 export async function GET(request: Request) {
@@ -142,7 +103,9 @@ export async function GET(request: Request) {
       select: {
         id: true,
         publicBookingEnabled: true,
-        publicPageEnabled: true
+        publicPageEnabled: true,
+        countryCode: true,
+        tenantSettings: { select: { timezone: true } }
       }
     });
 
@@ -160,34 +123,25 @@ export async function GET(request: Request) {
       );
     }
 
-    // Parse date
-    let targetDate: Date;
-    try {
-      if (validatedData.date.includes('T')) {
-        targetDate = new Date(validatedData.date);
-      } else {
-        const [year, month, day] = validatedData.date.split('-').map(Number);
-        targetDate = new Date(year, month - 1, day);
-      }
+    const timeZone = getClinicTimeZone(tenant);
 
-      if (isNaN(targetDate.getTime())) {
-        throw new Error('Invalid date');
-      }
-    } catch {
+    // The requested day is a clinic calendar day, never a server-local one
+    const clinicDate = parseClinicDate(validatedData.date, timeZone);
+    if (!clinicDate) {
       return NextResponse.json(
         { success: false, error: 'Formato de fecha inválido' },
         { status: 400 }
       );
     }
 
-    // Check if date is in the past
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (targetDate < today) {
+    // Check if date is in the past (for the clinic)
+    const now = new Date();
+    if (clinicDate < clinicToday(timeZone, now)) {
       return NextResponse.json({
         success: true,
         data: {
           date: validatedData.date,
+          timeZone,
           availableSlots: [],
           workingDay: false,
           message: 'No se pueden agendar citas en el pasado'
@@ -195,7 +149,7 @@ export async function GET(request: Request) {
       });
     }
 
-    const dayOfWeek = targetDate.getDay();
+    const dayOfWeek = dayOfWeekForDate(clinicDate);
     const businessHours = await getBusinessHours(tenant.id, dayOfWeek);
 
     if (!businessHours) {
@@ -203,6 +157,7 @@ export async function GET(request: Request) {
         success: true,
         data: {
           date: validatedData.date,
+          timeZone,
           availableSlots: [],
           workingDay: false,
           message: 'Día no laborable'
@@ -210,15 +165,11 @@ export async function GET(request: Request) {
       });
     }
 
-    // Generate all slots for the day
-    const slots = generateDaySlots(targetDate, businessHours);
+    // Generate all slots for the clinic day
+    const slots = generateDaySlots(clinicDate, businessHours, timeZone);
 
-    // Get existing appointments
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Get existing appointments within the clinic day
+    const { start: startOfDay, end: endOfDay } = clinicDayRange(clinicDate, timeZone);
 
     const existingAppointments = await prisma.appointment.findMany({
       where: {
@@ -238,65 +189,19 @@ export async function GET(request: Request) {
       }
     });
 
-    // Get confirmed appointment requests for the day (to avoid double booking)
-    const confirmedRequests = await prisma.appointmentRequest.findMany({
-      where: {
-        tenantId: tenant.id,
-        status: 'CONFIRMED',
-        preferredDate: {
-          gte: startOfDay,
-          lte: endOfDay
-        }
-      },
-      select: {
-        id: true,
-        preferredDate: true,
-        preferredTime: true
-      }
-    });
+    // Only real appointments hold a slot. AppointmentRequests are created
+    // PENDING and no flow confirms them; an accepted request becomes an
+    // Appointment, which this query already covers.
+    const busy = existingAppointments.map((appointment) => ({
+      start: new Date(appointment.dateTime),
+      durationMinutes: appointment.duration,
+    }));
 
-    // Filter available slots
-    const now = new Date();
-    const availableSlots = slots.filter(slot => {
-      // Don't show past slots for today
-      if (slot.dateTime <= now) {
-        return false;
-      }
-
-      const slotEnd = addMinutes(slot.dateTime, validatedData.duration);
-
-      // Check against existing appointments
-      const hasAppointmentConflict = existingAppointments.some(appointment => {
-        const appointmentStart = new Date(appointment.dateTime);
-        const appointmentEnd = addMinutes(appointmentStart, appointment.duration);
-
-        return (
-          (slot.dateTime >= appointmentStart && slot.dateTime < appointmentEnd) ||
-          (slotEnd > appointmentStart && slotEnd <= appointmentEnd) ||
-          (slot.dateTime <= appointmentStart && slotEnd >= appointmentEnd)
-        );
-      });
-
-      if (hasAppointmentConflict) return false;
-
-      // Check against confirmed requests
-      const hasRequestConflict = confirmedRequests.some(request => {
-        if (!request.preferredDate || !request.preferredTime) return false;
-
-        const requestDate = new Date(request.preferredDate);
-        const [hours, minutes] = request.preferredTime.split(':').map(Number);
-        requestDate.setHours(hours, minutes, 0, 0);
-
-        const requestEnd = addMinutes(requestDate, validatedData.duration);
-
-        return (
-          (slot.dateTime >= requestDate && slot.dateTime < requestEnd) ||
-          (slotEnd > requestDate && slotEnd <= requestEnd) ||
-          (slot.dateTime <= requestDate && slotEnd >= requestEnd)
-        );
-      });
-
-      return !hasRequestConflict;
+    // Past slots (in clinic time) are never bookable publicly
+    const availableSlots = filterAvailableSlots(slots, {
+      durationMinutes: validatedData.duration,
+      busy,
+      notBefore: now,
     });
 
     return NextResponse.json({
@@ -304,12 +209,8 @@ export async function GET(request: Request) {
       data: {
         date: validatedData.date,
         duration: validatedData.duration,
-        availableSlots: availableSlots.map(slot => ({
-          dateTime: slot.dateTime.toISOString(),
-          time: format(slot.dateTime, 'HH:mm', { locale: es }),
-          displayTime: format(slot.dateTime, 'h:mm a', { locale: es }),
-          period: slot.period
-        })),
+        timeZone,
+        availableSlots: availableSlots.map(slot => serializeSlot(slot, timeZone)),
         totalSlots: slots.length,
         availableCount: availableSlots.length,
         workingDay: true,

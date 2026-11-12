@@ -2,13 +2,17 @@
 
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
-import listPlugin from '@fullcalendar/list';
+import { calendarPlugins } from './calendar-plugins';
 import { DateSelectArg, EventClickArg, EventDropArg, EventContentArg, EventApi } from '@fullcalendar/core';
 import esLocale from '@fullcalendar/core/locales/es';
-import { useCalendar, useCalendarConfig, CalendarView } from '../../hooks/useCalendar';
+import {
+  useCalendar,
+  useCalendarConfig,
+  useClinicCalendarSettings,
+  CalendarView,
+  type ClinicCalendarSettings,
+} from '../../hooks/useCalendar';
+import { buildCalendarHours } from '@/lib/appointments/calendar-hours';
 import { useAppointments, AppointmentWithDetails } from '../../hooks/useAppointments';
 import { useSafeAppointmentsContext } from '../providers/AppointmentsProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -17,8 +21,9 @@ import { Badge } from '../ui/badge';
 import { Loader2, Calendar, Clock, User, Phone, AlertCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { getAppointmentStatusLabel, getAppointmentStatusColor } from '../../lib/validations/appointments';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
+import { DEFAULT_CLINIC_TIME_ZONE } from '@/lib/clinic-timezone';
 import { toast } from 'sonner';
 import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
@@ -34,6 +39,8 @@ interface FullCalendarViewProps {
   editable?: boolean;
   selectable?: boolean;
   refreshTrigger?: number; // Increment to trigger a refresh from parent
+  /** Clinic hours and timezone, when the parent already loads them */
+  clinicSettings?: ClinicCalendarSettings;
 }
 
 export function FullCalendarView({
@@ -48,6 +55,7 @@ export function FullCalendarView({
   editable = true,
   selectable = true,
   refreshTrigger,
+  clinicSettings,
 }: FullCalendarViewProps) {
   const calendarRef = useRef<FullCalendar>(null);
   const [selectedEvent, setSelectedEvent] = useState<EventApi | null>(null);
@@ -120,6 +128,16 @@ export function FullCalendarView({
   }, [isMobile, defaultView, setCurrentView]);
 
   const calendarConfig = useCalendarConfig();
+  const ownClinicSettings = useClinicCalendarSettings(!clinicSettings);
+  const { days: clinicHours, timeZone: loadedTimeZone } = clinicSettings ?? ownClinicSettings;
+  // The calendar shows and edits clinic time, whatever the browser's zone is.
+  // The Luxon plugin (calendarPlugins) makes callbacks return real instants.
+  const timeZone = loadedTimeZone ?? DEFAULT_CLINIC_TIME_ZONE;
+  // Saved clinic hours, widened so no appointment falls outside the grid
+  const calendarHours = useMemo(
+    () => buildCalendarHours(clinicHours, events, timeZone),
+    [clinicHours, events, timeZone]
+  );
 
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
     const appointment = clickInfo.event.extendedProps.appointment;
@@ -138,10 +156,10 @@ export function FullCalendarView({
   }, [onDateSelect]);
 
   const handleEventDrop = useCallback(async (dropInfo: EventDropArg) => {
-    const appointment = dropInfo.event.extendedProps.appointment;
+    const { appointment, canEdit } = dropInfo.event.extendedProps;
     const newDateTime = dropInfo.event.start;
-    
-    if (!newDateTime || !appointment.canEdit) {
+
+    if (!newDateTime || !canEdit) {
       dropInfo.revert();
       toast.error('No se puede mover esta cita');
       return;
@@ -158,19 +176,19 @@ export function FullCalendarView({
       if (onEventDrop) {
         onEventDrop(dropInfo);
       }
-    } catch {
+    } catch (error) {
       dropInfo.revert();
-      toast.error('Error al reprogramar la cita');
-      // Error is already shown to user via toast
+      // Show the server's message (e.g. a 409 schedule conflict)
+      toast.error(error instanceof Error && error.message ? error.message : 'Error al reprogramar la cita');
     }
   }, [updateAppointment, refresh, onEventDrop]);
 
   const handleEventResize = useCallback(async (resizeInfo: EventDropArg) => {
-    const appointment = resizeInfo.event.extendedProps.appointment;
+    const { appointment, canEdit } = resizeInfo.event.extendedProps;
     const newEnd = resizeInfo.event.end;
     const start = resizeInfo.event.start;
-    
-    if (!newEnd || !start || !appointment.canEdit) {
+
+    if (!newEnd || !start || !canEdit) {
       resizeInfo.revert();
       toast.error('No se puede cambiar la duración de esta cita');
       return;
@@ -195,10 +213,10 @@ export function FullCalendarView({
       if (onEventResize) {
         onEventResize(resizeInfo);
       }
-    } catch {
+    } catch (error) {
       resizeInfo.revert();
-      toast.error('Error al actualizar la duración');
-      // Error is already shown to user via toast
+      // Show the server's message (e.g. a 409 schedule conflict)
+      toast.error(error instanceof Error && error.message ? error.message : 'Error al actualizar la duración');
     }
   }, [updateAppointment, refresh, onEventResize]);
 
@@ -384,7 +402,7 @@ export function FullCalendarView({
           {/* @ts-expect-error - FullCalendar types are complex and this works fine */}
           <FullCalendar
             ref={calendarRef}
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+            plugins={calendarPlugins}
             initialView={currentView}
             initialDate={currentDate}
             locale={esLocale}
@@ -400,13 +418,13 @@ export function FullCalendarView({
             select={handleDateSelect}
             eventDrop={handleEventDrop}
             eventResize={handleEventResize}
-            businessHours={calendarConfig.businessHours}
+            businessHours={calendarHours.businessHours}
             slotDuration={calendarConfig.slotDuration}
-            slotMinTime={calendarConfig.slotMinTime}
-            slotMaxTime={calendarConfig.slotMaxTime}
+            slotMinTime={calendarHours.slotMinTime}
+            slotMaxTime={calendarHours.slotMaxTime}
             eventTimeFormat={calendarConfig.eventTimeFormat}
             slotLabelFormat={calendarConfig.slotLabelFormat}
-            timeZone="local"
+            timeZone={timeZone}
             nowIndicator={true}
             scrollTime="08:00:00"
             slotLabelInterval="01:00:00"
@@ -422,7 +440,7 @@ export function FullCalendarView({
             eventLongPressDelay={1000}
             selectLongPressDelay={1000}
             eventContent={(eventInfo) => (
-              <EventContent event={eventInfo} />
+              <EventContent event={eventInfo} timeZone={timeZone} />
             )}
             moreLinkContent={(info) => (
               <span className="text-xs font-medium">
@@ -431,15 +449,16 @@ export function FullCalendarView({
             )}
             dayHeaderContent={(info) => (
               <div className="text-sm font-medium">
-                <div>{format(info.date, 'EEE', { locale: es })}</div>
-                <div className="text-xs text-gray-500">
-                  {format(info.date, 'd MMM', { locale: es })}
+                <div>{formatInTimeZone(info.date, timeZone, 'EEE', { locale: es })}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {formatInTimeZone(info.date, timeZone, 'd MMM', { locale: es })}
                 </div>
               </div>
             )}
             eventClassNames={(info) => {
               const appointment = info.event.extendedProps?.appointment;
               const priority = info.event.extendedProps?.priority;
+              const canEdit = info.event.extendedProps?.canEdit;
 
               return [
                 'cursor-pointer',
@@ -448,7 +467,7 @@ export function FullCalendarView({
                 'rounded-md',
                 'border-l-4',
                 priority === 'emergency' && 'animate-pulse',
-                appointment && !appointment.canEdit && 'opacity-60',
+                appointment && !canEdit && 'opacity-60',
               ].filter(Boolean);
             }}
             eventDidMount={(info) => {
@@ -472,6 +491,7 @@ export function FullCalendarView({
           onClose={() => setIsEventModalOpen(false)}
           onUpdate={refresh}
           onEdit={onEventEdit}
+          timeZone={timeZone}
         />
       )}
     </Card>
@@ -479,7 +499,7 @@ export function FullCalendarView({
 }
 
 // Componente para renderizar el contenido de cada evento
-function EventContent({ event }: { event: EventContentArg }) {
+function EventContent({ event, timeZone }: { event: EventContentArg; timeZone: string }) {
   const appointment = event.event.extendedProps?.appointment;
   const priority = event.event.extendedProps?.priority;
   // Use the text color from the event for consistent styling
@@ -511,7 +531,7 @@ function EventContent({ event }: { event: EventContentArg }) {
           className="text-[10px] font-bold flex-shrink-0"
           style={{ color: textColor }}
         >
-          {event.event.start ? format(new Date(event.event.start), 'HH:mm') : ''}
+          {event.event.start ? formatInTimeZone(event.event.start, timeZone, 'HH:mm') : ''}
         </span>
         <span
           className="text-[10px] font-semibold truncate"
@@ -540,7 +560,7 @@ function EventContent({ event }: { event: EventContentArg }) {
           className="text-xs font-bold truncate"
           style={{ color: textColor }}
         >
-          {event.event.start ? format(new Date(event.event.start), 'HH:mm') : ''}
+          {event.event.start ? formatInTimeZone(event.event.start, timeZone, 'HH:mm') : ''}
         </span>
       </div>
 
@@ -573,12 +593,14 @@ function EventDetailsModal({
   event,
   onClose,
   onUpdate,
-  onEdit
+  onEdit,
+  timeZone,
 }: {
   event: EventApi;
   onClose: () => void;
   onUpdate: () => void;
   onEdit?: (appointment: AppointmentWithDetails) => void;
+  timeZone: string;
 }) {
   const appointment = event.extendedProps.appointment;
   const canEdit = event.extendedProps.canEdit;
@@ -656,7 +678,7 @@ function EventDetailsModal({
             <User className="h-4 w-4" />
             <div>
               <p className="font-medium">{appointment.customer.name}</p>
-              <p className="text-sm text-gray-600">{appointment.pet.name} ({mapSpeciesToSpanish(appointment.pet.species)})</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{appointment.pet.name} ({mapSpeciesToSpanish(appointment.pet.species)})</p>
             </div>
           </div>
           
@@ -664,10 +686,10 @@ function EventDetailsModal({
             <Clock className="h-4 w-4" />
             <div>
               <p className="font-medium">
-                {format(new Date(appointment.dateTime), 'PPP', { locale: es })}
+                {formatInTimeZone(new Date(appointment.dateTime), timeZone, 'PPP', { locale: es })}
               </p>
-              <p className="text-sm text-gray-600">
-                {format(new Date(appointment.dateTime), 'HH:mm')} - {appointment.duration} min
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                {formatInTimeZone(new Date(appointment.dateTime), timeZone, 'HH:mm')} - {appointment.duration} min
               </p>
             </div>
           </div>
@@ -681,13 +703,13 @@ function EventDetailsModal({
           
           <div>
             <p className="font-medium">Motivo:</p>
-            <p className="text-sm text-gray-600">{appointment.reason}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400">{appointment.reason}</p>
           </div>
           
           {appointment.notes && (
             <div>
               <p className="font-medium">Notas:</p>
-              <p className="text-sm text-gray-600">{appointment.notes}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{appointment.notes}</p>
             </div>
           )}
           

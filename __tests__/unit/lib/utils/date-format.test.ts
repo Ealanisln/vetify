@@ -244,4 +244,35 @@ describe('date-format utilities', () => {
       expect(result).toMatch(/29.*feb.*2024/i);
     });
   });
+  describe('clinic timeZone parameter', () => {
+    // Fri Nov 13 2026 19:30 in Mexico City (UTC-6) = Sat Nov 14 01:30 UTC
+    const eveningInMexico = new Date('2026-11-14T01:30:00.000Z');
+    const TZ = 'America/Mexico_City';
+
+    it('formats the time in the given timezone', () => {
+      expect(formatTime(new Date('2026-11-13T16:00:00.000Z'), TZ)).toBe('10:00');
+      expect(formatTime(eveningInMexico, TZ)).toBe('19:30');
+    });
+
+    it('keeps the clinic-local date for evening appointments', () => {
+      expect(formatDateLong(eveningInMexico, TZ)).toMatch(/viernes, 13 de noviembre de 2026/i);
+      expect(formatDate(eveningInMexico, TZ)).toMatch(/13.*nov.*2026/i);
+    });
+
+    it('applies the timezone to combined date-time formats', () => {
+      expect(formatDateTimeLong(eveningInMexico, TZ)).toMatch(/13 de noviembre de 2026, 19:30$/);
+      expect(formatDateTime(eveningInMexico, TZ)).toMatch(/13.*nov.*2026, 19:30$/i);
+    });
+
+    it('does not depend on the machine timezone', () => {
+      // Nov 14 23:30 UTC is Nov 14 in UTC and in Mexico, but Nov 15 at UTC+14
+      const late = new Date('2026-11-14T23:30:00.000Z');
+      expect(formatDateLong(late, 'Pacific/Kiritimati')).toMatch(/15 de noviembre/);
+      expect(formatTime(late, 'Pacific/Kiritimati')).toBe('13:30');
+    });
+
+    it('renders midnight as 00:00, not 24:00', () => {
+      expect(formatTime(new Date('2026-11-13T06:00:00.000Z'), TZ)).toBe('00:00');
+    });
+  });
 });

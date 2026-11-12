@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { Customer as PrismaCustomer, User as PrismaUser } from '@prisma/client';
+import { phoneMatchKey, phonesMatch } from './phone';
 
 interface Customer extends Omit<PrismaCustomer, 'phone'> {
   phone: string | null;
@@ -31,6 +32,75 @@ export interface CustomerIdentificationResult {
   hasUserAccount: boolean;
   similarCustomers?: SimilarCustomer[];
   confidence: 'high' | 'medium' | 'low';
+  /** Booker contact that differs from the matched customer, for staff review. */
+  providedContactNote?: string;
+}
+
+/**
+ * Customers of the clinic whose phone is the same number as `phone`, whatever
+ * the formatting on either side (see src/lib/phone.ts). Partial phones never
+ * match. Shared by public booking and the public customer lookup so both
+ * identify the same customer.
+ */
+export async function findCustomersByPhone(
+  tenantId: string,
+  phone: string
+): Promise<Array<{ id: string; name: string; email: string | null; phone: string | null }>> {
+  const key = phoneMatchKey(phone);
+  if (!key) return [];
+
+  // Stored phones keep their formatting, so the database cannot compare
+  // normalized numbers. The last two digits are contiguous in every common
+  // format ("55 12 34 56 78", "(55) 1234-5678"), which narrows the rows
+  // fetched; the exact comparison happens below on the normalized digits.
+  const candidates = await prisma.customer.findMany({
+    where: {
+      tenantId,
+      phone: { contains: key.slice(-2) },
+    },
+    select: { id: true, name: true, email: true, phone: true },
+    orderBy: { createdAt: 'asc' },
+  });
+
+  return candidates.filter((candidate) => phoneMatchKey(candidate.phone) === key);
+}
+
+/** Case, accent and whitespace insensitive name comparison. */
+export function namesMatch(a: string | null | undefined, b: string | null | undefined): boolean {
+  const normalize = (value: string | null | undefined) =>
+    (value ?? '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  const left = normalize(a);
+  return left.length > 0 && left === normalize(b);
+}
+
+function emailsMatch(a: string | null | undefined, b: string | null | undefined): boolean {
+  const left = (a ?? '').trim().toLowerCase();
+  return left.length > 0 && left === (b ?? '').trim().toLowerCase();
+}
+
+/**
+ * An anonymous booking never edits an existing customer's contact data (that
+ * would let anyone redirect a client's emails). When the booker's contact
+ * differs from the record, it is kept on the request for staff instead.
+ */
+function describeProvidedContact(
+  stored: { name: string; phone: string | null; email: string | null },
+  provided: { name: string; phone: string; email?: string }
+): string | undefined {
+  const differs =
+    !namesMatch(stored.name, provided.name) ||
+    !phonesMatch(stored.phone, provided.phone) ||
+    (!!provided.email && !emailsMatch(stored.email, provided.email));
+  if (!differs) return undefined;
+
+  const parts = [`nombre "${provided.name}"`, `teléfono "${provided.phone}"`];
+  if (provided.email) parts.push(`email "${provided.email}"`);
+  return `Datos de contacto proporcionados en la solicitud (el cliente no se modificó): ${parts.join(', ')}.`;
 }
 
 export async function findOrCreateCustomer({
@@ -44,49 +114,40 @@ export async function findOrCreateCustomer({
   email?: string;
   name: string;
 }): Promise<CustomerIdentificationResult> {
-  
-  // 1️⃣ BÚSQUEDA EXACTA POR TELÉFONO (ALTA CONFIANZA)
-  const phoneMatch = await prisma.customer.findFirst({
-    where: {
-      tenantId,
-      phone: phone
-    },
-    include: {
-      pets: true,
-      user: true,
-      appointmentRequests: {
-        where: { status: 'PENDING' },
-        orderBy: { createdAt: 'desc' }
-      }
-    }
-  });
+  const provided = { name, phone, email };
+
+  // 1️⃣ BÚSQUEDA POR TELÉFONO NORMALIZADO (ALTA CONFIANZA)
+  const phoneMatches = await findCustomersByPhone(tenantId, phone);
+  const phoneCandidate =
+    phoneMatches.find((candidate) => namesMatch(candidate.name, name)) ?? phoneMatches[0];
+
+  const phoneMatch = phoneCandidate
+    ? await prisma.customer.findFirst({
+        where: { id: phoneCandidate.id, tenantId },
+        include: {
+          pets: true,
+          user: true
+        }
+      })
+    : null;
 
   if (phoneMatch) {
-    // Actualizar email si no tenía y ahora proporcionó uno
-    if (email && !phoneMatch.email) {
-      await prisma.customer.update({
-        where: { id: phoneMatch.id },
-        data: { email }
-      });
-      phoneMatch.email = email;
-    }
-
     return {
       customer: phoneMatch,
       status: 'existing',
       existingPets: phoneMatch.pets,
       hasUserAccount: !!phoneMatch.user,
-      confidence: 'high'
+      confidence: 'high',
+      providedContactNote: describeProvidedContact(phoneMatch, provided)
     };
   }
 
   // 2️⃣ BÚSQUEDA EXACTA POR EMAIL (ALTA CONFIANZA)
-  let emailMatch = null;
   if (email) {
-    emailMatch = await prisma.customer.findFirst({
+    const emailMatch = await prisma.customer.findFirst({
       where: {
         tenantId,
-        email: email
+        email: { equals: email.trim(), mode: 'insensitive' }
       },
       include: {
         pets: true,
@@ -95,21 +156,13 @@ export async function findOrCreateCustomer({
     });
 
     if (emailMatch) {
-      // Actualizar teléfono si no tenía
-      if (!emailMatch.phone) {
-        await prisma.customer.update({
-          where: { id: emailMatch.id },
-          data: { phone }
-        });
-        emailMatch.phone = phone;
-      }
-
       return {
         customer: emailMatch,
         status: 'existing',
         existingPets: emailMatch.pets,
         hasUserAccount: !!emailMatch.user,
-        confidence: 'high'
+        confidence: 'high',
+        providedContactNote: describeProvidedContact(emailMatch, provided)
       };
     }
   }
@@ -371,6 +424,10 @@ export async function createPublicAppointmentRequest({
   let reviewNotes = identificationResult.status === 'needs_review'
     ? `Similitud encontrada con ${identificationResult.similarCustomers?.length} clientes existentes. `
     : '';
+
+  if (identificationResult.providedContactNote) {
+    reviewNotes += `${identificationResult.providedContactNote} `;
+  }
 
   if (petMatchResult.matchType === 'fuzzy_name' && petMatchResult.matchedPet) {
     reviewNotes += `Mascota "${appointmentData.petName}" vinculada automáticamente con "${petMatchResult.matchedPet.name}" (match fuzzy).`;

@@ -16,6 +16,8 @@ import { prisma } from '@/lib/prisma';
 import { calculateTrialDaysRemaining } from '@/lib/trial/utils';
 import { TRIAL_WARNING_DAYS } from '@/lib/constants';
 import { sendEmail } from './email-service';
+import { getClinicTimeZone } from '@/lib/clinic-timezone';
+import { getAppUrl } from '@/lib/app-url';
 import type {
   EmailSendResult,
   TrialExpiringData,
@@ -71,6 +73,8 @@ interface LifecycleTenant {
   welcomeEmailSentAt: Date | null;
   activationNudgeSentAt: Date | null;
   trialCheckinSentAt: Date | null;
+  countryCode: string | null;
+  tenantSettings: { timezone: string | null } | null;
 }
 
 const lifecycleTenantSelect = {
@@ -83,6 +87,9 @@ const lifecycleTenantSelect = {
   welcomeEmailSentAt: true,
   activationNudgeSentAt: true,
   trialCheckinSentAt: true,
+  // Dates in the emails are shown in the clinic's timezone
+  countryCode: true,
+  tenantSettings: { select: { timezone: true } },
 } as const;
 
 type ActivationEmail = 'welcome' | 'nudge' | 'checkin';
@@ -140,6 +147,7 @@ export async function processTrialLifecycleEmails(): Promise<TrialLifecycleResul
           const emailData: TrialExpiringData = {
             template: 'trial-expiring',
             to: { email: adminEmail.email, name: adminEmail.name },
+            timeZone: getClinicTimeZone(tenant),
             subject: `⚠️ Tu prueba de Vetify termina en ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`,
             tenantId: tenant.id,
             data: {
@@ -165,7 +173,7 @@ export async function processTrialLifecycleEmails(): Promise<TrialLifecycleResul
         // Bounded to EXPIRED_EMAIL_WINDOW_DAYS so stale TRIALING tenants
         // don't keep receiving expired emails indefinitely.
         if (daysRemaining < 0 && daysRemaining >= -EXPIRED_EMAIL_WINDOW_DAYS) {
-          if (!shouldSendExpiredEmail(tenant.lastTrialCheck, now)) continue;
+          if (!(await shouldSendExpiredEmail(tenant.id, now))) continue;
 
           const adminEmail = await getAdminEmail(tenant.id);
           if (!adminEmail) continue;
@@ -176,6 +184,7 @@ export async function processTrialLifecycleEmails(): Promise<TrialLifecycleResul
             template: 'trial-expired',
             to: { email: adminEmail.email, name: adminEmail.name },
             subject: '🔒 Tu prueba gratuita de Vetify ha expirado',
+            timeZone: getClinicTimeZone(tenant),
             tenantId: tenant.id,
             data: {
               clinicName: tenant.name,
@@ -285,6 +294,7 @@ async function sendWelcomeEmail(tenant: LifecycleTenant, now: Date): Promise<boo
     to: { email: adminEmail.email, name: adminEmail.name },
     subject: `🐾 ${tenant.name} ya está lista en Vetify`,
     tenantId: tenant.id,
+    timeZone: getClinicTimeZone(tenant),
     data: {
       clinicName: tenant.name,
       ownerName: adminEmail.name,
@@ -357,10 +367,6 @@ async function sendCheckinEmail(tenant: LifecycleTenant, now: Date): Promise<boo
   return true;
 }
 
-function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || 'https://vetify.pro';
-}
-
 function getDashboardUrl(): string {
   return `${getAppUrl()}/dashboard`;
 }
@@ -379,11 +385,23 @@ function shouldSendExpiringEmail(lastCheck: Date | null, now: Date): boolean {
 }
 
 /**
- * Check if enough time has passed since the last expired email (7-day cooldown)
+ * Send the first expired email on the first run after expiry, then weekly.
+ * Decided from EmailLog, not lastTrialCheck: that column is shared with the
+ * expiring email, so an expiring email sent the day before expiry used to
+ * delay the expired one by a week.
  */
-function shouldSendExpiredEmail(lastCheck: Date | null, now: Date): boolean {
-  if (!lastCheck) return true;
-  const daysSince = (now.getTime() - lastCheck.getTime()) / MS_PER_DAY;
+async function shouldSendExpiredEmail(tenantId: string, now: Date): Promise<boolean> {
+  const lastExpired = await prisma.emailLog.findFirst({
+    where: {
+      tenantId,
+      template: 'TRIAL_EXPIRED',
+      status: { not: 'FAILED' },
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true },
+  });
+  if (!lastExpired) return true;
+  const daysSince = (now.getTime() - lastExpired.createdAt.getTime()) / MS_PER_DAY;
   return daysSince >= EXPIRED_COOLDOWN_DAYS;
 }
 

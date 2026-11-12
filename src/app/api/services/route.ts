@@ -1,25 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
-import { ServiceCategory } from '@prisma/client';
 import { z } from 'zod';
-
-// Esquema de validación para crear/actualizar servicios
-const serviceSchema = z.object({
-  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100),
-  description: z.string().optional(),
-  category: z.nativeEnum(ServiceCategory),
-  price: z.number().min(0).max(99999),
-  duration: z.number().min(1).max(480).optional(),
-  isActive: z.boolean(),
-  tenantId: z.string(),
-  locationId: z.string().nullable().optional(), // null = global (todas las ubicaciones)
-  // Public page display fields
-  isFeatured: z.boolean().optional().default(false),
-  publicDisplayOrder: z.number().int().min(1).max(10).nullable().optional(),
-  publicIcon: z.string().max(50).nullable().optional(),
-  publicPriceLabel: z.string().max(100).nullable().optional()
-});
+import { buildServiceApiSchema } from '../../../lib/validations/service';
+import { getTenantCurrencyCode } from '../../../lib/tenant-currency';
 
 export async function GET(request: NextRequest) {
   try {
@@ -75,9 +59,10 @@ export async function POST(request: NextRequest) {
   try {
     const { tenant } = await requireAuth();
     const body = await request.json();
-    
-    // Validar datos
-    const validatedData = serviceSchema.parse(body);
+
+    // Validate against the tenant's currency limits
+    const currencyCode = await getTenantCurrencyCode(tenant.id);
+    const validatedData = buildServiceApiSchema(currencyCode).parse(body);
     
     // Verificar acceso al tenant
     if (validatedData.tenantId !== tenant.id) {
@@ -87,11 +72,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // The location must belong to this tenant: otherwise the service would be
+    // linked to (and the response would include) another clinic's location.
+    if (validatedData.locationId) {
+      const location = await prisma.location.findFirst({
+        where: { id: validatedData.locationId, tenantId: tenant.id },
+        select: { id: true },
+      });
+
+      if (!location) {
+        return NextResponse.json(
+          { error: 'Ubicación no encontrada o no pertenece a esta clínica' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Verificar si ya existe un servicio con el mismo nombre
     const existingService = await prisma.service.findFirst({
       where: {
         tenantId: tenant.id,
-        name: validatedData.name
+        name: { equals: validatedData.name, mode: 'insensitive' }
       }
     });
 

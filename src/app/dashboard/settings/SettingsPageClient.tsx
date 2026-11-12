@@ -220,7 +220,7 @@ export function SettingsPageClient({ tenant, isActiveSubscription }: SettingsPag
               <CardTitle className="text-lg">Configuración</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <nav className="space-y-1">
+              <nav className="space-y-1" data-testid="settings-tabs">
                 {settingsSections.map((section) => {
                   const Icon = section.icon;
                   const isLocked = !isActiveSubscription && section.requiresSubscription;

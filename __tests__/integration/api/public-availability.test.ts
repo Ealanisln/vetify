@@ -2,6 +2,7 @@
 import { prismaMock } from '../../mocks/prisma';
 import { createTestTenant } from '../../utils/test-utils';
 import { GET } from '@/app/api/public/availability/route';
+import { clinicDateTime } from '@/lib/clinic-timezone';
 
 // Helper to create mock business hours for a tenant
 function createMockBusinessHours(tenantId: string, dayOfWeek: number, overrides?: Partial<{
@@ -158,8 +159,9 @@ describe('Public Availability API', () => {
       const dateString = `${year}-${month}-${day}`;
       const dayOfWeek = futureDate.getDay();
 
-      // Create a mock appointment at 10:00 using the same date components
-      const appointmentDateTime = new Date(year, futureDate.getMonth(), futureDate.getDate(), 10, 0, 0, 0);
+      // Mock appointment at 10:00 clinic time (the tenant has no zone configured,
+      // so it resolves to America/Mexico_City)
+      const appointmentDateTime = clinicDateTime(dateString, '10:00', 'America/Mexico_City');
 
       prismaMock.tenant.findUnique.mockResolvedValue(mockTenant as any);
       prismaMock.tenantSettings.findUnique.mockResolvedValue(
@@ -192,55 +194,6 @@ describe('Public Availability API', () => {
         (slot: { time: string }) => slot.time === '10:00'
       );
       expect(slotAt10).toBeUndefined();
-    });
-
-    it('should exclude slots with confirmed appointment requests', async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
-      futureDate.setHours(0, 0, 0, 0); // Reset to start of day in local time
-
-      // Use local date components to create the date string (avoid UTC conversion issues)
-      const year = futureDate.getFullYear();
-      const month = String(futureDate.getMonth() + 1).padStart(2, '0');
-      const day = String(futureDate.getDate()).padStart(2, '0');
-      const dateString = `${year}-${month}-${day}`;
-      const dayOfWeek = futureDate.getDay();
-
-      // Create a confirmed request at 11:00 using the same date
-      const requestDate = new Date(year, futureDate.getMonth(), futureDate.getDate(), 0, 0, 0, 0);
-
-      prismaMock.tenant.findUnique.mockResolvedValue(mockTenant as any);
-      prismaMock.tenantSettings.findUnique.mockResolvedValue(
-        createMockTenantSettings(mockTenant.id, [
-          createMockBusinessHours(mockTenant.id, dayOfWeek),
-        ]) as any
-      );
-      prismaMock.appointment.findMany.mockResolvedValue([]);
-      prismaMock.appointmentRequest.findMany.mockResolvedValue([
-        {
-          id: 'req-1',
-          preferredDate: requestDate,
-          preferredTime: '11:00',
-          status: 'CONFIRMED',
-        },
-      ] as any);
-
-      const request = createMockRequest({
-        tenantSlug: 'test-clinic',
-        date: dateString,
-      });
-
-      const response = await GET(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-
-      // 11:00 slot should not be in available slots
-      const slotAt11 = data.data.availableSlots.find(
-        (slot: { time: string }) => slot.time === '11:00'
-      );
-      expect(slotAt11).toBeUndefined();
     });
 
     it('should accept custom duration parameter', async () => {
@@ -538,6 +491,113 @@ describe('Public Availability API', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
+    });
+  });
+
+  /**
+   * Production runs in UTC; these pin expectations to explicit instants so
+   * they hold in any process TZ. 2026-11-16 is a Monday and Mexico City is
+   * UTC-6 all year.
+   */
+  describe('clinic timezone', () => {
+    const MONDAY = '2026-11-16';
+
+    function useClock(iso: string) {
+      jest.useFakeTimers({
+        now: new Date(iso),
+        doNotFake: [
+          'nextTick',
+          'setImmediate',
+          'clearImmediate',
+          'setTimeout',
+          'clearTimeout',
+          'setInterval',
+          'clearInterval',
+          'queueMicrotask',
+        ],
+      });
+    }
+
+    beforeEach(() => {
+      useClock('2026-11-10T18:00:00.000Z');
+      prismaMock.tenant.findUnique.mockResolvedValue({
+        ...mockTenant,
+        countryCode: 'MX',
+        tenantSettings: { timezone: 'UTC' },
+      } as any);
+      prismaMock.tenantSettings.findUnique.mockResolvedValue(
+        createMockTenantSettings(mockTenant.id, [
+          createMockBusinessHours(mockTenant.id, 1, { lunchStart: null, lunchEnd: null }),
+        ]) as any
+      );
+      prismaMock.appointment.findMany.mockResolvedValue([]);
+      prismaMock.appointmentRequest.findMany.mockResolvedValue([]);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('serializes the 09:00 clinic slot as 15:00Z', async () => {
+      const response = await GET(createMockRequest({ tenantSlug: 'test-clinic', date: MONDAY }));
+      const data = await response.json();
+
+      expect(data.data.timeZone).toBe('America/Mexico_City');
+      expect(data.data.availableSlots[0]).toEqual(
+        expect.objectContaining({ dateTime: '2026-11-16T15:00:00.000Z', time: '09:00' })
+      );
+    });
+
+    it('blocks the 09:00 clinic slot when an appointment exists at 15:00Z', async () => {
+      prismaMock.appointment.findMany.mockResolvedValue([
+        { id: 'appt-1', dateTime: new Date('2026-11-16T15:00:00.000Z'), duration: 30 },
+      ] as any);
+
+      const response = await GET(createMockRequest({ tenantSlug: 'test-clinic', date: MONDAY }));
+      const data = await response.json();
+      const times = data.data.availableSlots.map((s: { time: string }) => s.time);
+
+      expect(times).not.toContain('09:00');
+      expect(times).toContain('15:00');
+    });
+
+    it('queries appointments over the clinic day', async () => {
+      await GET(createMockRequest({ tenantSlug: 'test-clinic', date: MONDAY }));
+
+      const where = prismaMock.appointment.findMany.mock.calls[0][0]!.where as any;
+      expect(where.dateTime.gte.toISOString()).toBe('2026-11-16T06:00:00.000Z');
+      expect(where.dateTime.lte.toISOString()).toBe('2026-11-17T05:59:59.999Z');
+    });
+
+    it('does not read appointment requests: only real appointments hold a slot', async () => {
+      // Requests are created PENDING and nothing ever confirms them; once
+      // accepted they become Appointments, which the query above covers.
+      const response = await GET(createMockRequest({ tenantSlug: 'test-clinic', date: MONDAY }));
+      const data = await response.json();
+      const times = data.data.availableSlots.map((s: { time: string }) => s.time);
+
+      expect(times).toContain('11:00');
+      expect(prismaMock.appointmentRequest.findMany).not.toHaveBeenCalled();
+    });
+
+    it('only hides slots that are past in clinic time for today', async () => {
+      useClock('2026-11-16T15:50:00.000Z'); // 09:50 in Mexico City
+
+      const response = await GET(createMockRequest({ tenantSlug: 'test-clinic', date: MONDAY }));
+      const data = await response.json();
+
+      expect(data.data.availableSlots[0].time).toBe('10:00');
+    });
+
+    it('does not treat the clinic\'s own today as a past date late in the evening', async () => {
+      useClock('2026-11-17T03:00:00.000Z'); // 21:00 Monday in Mexico City
+
+      const response = await GET(createMockRequest({ tenantSlug: 'test-clinic', date: MONDAY }));
+      const data = await response.json();
+
+      expect(data.data.message).not.toBe('No se pueden agendar citas en el pasado');
+      expect(data.data.workingDay).toBe(true);
+      expect(data.data.availableSlots).toEqual([]);
     });
   });
 });

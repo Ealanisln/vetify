@@ -154,7 +154,7 @@ export function VaccinationForm({ petId, tenantId, onSuccess, onCancel }: Vaccin
             ))}
           </datalist>
           {errors.vaccine_brand && (
-            <p className="mt-1 text-sm text-red-600">{errors.vaccine_brand.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.vaccine_brand.message}</p>
           )}
         </div>
 
@@ -204,6 +204,9 @@ export function VaccinationForm({ petId, tenantId, onSuccess, onCancel }: Vaccin
             <option value={VaccinationStage.SENIOR}>Senior</option>
             <option value={VaccinationStage.BOOSTER}>Refuerzo</option>
           </select>
+          {errors.vaccine_stage && (
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.vaccine_stage.message}</p>
+          )}
         </div>
       </div>
 

@@ -8,12 +8,12 @@ import { sendEmail } from '@/lib/email/email-service';
 import type { StaffInvitationData } from '@/lib/email/types';
 import { generateStaffInvitation } from './invitation-token';
 import { prisma } from '@/lib/prisma';
+import { getAppUrl } from '@/lib/app-url';
 
 // =============================================================================
 // CONSTANTS
 // =============================================================================
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 const DEFAULT_EXPIRATION_DAYS = 7;
 
 // =============================================================================
@@ -100,7 +100,7 @@ export async function sendStaffInvitationEmail(
     );
 
     // Build invite URL
-    const inviteUrl = `${APP_URL}/invite?token=${invitation.token}`;
+    const inviteUrl = `${getAppUrl()}/invite?token=${invitation.token}`;
 
     // Prepare email data
     const emailData: StaffInvitationData = {
@@ -113,6 +113,7 @@ export async function sendStaffInvitationEmail(
       template: 'staff-invitation',
       data: {
         staffName: staff.name,
+        email: staff.email,
         clinicName: tenant.name,
         position: staff.position,
         inviteUrl,
@@ -134,11 +135,25 @@ export async function sendStaffInvitationEmail(
     };
   } catch (error) {
     console.error('[StaffInvitation] Error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Error desconocido',
-    };
+    return { success: false, error: toSpanishInvitationError(error) };
   }
+}
+
+/**
+ * Map internal errors (Prisma, network) to a message the clinic owner can act on.
+ * The original error is logged by the caller; it never reaches the UI.
+ */
+function toSpanishInvitationError(error: unknown): string {
+  const code =
+    error && typeof error === 'object' && 'code' in error
+      ? String((error as { code: unknown }).code)
+      : undefined;
+
+  if (code === 'P2002') {
+    return 'Ya existe una invitación para este miembro del personal. Intenta reenviarla en unos segundos.';
+  }
+
+  return 'No se pudo generar la invitación. Intenta de nuevo en unos minutos.';
 }
 
 /**

@@ -15,6 +15,9 @@ jest.mock('@/lib/prisma', () => ({
     pet: {
       count: jest.fn(),
     },
+    emailLog: {
+      findFirst: jest.fn(),
+    },
   },
 }));
 
@@ -32,6 +35,37 @@ const mockUpdate = prisma.tenant.update as jest.Mock;
 const mockPetCount = prisma.pet.count as jest.Mock;
 const mockStaffFindFirst = prisma.staff.findFirst as jest.Mock;
 const mockSendEmail = sendEmail as jest.Mock;
+const mockEmailLogFindFirst = prisma.emailLog.findFirst as jest.Mock;
+
+interface FakeEmailLog {
+  tenantId: string;
+  template: string;
+  status: string;
+  createdAt: Date;
+}
+let emailLogs: FakeEmailLog[] = [];
+
+/** Answer emailLog.findFirst from `emailLogs`, honoring the filters the code sends */
+function primeEmailLogs(rows: FakeEmailLog[]) {
+  emailLogs = rows;
+  mockEmailLogFindFirst.mockImplementation(
+    async (args: {
+      where: { tenantId?: string; template?: string; status?: { not?: string } };
+      orderBy?: { createdAt?: 'asc' | 'desc' };
+    }) => {
+      const matches = emailLogs
+        .filter((row) => args.where.tenantId === undefined || row.tenantId === args.where.tenantId)
+        .filter((row) => args.where.template === undefined || row.template === args.where.template)
+        .filter((row) => args.where.status?.not === undefined || row.status !== args.where.status.not)
+        .sort((a, b) =>
+          args.orderBy?.createdAt === 'desc'
+            ? b.createdAt.getTime() - a.createdAt.getTime()
+            : a.createdAt.getTime() - b.createdAt.getTime()
+        );
+      return matches[0] ?? null;
+    }
+  );
+}
 
 /**
  * Simulate Prisma `select` semantics: return only the fields the caller
@@ -112,6 +146,7 @@ beforeEach(() => {
   });
   mockSendEmail.mockResolvedValue({ success: true });
   mockPetCount.mockResolvedValue(0);
+  primeEmailLogs([]);
 });
 
 function primeTenants(rows: Record<string, unknown>[]) {
@@ -448,6 +483,100 @@ describe('sendTrialWelcomeEmail', () => {
 
     await expect(sendTrialWelcomeEmail('tenant-1')).resolves.toEqual(
       expect.objectContaining({ success: false })
+    );
+  });
+});
+
+describe('processTrialLifecycleEmails – expired email timing', () => {
+  it('sends the expired email on the first run after expiry even if an expiring email went out days ago', async () => {
+    // Expiring email sent 2 days ago (tracked in lastTrialCheck), trial ended yesterday
+    primeTenants([
+      mockTenantRow({ trialEndsAt: daysFromNow(-1), lastTrialCheck: daysAgo(2) }),
+    ]);
+    primeEmailLogs([
+      { tenantId: 'tenant-1', template: 'TRIAL_EXPIRING', status: 'SENT', createdAt: daysAgo(2) },
+    ]);
+
+    const result = await processTrialLifecycleEmails();
+
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ template: 'trial-expired', tenantId: 'tenant-1' })
+    );
+    expect(result.expiredEmailsSent).toBe(1);
+  });
+
+  it('waits a week after the last expired email before sending another', async () => {
+    primeTenants([mockTenantRow({ trialEndsAt: daysFromNow(-4), lastTrialCheck: daysAgo(3) })]);
+    primeEmailLogs([
+      { tenantId: 'tenant-1', template: 'TRIAL_EXPIRED', status: 'SENT', createdAt: daysAgo(3) },
+    ]);
+
+    const result = await processTrialLifecycleEmails();
+
+    expect(mockSendEmail).not.toHaveBeenCalled();
+    expect(result.expiredEmailsSent).toBe(0);
+  });
+
+  it('sends the weekly expired email once 7 days have passed', async () => {
+    primeTenants([mockTenantRow({ trialEndsAt: daysFromNow(-9), lastTrialCheck: daysAgo(1) })]);
+    primeEmailLogs([
+      { tenantId: 'tenant-1', template: 'TRIAL_EXPIRED', status: 'SENT', createdAt: daysAgo(8) },
+      { tenantId: 'tenant-2', template: 'TRIAL_EXPIRED', status: 'SENT', createdAt: daysAgo(1) },
+    ]);
+
+    const result = await processTrialLifecycleEmails();
+
+    expect(result.expiredEmailsSent).toBe(1);
+  });
+
+  it('ignores failed expired emails when deciding', async () => {
+    primeTenants([mockTenantRow({ trialEndsAt: daysFromNow(-2) })]);
+    primeEmailLogs([
+      { tenantId: 'tenant-1', template: 'TRIAL_EXPIRED', status: 'FAILED', createdAt: daysAgo(1) },
+    ]);
+
+    const result = await processTrialLifecycleEmails();
+
+    expect(result.expiredEmailsSent).toBe(1);
+  });
+});
+
+describe('trial emails carry the clinic timezone', () => {
+  it.each([
+    ['a deliberate TenantSettings.timezone', { countryCode: 'MX', tenantSettings: { timezone: 'America/Bogota' } }, 'America/Bogota'],
+    ['the country zone when the setting is the legacy UTC', { countryCode: 'CO', tenantSettings: { timezone: 'UTC' } }, 'America/Bogota'],
+    ['Mexico City when nothing is known', { countryCode: null, tenantSettings: null }, 'America/Mexico_City'],
+  ])('uses %s', async (_label, clinic, expected) => {
+    primeTenants([
+      mockTenantRow({ id: 'tenant-1', trialEndsAt: daysFromNow(2), ...clinic }),
+      mockTenantRow({ id: 'tenant-2', trialEndsAt: daysFromNow(-2), ...clinic }),
+      freshTenantRow(1, { id: 'tenant-3', ...clinic }),
+    ]);
+
+    await processTrialLifecycleEmails();
+
+    const sent = mockSendEmail.mock.calls.map(([email]) => [email.template, email.timeZone]);
+    expect(sent).toEqual(
+      expect.arrayContaining([
+        ['trial-expiring', expected],
+        ['trial-expired', expected],
+        ['trial-welcome', expected],
+      ])
+    );
+  });
+
+  it('passes the clinic timezone on the onboarding welcome email', async () => {
+    mockFindUnique.mockImplementation(async (args?: { select?: Record<string, unknown> }) =>
+      applySelect(
+        freshTenantRow(0, { countryCode: 'CO', tenantSettings: { timezone: 'UTC' } }),
+        args?.select
+      )
+    );
+
+    await sendTrialWelcomeEmail('tenant-1');
+
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ template: 'trial-welcome', timeZone: 'America/Bogota' })
     );
   });
 });

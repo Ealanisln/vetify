@@ -1,7 +1,7 @@
 import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
 import { redirect } from "next/navigation";
 import { serializeTenant, serializeUser } from "./serializers";
-import { findOrCreateUser, findUserById } from "./db/queries/users";
+import { findOrCreateUser, findUserById, type FindOrCreateUserOptions } from "./db/queries/users";
 import { UserWithTenant } from "@/types";
 import { prisma } from "./prisma";
 import type { StaffPositionType } from "./staff-positions";
@@ -9,7 +9,9 @@ import { SubscriptionRequiredError } from "./subscription/subscription-required-
 
 export { SubscriptionRequiredError };
 
-export async function getAuthenticatedUser(): Promise<UserWithTenant> {
+export async function getAuthenticatedUser(
+  options?: FindOrCreateUserOptions
+): Promise<UserWithTenant> {
   const { getUser } = getKindeServerSession();
   const kindeUser = await getUser();
   
@@ -24,7 +26,7 @@ export async function getAuthenticatedUser(): Promise<UserWithTenant> {
     firstName: kindeUser.given_name,
     lastName: kindeUser.family_name,
     name: `${kindeUser.given_name || ''} ${kindeUser.family_name || ''}`.trim(),
-  });
+  }, options);
 }
 
 export async function getTenantForUser(userId: string) {

@@ -1,6 +1,8 @@
 import { prisma } from '../prisma';
 import { sendEmail } from '../email/email-service';
 import type { DataRetentionWarningData } from '../email/types';
+import { getClinicTimeZone } from '../clinic-timezone';
+import { getAppUrl } from '../app-url';
 import {
   RETENTION_TRIGGER_STATUSES,
   RETENTION_WARNING_BATCH_LIMIT,
@@ -60,7 +62,13 @@ export async function sendRetentionWarnings(
       dataRetentionEndsAt: { not: null, gte: now, lte: windowEnd },
       retentionWarningSentAt: null,
     },
-    select: { id: true, name: true, dataRetentionEndsAt: true },
+    select: {
+      id: true,
+      name: true,
+      dataRetentionEndsAt: true,
+      countryCode: true,
+      tenantSettings: { select: { timezone: true } },
+    },
     take: limit + 1,
     orderBy: { dataRetentionEndsAt: 'asc' },
   });
@@ -86,13 +94,14 @@ export async function sendRetentionWarnings(
 
       const deletionDate = tenant.dataRetentionEndsAt!;
       const daysRemaining = Math.max(0, daysBetween(deletionDate, now));
-      const reactivateUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vetify.pro'}/dashboard/settings?tab=subscription`;
+      const reactivateUrl = `${getAppUrl()}/dashboard/settings?tab=subscription`;
 
       const emailData: DataRetentionWarningData = {
         template: 'data-retention-warning',
         to: { email: admin.email, name: admin.name },
         subject: `⚠️ La información de ${tenant.name} se eliminará en ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`,
         tenantId: tenant.id,
+        timeZone: getClinicTimeZone(tenant),
         data: {
           clinicName: tenant.name,
           ownerName: admin.name,

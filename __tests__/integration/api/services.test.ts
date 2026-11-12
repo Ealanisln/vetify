@@ -1,415 +1,439 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { prismaMock } from '../../mocks/prisma';
-import {
-  createTestService,
-  createTestTenant,
-  createTestUser,
-  createTestLocation,
-} from '../../utils/test-utils';
+/**
+ * Services API route tests.
+ *
+ * These call the real route handlers with Prisma and auth mocked, so they
+ * exercise the actual validation, tenant scoping and response shapes.
+ */
+const mockRequireAuth = jest.fn();
 
-// Mock the services API route
-const mockServicesRoute = {
-  GET: jest.fn(),
-  POST: jest.fn(),
-  PUT: jest.fn(),
-  DELETE: jest.fn(),
+jest.mock('@/lib/auth', () => ({
+  requireAuth: () => mockRequireAuth(),
+}));
+
+jest.mock('@/lib/prisma', () => ({
+  prisma: {
+    service: {
+      findMany: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+    saleItem: { count: jest.fn() },
+    tenantSettings: { findUnique: jest.fn() },
+    location: { findFirst: jest.fn() },
+  },
+}));
+
+import { NextRequest } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { GET, POST } from '@/app/api/services/route';
+import { PUT, DELETE } from '@/app/api/services/[id]/route';
+
+const serviceMock = prisma.service as unknown as {
+  findMany: jest.Mock;
+  findFirst: jest.Mock;
+  create: jest.Mock;
+  update: jest.Mock;
+  delete: jest.Mock;
+};
+const saleItemMock = prisma.saleItem as unknown as { count: jest.Mock };
+const settingsMock = prisma.tenantSettings as unknown as { findUnique: jest.Mock };
+const locationMock = prisma.location as unknown as { findFirst: jest.Mock };
+
+const TENANT_ID = 'tenant-1';
+
+const existingService = {
+  id: 'service-1',
+  tenantId: TENANT_ID,
+  locationId: null,
+  name: 'Consulta General',
+  description: null,
+  category: 'CONSULTATION',
+  price: 350,
+  duration: 30,
+  isActive: true,
 };
 
-describe('Services API Integration Tests', () => {
-  let mockTenant: ReturnType<typeof createTestTenant>;
-  let mockUser: ReturnType<typeof createTestUser>;
-  let mockLocation: ReturnType<typeof createTestLocation>;
-  let mockService: ReturnType<typeof createTestService>;
+const validBody = (overrides: Record<string, unknown> = {}) => ({
+  name: 'Consulta General',
+  description: '',
+  category: 'CONSULTATION',
+  price: 350,
+  duration: 30,
+  isActive: true,
+  tenantId: TENANT_ID,
+  locationId: null,
+  isFeatured: false,
+  publicIcon: null,
+  publicPriceLabel: null,
+  ...overrides,
+});
 
+const jsonRequest = (url: string, method: string, body?: unknown) =>
+  new NextRequest(`http://localhost${url}`, {
+    method,
+    ...(body !== undefined && {
+      body: JSON.stringify(body),
+      headers: { 'Content-Type': 'application/json' },
+    }),
+  });
+
+const params = (id: string) => ({ params: Promise.resolve({ id }) });
+
+describe('/api/services', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Create test data
-    mockTenant = createTestTenant();
-    mockUser = createTestUser({ tenantId: mockTenant.id });
-    mockLocation = createTestLocation({ tenantId: mockTenant.id });
-    mockService = createTestService({ tenantId: mockTenant.id });
-
-    // Mock Prisma responses
-    prismaMock.service.findMany.mockResolvedValue([mockService]);
-    prismaMock.service.findUnique.mockResolvedValue(mockService);
-    prismaMock.service.create.mockResolvedValue(mockService);
-    prismaMock.service.update.mockResolvedValue(mockService);
-    prismaMock.service.delete.mockResolvedValue(mockService);
+    jest.spyOn(console, 'error').mockImplementation();
+    mockRequireAuth.mockResolvedValue({ tenant: { id: TENANT_ID }, user: { id: 'user-1' } });
+    settingsMock.findUnique.mockResolvedValue({ currencyCode: 'MXN' });
+    serviceMock.findFirst.mockResolvedValue(null);
+    serviceMock.create.mockImplementation(({ data }) => Promise.resolve({ id: 'new-service', ...data }));
+    serviceMock.update.mockImplementation(({ data }) => Promise.resolve({ ...existingService, ...data }));
+    locationMock.findFirst.mockImplementation(({ where }) =>
+      Promise.resolve(where.id === 'loc-1' && where.tenantId === TENANT_ID ? { id: 'loc-1' } : null)
+    );
   });
 
-  describe('GET /api/services', () => {
-    it('should return all services for tenant', async () => {
-      const services = [mockService];
-      prismaMock.service.findMany.mockResolvedValue(services);
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
-      const result = await prismaMock.service.findMany({
-        where: { tenantId: mockTenant.id },
-      });
+  describe('GET', () => {
+    it("returns only the authenticated tenant's services", async () => {
+      serviceMock.findMany.mockResolvedValue([existingService]);
 
-      expect(result).toHaveLength(1);
-      expect(result[0].tenantId).toBe(mockTenant.id);
-      expect(result[0].name).toBe(mockService.name);
-    });
+      const response = await GET(jsonRequest(`/api/services?tenantId=${TENANT_ID}`, 'GET'));
 
-    it('should order by category and name', async () => {
-      const consultationService = mockService;
-      const surgeryService = createTestService({
-        id: 'surgery-service',
-        tenantId: mockTenant.id,
-        name: 'Basic Surgery',
-        category: 'SURGERY' as const,
-      });
-      const groomingService = createTestService({
-        id: 'grooming-service',
-        tenantId: mockTenant.id,
-        name: 'Bath and Grooming',
-        category: 'GROOMING' as const,
-      });
-
-      const orderedServices = [consultationService, groomingService, surgeryService];
-      prismaMock.service.findMany.mockResolvedValue(orderedServices);
-
-      const result = await prismaMock.service.findMany({
-        where: { tenantId: mockTenant.id },
-        orderBy: [{ category: 'asc' }, { name: 'asc' }],
-      });
-
-      expect(result).toHaveLength(3);
-      // Verify services are returned (order depends on category alphabetically)
-      expect(result.map((s: any) => s.category)).toBeDefined();
-    });
-
-    it('should enforce tenant isolation', async () => {
-      const otherTenantService = createTestService({
-        id: 'other-service',
-        tenantId: 'other-tenant-id',
-      });
-
-      prismaMock.service.findMany.mockImplementation(async (args: any) => {
-        if (args?.where?.tenantId === mockTenant.id) {
-          return [mockService];
-        }
-        return [];
-      });
-
-      const result = await prismaMock.service.findMany({
-        where: { tenantId: mockTenant.id },
-      });
-
-      expect(result).toHaveLength(1);
-      expect(result[0].tenantId).toBe(mockTenant.id);
-      expect(result).not.toContainEqual(
-        expect.objectContaining({ tenantId: 'other-tenant-id' })
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual([existingService]);
+      expect(serviceMock.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: expect.objectContaining({ tenantId: TENANT_ID }) })
       );
     });
+
+    it('rejects a tenantId that is not the caller tenant', async () => {
+      const response = await GET(jsonRequest('/api/services?tenantId=other-tenant', 'GET'));
+
+      expect(response.status).toBe(403);
+      expect(serviceMock.findMany).not.toHaveBeenCalled();
+    });
   });
 
-  describe('POST /api/services', () => {
-    it('should create a new service', async () => {
-      const newServiceData = {
-        name: 'Dental Cleaning',
-        description: 'Professional dental cleaning and examination',
-        category: 'DENTAL',
-        price: 800.00,
-        duration: 60,
-      };
+  describe('POST', () => {
+    it('creates a service and returns 201', async () => {
+      const response = await POST(jsonRequest('/api/services', 'POST', validBody()));
 
-      const createdService = {
-        ...mockService,
-        ...newServiceData,
-        id: 'new-service-id',
-      };
-
-      prismaMock.service.create.mockResolvedValue(createdService);
-
-      const result = await prismaMock.service.create({
-        data: {
-          ...newServiceData,
-          tenantId: mockTenant.id,
-          isActive: true,
-        },
-      });
-
-      expect(result.name).toBe(newServiceData.name);
-      expect(result.category).toBe(newServiceData.category);
-      expect(result.price).toBe(newServiceData.price);
-      expect(result.tenantId).toBe(mockTenant.id);
+      expect(response.status).toBe(201);
+      expect(serviceMock.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ name: 'Consulta General', price: 350, tenantId: TENANT_ID }),
+        })
+      );
     });
 
-    it('should validate required fields - name, category, price', async () => {
-      const invalidData = {
-        description: 'Missing name, category, and price',
-        duration: 30,
-      };
+    it('checks duplicate names case-insensitively', async () => {
+      serviceMock.findFirst.mockResolvedValue(existingService);
 
-      const requiredFields = ['name', 'category', 'price'];
-      const missingFields = requiredFields.filter((field) => !(field in invalidData));
+      const response = await POST(jsonRequest('/api/services', 'POST', validBody({ name: 'consulta general' })));
 
-      expect(missingFields).toContain('name');
-      expect(missingFields).toContain('category');
-      expect(missingFields).toContain('price');
-    });
-
-    it('should prevent duplicate service names within tenant', async () => {
-      const duplicateNameData = {
-        name: mockService.name, // Same name as existing service
-        category: 'CONSULTATION',
-        price: 600.00,
-        tenantId: mockTenant.id,
-      };
-
-      // Simulate finding existing service with same name
-      prismaMock.service.findFirst.mockResolvedValue(mockService);
-
-      const existingService = await prismaMock.service.findFirst({
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({ error: 'Ya existe un servicio con este nombre' });
+      expect(serviceMock.findFirst).toHaveBeenCalledWith({
         where: {
-          name: duplicateNameData.name,
-          tenantId: duplicateNameData.tenantId,
+          tenantId: TENANT_ID,
+          name: { equals: 'consulta general', mode: 'insensitive' },
         },
       });
-
-      expect(existingService).not.toBeNull();
-      expect(existingService?.name).toBe(duplicateNameData.name);
+      expect(serviceMock.create).not.toHaveBeenCalled();
     });
+
+    it('accepts prices above 99,999 for a zero-decimal currency (CLP)', async () => {
+      settingsMock.findUnique.mockResolvedValue({ currencyCode: 'CLP' });
+
+      const response = await POST(jsonRequest('/api/services', 'POST', validBody({ price: 350_000 })));
+
+      expect(response.status).toBe(201);
+      expect(settingsMock.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { tenantId: TENANT_ID } })
+      );
+    });
+
+    it('accepts prices above 99,999 for MXN too, up to the storage limit', async () => {
+      const response = await POST(jsonRequest('/api/services', 'POST', validBody({ price: 150_000 })));
+
+      expect(response.status).toBe(201);
+    });
+
+    it('rejects prices beyond the Decimal(10,2) storage limit', async () => {
+      const response = await POST(jsonRequest('/api/services', 'POST', validBody({ price: 100_000_000 })));
+
+      expect(response.status).toBe(400);
+      expect(serviceMock.create).not.toHaveBeenCalled();
+    });
+
+    it('falls back to MXN limits when the tenant has no settings row', async () => {
+      settingsMock.findUnique.mockResolvedValue(null);
+
+      const response = await POST(jsonRequest('/api/services', 'POST', validBody({ price: 500 })));
+
+      expect(response.status).toBe(201);
+    });
+
+    it('accepts a service without duration (null)', async () => {
+      const response = await POST(jsonRequest('/api/services', 'POST', validBody({ duration: null })));
+
+      expect(response.status).toBe(201);
+      expect(serviceMock.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ duration: null }) })
+      );
+    });
+
+    it('rejects a body for another tenant', async () => {
+      const response = await POST(jsonRequest('/api/services', 'POST', validBody({ tenantId: 'other-tenant' })));
+
+      expect(response.status).toBe(403);
+      expect(serviceMock.create).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['a negative price', { price: -1 }, ['price'], 'El precio no puede ser negativo'],
+      ['a missing price', { price: undefined }, ['price'], 'Ingresa el precio'],
+      ['a price above the MXN storage limit', { price: 100_000_000 }, ['price'], /^El precio no puede ser mayor a /],
+      ['a zero duration', { duration: 0 }, ['duration'], 'La duración mínima es 1 minuto'],
+      ['a duration above 8 hours', { duration: 481 }, ['duration'], 'La duración máxima es 8 horas'],
+      ['a fractional duration', { duration: 30.5 }, ['duration'], 'La duración debe ser un número entero de minutos'],
+      ['a one-letter name', { name: 'A' }, ['name'], 'El nombre debe tener al menos 2 caracteres'],
+    ])('rejects %s with a Spanish message', async (_label, overrides, path, message) => {
+      const response = await POST(jsonRequest('/api/services', 'POST', validBody(overrides)));
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('Datos inválidos');
+      expect(data.details).toContainEqual(
+        expect.objectContaining({ path, message: typeof message === 'string' ? message : expect.stringMatching(message) })
+      );
+      expect(serviceMock.create).not.toHaveBeenCalled();
+    });
+
+    it('assigns a location of the caller tenant', async () => {
+      const response = await POST(jsonRequest('/api/services', 'POST', validBody({ locationId: 'loc-1' })));
+
+      expect(response.status).toBe(201);
+      expect(locationMock.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'loc-1', tenantId: TENANT_ID } })
+      );
+      expect(serviceMock.create).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ locationId: 'loc-1' }) })
+      );
+    });
+
+    it("rejects another tenant's location instead of linking (and returning) it", async () => {
+      const response = await POST(jsonRequest('/api/services', 'POST', validBody({ locationId: 'loc-other-tenant' })));
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: 'Ubicación no encontrada o no pertenece a esta clínica',
+      });
+      expect(serviceMock.create).not.toHaveBeenCalled();
+    });
+
+    // The services routes only call requireAuth(), so any staff position
+    // (e.g. RECEPTIONIST) can create, edit or delete the catalog, while the
+    // other settings routes use requirePermission('settings', ...). Changing
+    // that is an authorization decision, so it is tracked here, not fixed.
+    it.todo('requires the settings:write permission to change the service catalog');
   });
 
-  describe('PUT /api/services/:id', () => {
-    it('should update service data', async () => {
-      const updateData = {
-        name: 'Updated Consultation',
-        price: 550.00,
-        duration: 45,
-      };
-
-      const updatedService = { ...mockService, ...updateData };
-      prismaMock.service.update.mockResolvedValue(updatedService);
-
-      const result = await prismaMock.service.update({
-        where: { id: mockService.id },
-        data: updateData,
-      });
-
-      expect(result.name).toBe('Updated Consultation');
-      expect(result.price).toBe(550.00);
-      expect(result.duration).toBe(45);
+  describe('PUT /api/services/[id]', () => {
+    beforeEach(() => {
+      serviceMock.findFirst.mockImplementation(({ where }) =>
+        Promise.resolve(
+          where.id === existingService.id && where.tenantId === existingService.tenantId ? existingService : null
+        )
+      );
     });
 
-    it('should return 404 for non-existent service', async () => {
-      prismaMock.service.findUnique.mockResolvedValue(null);
+    it('edits the service and returns the updated record', async () => {
+      const response = await PUT(
+        jsonRequest('/api/services/service-1', 'PUT', validBody({ name: 'Consulta Especializada', price: 500, duration: 45 })),
+        params('service-1')
+      );
 
-      const result = await prismaMock.service.findUnique({
-        where: { id: 'non-existent-id' },
-      });
-
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('DELETE /api/services/:id', () => {
-    it('should delete service without sales', async () => {
-      // Service with no related sales
-      const serviceWithoutSales = {
-        ...mockService,
-        _count: { saleItems: 0 },
-      };
-
-      prismaMock.service.findUnique.mockResolvedValue(serviceWithoutSales);
-
-      const service = await prismaMock.service.findUnique({
-        where: { id: mockService.id },
-        include: { _count: { select: { saleItems: true } } },
-      });
-
-      const hasSales = (service?._count?.saleItems || 0) > 0;
-      expect(hasSales).toBe(false);
-
-      // Can hard delete
-      prismaMock.service.delete.mockResolvedValue(mockService);
-
-      const result = await prismaMock.service.delete({
-        where: { id: mockService.id },
-      });
-
-      expect(result.id).toBe(mockService.id);
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual(
+        expect.objectContaining({ id: 'service-1', name: 'Consulta Especializada', price: 500, duration: 45 })
+      );
+      expect(serviceMock.findFirst).toHaveBeenCalledWith({ where: { id: 'service-1', tenantId: TENANT_ID } });
+      expect(serviceMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'service-1' },
+          data: expect.objectContaining({ name: 'Consulta Especializada', price: 500, duration: 45 }),
+        })
+      );
     });
 
-    it('should deactivate service with sales (soft delete)', async () => {
-      // Service with related sales
-      const serviceWithSales = {
-        ...mockService,
-        _count: { saleItems: 5 },
-      };
+    it('deactivates the service when isActive is false', async () => {
+      const response = await PUT(
+        jsonRequest('/api/services/service-1', 'PUT', validBody({ isActive: false })),
+        params('service-1')
+      );
 
-      prismaMock.service.findUnique.mockResolvedValue(serviceWithSales);
-
-      const service = await prismaMock.service.findUnique({
-        where: { id: mockService.id },
-        include: { _count: { select: { saleItems: true } } },
-      });
-
-      const hasSales = (service?._count?.saleItems || 0) > 0;
-      expect(hasSales).toBe(true);
-
-      // Should soft delete (deactivate) instead of hard delete
-      const deactivatedService = { ...mockService, isActive: false };
-      prismaMock.service.update.mockResolvedValue(deactivatedService);
-
-      const result = await prismaMock.service.update({
-        where: { id: mockService.id },
-        data: { isActive: false },
-      });
-
-      expect(result.isActive).toBe(false);
-      expect(result.id).toBe(mockService.id);
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual(expect.objectContaining({ isActive: false }));
+      expect(serviceMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ isActive: false }) })
+      );
+      expect(serviceMock.delete).not.toHaveBeenCalled();
     });
-  });
 
-  describe('Multi-Tenancy Isolation', () => {
-    it('should return 404 when updating service from another tenant', async () => {
-      const otherTenantId = 'other-tenant-id';
+    it("cannot edit another tenant's service by id (IDOR)", async () => {
+      mockRequireAuth.mockResolvedValue({ tenant: { id: 'tenant-2' }, user: { id: 'user-2' } });
 
-      prismaMock.service.updateMany.mockResolvedValue({ count: 0 });
+      const response = await PUT(
+        jsonRequest('/api/services/service-1', 'PUT', validBody({ tenantId: 'tenant-2', price: 1 })),
+        params('service-1')
+      );
 
-      const result = await prismaMock.service.updateMany({
+      expect(response.status).toBe(404);
+      expect(serviceMock.findFirst).toHaveBeenCalledWith({ where: { id: 'service-1', tenantId: 'tenant-2' } });
+      expect(serviceMock.update).not.toHaveBeenCalled();
+    });
+
+    it("rejects moving the service to another tenant's location", async () => {
+      const response = await PUT(
+        jsonRequest('/api/services/service-1', 'PUT', validBody({ locationId: 'loc-other-tenant' })),
+        params('service-1')
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: 'Ubicación no encontrada o no pertenece a esta clínica',
+      });
+      expect(serviceMock.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects an invalid price with a Spanish message and does not write', async () => {
+      const response = await PUT(
+        jsonRequest('/api/services/service-1', 'PUT', validBody({ price: -10 })),
+        params('service-1')
+      );
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.details).toContainEqual(
+        expect.objectContaining({ path: ['price'], message: 'El precio no puede ser negativo' })
+      );
+      expect(serviceMock.update).not.toHaveBeenCalled();
+    });
+
+    it('checks duplicate names case-insensitively, excluding the service itself', async () => {
+      serviceMock.findFirst
+        .mockResolvedValueOnce(existingService)
+        .mockResolvedValueOnce({ ...existingService, id: 'service-2', name: 'Vacunación' });
+
+      const response = await PUT(
+        jsonRequest('/api/services/service-1', 'PUT', validBody({ name: 'VACUNACIÓN' })),
+        params('service-1')
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({ error: 'Ya existe un servicio con este nombre' });
+      expect(serviceMock.findFirst).toHaveBeenLastCalledWith({
         where: {
-          id: mockService.id,
-          tenantId: otherTenantId, // Wrong tenant
+          tenantId: TENANT_ID,
+          name: { equals: 'VACUNACIÓN', mode: 'insensitive' },
+          id: { not: 'service-1' },
         },
-        data: { name: 'Hacked Name' },
       });
-
-      expect(result.count).toBe(0);
+      expect(serviceMock.update).not.toHaveBeenCalled();
     });
 
-    it('should return 404 when deleting service from another tenant', async () => {
-      const otherTenantId = 'other-tenant-id';
+    it('clears the duration when it is sent as null', async () => {
+      const response = await PUT(
+        jsonRequest('/api/services/service-1', 'PUT', validBody({ duration: null })),
+        params('service-1')
+      );
 
-      prismaMock.service.deleteMany.mockResolvedValue({ count: 0 });
+      expect(response.status).toBe(200);
+      expect(serviceMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: expect.objectContaining({ duration: null }) })
+      );
+    });
 
-      const result = await prismaMock.service.deleteMany({
-        where: {
-          id: mockService.id,
-          tenantId: otherTenantId, // Wrong tenant
-        },
-      });
+    it('accepts a CLP price above 99,999', async () => {
+      settingsMock.findUnique.mockResolvedValue({ currencyCode: 'CLP' });
 
-      expect(result.count).toBe(0);
+      const response = await PUT(
+        jsonRequest('/api/services/service-1', 'PUT', validBody({ price: 350_000 })),
+        params('service-1')
+      );
+
+      expect(response.status).toBe(200);
+    });
+
+    it('returns 404 for a service outside the tenant', async () => {
+      const response = await PUT(
+        jsonRequest('/api/services/missing', 'PUT', validBody()),
+        params('missing')
+      );
+
+      expect(response.status).toBe(404);
     });
   });
 
-  describe('Location Filtering', () => {
-    it('should filter services by locationId when provided', async () => {
-      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A', tenantId: mockTenant.id });
-      const location2 = createTestLocation({ id: 'location-2', name: 'Clinic B', tenantId: mockTenant.id });
-
-      const serviceAtLocation1 = createTestService({
-        id: 'service-loc-1',
-        tenantId: mockTenant.id,
-        locationId: location1.id,
-        name: 'Service at Location 1',
-      });
-      const serviceAtLocation2 = createTestService({
-        id: 'service-loc-2',
-        tenantId: mockTenant.id,
-        locationId: location2.id,
-        name: 'Service at Location 2',
-      });
-
-      prismaMock.service.findMany.mockImplementation(async (args: any) => {
-        const services = [serviceAtLocation1, serviceAtLocation2];
-        if (args?.where?.locationId) {
-          return services.filter((s) => s.locationId === args.where.locationId);
-        }
-        return services;
-      });
-
-      const filteredResult = await prismaMock.service.findMany({
-        where: { tenantId: mockTenant.id, locationId: location1.id },
-      });
-
-      expect(filteredResult).toHaveLength(1);
-      expect(filteredResult[0].locationId).toBe(location1.id);
-      expect(filteredResult[0].name).toBe('Service at Location 1');
+  describe('DELETE /api/services/[id]', () => {
+    beforeEach(() => {
+      serviceMock.findFirst.mockResolvedValue(existingService);
     });
 
-    it('should return all services when locationId is not provided', async () => {
-      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A', tenantId: mockTenant.id });
-      const location2 = createTestLocation({ id: 'location-2', name: 'Clinic B', tenantId: mockTenant.id });
+    it('deactivates instead of deleting when the service has sales, and says so', async () => {
+      saleItemMock.count.mockResolvedValue(3);
 
-      const serviceAtLocation1 = createTestService({
-        id: 'service-loc-1',
-        tenantId: mockTenant.id,
-        locationId: location1.id,
-        name: 'Service at Location 1',
-      });
-      const serviceAtLocation2 = createTestService({
-        id: 'service-loc-2',
-        tenantId: mockTenant.id,
-        locationId: location2.id,
-        name: 'Service at Location 2',
-      });
-      const serviceNoLocation = createTestService({
-        id: 'service-no-loc',
-        tenantId: mockTenant.id,
-        locationId: null,
-        name: 'Global Service',
-      });
+      const response = await DELETE(jsonRequest('/api/services/service-1', 'DELETE'), params('service-1'));
+      const data = await response.json();
 
-      prismaMock.service.findMany.mockResolvedValue([
-        serviceAtLocation1,
-        serviceAtLocation2,
-        serviceNoLocation,
-      ]);
-
-      const result = await prismaMock.service.findMany({
-        where: { tenantId: mockTenant.id },
-      });
-
-      expect(result).toHaveLength(3);
-      expect(result.map((s) => s.id)).toContain('service-loc-1');
-      expect(result.map((s) => s.id)).toContain('service-loc-2');
-      expect(result.map((s) => s.id)).toContain('service-no-loc');
+      expect(response.status).toBe(200);
+      expect(serviceMock.delete).not.toHaveBeenCalled();
+      expect(serviceMock.update).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'service-1' }, data: { isActive: false } })
+      );
+      expect(data.message).toMatch(/desactivado/i);
+      expect(data.service).toEqual(expect.objectContaining({ id: 'service-1', isActive: false }));
     });
 
-    it('should include services with null locationId when filtering by specific location', async () => {
-      const location1 = createTestLocation({ id: 'location-1', name: 'Clinic A', tenantId: mockTenant.id });
+    it('deletes a service without sales', async () => {
+      saleItemMock.count.mockResolvedValue(0);
 
-      const serviceAtLocation1 = createTestService({
-        id: 'service-loc-1',
-        tenantId: mockTenant.id,
-        locationId: location1.id,
-        name: 'Service at Location 1',
-      });
-      const globalService = createTestService({
-        id: 'service-global',
-        tenantId: mockTenant.id,
-        locationId: null,
-        name: 'Global Service',
-      });
+      const response = await DELETE(jsonRequest('/api/services/service-1', 'DELETE'), params('service-1'));
 
-      // Simulate the OR condition (locationId matches OR locationId is null)
-      prismaMock.service.findMany.mockImplementation(async (args: any) => {
-        const services = [serviceAtLocation1, globalService];
-        if (args?.where?.OR) {
-          return services.filter(
-            (s) => s.locationId === location1.id || s.locationId === null
-          );
-        }
-        return services;
-      });
+      expect(response.status).toBe(200);
+      expect(serviceMock.delete).toHaveBeenCalledWith({ where: { id: 'service-1' } });
+      await expect(response.json()).resolves.toEqual({ message: 'Servicio eliminado correctamente' });
+    });
 
-      const result = await prismaMock.service.findMany({
-        where: {
-          tenantId: mockTenant.id,
-          OR: [{ locationId: location1.id }, { locationId: null }],
-        },
-      });
+    it('returns 404 when the service is not in the tenant', async () => {
+      serviceMock.findFirst.mockResolvedValue(null);
 
-      expect(result).toHaveLength(2);
-      const locationIds = result.map((s) => s.locationId);
-      expect(locationIds).toContain(location1.id);
-      expect(locationIds).toContain(null);
+      const response = await DELETE(jsonRequest('/api/services/x', 'DELETE'), params('x'));
+
+      expect(response.status).toBe(404);
+    });
+
+    it("cannot delete or deactivate another tenant's service by id (IDOR)", async () => {
+      mockRequireAuth.mockResolvedValue({ tenant: { id: 'tenant-2' }, user: { id: 'user-2' } });
+      serviceMock.findFirst.mockImplementation(({ where }) =>
+        Promise.resolve(where.tenantId === existingService.tenantId ? existingService : null)
+      );
+
+      const response = await DELETE(jsonRequest('/api/services/service-1', 'DELETE'), params('service-1'));
+
+      expect(response.status).toBe(404);
+      await expect(response.json()).resolves.toEqual({ error: 'Servicio no encontrado' });
+      expect(serviceMock.findFirst).toHaveBeenCalledWith({ where: { id: 'service-1', tenantId: 'tenant-2' } });
+      expect(saleItemMock.count).not.toHaveBeenCalled();
+      expect(serviceMock.update).not.toHaveBeenCalled();
+      expect(serviceMock.delete).not.toHaveBeenCalled();
     });
   });
 });

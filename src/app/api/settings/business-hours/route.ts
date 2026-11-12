@@ -2,6 +2,13 @@ import { NextResponse } from 'next/server';
 import { requirePermission } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
+import {
+  completeWeek,
+  DEFAULT_SCHEDULE,
+  getScheduleErrors,
+  type DaySchedule,
+  type ScheduleField,
+} from '../../../../lib/business-hours';
 
 // Time format regex for HH:MM validation
 const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
@@ -24,72 +31,69 @@ const businessHoursSchema = z.object({
     lunchEnd: optionalTimeField,
     slotDuration: z.number().min(5).max(120).nullish(),
   }).passthrough()).optional() // Make the array optional; passthrough allows extra Prisma fields (id, tenantId, etc.)
-}).passthrough(); // Allow extra fields from Prisma (id, tenantId, etc.)
+}).passthrough() // Allow extra fields from Prisma (id, tenantId, etc.)
+  .superRefine((data, ctx) => {
+    const defaultFieldNames: Record<ScheduleField, string> = {
+      startTime: 'defaultStartTime',
+      endTime: 'defaultEndTime',
+      lunchStart: 'defaultLunchStart',
+      lunchEnd: 'defaultLunchEnd',
+    };
+    for (const error of getScheduleErrors({
+      startTime: data.defaultStartTime,
+      endTime: data.defaultEndTime,
+      lunchStart: data.defaultLunchStart,
+      lunchEnd: data.defaultLunchEnd,
+    })) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [defaultFieldNames[error.field]], message: error.message });
+    }
+
+    // Closed days keep whatever times they had; only open days must be coherent.
+    data.businessHours?.forEach((day, index) => {
+      if (!day.isWorkingDay) return;
+      const schedule: DaySchedule = {
+        startTime: day.startTime,
+        endTime: day.endTime,
+        lunchStart: day.lunchStart,
+        lunchEnd: day.lunchEnd,
+      };
+      for (const error of getScheduleErrors(schedule)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['businessHours', index, error.field], message: error.message });
+      }
+    });
+  });
 
 export async function GET() {
   try {
     // Only admins can view business hours settings
     const { tenant } = await requirePermission('settings', 'read');
 
-    // Get tenant settings with business hours
-    let tenantSettings = await prisma.tenantSettings.findUnique({
+    // Read-only: tenants without settings or rows (created before signup
+    // seeding) get the default week in memory. Rows are written on save only,
+    // so concurrent GETs can no longer seed duplicate weeks.
+    const storedSettings = await prisma.tenantSettings.findUnique({
       where: { tenantId: tenant.id },
       include: {
         businessHours: {
+          where: { locationId: null },
           orderBy: { dayOfWeek: 'asc' }
         }
       }
     });
 
-    // If no settings exist, create default ones
-    if (!tenantSettings) {
-      tenantSettings = await prisma.tenantSettings.create({
-        data: {
-          tenantId: tenant.id,
-          defaultStartTime: '08:00',
-          defaultEndTime: '18:00',
-          defaultLunchStart: '13:00',
-          defaultLunchEnd: '14:00',
-          defaultSlotDuration: 15,
-        },
-        include: {
-          businessHours: true
-        }
-      });
-    }
+    const defaults = storedSettings ?? {
+      tenantId: tenant.id,
+      defaultStartTime: DEFAULT_SCHEDULE.startTime,
+      defaultEndTime: DEFAULT_SCHEDULE.endTime,
+      defaultLunchStart: DEFAULT_SCHEDULE.lunchStart,
+      defaultLunchEnd: DEFAULT_SCHEDULE.lunchEnd,
+      defaultSlotDuration: DEFAULT_SCHEDULE.slotDuration,
+    };
 
-    // If no business hours exist, create default ones (Monday to Saturday)
-    if (tenantSettings.businessHours.length === 0) {
-      const defaultBusinessHours = [];
-      for (let dayOfWeek = 0; dayOfWeek <= 6; dayOfWeek++) {
-        const isWorkingDay = dayOfWeek >= 1 && dayOfWeek <= 6; // Monday to Saturday
-        defaultBusinessHours.push({
-          tenantId: tenant.id,
-          tenantSettingsId: tenantSettings.id,
-          dayOfWeek,
-          isWorkingDay,
-          startTime: tenantSettings.defaultStartTime,
-          endTime: tenantSettings.defaultEndTime,
-          lunchStart: tenantSettings.defaultLunchStart,
-          lunchEnd: tenantSettings.defaultLunchEnd,
-          slotDuration: tenantSettings.defaultSlotDuration,
-        });
-      }
-
-      await prisma.businessHours.createMany({
-        data: defaultBusinessHours
-      });
-
-      // Fetch the updated settings
-      tenantSettings = await prisma.tenantSettings.findUnique({
-        where: { tenantId: tenant.id },
-        include: {
-          businessHours: {
-            orderBy: { dayOfWeek: 'asc' }
-          }
-        }
-      });
-    }
+    const tenantSettings = {
+      ...defaults,
+      businessHours: completeWeek(storedSettings?.businessHours ?? [], defaults),
+    };
 
     return NextResponse.json({
       success: true,
@@ -120,110 +124,76 @@ export async function PUT(request: Request) {
     const body = await request.json();
 
     const validatedData = businessHoursSchema.parse(body);
+    // The form sends the whole schedule; an absent lunch means "Sin comida".
+    const defaultLunchStart = validatedData.defaultLunchStart ?? null;
+    const defaultLunchEnd = validatedData.defaultLunchEnd ?? null;
 
-    // Update tenant settings
-    await prisma.tenantSettings.upsert({
-      where: { tenantId: tenant.id },
-      update: {
-        defaultStartTime: validatedData.defaultStartTime,
-        defaultEndTime: validatedData.defaultEndTime,
-        defaultLunchStart: validatedData.defaultLunchStart,
-        defaultLunchEnd: validatedData.defaultLunchEnd,
-        defaultSlotDuration: validatedData.defaultSlotDuration,
-      },
-      create: {
-        tenantId: tenant.id,
-        defaultStartTime: validatedData.defaultStartTime,
-        defaultEndTime: validatedData.defaultEndTime,
-        defaultLunchStart: validatedData.defaultLunchStart,
-        defaultLunchEnd: validatedData.defaultLunchEnd,
-        defaultSlotDuration: validatedData.defaultSlotDuration,
-      }
-    });
+    const updatedSettings = await prisma.$transaction(async (tx) => {
+      const tenantSettings = await tx.tenantSettings.upsert({
+        where: { tenantId: tenant.id },
+        update: {
+          defaultStartTime: validatedData.defaultStartTime,
+          defaultEndTime: validatedData.defaultEndTime,
+          defaultLunchStart,
+          defaultLunchEnd,
+          defaultSlotDuration: validatedData.defaultSlotDuration,
+        },
+        create: {
+          tenantId: tenant.id,
+          defaultStartTime: validatedData.defaultStartTime,
+          defaultEndTime: validatedData.defaultEndTime,
+          defaultLunchStart,
+          defaultLunchEnd,
+          defaultSlotDuration: validatedData.defaultSlotDuration,
+        }
+      });
 
-    // Get the tenant settings to get the ID
-    const tenantSettings = await prisma.tenantSettings.findUnique({
-      where: { tenantId: tenant.id }
-    });
+      // Rows are addressed by (tenant, tenant-level location, day), never by an
+      // id from the request body, so a caller can only write its own tenant.
+      for (const businessHour of validatedData.businessHours ?? []) {
+        const data = {
+          isWorkingDay: businessHour.isWorkingDay,
+          startTime: businessHour.startTime,
+          endTime: businessHour.endTime,
+          lunchStart: businessHour.lunchStart ?? null,
+          lunchEnd: businessHour.lunchEnd ?? null,
+          slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
+        };
 
-    if (!tenantSettings) {
-      throw new Error('Failed to create/update tenant settings');
-    }
+        const { count } = await tx.businessHours.updateMany({
+          where: { tenantId: tenant.id, locationId: null, dayOfWeek: businessHour.dayOfWeek },
+          data,
+        });
 
-    // Update business hours for each day (only if businessHours array is provided)
-    if (validatedData.businessHours && validatedData.businessHours.length > 0) {
-      for (const businessHour of validatedData.businessHours) {
-        // Cast to access potential id field from passthrough
-        const hourWithId = businessHour as typeof businessHour & { id?: string };
-
-        if (hourWithId.id) {
-          // Update existing record by ID (most reliable)
-          await prisma.businessHours.update({
-            where: { id: hourWithId.id },
+        if (count === 0) {
+          await tx.businessHours.create({
             data: {
-              isWorkingDay: businessHour.isWorkingDay,
-              startTime: businessHour.startTime,
-              endTime: businessHour.endTime,
-              lunchStart: businessHour.lunchStart,
-              lunchEnd: businessHour.lunchEnd,
-              slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
-            }
-          });
-        } else {
-          // Find existing record or create new one
-          const existingHour = await prisma.businessHours.findFirst({
-            where: {
               tenantId: tenant.id,
-              locationId: null,
-              dayOfWeek: businessHour.dayOfWeek
+              tenantSettingsId: tenantSettings.id,
+              dayOfWeek: businessHour.dayOfWeek,
+              ...data,
             }
           });
+        }
+      }
 
-          if (existingHour) {
-            await prisma.businessHours.update({
-              where: { id: existingHour.id },
-              data: {
-                isWorkingDay: businessHour.isWorkingDay,
-                startTime: businessHour.startTime,
-                endTime: businessHour.endTime,
-                lunchStart: businessHour.lunchStart,
-                lunchEnd: businessHour.lunchEnd,
-                slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
-              }
-            });
-          } else {
-            // Create new record
-            await prisma.businessHours.create({
-              data: {
-                tenantId: tenant.id,
-                tenantSettingsId: tenantSettings.id,
-                dayOfWeek: businessHour.dayOfWeek,
-                isWorkingDay: businessHour.isWorkingDay,
-                startTime: businessHour.startTime,
-                endTime: businessHour.endTime,
-                lunchStart: businessHour.lunchStart,
-                lunchEnd: businessHour.lunchEnd,
-                slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
-              }
-            });
+      return tx.tenantSettings.findUnique({
+        where: { tenantId: tenant.id },
+        include: {
+          businessHours: {
+            where: { locationId: null },
+            orderBy: { dayOfWeek: 'asc' }
           }
         }
-      }
-    }
-
-    // Fetch the updated settings
-    const updatedSettings = await prisma.tenantSettings.findUnique({
-      where: { tenantId: tenant.id },
-      include: {
-        businessHours: {
-          orderBy: { dayOfWeek: 'asc' }
-        }
-      }
+      });
     });
 
     return NextResponse.json({
       success: true,
-      data: updatedSettings,
+      data: updatedSettings && {
+        ...updatedSettings,
+        businessHours: completeWeek(updatedSettings.businessHours, updatedSettings),
+      },
       message: 'Horarios de atención actualizados exitosamente'
     });
 

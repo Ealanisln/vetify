@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { LoginLink, RegisterLink } from '@kinde-oss/kinde-auth-nextjs/components';
+import { LoginLink, LogoutLink, RegisterLink } from '@kinde-oss/kinde-auth-nextjs/components';
 import Image from 'next/image';
 import Link from 'next/link';
 import { POSITION_LABELS_ES, type StaffPositionType } from '@/lib/staff-positions';
@@ -24,6 +24,10 @@ interface InvitationData {
 
 type PageState = 'loading' | 'valid' | 'invalid' | 'accepting' | 'success' | 'error' | 'already_accepted';
 
+// Accept errors caused by the signed-in account: retrying cannot fix them,
+// the user has to switch accounts.
+const ACCOUNT_ERROR_CODES = ['EMAIL_MISMATCH', 'USER_IN_OTHER_TENANT', 'USER_ALREADY_LINKED'];
+
 export default function InvitePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -32,6 +36,7 @@ export default function InvitePage() {
   const [state, setState] = useState<PageState>('loading');
   const [invitation, setInvitation] = useState<InvitationData | null>(null);
   const [error, setError] = useState<string>('');
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   // Validate token on mount
@@ -88,6 +93,7 @@ export default function InvitePage() {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
+        setErrorCode(typeof data.code === 'string' ? data.code : null);
         setState('error');
         setError(data.error || 'Error al aceptar la invitación');
         return;
@@ -210,6 +216,52 @@ export default function InvitePage() {
     );
   }
 
+  // Account error state: signed in with an account that cannot take this invite
+  if (state === 'error' && errorCode && ACCOUNT_ERROR_CODES.includes(errorCode)) {
+    // Kinde's LogoutLink appends this value to the URL as-is, so encode it
+    // to keep the token as part of the redirect target.
+    const returnToInvite = encodeURIComponent(`/invite?token=${token}`);
+
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
+          <div className="w-16 h-16 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-yellow-600 dark:text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            Necesitas usar otra cuenta
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+          {invitation?.email && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-6">
+              <p className="text-sm text-blue-800 dark:text-blue-300">
+                Esta invitación es para: <strong>{invitation.email}</strong>
+              </p>
+            </div>
+          )}
+          <div className="space-y-3">
+            <LogoutLink
+              postLogoutRedirectURL={returnToInvite}
+              className="w-full flex items-center justify-center px-4 py-3 bg-[#75a99c] text-white rounded-md hover:bg-[#5b9788] transition-colors font-medium"
+            >
+              Cerrar sesión y entrar con el correo de la invitación
+            </LogoutLink>
+            {errorCode === 'USER_IN_OTHER_TENANT' && (
+              <Link
+                href="/dashboard"
+                className="block text-sm text-[#75a99c] hover:text-[#5b9788] font-medium"
+              >
+                Ir a mi clínica
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Error state
   if (state === 'error') {
     return (
@@ -276,6 +328,9 @@ export default function InvitePage() {
     ? POSITION_LABELS_ES[invitation.staff.position as StaffPositionType] || invitation.staff.position
     : 'Personal';
 
+  // Pre-fill the invited email on Kinde's sign-up / sign-in screens
+  const loginHint = invitation?.email ? { login_hint: invitation.email } : undefined;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
       <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
@@ -338,6 +393,7 @@ export default function InvitePage() {
             <div className="space-y-3">
               <RegisterLink
                 postLoginRedirectURL={`/invite?token=${token}`}
+                authUrlParams={loginHint}
                 className="w-full flex items-center justify-center px-4 py-3 bg-[#75a99c] text-white rounded-md hover:bg-[#5b9788] transition-colors font-medium"
               >
                 Crear cuenta y aceptar
@@ -346,6 +402,7 @@ export default function InvitePage() {
                 ¿Ya tienes cuenta?{' '}
                 <LoginLink
                   postLoginRedirectURL={`/invite?token=${token}`}
+                  authUrlParams={loginHint}
                   className="text-[#75a99c] hover:text-[#5b9788] font-medium"
                 >
                   Iniciar sesión

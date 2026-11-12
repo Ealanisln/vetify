@@ -197,7 +197,7 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-card rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-border">
+      <div className="bg-card rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-border" data-testid="staff-modal">
         <div className="flex items-center justify-between p-6 border-b border-border">
           <h2 className="text-xl font-semibold text-foreground">{getModalTitle()}</h2>
           <button
@@ -325,6 +325,7 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
                     type="text"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
+                    data-testid="staff-name-input"
                     className={`form-input ${errors.name ? 'border-destructive' : ''}`}
                     placeholder="Ej: Dr. Juan Pérez"
                   />
@@ -338,6 +339,7 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
                   <select
                     value={formData.position}
                     onChange={(e) => handleInputChange('position', e.target.value)}
+                    data-testid="staff-position-select"
                     className={`form-select ${errors.position ? 'border-destructive' : ''}`}
                   >
                     {STAFF_POSITION_OPTIONS.map((option) => (
@@ -357,6 +359,7 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
                     type="email"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
+                    data-testid="staff-email-input"
                     className={`form-input ${errors.email ? 'border-destructive' : ''}`}
                     placeholder="correo@ejemplo.com"
                   />
@@ -502,6 +505,7 @@ export default function StaffModal({ isOpen, onClose, mode, staff, onStaffSaved 
                 </Button>
                 <Button
                   type="submit"
+                  data-testid="submit-staff-button"
                   disabled={loading}
                   className="flex items-center gap-2"
                 >

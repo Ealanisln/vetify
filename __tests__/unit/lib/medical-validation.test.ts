@@ -183,6 +183,22 @@ describe('medical-validation', () => {
         const result = treatmentSchema.safeParse(data);
         expect(result.success).toBe(true);
       });
+
+      it('reads next_due_date (próxima aplicación) as a Date when sent as an ISO string', () => {
+        const result = treatmentSchema.safeParse({ ...validTreatment, next_due_date: '2027-02-12T00:00:00.000Z' });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.next_due_date).toEqual(new Date('2027-02-12T00:00:00.000Z'));
+        }
+      });
+
+      it.each([null, '', undefined])('treats an empty next_due_date (%p) as not provided', (value) => {
+        const result = treatmentSchema.safeParse({ ...validTreatment, next_due_date: value });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.data.next_due_date).toBeUndefined();
+        }
+      });
     });
 
     describe('Invalid Data', () => {

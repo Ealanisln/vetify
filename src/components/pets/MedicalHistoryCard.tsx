@@ -1,10 +1,10 @@
 import { MedicalHistory, Staff } from '@prisma/client';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import Link from 'next/link';
 import { Plus, Stethoscope, FileText, Activity, StickyNote, User, Calendar } from 'lucide-react';
+import { DEFAULT_CLINIC_TIME_ZONE } from '@/lib/clinic-timezone';
+import { formatClinicDate } from '@/lib/clinical-dates';
 
-type MedicalHistoryWithStaff = MedicalHistory & { staff?: Staff | null };
+type MedicalHistoryWithStaff = MedicalHistory & { staff?: Pick<Staff, 'id' | 'name'> | null };
 
 interface MedicalHistoryCardProps {
   pet: {
@@ -12,9 +12,16 @@ interface MedicalHistoryCardProps {
     name: string;
     medicalHistories: MedicalHistoryWithStaff[];
   };
+  /** Clinic timezone; this card renders on the server (UTC) */
+  timeZone?: string;
 }
 
-export function MedicalHistoryCard({ pet }: MedicalHistoryCardProps) {
+/** Vital-signs entries used to store "N/A" placeholders; never show them. */
+function hasContent(value: string | null): value is string {
+  return !!value && value.trim() !== 'N/A';
+}
+
+export function MedicalHistoryCard({ pet, timeZone = DEFAULT_CLINIC_TIME_ZONE }: MedicalHistoryCardProps) {
   const histories = pet.medicalHistories || [];
 
   return (
@@ -102,14 +109,14 @@ export function MedicalHistoryCard({ pet }: MedicalHistoryCardProps) {
                       <div className="flex-shrink-0 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-600">
                         <Calendar className="w-3.5 h-3.5" />
                         <time dateTime={history.visitDate.toISOString()}>
-                          {format(new Date(history.visitDate), 'dd MMM yyyy', { locale: es })}
+                          {formatClinicDate(history.visitDate, timeZone, 'dd MMM yyyy')}
                         </time>
                       </div>
                     </div>
 
                     {/* Info blocks with proper spacing */}
                     <div className="space-y-3">
-                      {history.diagnosis && (
+                      {hasContent(history.diagnosis) && (
                         <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-100 dark:border-blue-800/50">
                           <div className="flex items-center gap-2 mb-1.5">
                             <Activity className="w-4 h-4 text-blue-600 dark:text-blue-400" />
@@ -123,7 +130,7 @@ export function MedicalHistoryCard({ pet }: MedicalHistoryCardProps) {
                         </div>
                       )}
 
-                      {history.treatment && (
+                      {hasContent(history.treatment) && (
                         <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-100 dark:border-emerald-800/50">
                           <div className="flex items-center gap-2 mb-1.5">
                             <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
@@ -131,7 +138,7 @@ export function MedicalHistoryCard({ pet }: MedicalHistoryCardProps) {
                               Tratamiento
                             </span>
                           </div>
-                          <p className="text-sm text-emerald-800 dark:text-emerald-200 leading-relaxed pl-6">
+                          <p className="text-sm text-emerald-800 dark:text-emerald-200 leading-relaxed pl-6 whitespace-pre-line">
                             {history.treatment}
                           </p>
                         </div>
@@ -145,7 +152,7 @@ export function MedicalHistoryCard({ pet }: MedicalHistoryCardProps) {
                               Notas
                             </span>
                           </div>
-                          <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed pl-6">
+                          <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed pl-6 whitespace-pre-line">
                             {history.notes}
                           </p>
                         </div>
@@ -159,7 +166,7 @@ export function MedicalHistoryCard({ pet }: MedicalHistoryCardProps) {
                         <span>Atendido por</span>
                         <span className="font-medium text-gray-700 dark:text-gray-300">{history.staff.name}</span>
                         <span className="mx-1">•</span>
-                        <span>{format(new Date(history.visitDate), 'HH:mm')}</span>
+                        <span>{formatClinicDate(history.visitDate, timeZone, 'HH:mm')}</span>
                       </div>
                     )}
                   </div>

@@ -17,7 +17,7 @@ import {
   notifyPaymentFailed,
 } from '@/lib/email/admin-notifications';
 
-const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+const ORIGINAL_APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 const expectedUrl = 'https://www.vetify.pro/admin/tenants?search=clinica-norte';
 
 function sentData() {
@@ -28,11 +28,12 @@ describe('admin notifications', () => {
   beforeEach(() => {
     mockSendEmail.mockReset();
     mockSendEmail.mockResolvedValue({ success: true, messageId: 'msg_1' });
-    process.env.NEXT_PUBLIC_BASE_URL = 'https://www.vetify.pro';
+    process.env.NEXT_PUBLIC_APP_URL = 'https://www.vetify.pro';
   });
 
   afterAll(() => {
-    process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_BASE_URL;
+    if (ORIGINAL_APP_URL === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+    else process.env.NEXT_PUBLIC_APP_URL = ORIGINAL_APP_URL;
   });
 
   it('new user registration passes the admin tenant URL', async () => {
@@ -84,5 +85,35 @@ describe('admin notifications', () => {
     expect(sentData().adminTenantUrl).toBe(
       'https://www.vetify.pro/admin/tenants?search=a%26b'
     );
+  });
+
+  it('never logs the user email address', async () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      await notifyNewUserRegistration({
+        userName: 'Ana',
+        userEmail: 'ana@example.com',
+        tenantId: 'tenant_1',
+        tenantName: 'Clínica Norte',
+        tenantSlug: 'clinica-norte',
+        planType: 'TRIAL',
+      });
+      await notifyNewSubscriptionPayment({
+        userName: 'Ana',
+        userEmail: 'ana@example.com',
+        tenantId: 'tenant_1',
+        tenantName: 'Clínica Norte',
+        tenantSlug: 'clinica-norte',
+        planName: 'Profesional',
+        planAmount: 59900,
+        currency: 'mxn',
+        billingInterval: 'month',
+      });
+
+      expect(logSpy).toHaveBeenCalled();
+      expect(JSON.stringify(logSpy.mock.calls)).not.toContain('ana@example.com');
+    } finally {
+      logSpy.mockRestore();
+    }
   });
 });

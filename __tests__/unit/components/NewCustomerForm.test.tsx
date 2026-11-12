@@ -570,53 +570,109 @@ describe('NewCustomerForm', () => {
       });
     });
 
-    it('should continue with customer creation when pet creation fails', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    describe('when a pet fails after the customer was created', () => {
+      const customerOk = { ok: true, json: async () => ({ id: 'customer-123' }) } as Response;
+      const petFails = {
+        ok: false,
+        json: async () => ({
+          message: 'La unidad de peso debe ser kg o lbs',
+          errors: [{ field: 'weightUnit', message: 'La unidad de peso debe ser kg o lbs' }],
+        }),
+      } as Response;
+      const petOk = (id: string, name: string) =>
+        ({ ok: true, json: async () => ({ pet: { id, name } }) }) as Response;
 
-      mockFetch
-        .mockResolvedValueOnce({
-          ok: true,
-          json: async () => ({ id: 'customer-123' }),
-        } as Response)
-        .mockResolvedValueOnce({
-          ok: false,
-          text: async () => 'Pet creation failed',
-        } as Response);
+      const fillCustomerWithPets = (names: string[]) => {
+        fireEvent.change(document.querySelectorAll('input[type="text"]')[0], { target: { value: 'Juan' } });
+        names.forEach(() => fireEvent.click(screen.getByTestId('add-pet-button')));
+        names.forEach((name, i) => {
+          // Each pet card has name, breed and microchip text inputs, after the
+          // customer's name and address inputs
+          const textInputs = document.querySelectorAll('input[type="text"]');
+          fireEvent.change(textInputs[2 + i * 3], { target: { value: name } });
+          fireEvent.change(textInputs[3 + i * 3], { target: { value: 'Mestizo' } });
+          fireEvent.change(document.querySelectorAll('input[type="date"]')[i], { target: { value: '2020-01-01' } });
+        });
+      };
 
-      render(<NewCustomerForm {...defaultProps} />);
+      it('does not claim success and says which pet failed and why', async () => {
+        mockFetch.mockResolvedValueOnce(customerOk).mockResolvedValueOnce(petFails);
 
-      // Fill customer name
-      const nameInput = document.querySelectorAll('input[type="text"]')[0];
-      fireEvent.change(nameInput, { target: { value: 'Juan' } });
+        render(<NewCustomerForm {...defaultProps} />);
+        fillCustomerWithPets(['Max']);
+        fireEvent.submit(document.querySelector('form') as HTMLFormElement);
 
-      // Add a pet with required fields
-      const buttons = screen.getAllByRole('button');
-      const addPetButton = buttons.find(btn =>
-        btn.textContent?.includes('Agregar Mascota') || btn.textContent?.includes('Agregar')
-      );
-      fireEvent.click(addPetButton!);
-
-      const textInputs = document.querySelectorAll('input[type="text"]');
-      fireEvent.change(textInputs[1], { target: { value: 'Max' } });
-      fireEvent.change(textInputs[2], { target: { value: 'Labrador' } });
-
-      const dateInput = document.querySelectorAll('input[type="date"]')[0];
-      fireEvent.change(dateInput, { target: { value: '2020-01-01' } });
-
-      const form = document.querySelector('form') as HTMLFormElement;
-      fireEvent.submit(form);
-
-      // Should still show success (customer was created)
-      await waitFor(() => {
-        expect(screen.getByText('¡Cliente creado exitosamente!')).toBeInTheDocument();
+        const panel = await screen.findByTestId('pets-failed-panel');
+        expect(panel).toHaveTextContent('Max');
+        expect(panel).toHaveTextContent('La unidad de peso debe ser kg o lbs');
+        expect(screen.queryByText('¡Cliente creado exitosamente!')).not.toBeInTheDocument();
       });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Failed to create pet'),
-        expect.any(String)
-      );
+      it('keeps the failed pet in the form and retries without recreating the customer', async () => {
+        mockFetch
+          .mockResolvedValueOnce(customerOk)
+          .mockResolvedValueOnce(petFails)
+          .mockResolvedValueOnce(petOk('pet-1', 'Max'));
 
-      consoleSpy.mockRestore();
+        render(<NewCustomerForm {...defaultProps} />);
+        fillCustomerWithPets(['Max']);
+        fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+        await screen.findByTestId('pets-failed-panel');
+
+        // The pet's data is still there to fix
+        expect(screen.getByDisplayValue('Max')).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar mascotas' }));
+
+        await waitFor(() => {
+          expect(screen.getByText('¡Cliente creado exitosamente!')).toBeInTheDocument();
+        });
+        const customerPosts = mockFetch.mock.calls.filter(([url]) => url === '/api/customers');
+        expect(customerPosts).toHaveLength(1);
+        const petPosts = mockFetch.mock.calls.filter(([url]) => url === '/api/pets');
+        expect(petPosts).toHaveLength(2);
+        expect(JSON.parse(String(petPosts[1][1]?.body)).customerId).toBe('customer-123');
+      });
+
+      it('only retries the pets that failed', async () => {
+        mockFetch
+          .mockResolvedValueOnce(customerOk)
+          .mockResolvedValueOnce(petOk('pet-1', 'Max'))
+          .mockResolvedValueOnce(petFails)
+          .mockResolvedValueOnce(petOk('pet-2', 'Luna'));
+
+        render(<NewCustomerForm {...defaultProps} />);
+        fillCustomerWithPets(['Max', 'Luna']);
+        fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+
+        const panel = await screen.findByTestId('pets-failed-panel');
+        expect(panel).toHaveTextContent('Luna');
+        expect(panel).not.toHaveTextContent('La unidad de peso debe ser kg o lbs: Max');
+        expect(screen.queryByDisplayValue('Max')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Reintentar mascotas' }));
+
+        await waitFor(() => {
+          expect(screen.getByText(/Se agregaron 2 mascotas: Max, Luna/)).toBeInTheDocument();
+        });
+        const petPosts = mockFetch.mock.calls.filter(([url]) => url === '/api/pets');
+        expect(petPosts).toHaveLength(3);
+        expect(JSON.parse(String(petPosts[2][1]?.body)).name).toBe('Luna');
+      });
+
+      it('offers to add the pet from the pet form for this customer', async () => {
+        mockFetch.mockResolvedValueOnce(customerOk).mockResolvedValueOnce(petFails);
+
+        render(<NewCustomerForm {...defaultProps} />);
+        fillCustomerWithPets(['Max']);
+        fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+        await screen.findByTestId('pets-failed-panel');
+
+        expect(screen.getByRole('link', { name: /Agregar mascota/ })).toHaveAttribute(
+          'href',
+          '/dashboard/pets/new?customerId=customer-123'
+        );
+      });
     });
   });
 
@@ -771,6 +827,77 @@ describe('NewCustomerForm', () => {
 
       const contactMethodSelect = screen.getAllByRole('combobox')[0];
       expect(contactMethodSelect).toHaveValue('phone');
+    });
+  });
+
+  describe('Pet field validation', () => {
+    const addPetWithBasics = () => {
+      fireEvent.change(document.querySelectorAll('input[type="text"]')[0], { target: { value: 'Juan' } });
+      fireEvent.click(screen.getByTestId('add-pet-button'));
+      const textInputs = document.querySelectorAll('input[type="text"]');
+      fireEvent.change(textInputs[1], { target: { value: 'Max' } });
+      fireEvent.change(textInputs[2], { target: { value: 'Labrador' } });
+      fireEvent.change(document.querySelector('input[type="date"]')!, { target: { value: '2020-01-01' } });
+    };
+
+    it('offers only the weight units the server accepts', () => {
+      render(<NewCustomerForm {...defaultProps} />);
+      fireEvent.click(screen.getByTestId('add-pet-button'));
+
+      const unitSelect = screen.getByTestId('pet-weight-unit-0') as HTMLSelectElement;
+      expect(Array.from(unitSelect.options).map((o) => o.value)).toEqual(['kg', 'lbs']);
+    });
+
+    it('lets the weight take two decimals and caps the birth date at today', () => {
+      render(<NewCustomerForm {...defaultProps} />);
+      fireEvent.click(screen.getByTestId('add-pet-button'));
+
+      const weightInput = document.querySelector('input[type="number"]') as HTMLInputElement;
+      expect(weightInput.step).toBe('0.01');
+      expect(weightInput.min).toBe('0.01');
+      const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+      expect(dateInput.max).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('blocks a zero weight with a Spanish message before creating anything', async () => {
+      render(<NewCustomerForm {...defaultProps} />);
+      addPetWithBasics();
+      fireEvent.change(document.querySelector('input[type="number"]')!, { target: { value: '0' } });
+
+      fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+
+      expect(await screen.findByText('El peso debe ser mayor a 0')).toBeInTheDocument();
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('blocks a future birth date with a Spanish message before creating anything', async () => {
+      render(<NewCustomerForm {...defaultProps} />);
+      addPetWithBasics();
+      fireEvent.change(document.querySelector('input[type="date"]')!, { target: { value: '2999-01-01' } });
+
+      fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+
+      expect(await screen.findByText('La fecha de nacimiento no puede ser una fecha futura')).toBeInTheDocument();
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('Server validation errors', () => {
+    it('shows the Spanish per-field messages next to the customer fields', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({
+          message: 'El email no es válido',
+          errors: [{ field: 'email', message: 'El email no es válido' }],
+        }),
+      } as Response);
+
+      render(<NewCustomerForm {...defaultProps} />);
+      fireEvent.change(document.querySelectorAll('input[type="text"]')[0], { target: { value: 'Juan' } });
+      fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+
+      expect(await screen.findByTestId('customer-error-email')).toHaveTextContent('El email no es válido');
+      expect(mockedToast.error).toHaveBeenCalledWith('El email no es válido');
     });
   });
 });

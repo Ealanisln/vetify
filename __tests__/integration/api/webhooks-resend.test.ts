@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { NextRequest } from 'next/server';
+import crypto from 'crypto';
 
 // Mock updateEmailStatus before importing route
 const mockUpdateEmailStatus = jest.fn();
@@ -216,6 +217,142 @@ describe('Resend Webhook API Integration Tests', () => {
         'BOUNCED',
         'Generic bounce'
       );
+    });
+  });
+
+  describe('POST /api/webhooks/resend with signature verification (Svix)', () => {
+    // Svix secrets are "whsec_" + base64 key bytes
+    const KEY_BYTES = crypto.randomBytes(24);
+    const SECRET = `whsec_${KEY_BYTES.toString('base64')}`;
+
+    /** Sign exactly as Svix does: HMAC-SHA256(key, "id.timestamp.body"), base64 */
+    function svixSign(id: string, timestamp: string, body: string, key: Buffer = KEY_BYTES): string {
+      return crypto.createHmac('sha256', key).update(`${id}.${timestamp}.${body}`).digest('base64');
+    }
+
+    function signedRequest(
+      body: string,
+      headers: Partial<Record<'svix-id' | 'svix-timestamp' | 'svix-signature', string>>
+    ) {
+      return new NextRequest('http://localhost:3000/api/webhooks/resend', {
+        method: 'POST',
+        body,
+        headers: { 'Content-Type': 'application/json', ...headers },
+      });
+    }
+
+    const nowSeconds = () => Math.floor(Date.now() / 1000).toString();
+
+    beforeEach(() => {
+      process.env.RESEND_WEBHOOK_SECRET = SECRET;
+      mockUpdateEmailStatus.mockResolvedValue(undefined);
+    });
+
+    it('accepts an event signed the Svix way', async () => {
+      const body = JSON.stringify(createResendEvent('email.delivered'));
+      const id = 'msg_2abc';
+      const ts = nowSeconds();
+
+      const response = await POST(
+        signedRequest(body, {
+          'svix-id': id,
+          'svix-timestamp': ts,
+          'svix-signature': `v1,${svixSign(id, ts, body)}`,
+        })
+      );
+
+      expect(response.status).toBe(200);
+      expect((await response.json()).status).toBe('DELIVERED');
+      expect(mockUpdateEmailStatus).toHaveBeenCalledWith('email_test_123', 'DELIVERED', undefined);
+    });
+
+    it('accepts when any of several signatures matches (key rotation)', async () => {
+      const body = JSON.stringify(createResendEvent('email.delivered'));
+      const id = 'msg_rot';
+      const ts = nowSeconds();
+      const stale = svixSign(id, ts, body, crypto.randomBytes(24));
+
+      const response = await POST(
+        signedRequest(body, {
+          'svix-id': id,
+          'svix-timestamp': ts,
+          'svix-signature': `v1,${stale} v1,${svixSign(id, ts, body)}`,
+        })
+      );
+
+      expect(response.status).toBe(200);
+    });
+
+    it('rejects a tampered body', async () => {
+      const body = JSON.stringify(createResendEvent('email.delivered'));
+      const id = 'msg_1';
+      const ts = nowSeconds();
+      const tampered = body.replace('email_test_123', 'email_other');
+
+      const response = await POST(
+        signedRequest(tampered, {
+          'svix-id': id,
+          'svix-timestamp': ts,
+          'svix-signature': `v1,${svixSign(id, ts, body)}`,
+        })
+      );
+
+      expect(response.status).toBe(401);
+      expect(mockUpdateEmailStatus).not.toHaveBeenCalled();
+    });
+
+    it('rejects a signature that leaves out svix-id', async () => {
+      const body = JSON.stringify(createResendEvent('email.delivered'));
+      const ts = nowSeconds();
+      const legacy = crypto.createHmac('sha256', SECRET).update(`${ts}.${body}`).digest('base64');
+
+      const response = await POST(
+        signedRequest(body, { 'svix-id': 'msg_1', 'svix-timestamp': ts, 'svix-signature': `v1,${legacy}` })
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it('rejects a request without svix-id', async () => {
+      const body = JSON.stringify(createResendEvent('email.delivered'));
+      const ts = nowSeconds();
+
+      const response = await POST(
+        signedRequest(body, { 'svix-timestamp': ts, 'svix-signature': `v1,${svixSign('', ts, body)}` })
+      );
+
+      expect(response.status).toBe(401);
+    });
+
+    it('rejects a correctly signed but stale timestamp', async () => {
+      const body = JSON.stringify(createResendEvent('email.delivered'));
+      const id = 'msg_old';
+      const ts = Math.floor(Date.now() / 1000 - 10 * 60).toString();
+
+      const response = await POST(
+        signedRequest(body, {
+          'svix-id': id,
+          'svix-timestamp': ts,
+          'svix-signature': `v1,${svixSign(id, ts, body)}`,
+        })
+      );
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('logging', () => {
+    it('never logs recipient email addresses', async () => {
+      mockUpdateEmailStatus.mockResolvedValue(undefined);
+
+      await POST(createMockRequest(createResendEvent('email.bounced', { bounce: { message: 'x' } })));
+
+      const logged = JSON.stringify([
+        ...(console.log as jest.Mock).mock.calls,
+        ...(console.warn as jest.Mock).mock.calls,
+        ...(console.error as jest.Mock).mock.calls,
+      ]);
+      expect(logged).not.toContain('vet@example.com');
     });
   });
 });

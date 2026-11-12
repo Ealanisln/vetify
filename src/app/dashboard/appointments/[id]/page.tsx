@@ -3,6 +3,7 @@ import { redirect, notFound } from 'next/navigation';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { ACTIVE_OWNER_PETS } from '@/lib/pets';
 import AppointmentDetailClient from './AppointmentDetailClient';
 import { Loader2 } from 'lucide-react';
 
@@ -60,9 +61,15 @@ async function getAppointmentData(appointmentId: string) {
   }
 
   // Obtener datos adicionales para edición
+  // Selectors hide archived owners, but keep this appointment's own owner
+  // and pet so the form still shows them.
   const customers = await prisma.customer.findMany({
     where: {
       tenantId: tenant.id,
+      OR: [
+        { isActive: true },
+        ...(appointment.customerId ? [{ id: appointment.customerId }] : []),
+      ],
     },
     select: {
       id: true,
@@ -78,6 +85,7 @@ async function getAppointmentData(appointmentId: string) {
   const pets = await prisma.pet.findMany({
     where: {
       tenantId: tenant.id,
+      OR: [ACTIVE_OWNER_PETS, { id: appointment.petId }],
     },
     select: {
       id: true,

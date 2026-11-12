@@ -49,6 +49,8 @@ export default function NewAppointmentClient({
   // Get customerId and petId from URL params
   const customerId = searchParams.get('customerId');
   const petId = searchParams.get('petId');
+  // Suggested reason, e.g. a follow-up scheduled from a medical record
+  const reason = searchParams.get('reason');
 
   // Prepare initial data if customerId and petId are provided
   const initialData = useMemo(() => {
@@ -59,10 +61,13 @@ export default function NewAppointmentClient({
       if (petId) {
         initialValues.petId = petId;
       }
+      if (reason) {
+        initialValues.reason = reason;
+      }
       return initialValues;
     }
     return undefined;
-  }, [customerId, petId]);
+  }, [customerId, petId, reason]);
 
   // Find customer name for display
   const customerName = useMemo(() => {

@@ -16,21 +16,12 @@ export default async function StaffDetailPage({ params }: StaffDetailPageProps) 
     notFound();
   }
 
+  // notFound() works by throwing, so it must stay outside the try/catch
+  // below or the catch turns a 404 into the generic error card.
+  let staff: Awaited<ReturnType<typeof getStaffById>>;
   try {
     const { id } = await params;
-    const staff = await getStaffById(tenant.id, id);
-    
-    if (!staff) {
-      notFound();
-    }
-
-    return (
-      <StaffDetailClient
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        initialStaff={staff as any}
-        tenantId={tenant.id}
-      />
-    );
+    staff = await getStaffById(tenant.id, id);
   } catch (error) {
     console.error('Error loading staff detail:', error);
     return (
@@ -44,6 +35,18 @@ export default async function StaffDetailPage({ params }: StaffDetailPageProps) 
       </div>
     );
   }
+
+  if (!staff) {
+    notFound();
+  }
+
+  return (
+    <StaffDetailClient
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      initialStaff={staff as any}
+      tenantId={tenant.id}
+    />
+  );
 }
 
 export const metadata = {

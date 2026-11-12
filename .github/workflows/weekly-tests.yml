@@ -24,7 +24,7 @@ env:
 jobs:
   weekly-smoke-tests:
     name: Weekly Smoke Tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     services:
       postgres:
@@ -98,6 +98,8 @@ jobs:
         run: pnpm build
         env:
           SKIP_ENV_VALIDATION: true
+          # next build outgrew Node's default ~2GB heap (OOM on PR #248)
+          NODE_OPTIONS: --max-old-space-size=6144
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
 
@@ -160,9 +162,13 @@ jobs:
   # Optional: Notify on failure
   notify-on-failure:
     name: Notify on Failure
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: weekly-smoke-tests
     if: failure()
+    # The default GITHUB_TOKEN can't create issues; without this the alert
+    # step failed silently and nobody noticed weeks of red runs.
+    permissions:
+      issues: write
     steps:
       - name: Create issue on critical failure
         uses: actions/github-script@v7

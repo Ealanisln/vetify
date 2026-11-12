@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getTenantBySlug, getFeaturedServices } from '../../lib/tenant';
+import { getTenantBySlug, getFeaturedServices, getAllPublicServices } from '../../lib/tenant';
 import { ClinicHero } from '../../components/public/ClinicHero';
 import { ClinicServices } from '../../components/public/ClinicServices';
 import { ClinicInfo } from '../../components/public/ClinicInfo';
@@ -90,8 +90,9 @@ export default async function ClinicPage({
   }
 
   // Fetch featured services and testimonials in parallel
-  const [featuredServices, testimonials, testimonialStats] = await Promise.all([
+  const [featuredServices, bookingServices, testimonials, testimonialStats] = await Promise.all([
     getFeaturedServices(tenant.id),
+    getAllPublicServices(tenant.id),
     getApprovedTestimonials(tenant.id, { featuredOnly: false, limit: 10 }),
     getPublicTestimonialStats(tenant.id),
   ]);
@@ -138,7 +139,7 @@ export default async function ClinicPage({
       <StructuredData data={[localBusinessSchema, breadcrumbSchema]} />
 
       <ClinicHero tenant={tenant} />
-      <QuickBooking tenant={tenant} />
+      <QuickBooking tenant={tenant} services={bookingServices} />
       <ClinicServices tenant={tenant} featuredServices={featuredServices} />
       <TestimonialsSection
         tenant={tenant}

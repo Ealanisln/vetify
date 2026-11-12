@@ -252,23 +252,41 @@ export default function StaffList({ initialStaff, pagination: initialPagination,
       );
     }
 
-    // Has pending invitation
-    if (invitation?.status === 'PENDING') {
+    // Has an invitation that was sent but not accepted. A PENDING row whose
+    // expiresAt passed is expired too (the status is only updated lazily).
+    const isExpired =
+      invitation?.status === 'EXPIRED' ||
+      (invitation?.status === 'PENDING' && new Date(invitation.expiresAt).getTime() <= Date.now());
+
+    if (invitation?.status === 'PENDING' || isExpired) {
       return (
         <div className="flex items-center gap-2">
-          <Badge
-            variant="secondary"
-            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700 flex items-center gap-1"
-          >
-            <ClockIcon className="h-3 w-3" />
-            Invitación pendiente
-          </Badge>
+          {isExpired ? (
+            <Badge
+              variant="secondary"
+              className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700 flex items-center gap-1"
+              data-testid="invitation-status"
+            >
+              <ClockIcon className="h-3 w-3" />
+              Invitación expirada
+            </Badge>
+          ) : (
+            <Badge
+              variant="secondary"
+              className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700 flex items-center gap-1"
+              data-testid="invitation-status"
+            >
+              <ClockIcon className="h-3 w-3" />
+              Invitación pendiente
+            </Badge>
+          )}
           {canWrite && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => handleSendInvitation(staffMember.id, staffMember.name, true)}
               disabled={isSending}
+              data-testid="resend-invitation-button"
               className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               {isSending ? (
@@ -297,6 +315,7 @@ export default function StaffList({ initialStaff, pagination: initialPagination,
         size="sm"
         onClick={() => handleSendInvitation(staffMember.id, staffMember.name, false)}
         disabled={isSending}
+        data-testid="send-invitation-button"
         className="h-7 flex items-center gap-1 text-xs dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
       >
         {isSending ? (
@@ -322,7 +341,7 @@ export default function StaffList({ initialStaff, pagination: initialPagination,
           </p>
         </div>
         {canWrite && (
-          <Button onClick={() => openModal('create')} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700">
+          <Button onClick={() => openModal('create')} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-600 dark:hover:bg-blue-700" data-testid="add-staff-button">
             <UserPlusIcon className="h-4 w-4" />
             Agregar Personal
           </Button>
@@ -415,21 +434,22 @@ export default function StaffList({ initialStaff, pagination: initialPagination,
               )}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4" data-testid="staff-list">
               {staff.map((staffMember) => (
                 <div
                   key={staffMember.id}
                   className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow bg-white dark:bg-gray-800"
+                  data-testid="staff-row"
                 >
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <h3 className="font-semibold text-base md:text-lg text-gray-900 dark:text-gray-100">{staffMember.name}</h3>
+                        <h3 className="font-semibold text-base md:text-lg text-gray-900 dark:text-gray-100" data-testid="staff-name">{staffMember.name}</h3>
                         {getStatusBadge(staffMember.isActive)}
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <div>
+                        <div data-testid="staff-role">
                           <span className="font-medium">Posición:</span> {POSITION_LABELS_ES[staffMember.position as StaffPositionType] || staffMember.position}
                         </div>
                         {staffMember.email && (

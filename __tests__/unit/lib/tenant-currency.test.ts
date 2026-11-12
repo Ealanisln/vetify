@@ -11,7 +11,8 @@ jest.mock('@/lib/prisma', () => {
   const tx = {
     tenant: { create: jest.fn().mockResolvedValue({ id: 'tenant-1' }) },
     tenantSubscription: { create: jest.fn().mockResolvedValue({}) },
-    tenantSettings: { create: jest.fn().mockResolvedValue({}) },
+    tenantSettings: { create: jest.fn().mockResolvedValue({ id: 'settings-1' }) },
+    businessHours: { createMany: jest.fn().mockResolvedValue({ count: 7 }) },
     tenantUsageStats: { create: jest.fn().mockResolvedValue({}) },
     role: { create: jest.fn().mockResolvedValue({ id: 'role-1' }) },
     user: {
@@ -73,5 +74,30 @@ describe('createTenantWithDefaults currency', () => {
 
   it('derives the symbol from the currency module instead of hardcoding it', () => {
     expect(settingsData().currencySymbol).toBe(CURRENCIES[DEFAULT_CURRENCY].symbol);
+  });
+});
+
+describe('createTenantWithDefaults timezone', () => {
+  const create = async (countryCode?: string) => {
+    jest.clearAllMocks();
+    await createTenantWithDefaults({
+      name: 'Clínica Test',
+      slug: 'clinica-test',
+      userId: 'user-1',
+      planKey: 'BASICO',
+      billingInterval: 'monthly',
+      countryCode,
+    });
+    return settingsData().timezone;
+  };
+
+  // Regression: signup stored 'UTC', which made every schedule run on UTC.
+  it('stores the clinic zone derived from the country instead of UTC', async () => {
+    expect(await create('MX')).toBe('America/Mexico_City');
+    expect(await create('CO')).toBe('America/Bogota');
+  });
+
+  it('falls back to America/Mexico_City without a country', async () => {
+    expect(await create()).toBe('America/Mexico_City');
   });
 });

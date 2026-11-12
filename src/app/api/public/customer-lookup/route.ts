@@ -1,30 +1,43 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
+import { phoneMatchKey } from '../../../../lib/phone';
+import { findCustomersByPhone, namesMatch } from '../../../../lib/customer-identification';
 
-const lookupSchema = z.object({
-  tenantSlug: z.string().min(1),
-  phone: z.string().optional(),
-  email: z.string().email().optional(),
-}).refine(data => data.phone || data.email, {
-  message: "Se requiere teléfono o email"
-});
+const lookupSchema = z
+  .object({
+    tenantSlug: z.string().min(1),
+    phone: z.string().refine((phone) => phoneMatchKey(phone) !== null),
+    customerName: z.string().trim().min(1).optional(),
+    email: z.string().trim().email().optional(),
+  })
+  .refine((data) => data.customerName || data.email);
 
 /**
- * Public endpoint to lookup a customer and their pets by phone or email.
- * Used in the public booking form to suggest existing pets.
+ * Public endpoint used by the booking form to offer the caller's own pets.
  *
- * Returns customer info and pets if found, without exposing sensitive data.
+ * Anyone can call it, so it only answers when the caller proves who they are
+ * with two factors: the full phone number (normalized, exact match) plus the
+ * customer's name or email exactly as the clinic has them. It returns nothing
+ * about the customer, only the id and name of their living pets, and the
+ * response for "no match" is identical to "match without pets", so it cannot
+ * be used to learn whether a phone number belongs to a client.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const validatedData = lookupSchema.parse(body);
+    const parsed = lookupSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: 'Datos inválidos' },
+        { status: 400 }
+      );
+    }
+    const { tenantSlug, phone, customerName, email } = parsed.data;
 
-    // Get tenant by slug
     const tenant = await prisma.tenant.findUnique({
       where: {
-        slug: validatedData.tenantSlug,
+        slug: tenantSlug,
         status: 'ACTIVE'
       },
       select: {
@@ -41,111 +54,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Normalize phone number for comparison
-    const normalizedPhone = validatedData.phone?.replace(/\D/g, '');
+    const phoneMatches = await findCustomersByPhone(tenant.id, phone);
+    const customer = phoneMatches.find(
+      (candidate) =>
+        (customerName && namesMatch(candidate.name, customerName)) ||
+        (email && candidate.email?.trim().toLowerCase() === email.toLowerCase())
+    );
 
-    // Search for customer by phone (priority) or email
-    let customer = null;
+    const pets = customer
+      ? await prisma.pet.findMany({
+          where: {
+            tenantId: tenant.id,
+            customerId: customer.id,
+            isDeceased: false
+          },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' }
+        })
+      : [];
 
-    if (normalizedPhone) {
-      customer = await prisma.customer.findFirst({
-        where: {
-          tenantId: tenant.id,
-          phone: {
-            contains: normalizedPhone.slice(-10) // Last 10 digits
-          }
-        },
-        select: {
-          id: true,
-          name: true,
-          phone: true,
-          email: true,
-          pets: {
-            where: {
-              isDeceased: false
-            },
-            select: {
-              id: true,
-              name: true,
-              species: true,
-              breed: true
-            },
-            orderBy: {
-              name: 'asc'
-            }
-          }
-        }
-      });
-    }
-
-    // If not found by phone, try email
-    if (!customer && validatedData.email) {
-      customer = await prisma.customer.findFirst({
-        where: {
-          tenantId: tenant.id,
-          email: {
-            equals: validatedData.email,
-            mode: 'insensitive'
-          }
-        },
-        select: {
-          id: true,
-          name: true,
-          phone: true,
-          email: true,
-          pets: {
-            where: {
-              isDeceased: false
-            },
-            select: {
-              id: true,
-              name: true,
-              species: true,
-              breed: true
-            },
-            orderBy: {
-              name: 'asc'
-            }
-          }
-        }
-      });
-    }
-
-    if (!customer) {
-      return NextResponse.json({
-        success: true,
-        found: false,
-        message: 'Cliente no encontrado'
-      });
-    }
-
-    // Return customer info with pets (limited data for privacy)
     return NextResponse.json({
       success: true,
-      found: true,
-      customer: {
-        id: customer.id,
-        name: customer.name,
-        // Only return masked versions for privacy
-        hasPhone: !!customer.phone,
-        hasEmail: !!customer.email
-      },
-      pets: customer.pets.map(pet => ({
-        id: pet.id,
-        name: pet.name,
-        species: pet.species,
-        breed: pet.breed
-      }))
+      pets: pets.map((pet) => ({ id: pet.id, name: pet.name }))
     });
-
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { success: false, error: 'Datos inválidos', details: error.errors },
-        { status: 400 }
-      );
-    }
-
     console.error('Error in customer lookup:', error);
     return NextResponse.json(
       { success: false, error: 'Error interno del servidor' },

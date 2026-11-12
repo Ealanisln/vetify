@@ -6,9 +6,27 @@ import { findOrCreateUser } from '../../../lib/db/queries/users';
 import { getStripePriceIdForPlan } from '../../../lib/pricing-config';
 import { resolveReferralCode } from '../../../lib/referrals/queries';
 
+/**
+ * Clients name the yearly interval differently (/precios sends 'annual').
+ * Normalize at the boundary so the price lookup always gets 'monthly' | 'yearly'.
+ */
+function normalizeBillingInterval(value: unknown): 'monthly' | 'yearly' | null {
+  if (value === undefined || value === null || value === 'monthly') return 'monthly';
+  if (value === 'annual' || value === 'yearly') return 'yearly';
+  return null;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { priceId, planKey, billingInterval = 'monthly', referralCode } = await request.json();
+    const { priceId, planKey, billingInterval: rawBillingInterval, referralCode } = await request.json();
+
+    const billingInterval = normalizeBillingInterval(rawBillingInterval);
+    if (!billingInterval) {
+      return NextResponse.json(
+        { error: 'Intervalo de facturación inválido. Usa mensual o anual.' },
+        { status: 400 }
+      );
+    }
 
     // Resolve price ID - either from direct priceId or from planKey
     let actualPriceId = priceId;
@@ -23,7 +41,7 @@ export async function POST(request: NextRequest) {
         'CORPORATIVO': 'Plan Corporativo'
       };
       const planName = planNameMap[planKey.toUpperCase()] || planKey;
-      actualPriceId = getStripePriceIdForPlan(planName, billingInterval as 'monthly' | 'yearly');
+      actualPriceId = getStripePriceIdForPlan(planName, billingInterval);
     }
 
     // Si priceId es un lookup key, convertirlo a price ID real
@@ -122,7 +140,7 @@ export async function POST(request: NextRequest) {
       priceId: actualPriceId,
       userId: user.id,
       planKey: resolvedPlanKey,
-      billingInterval: billingInterval === 'yearly' || billingInterval === 'annual' ? 'annual' : 'monthly',
+      billingInterval: billingInterval === 'yearly' ? 'annual' : 'monthly',
       referralCodeId,
       referralPartnerId,
       referralStripeCouponId,

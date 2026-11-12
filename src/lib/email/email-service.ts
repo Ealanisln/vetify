@@ -30,6 +30,7 @@ import type {
   DataRetentionWarningData,
 } from './types';
 import { logEmailSend } from '../notifications/notification-logger';
+import { resolveDefaultReplyTo } from './clinic-reply-to';
 import {
   AppointmentConfirmationEmail,
   AppointmentReminderEmail,
@@ -51,6 +52,7 @@ import {
   DataRetentionWarningEmail,
 } from './templates';
 import { formatDateLong, formatDateTimeLong, formatDate, formatCurrency } from '../utils/date-format';
+import { DEFAULT_CLINIC_TIME_ZONE } from '../clinic-timezone';
 
 // Lazy-load Resend client to avoid initialization during build
 let resendClient: Resend | null = null;
@@ -104,12 +106,18 @@ export async function sendEmail(
       ? `${emailData.from.name} <${emailData.from.email}>`
       : `${DEFAULT_CONFIG.fromName} <${DEFAULT_CONFIG.fromEmail}>`;
 
+    // Customer emails reply to the clinic; everything else to Vetify
+    const replyTo =
+      emailData.replyTo ||
+      (await resolveDefaultReplyTo(emailData)) ||
+      DEFAULT_CONFIG.replyToEmail;
+
     const payload = {
       from,
       to: emailData.to.email,
       subject: emailData.subject,
       html: htmlContent,
-      replyTo: emailData.replyTo || DEFAULT_CONFIG.replyToEmail,
+      replyTo,
       cc: emailData.cc?.map((r) => r.email),
       bcc: emailData.bcc?.map((r) => r.email),
     };
@@ -117,6 +125,12 @@ export async function sendEmail(
     // Send email via Resend
     const resend = getResendClient();
     const response = await resend.emails.send(payload);
+
+    // Resend resolves (does not throw) on API errors such as an unverified
+    // domain, so surface its error instead of a generic message.
+    if (response.error) {
+      throw new Error(`Resend error (${response.error.name}): ${response.error.message}`);
+    }
 
     if (!response.data?.id) {
       throw new Error('Failed to send email: No message ID returned');
@@ -225,10 +239,12 @@ export async function sendTestimonialRequest(
  * Render email template to HTML using React Email
  */
 async function renderTemplate(emailData: EmailData): Promise<string> {
+  // The server runs in UTC; clinic-facing dates must use the clinic's zone
+  const timeZone = emailData.timeZone ?? DEFAULT_CLINIC_TIME_ZONE;
   switch (emailData.template) {
     case 'appointment-confirmation': {
       const d = emailData.data;
-      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      const appointmentDateStr = formatDateLong(d.appointmentDate, timeZone);
       return await render(
         AppointmentConfirmationEmail({
           ownerName: d.ownerName,
@@ -247,7 +263,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'appointment-reminder': {
       const d = emailData.data;
-      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      const appointmentDateStr = formatDateLong(d.appointmentDate, timeZone);
       return await render(
         AppointmentReminderEmail({
           ownerName: d.ownerName,
@@ -266,7 +282,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'appointment-cancellation': {
       const d = emailData.data;
-      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      const appointmentDateStr = formatDateLong(d.appointmentDate, timeZone);
       return await render(
         AppointmentCancellationEmail({
           ownerName: d.ownerName,
@@ -284,8 +300,8 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'appointment-rescheduled': {
       const d = emailData.data;
-      const previousDateStr = formatDateLong(d.previousDate);
-      const newDateStr = formatDateLong(d.newDate);
+      const previousDateStr = formatDateLong(d.previousDate, timeZone);
+      const newDateStr = formatDateLong(d.newDate, timeZone);
       return await render(
         AppointmentRescheduledEmail({
           ownerName: d.ownerName,
@@ -305,7 +321,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'appointment-staff-notification': {
       const d = emailData.data;
-      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      const appointmentDateStr = formatDateLong(d.appointmentDate, timeZone);
       return await render(
         AppointmentStaffNotificationEmail({
           staffName: d.staffName,
@@ -325,7 +341,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'low-stock-alert': {
       const d = emailData.data;
-      const alertDateStr = formatDateTimeLong(d.alertDate);
+      const alertDateStr = formatDateTimeLong(d.alertDate, timeZone);
       return await render(
         LowStockAlertEmail({
           clinicName: d.clinicName,
@@ -357,9 +373,9 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'new-user-registration': {
       const d = emailData.data;
-      const registrationDateStr = formatDateTimeLong(d.registrationDate);
+      const registrationDateStr = formatDateTimeLong(d.registrationDate, timeZone);
       const trialEndsStr = d.trialEndsAt
-        ? formatDate(d.trialEndsAt)
+        ? formatDate(d.trialEndsAt, timeZone)
         : undefined;
       return await render(
         NewUserRegistrationEmail({
@@ -377,7 +393,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'new-subscription-payment': {
       const d = emailData.data;
-      const paymentDateStr = formatDateTimeLong(d.paymentDate);
+      const paymentDateStr = formatDateTimeLong(d.paymentDate, timeZone);
       const formattedAmount = formatCurrency(d.planAmount / 100, d.currency.toUpperCase());
       return await render(
         NewSubscriptionPaymentEmail({
@@ -398,7 +414,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'payment-failed-alert': {
       const d = (emailData as PaymentFailedAlertData).data;
-      const failureDateStr = formatDateTimeLong(d.failureDate);
+      const failureDateStr = formatDateTimeLong(d.failureDate, timeZone);
       const formattedAmount = d.amountDue && d.currency
         ? formatCurrency(d.amountDue / 100, d.currency.toUpperCase())
         : undefined;
@@ -421,7 +437,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'testimonial-request': {
       const d = emailData.data;
-      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      const appointmentDateStr = formatDateLong(d.appointmentDate, timeZone);
       return await render(
         TestimonialRequestEmail({
           ownerName: d.ownerName,
@@ -440,6 +456,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
       return await render(
         StaffInvitationEmail({
           staffName: d.staffName,
+          email: d.email,
           clinicName: d.clinicName,
           position: d.position,
           inviteUrl: d.inviteUrl,
@@ -450,7 +467,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'trial-expiring': {
       const d = (emailData as TrialExpiringData).data;
-      const trialEndsDateStr = formatDateLong(d.trialEndsDate);
+      const trialEndsDateStr = formatDateLong(d.trialEndsDate, timeZone);
       return await render(
         TrialExpiringEmail({
           clinicName: d.clinicName,
@@ -464,7 +481,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'trial-expired': {
       const d = (emailData as TrialExpiredData).data;
-      const expiredDateStr = formatDateLong(d.expiredDate);
+      const expiredDateStr = formatDateLong(d.expiredDate, timeZone);
       return await render(
         TrialExpiredEmail({
           clinicName: d.clinicName,
@@ -477,7 +494,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'trial-welcome': {
       const d = (emailData as TrialWelcomeData).data;
-      const trialEndsDateStr = formatDateLong(d.trialEndsDate);
+      const trialEndsDateStr = formatDateLong(d.trialEndsDate, timeZone);
       return await render(
         TrialWelcomeEmail({
           clinicName: d.clinicName,
@@ -513,7 +530,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'data-retention-warning': {
       const d = (emailData as DataRetentionWarningData).data;
-      const deletionDateStr = formatDateLong(d.deletionDate);
+      const deletionDateStr = formatDateLong(d.deletionDate, timeZone);
       return await render(
         DataRetentionWarningEmail({
           clinicName: d.clinicName,

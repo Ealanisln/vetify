@@ -3,6 +3,7 @@ import { getAuthenticatedUserWithOptionalTenant } from '../../../lib/auth';
 import { createTenantWithDefaults, isSlugAvailable, generateUniqueSlug } from '../../../lib/tenant';
 import { notifyNewUserRegistration } from '../../../lib/email/admin-notifications';
 import { sendTrialWelcomeEmail } from '../../../lib/email/trial-lifecycle';
+import { runAfterResponse } from '../../../lib/after-response';
 import { getActivePromotionFromDB } from '../../../lib/pricing-config';
 import { resolveReferralCode, createConversion } from '../../../lib/referrals/queries';
 import { z } from 'zod';
@@ -12,10 +13,14 @@ const onboardingSchema = z.object({
   // y lo elige después (fin de trial / Configuración → suscripción).
   planKey: z.enum(['BASICO', 'PROFESIONAL', 'CORPORATIVO']).optional().default('PROFESIONAL'),
   billingInterval: z.enum(['monthly', 'yearly']).optional().default('monthly'),
-  clinicName: z.string().min(1, 'El nombre de la clínica es requerido'),
+  clinicName: z.string()
+    .trim()
+    .min(1, 'El nombre de la clínica es requerido')
+    .max(100, 'El nombre de la clínica no puede pasar de 100 caracteres'),
   slug: z.string()
     .min(1, 'El slug es requerido')
-    .regex(/^[a-z0-9-]+$/, 'El slug solo puede contener letras minúsculas, números y guiones'),
+    .regex(/^[a-z0-9-]+$/, 'El slug solo puede contener letras minúsculas, números y guiones')
+    .regex(/[a-z0-9]/, 'El slug debe tener al menos una letra o un número'),
   countryCode: z.string()
     .length(2, 'El país debe ser un código ISO de 2 letras')
     .transform(value => value.toUpperCase())
@@ -89,8 +94,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send admin notification (non-blocking)
-    notifyNewUserRegistration({
+    // Admin signup alert and day-0 welcome email run after the response so
+    // they don't delay onboarding (the daily cron also catches up the welcome)
+    const notification = {
       userName: user.given_name && user.family_name
         ? `${user.given_name} ${user.family_name}`
         : user.email || 'Usuario',
@@ -98,18 +104,17 @@ export async function POST(request: NextRequest) {
       tenantId: result.tenant.id,
       tenantName: result.tenant.name,
       tenantSlug: result.tenant.slug,
-      planType: 'TRIAL', // New registrations start with trial
+      planType: 'TRIAL' as const, // New registrations start with trial
       trialEndsAt: result.tenant.trialEndsAt ?? undefined,
-    }).catch(error => {
-      // Log error but don't fail the request
-      console.error('[ONBOARDING] Failed to send admin notification:', error);
-    });
-
-    // Day-0 welcome email to the clinic owner (non-blocking; the daily cron
-    // catches up if this fails)
-    sendTrialWelcomeEmail(result.tenant.id).catch(error => {
-      console.error('[ONBOARDING] Failed to send trial welcome email:', error);
-    });
+    };
+    runAfterResponse(
+      () => notifyNewUserRegistration(notification),
+      '[ONBOARDING] Failed to send admin notification:'
+    );
+    runAfterResponse(
+      () => sendTrialWelcomeEmail(result.tenant.id),
+      '[ONBOARDING] Failed to send trial welcome email:'
+    );
 
     return NextResponse.json({
       message: 'Clínica creada exitosamente',

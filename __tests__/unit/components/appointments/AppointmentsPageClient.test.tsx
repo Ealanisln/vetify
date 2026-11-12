@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { AppointmentsPageClient } from '@/app/dashboard/appointments/AppointmentsPageClient';
 import {
   createTestCustomer,
@@ -41,8 +41,13 @@ jest.mock('@/components/appointments/FullCalendarView', () => ({
 }));
 
 // Mock the AppointmentModal component - using relative paths as the component uses them
+let mockModalProps: Record<string, unknown> = {};
+let mockCalendarProps: Record<string, unknown> = {};
 jest.mock('../../../../src/components/appointments', () => ({
-  AppointmentModal: () => <div data-testid="appointment-modal">Modal Mock</div>,
+  AppointmentModal: (props: Record<string, unknown>) => {
+    mockModalProps = props;
+    return <div data-testid="appointment-modal">Modal Mock</div>;
+  },
   TodayAppointments: () => <div data-testid="today-appointments">Today Appointments Mock</div>,
   AppointmentStats: () => <div data-testid="appointment-stats">Stats Mock</div>,
 }));
@@ -52,15 +57,18 @@ jest.mock('next/dynamic', () => ({
   __esModule: true,
   default: (_dynamicImport: () => Promise<{ default: React.ComponentType }>) => {
     // Return a mock component that passes through props
-    const MockComponent = (props: Record<string, unknown>) => (
-      <div
-        data-testid="full-calendar-view"
-        data-selectable={props.selectable?.toString()}
-        data-editable={props.editable?.toString()}
-      >
-        Calendar Mock
-      </div>
-    );
+    const MockComponent = (props: Record<string, unknown>) => {
+      mockCalendarProps = props;
+      return (
+        <div
+          data-testid="full-calendar-view"
+          data-selectable={props.selectable?.toString()}
+          data-editable={props.editable?.toString()}
+        >
+          Calendar Mock
+        </div>
+      );
+    };
     MockComponent.displayName = 'DynamicComponent';
     return MockComponent;
   },
@@ -434,6 +442,38 @@ describe('AppointmentsPageClient', () => {
       );
 
       expect(screen.getByTestId('new-appointment-button')).toBeInTheDocument();
+    });
+  });
+
+  describe('Clinic timezone', () => {
+    const originalFetch = global.fetch;
+
+    afterEach(() => {
+      global.fetch = originalFetch;
+    });
+
+    it('loads the clinic hours once and shares the timezone with the calendar and the modal', async () => {
+      mockUseStaffPermissions.mockReturnValue(createMockPermissionsReturn('MANAGER', true));
+      const hoursFetch = jest.fn(async () => ({
+        ok: true,
+        json: async () => ({ success: true, data: { timeZone: 'America/Bogota', days: [] } }),
+      }));
+      global.fetch = jest.fn(async (url: RequestInfo | URL) => {
+        if (String(url) === '/api/appointments/business-hours') return hoursFetch();
+        return { ok: true, json: async () => ({ success: true, data: [] }) };
+      }) as unknown as typeof fetch;
+
+      render(
+        <AppointmentsPageClient
+          customers={mockCustomers}
+          pets={mockPets}
+          staff={mockStaffList}
+        />
+      );
+
+      await waitFor(() => expect(mockModalProps.timeZone).toBe('America/Bogota'));
+      expect(mockCalendarProps.clinicSettings).toEqual({ timeZone: 'America/Bogota', days: [] });
+      expect(hoursFetch).toHaveBeenCalledTimes(1);
     });
   });
 });

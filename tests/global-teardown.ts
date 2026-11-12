@@ -41,38 +41,30 @@ async function globalTeardown(_config: FullConfig) {
     });
 
     try {
-      // Delete test data in dependency order (children first)
-      const deletedAppointments = await prisma.appointment.deleteMany({
-        where: { tenantId: TEST_TENANT_ID },
-      });
-      console.log(`  Deleted ${deletedAppointments.count} test appointments`);
+      // One transaction, so a failure leaves the seed data intact instead of
+      // half-deleted. Children first; the tenant delete cascades the rest.
+      await prisma.$transaction(async (tx) => {
+        const deletedAppointments = await tx.appointment.deleteMany({ where: { tenantId: TEST_TENANT_ID } });
+        console.log(`  Deleted ${deletedAppointments.count} test appointments`);
 
-      const deletedPets = await prisma.pet.deleteMany({
-        where: { tenantId: TEST_TENANT_ID },
-      });
-      console.log(`  Deleted ${deletedPets.count} test pets`);
+        const deletedPets = await tx.pet.deleteMany({ where: { tenantId: TEST_TENANT_ID } });
+        console.log(`  Deleted ${deletedPets.count} test pets`);
 
-      const deletedCustomers = await prisma.customer.deleteMany({
-        where: { tenantId: TEST_TENANT_ID },
-      });
-      console.log(`  Deleted ${deletedCustomers.count} test customers`);
+        const deletedCustomers = await tx.customer.deleteMany({ where: { tenantId: TEST_TENANT_ID } });
+        console.log(`  Deleted ${deletedCustomers.count} test customers`);
 
-      const deletedStaff = await prisma.staff.deleteMany({
-        where: { tenantId: TEST_TENANT_ID },
-      });
-      console.log(`  Deleted ${deletedStaff.count} test staff members`);
+        const deletedStaff = await tx.staff.deleteMany({ where: { tenantId: TEST_TENANT_ID } });
+        console.log(`  Deleted ${deletedStaff.count} test staff members`);
 
-      // Only delete the test tenant if it exists
-      const tenant = await prisma.tenant.findUnique({
-        where: { id: TEST_TENANT_ID },
-      });
-
-      if (tenant) {
-        await prisma.tenant.delete({
-          where: { id: TEST_TENANT_ID },
+        await tx.userRole.deleteMany({
+          where: { OR: [{ role: { tenantId: TEST_TENANT_ID } }, { user: { tenantId: TEST_TENANT_ID } }] },
         });
-        console.log('  Deleted test tenant');
-      }
+        const deletedUsers = await tx.user.deleteMany({ where: { tenantId: TEST_TENANT_ID } });
+        console.log(`  Deleted ${deletedUsers.count} test users`);
+
+        const deletedTenants = await tx.tenant.deleteMany({ where: { id: TEST_TENANT_ID } });
+        if (deletedTenants.count > 0) console.log('  Deleted test tenant');
+      });
 
       console.log('Global teardown: Cleanup complete');
     } finally {

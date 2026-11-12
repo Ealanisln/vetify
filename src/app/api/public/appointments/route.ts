@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { runAfterResponse } from '@/lib/after-response';
 import { getTenantBySlug } from '../../../../lib/tenant';
 import { findOrCreateCustomer, createPublicAppointmentRequest } from '../../../../lib/customer-identification';
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
 import { addMinutes } from 'date-fns';
+import {
+  DEFAULT_CLINIC_TIME_ZONE,
+  clinicDateTime,
+  clinicDayRange,
+  parseClinicDate,
+} from '../../../../lib/clinic-timezone';
 import type { AnalyticsEventType } from '@prisma/client';
 
 const appointmentRequestSchema = z.object({
@@ -29,7 +36,7 @@ export async function POST(request: NextRequest) {
     
     if (!tenant || !tenant.publicBookingEnabled) {
       return NextResponse.json(
-        { error: 'Booking not available for this clinic' },
+        { success: false, error: 'La reserva en línea no está disponible para esta clínica' },
         { status: 404 }
       );
     }
@@ -38,11 +45,18 @@ export async function POST(request: NextRequest) {
     if (validatedData.preferredDate && validatedData.preferredTime) {
       const appointmentDuration = 30; // Default duration in minutes
 
-      // Parse the date and time as UTC to match how PostgreSQL stores timestamps
-      // La BD almacena timestamps sin timezone, y Prisma los interpreta como UTC
-      // Por lo tanto, debemos crear la fecha del request como UTC también
-      const dateTimeString = `${validatedData.preferredDate}T${validatedData.preferredTime}:00.000Z`;
-      const requestedDateTime = new Date(dateTimeString);
+      // preferredDate + preferredTime are clinic wall-clock labels; resolve
+      // them in the clinic timezone (the server runs in UTC).
+      const timeZone = tenant.timeZone ?? DEFAULT_CLINIC_TIME_ZONE;
+      const clinicDate = parseClinicDate(validatedData.preferredDate, timeZone);
+      const validTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(validatedData.preferredTime);
+      if (!clinicDate || !validTime) {
+        return NextResponse.json({
+          success: false,
+          error: 'Fecha u hora inválida'
+        }, { status: 400 });
+      }
+      const requestedDateTime = clinicDateTime(clinicDate, validatedData.preferredTime, timeZone);
       const requestedEndTime = addMinutes(requestedDateTime, appointmentDuration);
 
       // Check if the date is in the past
@@ -60,7 +74,8 @@ export async function POST(request: NextRequest) {
       // - La cita existente termina después de que empiece la nueva
       // Esto detecta cualquier solapamiento
 
-      // Find appointments that could potentially conflict (on the same day)
+      // Find appointments that could potentially conflict (on the same clinic day)
+      const { start: dayStart, end: dayEnd } = clinicDayRange(clinicDate, timeZone);
       const potentialConflicts = await prisma.appointment.findMany({
         where: {
           tenantId: tenant.id,
@@ -68,8 +83,8 @@ export async function POST(request: NextRequest) {
             notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']
           },
           dateTime: {
-            gte: new Date(`${validatedData.preferredDate}T00:00:00.000Z`),
-            lt: new Date(`${validatedData.preferredDate}T23:59:59.999Z`)
+            gte: dayStart,
+            lte: dayEnd
           }
         },
         select: {
@@ -100,30 +115,10 @@ export async function POST(request: NextRequest) {
         }, { status: 409 });
       }
 
-      // Check for conflicts with confirmed appointment requests
-      // Use UTC dates to match PostgreSQL storage
-      const startOfDay = new Date(`${validatedData.preferredDate}T00:00:00.000Z`);
-      const endOfDay = new Date(`${validatedData.preferredDate}T23:59:59.999Z`);
-
-      const conflictingRequest = await prisma.appointmentRequest.findFirst({
-        where: {
-          tenantId: tenant.id,
-          status: 'CONFIRMED',
-          preferredDate: {
-            gte: startOfDay,
-            lte: endOfDay
-          },
-          preferredTime: validatedData.preferredTime
-        }
-      });
-
-      if (conflictingRequest) {
-        return NextResponse.json({
-          success: false,
-          error: 'El horario seleccionado ya no está disponible. Por favor selecciona otro horario.',
-          conflictType: 'request'
-        }, { status: 409 });
-      }
+      // AppointmentRequest rows are not checked. A former check for CONFIRMED
+      // requests never matched: nothing sets that status (there is no staff
+      // inbox yet). Whether PENDING requests should hold a slot is a product
+      // decision for when that inbox exists.
     }
 
     // 🔍 IDENTIFICACIÓN INTELIGENTE DE CLIENTE
@@ -159,25 +154,27 @@ export async function POST(request: NextRequest) {
 
     // 📈 TRACK CONVERSION (non-blocking)
     if (validatedData.sessionId) {
-      prisma.landingPageAnalytics.create({
-        data: {
-          tenantId: tenant.id,
-          eventType: 'CONVERSION' as AnalyticsEventType,
-          eventName: 'appointment_booked',
-          pageSlug: 'agendar',
-          sessionId: validatedData.sessionId,
-          conversionId: appointmentRequest.id,
-        },
-      }).catch((err) => {
-        // Don't fail the request if analytics fails
-        console.error('[Analytics] Failed to track conversion:', err);
-      });
+      const sessionId = validatedData.sessionId;
+      runAfterResponse(
+        () => prisma.landingPageAnalytics.create({
+          data: {
+            tenantId: tenant.id,
+            eventType: 'CONVERSION' as AnalyticsEventType,
+            eventName: 'appointment_booked',
+            pageSlug: 'agendar',
+            sessionId,
+            conversionId: appointmentRequest.id,
+          },
+        }),
+        '[Analytics] Failed to track conversion:'
+      );
     }
 
-    // 📊 RESPUESTA CON INFORMACIÓN DE IDENTIFICACIÓN
+    // Generic answer: an anonymous caller must not learn whether the phone or
+    // name belongs to a client, nor anything about that client or others.
     return NextResponse.json({
       success: true,
-      message: 'Appointment request created successfully',
+      message: 'Solicitud de cita recibida',
       data: {
         appointmentRequest: {
           id: appointmentRequest.id,
@@ -185,18 +182,7 @@ export async function POST(request: NextRequest) {
           service: appointmentRequest.service,
           preferredDate: appointmentRequest.preferredDate,
           status: appointmentRequest.status
-        },
-        customerStatus: identificationResult.status,
-        existingPets: identificationResult.existingPets || [],
-        hasAccount: identificationResult.hasUserAccount,
-        confidence: identificationResult.confidence,
-        loginPrompt: identificationResult.hasUserAccount ? {
-          message: "¡Te reconocemos! Inicia sesión para ver tu historial completo",
-          loginUrl: `/sign-in?redirect=dashboard${identificationResult.customer.email ? `&email=${identificationResult.customer.email}` : ''}`
-        } : null,
-        similarCustomers: identificationResult.status === 'needs_review' 
-          ? identificationResult.similarCustomers?.slice(0, 2) 
-          : null
+        }
       }
     });
 
@@ -205,13 +191,13 @@ export async function POST(request: NextRequest) {
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid data provided', details: error.errors },
+        { success: false, error: 'Datos inválidos', details: error.errors },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: 'Error interno del servidor' },
       { status: 500 }
     );
   }

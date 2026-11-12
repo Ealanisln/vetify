@@ -1,13 +1,17 @@
 /**
  * Seed test data for CI E2E testing
  *
- * Creates a test tenant, user, customer, pet, and appointment
- * so that authenticated E2E tests have data to work with.
+ * Creates a test tenant whose owner is the E2E user (shaped like
+ * createTenantWithDefaults in src/lib/tenant.ts: User, admin role, Staff
+ * "Administrador", settings and default week), plus a customer, pet and
+ * appointment so that authenticated E2E tests have data to work with.
+ * Idempotent: safe to run more than once against the same database.
  *
  * Run after seed-ci-plans.ts:
  *   npx tsx scripts/seed-ci-test-data.ts
  */
 import { PrismaClient } from '@prisma/client';
+import { buildDefaultWeek } from '../src/lib/business-hours';
 
 const prisma = new PrismaClient();
 
@@ -28,25 +32,56 @@ async function main() {
     process.exit(1);
   }
 
-  // 2. Create test tenant
-  const existingTenant = await prisma.tenant.findUnique({
+  // 2. Create test tenant: in an active trial, with public booking on so the
+  // clinic-setup spec can check the services offered at /ci-test-clinic/agendar
+  const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+  await prisma.tenant.upsert({
     where: { id: TEST_TENANT_ID },
+    create: {
+      id: TEST_TENANT_ID,
+      name: 'CI Test Clinic',
+      slug: 'ci-test-clinic',
+      planType: 'PROFESIONAL',
+      countryCode: 'MX',
+      isTrialPeriod: true,
+      trialEndsAt,
+      subscriptionStatus: 'TRIALING',
+      publicPageEnabled: true,
+      publicBookingEnabled: true,
+    },
+    update: {
+      isTrialPeriod: true,
+      trialEndsAt,
+      subscriptionStatus: 'TRIALING',
+      publicPageEnabled: true,
+      publicBookingEnabled: true,
+    },
   });
+  console.log('  ✓ Upserted test tenant');
 
-  if (!existingTenant) {
-    await prisma.tenant.create({
-      data: {
-        id: TEST_TENANT_ID,
-        name: 'CI Test Clinic',
-        slug: 'ci-test-clinic',
-        planType: 'PROFESIONAL',
-        isTrialPeriod: true,
-        trialEndsAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      },
+  // 2a. Settings and the default week, as onboarding creates them
+  const tenantSettings = await prisma.tenantSettings.upsert({
+    where: { tenantId: TEST_TENANT_ID },
+    create: {
+      tenantId: TEST_TENANT_ID,
+      timezone: 'America/Mexico_City',
+      currencyCode: 'MXN',
+      currencySymbol: '$',
+      currencyConfirmed: true,
+      appointmentDuration: 30,
+    },
+    update: {},
+  });
+  const existingHours = await prisma.businessHours.count({ where: { tenantId: TEST_TENANT_ID } });
+  if (existingHours === 0) {
+    await prisma.businessHours.createMany({
+      data: buildDefaultWeek().map((day) => ({
+        ...day,
+        tenantId: TEST_TENANT_ID,
+        tenantSettingsId: tenantSettings.id,
+      })),
     });
-    console.log('  ✓ Created test tenant');
-  } else {
-    console.log('  ✓ Test tenant already exists');
+    console.log('  ✓ Created default business hours');
   }
 
   // 2b. Create tenant subscription linking to plan
@@ -69,25 +104,47 @@ async function main() {
     console.log('  ✓ Tenant subscription already exists');
   }
 
-  // 3. Create test staff/user
-  const existingStaff = await prisma.staff.findFirst({
-    where: { tenantId: TEST_TENANT_ID, userId: TEST_KINDE_ID },
+  // 3. The E2E user owns the clinic: the first User of the tenant, with the
+  // admin role and an "Administrador" Staff record. The id is the Kinde `sub`
+  // the fake issuer puts in the test session (tests/e2e/support/constants.ts).
+  await prisma.user.upsert({
+    where: { id: TEST_KINDE_ID },
+    create: {
+      id: TEST_KINDE_ID,
+      tenantId: TEST_TENANT_ID,
+      email: TEST_EMAIL,
+      firstName: 'E2E',
+      lastName: 'Owner',
+      name: 'E2E Owner',
+    },
+    update: { tenantId: TEST_TENANT_ID, isActive: true },
   });
 
-  if (!existingStaff) {
-    await prisma.staff.create({
-      data: {
-        tenantId: TEST_TENANT_ID,
-        userId: TEST_KINDE_ID,
-        name: 'E2E Test User',
-        email: TEST_EMAIL,
-        position: 'Veterinario',
-      },
+  let adminRole = await prisma.role.findFirst({ where: { tenantId: TEST_TENANT_ID, key: 'admin' } });
+  if (!adminRole) {
+    adminRole = await prisma.role.create({
+      data: { tenantId: TEST_TENANT_ID, key: 'admin', name: 'Administrador', isSystem: true },
     });
-    console.log('  ✓ Created test staff member');
-  } else {
-    console.log('  ✓ Test staff member already exists');
   }
+  const existingUserRole = await prisma.userRole.findFirst({
+    where: { userId: TEST_KINDE_ID, roleId: adminRole.id },
+  });
+  if (!existingUserRole) {
+    await prisma.userRole.create({ data: { userId: TEST_KINDE_ID, roleId: adminRole.id } });
+  }
+
+  await prisma.staff.upsert({
+    where: { userId: TEST_KINDE_ID },
+    create: {
+      tenantId: TEST_TENANT_ID,
+      userId: TEST_KINDE_ID,
+      name: 'E2E Owner',
+      email: TEST_EMAIL,
+      position: 'Administrador',
+    },
+    update: { tenantId: TEST_TENANT_ID, position: 'Administrador', isActive: true },
+  });
+  console.log('  ✓ Upserted clinic owner (user, admin role, staff)');
 
   // 4. Create test customer
   const existingCustomer = await prisma.customer.findFirst({

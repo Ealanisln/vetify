@@ -23,7 +23,7 @@ function makePet(overrides: Partial<PetWithOwner> = {}): PetWithOwner {
 }
 
 function subtitleFor(pet: PetWithOwner): string {
-  render(<PetsList pets={[pet]} maxPets={100} />);
+  render(<PetsList pets={[pet]} maxPets={100} searchQuery="" onSearchChange={() => {}} />);
   const name = screen.getByTestId('pet-name');
   return name.nextElementSibling?.textContent ?? '';
 }
@@ -39,5 +39,17 @@ describe('PetsList row subtitle', () => {
 
   it('treats a blank breed as missing', () => {
     expect(subtitleFor(makePet({ species: 'cat', breed: '  ' }))).toBe('Gato • Macho');
+  });
+});
+
+describe('PetsList limit counter', () => {
+  it('shows the plan limit', () => {
+    render(<PetsList pets={[makePet()]} maxPets={500} totalPets={12} searchQuery="" onSearchChange={() => {}} />);
+    expect(screen.getByTestId('pets-limit-indicator')).toHaveTextContent('12 de 500 mascotas registradas');
+  });
+
+  it('does not print -1 for an unlimited plan', () => {
+    render(<PetsList pets={[makePet()]} maxPets={-1} totalPets={12} searchQuery="" onSearchChange={() => {}} />);
+    expect(screen.getByTestId('pets-limit-indicator')).toHaveTextContent(/^12 mascotas registradas$/);
   });
 });

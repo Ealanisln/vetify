@@ -27,7 +27,7 @@ describe('getMedicalHistoryStats', () => {
     it('should return all zeros when no medical histories exist', async () => {
       // Mock empty database
       jest.mocked(prisma.medicalHistory.count).mockResolvedValue(0);
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([]) // unique pets
         .mockResolvedValueOnce([]); // diagnoses
 
@@ -46,7 +46,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(5) // thisMonth
         .mockResolvedValueOnce(10); // total
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([]) // No unique pets
         .mockResolvedValueOnce([]); // diagnoses
 
@@ -62,7 +62,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(3) // thisMonth
         .mockResolvedValueOnce(10); // total
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([
           { petId: 'pet1' },
           { petId: 'pet2' },
@@ -90,7 +90,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(5)
         .mockResolvedValueOnce(20);
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([
           { petId: 'pet1' },
         ]) // unique pets
@@ -108,7 +108,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(10)
         .mockResolvedValueOnce(50);
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([
           { petId: 'pet1' },
         ]) // unique pets
@@ -139,7 +139,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(8) // thisMonth
         .mockResolvedValueOnce(20); // total consultations
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([
           { petId: 'pet1' },
           { petId: 'pet2' },
@@ -159,7 +159,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(5)
         .mockResolvedValueOnce(17); // 17 consultations
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([
           { petId: 'pet1' },
           { petId: 'pet2' },
@@ -177,7 +177,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(0)
         .mockResolvedValueOnce(0);
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([]) // No pets
         .mockResolvedValueOnce([]); // diagnoses
 
@@ -190,7 +190,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(2)
         .mockResolvedValueOnce(10);
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([
           { petId: 'pet1' },
         ]) // 1 unique pet
@@ -208,7 +208,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(5)
         .mockResolvedValueOnce(15);
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([
           { petId: 'pet1' },
         ]) // unique pets
@@ -232,7 +232,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(5)
         .mockResolvedValueOnce(10);
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([
           { petId: 'pet1' },
         ]) // unique pets
@@ -252,7 +252,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(8) // thisMonth
         .mockResolvedValueOnce(50); // total
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([
           { petId: 'pet1' },
         ]) // unique pets
@@ -278,7 +278,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(10)
         .mockResolvedValueOnce(30);
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([
           { petId: 'pet1' },
         ]) // unique pets
@@ -315,7 +315,7 @@ describe('getMedicalHistoryStats', () => {
         { diagnosis: 'Diagnosis 4', _count: { diagnosis: 4 } },
         { diagnosis: 'Diagnosis 5', _count: { diagnosis: 2 } },
       ];
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([
           { petId: 'pet1' },
         ]) // unique pets
@@ -326,7 +326,7 @@ describe('getMedicalHistoryStats', () => {
       expect(stats.commonDiagnoses).toHaveLength(5);
 
       // Verify groupBy was called with take: 5
-      expect(jest.mocked(prisma.medicalHistory.groupBy)).toHaveBeenCalledWith(
+      expect((prisma.medicalHistory.groupBy as unknown as jest.Mock)).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 5,
         })
@@ -352,7 +352,7 @@ describe('getMedicalHistoryStats', () => {
         petId: `pet-${i + 1}`,
       }));
 
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce(uniquePets) // unique pets
         .mockResolvedValueOnce([
           { diagnosis: 'Gastroenteritis', _count: { diagnosis: 15 } },
@@ -384,7 +384,7 @@ describe('getMedicalHistoryStats', () => {
       jest.mocked(prisma.medicalHistory.count)
         .mockResolvedValueOnce(5)
         .mockResolvedValueOnce(10);
-      jest.mocked(prisma.medicalHistory.groupBy)
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock)
         .mockResolvedValueOnce([
           { petId: 'pet1' },
         ]) // unique pets
@@ -399,7 +399,7 @@ describe('getMedicalHistoryStats', () => {
         })
       );
 
-      expect(jest.mocked(prisma.medicalHistory.groupBy)).toHaveBeenCalledWith(
+      expect((prisma.medicalHistory.groupBy as unknown as jest.Mock)).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({ tenantId: testTenantId }),
         })

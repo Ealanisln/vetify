@@ -1,7 +1,11 @@
 import { prisma } from './prisma';
 import { tenantCurrencyDefaults } from './onboarding-defaults';
+import { getClinicTimeZone, timeZoneForCountry } from './clinic-timezone';
+import { buildDefaultWeek } from './business-hours';
+import { DEFAULT_CURRENCY } from './currency';
 import type { SubscriptionStatus } from '@prisma/client';
 import type { ThemeId } from './themes';
+import { isReservedSlug } from './reserved-slugs';
 
 /**
  * Initialize trial period for a tenant
@@ -48,7 +52,8 @@ export interface PublicSocialMedia {
   whatsapp?: string;
 }
 
-export interface PublicService {
+/** Entry of the legacy `Tenant.publicServices` JSON (pre-catalog; no editor remains). */
+export interface LegacyPublicService {
   icon?: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   title: string;
   description: string;
@@ -68,13 +73,17 @@ export interface PublicTenant {
   publicEmail: string | null;
   publicAddress: string | null;
   publicHours: PublicHours | null;
-  publicServices: PublicService[] | null;
+  publicServices: LegacyPublicService[] | null;
   publicImages: PublicImages | null;
   publicSocialMedia: PublicSocialMedia | null;
   publicThemeColor: string | null;
   publicTheme: ThemeId | null;
   publicBookingEnabled: boolean;
+  /** TenantSettings.currencyCode, so public prices use the clinic's currency. */
+  currencyCode: string;
   createdAt: Date;
+  /** IANA timezone the clinic's schedule lives in (see getClinicTimeZone) */
+  timeZone: string;
   tenantSubscription: {
     id: string;
     plan: {
@@ -105,6 +114,8 @@ function transformTenantForPublic(tenant: {
   publicTheme: string | null;
   publicBookingEnabled: boolean;
   createdAt: Date;
+  countryCode: string | null;
+  tenantSettings: { timezone: string; currencyCode: string } | null;
   tenantSubscription: {
     id: string;
     plan: {
@@ -113,10 +124,14 @@ function transformTenantForPublic(tenant: {
     };
   } | null;
 }): PublicTenant {
+  // countryCode and tenantSettings feed derived fields; keep them off the public object
+  const { countryCode, tenantSettings, ...publicFields } = tenant;
   return {
-    ...tenant,
+    ...publicFields,
+    timeZone: getClinicTimeZone({ countryCode, tenantSettings }),
+    currencyCode: tenantSettings?.currencyCode ?? DEFAULT_CURRENCY,
     publicHours: tenant.publicHours as PublicHours | null,
-    publicServices: tenant.publicServices as PublicService[] | null,
+    publicServices: tenant.publicServices as LegacyPublicService[] | null,
     publicImages: tenant.publicImages as PublicImages | null,
     publicSocialMedia: tenant.publicSocialMedia as PublicSocialMedia | null,
     publicTheme: tenant.publicTheme as ThemeId | null,
@@ -176,10 +191,11 @@ export async function createTenantWithDefaults(data: {
     });
 
     // Create tenant settings
-    await tx.tenantSettings.create({
+    const tenantSettings = await tx.tenantSettings.create({
       data: {
         tenantId: tenant.id,
-        timezone: 'UTC',
+        // Store a real zone: 'UTC' made every clinic schedule run on UTC
+        timezone: timeZoneForCountry(currencyDefaults.countryCode),
         dateFormat: 'DD/MM/YYYY',
         enableEmailReminders: true,
         enableSmsReminders: false,
@@ -189,6 +205,16 @@ export async function createTenantWithDefaults(data: {
         currencyConfirmed: currencyDefaults.currencyConfirmed,
         appointmentDuration: 30,
       }
+    });
+
+    // Seed the default week so appointments and public booking work before
+    // the owner ever opens the Horarios tab.
+    await tx.businessHours.createMany({
+      data: buildDefaultWeek().map(day => ({
+        ...day,
+        tenantId: tenant.id,
+        tenantSettingsId: tenantSettings.id,
+      })),
     });
 
     // Create tenant usage stats
@@ -291,6 +317,7 @@ export async function createTenantWithDefaults(data: {
  * Check if a slug is available
  */
 export async function isSlugAvailable(slug: string): Promise<boolean> {
+  if (isReservedSlug(slug)) return false;
   const existingTenant = await prisma.tenant.findUnique({
     where: { slug }
   });
@@ -329,7 +356,7 @@ export function generateSlugFromName(name: string): string {
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-    .trim();
+    .replace(/^-+|-+$/g, '');
 }
 
 /**
@@ -437,6 +464,8 @@ export async function getTenantBySlug(slug: string): Promise<PublicTenant | null
       publicTheme: true,
       publicBookingEnabled: true,
       createdAt: true,
+      countryCode: true,
+      tenantSettings: { select: { timezone: true, currencyCode: true } },
       tenantSubscription: {
         select: {
           id: true,

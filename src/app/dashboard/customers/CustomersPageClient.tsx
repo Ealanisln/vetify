@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { CustomersList } from '../../../components/customers/CustomersList';
 import { CustomerStats } from '../../../components/customers/CustomerStats';
 import { PaginationControls } from '../../../components/ui/PaginationControls';
@@ -39,11 +39,18 @@ interface PaginationState {
 }
 
 const ITEMS_PER_PAGE = 10;
+const SEARCH_DEBOUNCE_MS = 300;
 
 export function CustomersPageClient() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  // Clinic-wide total for the stats, unaffected by the search
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const requestIdRef = useRef(0);
 
   // Pagination state
   const [pagination, setPagination] = useState<PaginationState>({
@@ -59,7 +66,13 @@ export function CustomersPageClient() {
 
   const { currentLocation, isAllLocations } = useLocation();
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   const fetchCustomers = useCallback(async (page: number = 1) => {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
 
@@ -77,6 +90,10 @@ export function CustomersPageClient() {
       params.set('sortBy', sortBy);
       params.set('sortOrder', sortOrder);
 
+      if (debouncedSearch) {
+        params.set('search', debouncedSearch);
+      }
+
       const url = `/api/customers?${params.toString()}`;
       const response = await fetch(url);
 
@@ -86,9 +103,13 @@ export function CustomersPageClient() {
 
       const data = await response.json();
 
+      // A newer request (e.g. the next keystroke) superseded this one
+      if (requestId !== requestIdRef.current) return;
+
       // Handle paginated response
       if (data.success && data.data && data.pagination) {
         setCustomers(data.data);
+        if (!debouncedSearch) setTotalCustomers(data.pagination.total);
         setPagination({
           page: data.pagination.page,
           limit: data.pagination.limit,
@@ -99,6 +120,7 @@ export function CustomersPageClient() {
         // Fallback for legacy response format
         const customersArray = Array.isArray(data) ? data : (data.data || []);
         setCustomers(customersArray);
+        if (!debouncedSearch) setTotalCustomers(customersArray.length);
         setPagination({
           page: 1,
           limit: ITEMS_PER_PAGE,
@@ -108,15 +130,20 @@ export function CustomersPageClient() {
       }
     } catch (err) {
       console.error('Error fetching customers:', err);
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      if (requestId === requestIdRef.current) {
+        setError(err instanceof Error ? err.message : 'Error desconocido');
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+        setHasLoaded(true);
+      }
     }
-  }, [currentLocation?.id, isAllLocations, sortBy, sortOrder]);
+  }, [currentLocation?.id, isAllLocations, sortBy, sortOrder, debouncedSearch]);
 
   useEffect(() => {
     fetchCustomers(1); // Reset to page 1 when filters change
-  }, [currentLocation?.id, isAllLocations, sortBy, sortOrder]);
+  }, [currentLocation?.id, isAllLocations, sortBy, sortOrder, debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Separate effect for initial load
   useEffect(() => {
@@ -133,7 +160,8 @@ export function CustomersPageClient() {
     // fetchCustomers will be called automatically due to useEffect dependency
   };
 
-  if (isLoading && customers.length === 0) {
+  // Full-page spinner only on the first load, so the search box keeps focus
+  if (isLoading && !hasLoaded) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -191,11 +219,13 @@ export function CustomersPageClient() {
       </div>
 
       {/* Stats - use total from pagination for accuracy */}
-      <CustomerStats customers={customers} totalCustomers={pagination.total} />
+      <CustomerStats customers={customers} totalCustomers={totalCustomers} />
 
       {/* Customers List with sorting */}
       <CustomersList
         customers={customers}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
         sortBy={sortBy}
         sortOrder={sortOrder}
         onSort={handleSort}

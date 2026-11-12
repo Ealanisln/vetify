@@ -9,6 +9,8 @@ import { sendLowStockAlert } from './email-service';
 import type { LowStockAlertData } from './types';
 import { prisma } from '../prisma';
 import { triggerWebhookEvent } from '../webhooks';
+import { shouldSendNotification } from '../enhanced-settings';
+import { ADMIN_POSITIONS } from '../staff-permissions';
 
 /**
  * Check inventory and send low stock alerts for a specific tenant
@@ -47,7 +49,16 @@ export async function checkAndSendLowStockAlerts(tenantId: string): Promise<{
       });
     }
 
-    // Get tenant info and staff emails
+    if (!(await shouldSendNotification(tenantId, 'lowStockAlert'))) {
+      return {
+        success: true,
+        itemsChecked: lowStockItems.length,
+        alertsSent: 0,
+        errors: [],
+      };
+    }
+
+    // Recipients: active admins and managers (Staff.position) with an email
     const tenant = await prisma.tenant.findUnique({
       where: { id: tenantId },
       select: {
@@ -56,21 +67,14 @@ export async function checkAndSendLowStockAlerts(tenantId: string): Promise<{
         staff: {
           where: {
             isActive: true,
-            // Get staff with admin or manager roles who should receive alerts
-            role: {
-              permissions: {
-                hasSome: ['MANAGE_INVENTORY', 'MANAGE_ALL'],
-              },
-            },
+            position: { in: ADMIN_POSITIONS },
+            email: { not: null },
           },
           select: {
             name: true,
-            user: {
-              select: {
-                email: true,
-              },
-            },
+            email: true,
           },
+          orderBy: { createdAt: 'asc' },
         },
       },
     });
@@ -81,7 +85,7 @@ export async function checkAndSendLowStockAlerts(tenantId: string): Promise<{
 
     // Get unique staff emails
     const staffEmails = tenant.staff
-      .map((s) => s.user?.email)
+      .map((s) => s.email)
       .filter((email): email is string => !!email && email.length > 0);
 
     if (staffEmails.length === 0) {
@@ -181,7 +185,9 @@ export async function checkAllTenantsInventory(): Promise<{
     for (const tenant of tenants) {
       const result = await checkAndSendLowStockAlerts(tenant.id);
 
-      if (result.errors.length > 0) {
+      // Only real failures count; "no recipients" is reported per tenant
+      // but is a clinic setup state, not a failed run.
+      if (!result.success) {
         errors[tenant.id] = result.errors;
       }
 

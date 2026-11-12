@@ -3,22 +3,27 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AppointmentForm } from '../../../../src/components/appointments/AppointmentForm';
 
+// Slots as the API returns them: absolute instants plus clinic-time labels.
+// 2024-01-15 in America/Mexico_City (UTC-6): 09:00 local = 15:00Z.
+const mockAvailability = {
+  timeZone: 'America/Mexico_City',
+  availableSlots: [
+    { dateTime: '2024-01-15T15:00:00.000Z', time: '09:00', period: 'morning' },
+    { dateTime: '2024-01-15T15:30:00.000Z', time: '09:30', period: 'morning' },
+    { dateTime: '2024-01-15T16:00:00.000Z', time: '10:00', period: 'morning' },
+    { dateTime: '2024-01-15T20:00:00.000Z', time: '14:00', period: 'afternoon' },
+    { dateTime: '2024-01-15T20:30:00.000Z', time: '14:30', period: 'afternoon' },
+  ],
+  totalSlots: 16,
+  availableCount: 5,
+  occupiedCount: 11,
+};
+
 // Mock the useAvailability hook
 jest.mock('../../../../src/hooks/useCalendar', () => ({
   useAvailability: () => ({
     checkAvailability: jest.fn().mockResolvedValue({}),
-    availability: {
-      availableSlots: [
-        { dateTime: '2024-01-15T09:00:00', time: '09:00', period: 'morning' },
-        { dateTime: '2024-01-15T09:30:00', time: '09:30', period: 'morning' },
-        { dateTime: '2024-01-15T10:00:00', time: '10:00', period: 'morning' },
-        { dateTime: '2024-01-15T14:00:00', time: '14:00', period: 'afternoon' },
-        { dateTime: '2024-01-15T14:30:00', time: '14:30', period: 'afternoon' },
-      ],
-      totalSlots: 16,
-      availableCount: 5,
-      occupiedCount: 11,
-    },
+    availability: mockAvailability,
     loading: false,
   }),
 }));
@@ -130,9 +135,16 @@ describe('AppointmentForm Component', () => {
     });
 
     it('should show "Actualizar Cita" button text for editing', () => {
-      render(<AppointmentForm {...defaultProps} initialData={{ customerId: 'cust-1' }} />);
+      render(<AppointmentForm {...defaultProps} appointmentId="apt-1" initialData={{ customerId: 'cust-1' }} />);
 
       expect(screen.getByText('Actualizar Cita')).toBeInTheDocument();
+    });
+
+    it('should show "Crear Cita" when creating with a time prefilled from the calendar', () => {
+      render(<AppointmentForm {...defaultProps} initialData={{ dateTime: new Date('2024-01-15T16:00:00.000Z') }} />);
+
+      expect(screen.getByText('Crear Cita')).toBeInTheDocument();
+      expect(screen.queryByText('Actualizar Cita')).not.toBeInTheDocument();
     });
   });
 
@@ -218,7 +230,8 @@ describe('AppointmentForm Component', () => {
       render(<AppointmentForm {...defaultProps} />);
       const user = userEvent.setup();
 
-      // Try to submit without selecting customer - form has dateTime by default
+      // Pick a slot, then try to submit without selecting customer
+      await user.click(screen.getByRole('button', { name: '09:00' }));
       const submitButton = screen.getByTestId('submit-appointment-button');
       await user.click(submitButton);
 
@@ -229,14 +242,89 @@ describe('AppointmentForm Component', () => {
       }, { timeout: 3000 });
     });
 
-    it('should enable submit button when form has dateTime (defaults to now)', () => {
-      // The form initializes with dateTime: new Date() as default
-      // So the submit button is NOT disabled based on dateTime alone
+    // Regression: dateTime used to default to new Date(), so appointments were
+    // saved at "now" (often in the past) without the user picking a time.
+    it('should disable submit until a time slot is chosen', async () => {
       render(<AppointmentForm {...defaultProps} />);
+      const user = userEvent.setup();
 
       const submitButton = screen.getByTestId('submit-appointment-button');
-      // The button is enabled by default because dateTime has a value
+      expect(submitButton).toBeDisabled();
+      expect(screen.queryByText(/Fecha y hora seleccionada/i)).not.toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: '09:00' }));
       expect(submitButton).not.toBeDisabled();
+    });
+
+    it('should submit the exact slot instant from the API', async () => {
+      render(<AppointmentForm {...defaultProps} />);
+      const user = userEvent.setup();
+
+      await user.selectOptions(screen.getByTestId('appointment-customer-select'), 'cust-2');
+      await user.click(screen.getByRole('button', { name: '09:00' }));
+      await user.type(screen.getByTestId('appointment-reason-input'), 'Consulta');
+      await user.click(screen.getByTestId('submit-appointment-button'));
+
+      await waitFor(() => expect(mockOnSubmit).toHaveBeenCalled());
+      const submitted = mockOnSubmit.mock.calls[0][0];
+      expect(submitted.dateTime).toBeInstanceOf(Date);
+      expect(submitted.dateTime.toISOString()).toBe('2024-01-15T15:00:00.000Z');
+    });
+
+    it('should label the chosen time in clinic time, not browser time', async () => {
+      render(<AppointmentForm {...defaultProps} />);
+      const user = userEvent.setup();
+
+      await user.click(screen.getByRole('button', { name: '09:00' }));
+
+      expect(screen.getByTestId('selected-datetime-label')).toHaveTextContent('09:00');
+    });
+
+    it('should keep the existing time when editing an appointment', () => {
+      render(
+        <AppointmentForm
+          {...defaultProps}
+          appointmentId="apt-1"
+          initialData={{ customerId: 'cust-1', dateTime: new Date('2099-01-15T15:00:00.000Z') }}
+        />
+      );
+
+      expect(screen.getByTestId('submit-appointment-button')).not.toBeDisabled();
+    });
+
+    it('should warn without blocking when the chosen time is in the past', () => {
+      render(
+        <AppointmentForm
+          {...defaultProps}
+          appointmentId="apt-1"
+          initialData={{ customerId: 'cust-1', dateTime: new Date('2020-01-15T15:00:00.000Z') }}
+        />
+      );
+
+      expect(screen.getByTestId('past-datetime-warning')).toBeInTheDocument();
+      expect(screen.getByTestId('submit-appointment-button')).not.toBeDisabled();
+    });
+
+    it('should preselect the slot matching a time prefilled from the calendar', () => {
+      render(
+        <AppointmentForm
+          {...defaultProps}
+          initialData={{ dateTime: new Date('2024-01-15T16:00:00.000Z') }}
+        />
+      );
+
+      expect(screen.getByTestId('submit-appointment-button')).not.toBeDisabled();
+    });
+
+    it('should still require a slot when the calendar prefill matches none (month view midnight)', () => {
+      render(
+        <AppointmentForm
+          {...defaultProps}
+          initialData={{ dateTime: new Date('2024-01-15T06:00:00.000Z') }}
+        />
+      );
+
+      expect(screen.getByTestId('submit-appointment-button')).toBeDisabled();
     });
 
     it('should disable submit button when loading is true', () => {

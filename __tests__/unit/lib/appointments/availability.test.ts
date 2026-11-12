@@ -3,8 +3,8 @@
  * VETIF-194: Add unit tests for availability slot generation
  *
  * Tests cover:
- * - formatLocalDateTime() - local datetime formatting
- * - generateDaySlots() - slot generation with various business hour configurations
+ * - generateDaySlots() - slot generation in the clinic timezone
+ * - serializeSlot() / filterAvailableSlots() - absolute-instant serialization and conflicts
  * - parseTimeString() - time string parsing
  * - isWithinBusinessHours() - business hours validation
  * - calculateAvailableMinutes() - available minutes calculation
@@ -12,56 +12,28 @@
  * - Edge cases (no lunch break, custom slot durations, etc.)
  */
 
+import { formatInTimeZone } from 'date-fns-tz';
 import {
-  formatLocalDateTime,
   generateDaySlots,
+  serializeSlot,
+  filterAvailableSlots,
   parseTimeString,
   isWithinBusinessHours,
   calculateAvailableMinutes,
   DEFAULT_BUSINESS_HOURS,
   type BusinessHours,
 } from '@/lib/appointments/availability';
+import { clinicDateTime } from '@/lib/clinic-timezone';
+
+// Every expectation is evaluated in the clinic timezone, so these tests hold
+// regardless of the process TZ (production runs in UTC).
+const TZ = 'America/Mexico_City';
+const clinicHour = (d: Date) => Number(formatInTimeZone(d, TZ, 'H'));
+const clinicMinute = (d: Date) => Number(formatInTimeZone(d, TZ, 'm'));
+const clinicDay = (d: Date) => formatInTimeZone(d, TZ, 'yyyy-MM-dd');
+const at = (date: string, time: string) => clinicDateTime(date, time, TZ);
 
 describe('Availability Utilities', () => {
-  describe('formatLocalDateTime', () => {
-    it('should format date as ISO local string without Z suffix', () => {
-      const date = new Date(2026, 0, 15, 10, 30, 0); // Jan 15, 2026 10:30:00
-      const result = formatLocalDateTime(date);
-      expect(result).toBe('2026-01-15T10:30:00');
-    });
-
-    it('should pad single-digit months and days with zeros', () => {
-      const date = new Date(2026, 0, 5, 9, 5, 0); // Jan 5, 2026 09:05:00
-      const result = formatLocalDateTime(date);
-      expect(result).toBe('2026-01-05T09:05:00');
-    });
-
-    it('should handle midnight correctly', () => {
-      const date = new Date(2026, 5, 20, 0, 0, 0); // June 20, 2026 00:00:00
-      const result = formatLocalDateTime(date);
-      expect(result).toBe('2026-06-20T00:00:00');
-    });
-
-    it('should handle end of day correctly', () => {
-      const date = new Date(2026, 11, 31, 23, 59, 59); // Dec 31, 2026 23:59:59
-      const result = formatLocalDateTime(date);
-      expect(result).toBe('2026-12-31T23:59:59');
-    });
-
-    it('should not include milliseconds', () => {
-      const date = new Date(2026, 0, 15, 10, 30, 45, 123);
-      const result = formatLocalDateTime(date);
-      expect(result).not.toContain('.');
-      expect(result).toBe('2026-01-15T10:30:45');
-    });
-
-    it('should not include Z suffix (UTC indicator)', () => {
-      const date = new Date();
-      const result = formatLocalDateTime(date);
-      expect(result).not.toContain('Z');
-    });
-  });
-
   describe('parseTimeString', () => {
     it('should parse standard time format', () => {
       const result = parseTimeString('09:30');
@@ -120,8 +92,8 @@ describe('Availability Utilities', () => {
 
     describe('basic slot generation', () => {
       it('should generate slots for a standard business day', () => {
-        const date = new Date(2026, 0, 15); // Thursday Jan 15, 2026
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2026-01-15'; // Thursday Jan 15, 2026
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
 
         expect(slots.length).toBeGreaterThan(0);
         expect(slots.every(slot => slot.dateTime instanceof Date)).toBe(true);
@@ -129,8 +101,8 @@ describe('Availability Utilities', () => {
       });
 
       it('should generate correct number of slots with 30-minute duration', () => {
-        const date = new Date(2026, 0, 15);
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2026-01-15';
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
 
         // 8:00-13:00 = 5 hours = 10 slots (morning)
         // 14:00-18:00 = 4 hours = 8 slots (afternoon)
@@ -139,12 +111,12 @@ describe('Availability Utilities', () => {
       });
 
       it('should generate correct number of slots with 15-minute duration', () => {
-        const date = new Date(2026, 0, 15);
+        const date = '2026-01-15';
         const businessHours: BusinessHours = {
           ...standardBusinessHours,
           slotDuration: 15,
         };
-        const slots = generateDaySlots(date, businessHours);
+        const slots = generateDaySlots(date, businessHours, TZ);
 
         // 8:00-13:00 = 5 hours = 20 slots (morning)
         // 14:00-18:00 = 4 hours = 16 slots (afternoon)
@@ -153,12 +125,12 @@ describe('Availability Utilities', () => {
       });
 
       it('should generate correct number of slots with 60-minute duration', () => {
-        const date = new Date(2026, 0, 15);
+        const date = '2026-01-15';
         const businessHours: BusinessHours = {
           ...standardBusinessHours,
           slotDuration: 60,
         };
-        const slots = generateDaySlots(date, businessHours);
+        const slots = generateDaySlots(date, businessHours, TZ);
 
         // 8:00-13:00 = 5 hours = 5 slots (morning)
         // 14:00-18:00 = 4 hours = 4 slots (afternoon)
@@ -169,80 +141,80 @@ describe('Availability Utilities', () => {
 
     describe('morning slots', () => {
       it('should mark morning slots correctly', () => {
-        const date = new Date(2026, 0, 15);
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2026-01-15';
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
         const morningSlots = slots.filter(s => s.period === 'morning');
 
         morningSlots.forEach(slot => {
-          const hour = slot.dateTime.getHours();
+          const hour = clinicHour(slot.dateTime);
           expect(hour).toBeGreaterThanOrEqual(8);
           expect(hour).toBeLessThan(13);
         });
       });
 
       it('should start morning slots at business start time', () => {
-        const date = new Date(2026, 0, 15);
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2026-01-15';
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
         const firstSlot = slots[0];
 
-        expect(firstSlot.dateTime.getHours()).toBe(8);
-        expect(firstSlot.dateTime.getMinutes()).toBe(0);
+        expect(clinicHour(firstSlot.dateTime)).toBe(8);
+        expect(clinicMinute(firstSlot.dateTime)).toBe(0);
         expect(firstSlot.period).toBe('morning');
       });
 
       it('should end morning slots before lunch', () => {
-        const date = new Date(2026, 0, 15);
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2026-01-15';
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
         const morningSlots = slots.filter(s => s.period === 'morning');
         const lastMorningSlot = morningSlots[morningSlots.length - 1];
 
         // With 30-minute slots, last morning slot should be 12:30
-        expect(lastMorningSlot.dateTime.getHours()).toBe(12);
-        expect(lastMorningSlot.dateTime.getMinutes()).toBe(30);
+        expect(clinicHour(lastMorningSlot.dateTime)).toBe(12);
+        expect(clinicMinute(lastMorningSlot.dateTime)).toBe(30);
       });
     });
 
     describe('afternoon slots', () => {
       it('should mark afternoon slots correctly', () => {
-        const date = new Date(2026, 0, 15);
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2026-01-15';
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
         const afternoonSlots = slots.filter(s => s.period === 'afternoon');
 
         afternoonSlots.forEach(slot => {
-          const hour = slot.dateTime.getHours();
+          const hour = clinicHour(slot.dateTime);
           expect(hour).toBeGreaterThanOrEqual(14);
           expect(hour).toBeLessThan(18);
         });
       });
 
       it('should start afternoon slots after lunch', () => {
-        const date = new Date(2026, 0, 15);
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2026-01-15';
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
         const afternoonSlots = slots.filter(s => s.period === 'afternoon');
         const firstAfternoonSlot = afternoonSlots[0];
 
-        expect(firstAfternoonSlot.dateTime.getHours()).toBe(14);
-        expect(firstAfternoonSlot.dateTime.getMinutes()).toBe(0);
+        expect(clinicHour(firstAfternoonSlot.dateTime)).toBe(14);
+        expect(clinicMinute(firstAfternoonSlot.dateTime)).toBe(0);
       });
 
       it('should end afternoon slots at business end time', () => {
-        const date = new Date(2026, 0, 15);
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2026-01-15';
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
         const lastSlot = slots[slots.length - 1];
 
         // With 30-minute slots, last slot should be 17:30
-        expect(lastSlot.dateTime.getHours()).toBe(17);
-        expect(lastSlot.dateTime.getMinutes()).toBe(30);
+        expect(clinicHour(lastSlot.dateTime)).toBe(17);
+        expect(clinicMinute(lastSlot.dateTime)).toBe(30);
       });
     });
 
     describe('lunch break handling', () => {
       it('should not generate slots during lunch break', () => {
-        const date = new Date(2026, 0, 15);
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2026-01-15';
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
 
         const lunchSlots = slots.filter(slot => {
-          const hour = slot.dateTime.getHours();
+          const hour = clinicHour(slot.dateTime);
           return hour >= 13 && hour < 14;
         });
 
@@ -250,7 +222,7 @@ describe('Availability Utilities', () => {
       });
 
       it('should handle no lunch break (all morning slots)', () => {
-        const date = new Date(2026, 0, 15);
+        const date = '2026-01-15';
         const noLunchHours: BusinessHours = {
           start: 8,
           startMinute: 0,
@@ -262,7 +234,7 @@ describe('Availability Utilities', () => {
           lunchEndMinute: 0,
           slotDuration: 30,
         };
-        const slots = generateDaySlots(date, noLunchHours);
+        const slots = generateDaySlots(date, noLunchHours, TZ);
 
         // All slots should be morning since there's no lunch break
         expect(slots.every(s => s.period === 'morning')).toBe(true);
@@ -271,7 +243,7 @@ describe('Availability Utilities', () => {
       });
 
       it('should handle custom lunch times', () => {
-        const date = new Date(2026, 0, 15);
+        const date = '2026-01-15';
         const customLunchHours: BusinessHours = {
           start: 9,
           startMinute: 0,
@@ -283,7 +255,7 @@ describe('Availability Utilities', () => {
           lunchEndMinute: 0,
           slotDuration: 30,
         };
-        const slots = generateDaySlots(date, customLunchHours);
+        const slots = generateDaySlots(date, customLunchHours, TZ);
 
         // 9:00-12:00 = 3 hours = 6 slots (morning)
         // 13:00-17:00 = 4 hours = 8 slots (afternoon)
@@ -291,14 +263,14 @@ describe('Availability Utilities', () => {
 
         // Verify no slots during 12:00-13:00
         const lunchSlots = slots.filter(slot => {
-          const hour = slot.dateTime.getHours();
+          const hour = clinicHour(slot.dateTime);
           return hour >= 12 && hour < 13;
         });
         expect(lunchSlots.length).toBe(0);
       });
 
       it('should handle lunch break with non-zero minutes', () => {
-        const date = new Date(2026, 0, 15);
+        const date = '2026-01-15';
         const businessHours: BusinessHours = {
           start: 9,
           startMinute: 0,
@@ -310,18 +282,18 @@ describe('Availability Utilities', () => {
           lunchEndMinute: 30,
           slotDuration: 30,
         };
-        const slots = generateDaySlots(date, businessHours);
+        const slots = generateDaySlots(date, businessHours, TZ);
 
         // First afternoon slot should start at 13:30
         const afternoonSlots = slots.filter(s => s.period === 'afternoon');
-        expect(afternoonSlots[0].dateTime.getHours()).toBe(13);
-        expect(afternoonSlots[0].dateTime.getMinutes()).toBe(30);
+        expect(clinicHour(afternoonSlots[0].dateTime)).toBe(13);
+        expect(clinicMinute(afternoonSlots[0].dateTime)).toBe(30);
       });
     });
 
     describe('custom business hours', () => {
       it('should handle early start time', () => {
-        const date = new Date(2026, 0, 15);
+        const date = '2026-01-15';
         const earlyHours: BusinessHours = {
           start: 6,
           startMinute: 0,
@@ -333,13 +305,13 @@ describe('Availability Utilities', () => {
           lunchEndMinute: 0,
           slotDuration: 30,
         };
-        const slots = generateDaySlots(date, earlyHours);
+        const slots = generateDaySlots(date, earlyHours, TZ);
 
-        expect(slots[0].dateTime.getHours()).toBe(6);
+        expect(clinicHour(slots[0].dateTime)).toBe(6);
       });
 
       it('should handle late end time', () => {
-        const date = new Date(2026, 0, 15);
+        const date = '2026-01-15';
         const lateHours: BusinessHours = {
           start: 12,
           startMinute: 0,
@@ -351,15 +323,15 @@ describe('Availability Utilities', () => {
           lunchEndMinute: 0,
           slotDuration: 30,
         };
-        const slots = generateDaySlots(date, lateHours);
+        const slots = generateDaySlots(date, lateHours, TZ);
 
         const lastSlot = slots[slots.length - 1];
-        expect(lastSlot.dateTime.getHours()).toBe(21);
-        expect(lastSlot.dateTime.getMinutes()).toBe(30);
+        expect(clinicHour(lastSlot.dateTime)).toBe(21);
+        expect(clinicMinute(lastSlot.dateTime)).toBe(30);
       });
 
       it('should handle non-zero start minute', () => {
-        const date = new Date(2026, 0, 15);
+        const date = '2026-01-15';
         const businessHours: BusinessHours = {
           start: 8,
           startMinute: 30,
@@ -371,14 +343,14 @@ describe('Availability Utilities', () => {
           lunchEndMinute: 0,
           slotDuration: 30,
         };
-        const slots = generateDaySlots(date, businessHours);
+        const slots = generateDaySlots(date, businessHours, TZ);
 
-        expect(slots[0].dateTime.getHours()).toBe(8);
-        expect(slots[0].dateTime.getMinutes()).toBe(30);
+        expect(clinicHour(slots[0].dateTime)).toBe(8);
+        expect(clinicMinute(slots[0].dateTime)).toBe(30);
       });
 
       it('should handle short work day', () => {
-        const date = new Date(2026, 0, 15);
+        const date = '2026-01-15';
         const shortDay: BusinessHours = {
           start: 9,
           startMinute: 0,
@@ -390,7 +362,7 @@ describe('Availability Utilities', () => {
           lunchEndMinute: 0,
           slotDuration: 60,
         };
-        const slots = generateDaySlots(date, shortDay);
+        const slots = generateDaySlots(date, shortDay, TZ);
 
         // 9:00-13:00 = 4 hours = 4 slots
         expect(slots.length).toBe(4);
@@ -399,52 +371,45 @@ describe('Availability Utilities', () => {
 
     describe('date handling', () => {
       it('should maintain the correct date for all slots', () => {
-        const date = new Date(2026, 5, 15); // June 15, 2026
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2026-06-15'; // June 15, 2026
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
 
         slots.forEach(slot => {
-          expect(slot.dateTime.getFullYear()).toBe(2026);
-          expect(slot.dateTime.getMonth()).toBe(5); // June
-          expect(slot.dateTime.getDate()).toBe(15);
+          expect(clinicDay(slot.dateTime)).toBe('2026-06-15');
         });
       });
 
       it('should handle month boundaries', () => {
-        const date = new Date(2026, 0, 31); // Jan 31, 2026
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2026-01-31'; // Jan 31, 2026
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
 
         slots.forEach(slot => {
-          expect(slot.dateTime.getDate()).toBe(31);
-          expect(slot.dateTime.getMonth()).toBe(0);
+          expect(clinicDay(slot.dateTime)).toBe('2026-01-31');
         });
       });
 
       it('should handle year boundaries', () => {
-        const date = new Date(2026, 11, 31); // Dec 31, 2026
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2026-12-31'; // Dec 31, 2026
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
 
         slots.forEach(slot => {
-          expect(slot.dateTime.getFullYear()).toBe(2026);
-          expect(slot.dateTime.getMonth()).toBe(11);
-          expect(slot.dateTime.getDate()).toBe(31);
+          expect(clinicDay(slot.dateTime)).toBe('2026-12-31');
         });
       });
 
       it('should handle leap year February', () => {
-        const date = new Date(2028, 1, 29); // Feb 29, 2028 (leap year)
-        const slots = generateDaySlots(date, standardBusinessHours);
+        const date = '2028-02-29'; // Feb 29, 2028 (leap year)
+        const slots = generateDaySlots(date, standardBusinessHours, TZ);
 
         slots.forEach(slot => {
-          expect(slot.dateTime.getFullYear()).toBe(2028);
-          expect(slot.dateTime.getMonth()).toBe(1);
-          expect(slot.dateTime.getDate()).toBe(29);
+          expect(clinicDay(slot.dateTime)).toBe('2028-02-29');
         });
       });
     });
 
     describe('edge cases', () => {
       it('should handle minimum slot duration (15 minutes)', () => {
-        const date = new Date(2026, 0, 15);
+        const date = '2026-01-15';
         const businessHours: BusinessHours = {
           start: 10,
           startMinute: 0,
@@ -456,18 +421,18 @@ describe('Availability Utilities', () => {
           lunchEndMinute: 0,
           slotDuration: 15,
         };
-        const slots = generateDaySlots(date, businessHours);
+        const slots = generateDaySlots(date, businessHours, TZ);
 
         // 1 hour = 4 slots of 15 minutes
         expect(slots.length).toBe(4);
-        expect(slots[0].dateTime.getMinutes()).toBe(0);
-        expect(slots[1].dateTime.getMinutes()).toBe(15);
-        expect(slots[2].dateTime.getMinutes()).toBe(30);
-        expect(slots[3].dateTime.getMinutes()).toBe(45);
+        expect(clinicMinute(slots[0].dateTime)).toBe(0);
+        expect(clinicMinute(slots[1].dateTime)).toBe(15);
+        expect(clinicMinute(slots[2].dateTime)).toBe(30);
+        expect(clinicMinute(slots[3].dateTime)).toBe(45);
       });
 
       it('should return empty array for very short business hours', () => {
-        const date = new Date(2026, 0, 15);
+        const date = '2026-01-15';
         const businessHours: BusinessHours = {
           start: 10,
           startMinute: 0,
@@ -479,14 +444,14 @@ describe('Availability Utilities', () => {
           lunchEndMinute: 0,
           slotDuration: 30,
         };
-        const slots = generateDaySlots(date, businessHours);
+        const slots = generateDaySlots(date, businessHours, TZ);
 
         // Business hours shorter than slot duration
         expect(slots.length).toBe(0);
       });
 
       it('should handle business hours that span only lunch time', () => {
-        const date = new Date(2026, 0, 15);
+        const date = '2026-01-15';
         const businessHours: BusinessHours = {
           start: 13,
           startMinute: 0,
@@ -498,7 +463,7 @@ describe('Availability Utilities', () => {
           lunchEndMinute: 0,
           slotDuration: 30,
         };
-        const slots = generateDaySlots(date, businessHours);
+        const slots = generateDaySlots(date, businessHours, TZ);
 
         // All business hours are lunch, so no slots
         expect(slots.length).toBe(0);
@@ -521,72 +486,72 @@ describe('Availability Utilities', () => {
 
     describe('within business hours', () => {
       it('should return true for time at start of business hours', () => {
-        const date = new Date(2026, 0, 15, 8, 0, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(true);
+        const date = at('2026-01-15', '08:00');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(true);
       });
 
       it('should return true for time in the middle of morning', () => {
-        const date = new Date(2026, 0, 15, 10, 30, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(true);
+        const date = at('2026-01-15', '10:30');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(true);
       });
 
       it('should return true for time just before lunch', () => {
-        const date = new Date(2026, 0, 15, 12, 59, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(true);
+        const date = at('2026-01-15', '12:59');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(true);
       });
 
       it('should return true for time at start of afternoon', () => {
-        const date = new Date(2026, 0, 15, 14, 0, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(true);
+        const date = at('2026-01-15', '14:00');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(true);
       });
 
       it('should return true for time in the middle of afternoon', () => {
-        const date = new Date(2026, 0, 15, 16, 30, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(true);
+        const date = at('2026-01-15', '16:30');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(true);
       });
 
       it('should return true for time just before end', () => {
-        const date = new Date(2026, 0, 15, 17, 59, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(true);
+        const date = at('2026-01-15', '17:59');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(true);
       });
     });
 
     describe('outside business hours', () => {
       it('should return false for time before business hours', () => {
-        const date = new Date(2026, 0, 15, 7, 59, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(false);
+        const date = at('2026-01-15', '07:59');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(false);
       });
 
       it('should return false for time at end of business hours', () => {
-        const date = new Date(2026, 0, 15, 18, 0, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(false);
+        const date = at('2026-01-15', '18:00');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(false);
       });
 
       it('should return false for time after business hours', () => {
-        const date = new Date(2026, 0, 15, 19, 0, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(false);
+        const date = at('2026-01-15', '19:00');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(false);
       });
 
       it('should return false for midnight', () => {
-        const date = new Date(2026, 0, 15, 0, 0, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(false);
+        const date = at('2026-01-15', '00:00');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(false);
       });
     });
 
     describe('during lunch break', () => {
       it('should return false for time at start of lunch', () => {
-        const date = new Date(2026, 0, 15, 13, 0, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(false);
+        const date = at('2026-01-15', '13:00');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(false);
       });
 
       it('should return false for time in middle of lunch', () => {
-        const date = new Date(2026, 0, 15, 13, 30, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(false);
+        const date = at('2026-01-15', '13:30');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(false);
       });
 
       it('should return false for time just before end of lunch', () => {
-        const date = new Date(2026, 0, 15, 13, 59, 0);
-        expect(isWithinBusinessHours(date, businessHours)).toBe(false);
+        const date = at('2026-01-15', '13:59');
+        expect(isWithinBusinessHours(date, businessHours, TZ)).toBe(false);
       });
     });
 
@@ -598,8 +563,8 @@ describe('Availability Utilities', () => {
       };
 
       it('should return true for time that would be during lunch', () => {
-        const date = new Date(2026, 0, 15, 13, 30, 0);
-        expect(isWithinBusinessHours(date, noLunchHours)).toBe(true);
+        const date = at('2026-01-15', '13:30');
+        expect(isWithinBusinessHours(date, noLunchHours, TZ)).toBe(true);
       });
     });
   });
@@ -710,7 +675,7 @@ describe('Availability Utilities', () => {
 
   describe('integration scenarios', () => {
     it('should generate slots that match available minutes calculation', () => {
-      const date = new Date(2026, 0, 15);
+      const date = '2026-01-15';
       const businessHours: BusinessHours = {
         start: 9,
         startMinute: 0,
@@ -723,7 +688,7 @@ describe('Availability Utilities', () => {
         slotDuration: 30,
       };
 
-      const slots = generateDaySlots(date, businessHours);
+      const slots = generateDaySlots(date, businessHours, TZ);
       const availableMinutes = calculateAvailableMinutes(businessHours);
       const expectedSlots = availableMinutes / businessHours.slotDuration;
 
@@ -731,7 +696,7 @@ describe('Availability Utilities', () => {
     });
 
     it('should have all slots within business hours', () => {
-      const date = new Date(2026, 0, 15);
+      const date = '2026-01-15';
       const businessHours: BusinessHours = {
         start: 8,
         startMinute: 0,
@@ -744,21 +709,104 @@ describe('Availability Utilities', () => {
         slotDuration: 15,
       };
 
-      const slots = generateDaySlots(date, businessHours);
+      const slots = generateDaySlots(date, businessHours, TZ);
 
       slots.forEach(slot => {
-        expect(isWithinBusinessHours(slot.dateTime, businessHours)).toBe(true);
+        expect(isWithinBusinessHours(slot.dateTime, businessHours, TZ)).toBe(true);
       });
     });
 
-    it('should format all slot times correctly', () => {
-      const date = new Date(2026, 0, 15);
-      const slots = generateDaySlots(date, DEFAULT_BUSINESS_HOURS);
+    it('should serialize all slots as absolute ISO instants on the clinic day', () => {
+      const date = '2026-01-15';
+      const slots = generateDaySlots(date, DEFAULT_BUSINESS_HOURS, TZ);
 
       slots.forEach(slot => {
-        const formatted = formatLocalDateTime(slot.dateTime);
-        expect(formatted).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/);
-        expect(formatted.startsWith('2026-01-15')).toBe(true);
+        const serialized = serializeSlot(slot, TZ);
+        expect(serialized.dateTime).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.000Z$/);
+        expect(clinicDay(new Date(serialized.dateTime))).toBe('2026-01-15');
+      });
+    });
+  });
+  describe('clinic timezone (process-TZ independent)', () => {
+    const hours: BusinessHours = {
+      start: 9,
+      startMinute: 0,
+      end: 18,
+      endMinute: 0,
+      lunchStart: null,
+      lunchStartMinute: 0,
+      lunchEnd: null,
+      lunchEndMinute: 0,
+      slotDuration: 30,
+    };
+
+    it('builds the 09:00 Mexico City slot at 15:00Z', () => {
+      const slots = generateDaySlots('2026-11-16', hours, TZ);
+      expect(slots[0].dateTime.toISOString()).toBe('2026-11-16T15:00:00.000Z');
+    });
+
+    it('builds the same wall-clock slot at a different instant for another timezone', () => {
+      const slots = generateDaySlots('2026-11-16', hours, 'America/Bogota');
+      expect(slots[0].dateTime.toISOString()).toBe('2026-11-16T14:00:00.000Z');
+    });
+
+    it('serializes with an absolute instant and clinic-time labels', () => {
+      const [first] = generateDaySlots('2026-11-16', hours, TZ);
+      expect(serializeSlot(first, TZ)).toEqual({
+        dateTime: '2026-11-16T15:00:00.000Z',
+        time: '09:00',
+        displayTime: expect.stringMatching(/^9:00/),
+        period: 'morning',
+      });
+    });
+
+    it('checks business hours in clinic time, including minutes', () => {
+      const late: BusinessHours = { ...hours, startMinute: 30 };
+      expect(isWithinBusinessHours(new Date('2026-11-16T15:00:00.000Z'), late, TZ)).toBe(false);
+      expect(isWithinBusinessHours(new Date('2026-11-16T15:30:00.000Z'), late, TZ)).toBe(true);
+      expect(isWithinBusinessHours(new Date('2026-11-16T23:30:00.000Z'), hours, TZ)).toBe(true);
+      expect(isWithinBusinessHours(new Date('2026-11-16T14:30:00.000Z'), hours, TZ)).toBe(false);
+    });
+
+    describe('filterAvailableSlots', () => {
+      const slots = generateDaySlots('2026-11-16', hours, TZ);
+      const times = (list: typeof slots) => list.map((s) => serializeSlot(s, TZ).time);
+
+      it('blocks the 09:00 clinic slot for an appointment stored at 15:00Z', () => {
+        const free = filterAvailableSlots(slots, {
+          durationMinutes: 30,
+          busy: [{ start: new Date('2026-11-16T15:00:00.000Z'), durationMinutes: 30 }],
+        });
+        expect(times(free)).not.toContain('09:00');
+        expect(times(free)).toContain('15:00');
+      });
+
+      it('treats overlap as half-open: back-to-back slots stay free', () => {
+        const free = filterAvailableSlots(slots, {
+          durationMinutes: 30,
+          busy: [{ start: at('2026-11-16', '10:00'), durationMinutes: 30 }],
+        });
+        expect(times(free)).toContain('09:30');
+        expect(times(free)).not.toContain('10:00');
+        expect(times(free)).toContain('10:30');
+      });
+
+      it('blocks slots whose duration runs into an appointment', () => {
+        const free = filterAvailableSlots(slots, {
+          durationMinutes: 60,
+          busy: [{ start: at('2026-11-16', '10:00'), durationMinutes: 30 }],
+        });
+        expect(times(free)).not.toContain('09:30');
+        expect(times(free)).toContain('09:00');
+      });
+
+      it('drops slots at or before notBefore', () => {
+        const free = filterAvailableSlots(slots, {
+          durationMinutes: 30,
+          busy: [],
+          notBefore: new Date('2026-11-16T15:50:00.000Z'), // 09:50 clinic time
+        });
+        expect(times(free)[0]).toBe('10:00');
       });
     });
   });

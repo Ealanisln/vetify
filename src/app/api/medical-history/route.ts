@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import {
+  MedicalHistoryInputError,
   createMedicalHistory,
   getRecentMedicalHistories,
   getMedicalHistoryStats,
@@ -8,6 +9,7 @@ import {
   searchMedicalHistories
 } from '../../../lib/medical-history';
 import { prisma } from '../../../lib/prisma';
+import { getTenantTimeZone, parseClinicDateTimeInput } from '../../../lib/clinical-dates';
 import { MedicalHistoryFormData } from '@/types';
 import { parsePagination } from '../../../lib/security/validation-schemas';
 
@@ -98,26 +100,44 @@ export async function POST(request: Request) {
     const historyData: MedicalHistoryFormData = await request.json();
 
     // Validaciones básicas
-    if (!historyData.petId || !historyData.visitDate || !historyData.reasonForVisit) {
+    if (!historyData.petId || !historyData.reasonForVisit) {
       return NextResponse.json(
-        { error: 'Mascota, fecha de visita y motivo de consulta son requeridos' },
+        { error: 'Mascota y motivo de consulta son requeridos' },
         { status: 400 }
       );
     }
 
-    // Por ahora, usamos el usuario como staff
-    // En una implementación completa, necesitarías un sistema de staff separado
-    const staffId = user.id;
+    const tenantId = userWithTenant.tenant.id;
+
+    // The form sends a datetime-local value (a clinic wall-clock time) or
+    // nothing, which means the visit is happening now
+    let visitDate = new Date();
+    if (historyData.visitDate) {
+      const timeZone = await getTenantTimeZone(tenantId);
+      const parsed = parseClinicDateTimeInput(String(historyData.visitDate), timeZone);
+      if (!parsed) {
+        return NextResponse.json({ error: 'La fecha de visita no es válida' }, { status: 400 });
+      }
+      visitDate = parsed;
+    }
+
+    // MedicalHistory.staffId references Staff, not the Kinde user
+    const staff = await prisma.staff.findFirst({
+      where: { userId: user.id, tenantId, isActive: true },
+      select: { id: true }
+    });
 
     // Crear la entrada de historia clínica
-    const history = await createMedicalHistory(
-      userWithTenant.tenant.id,
-      staffId,
-      historyData
-    );
+    const history = await createMedicalHistory(tenantId, staff?.id ?? null, {
+      ...historyData,
+      visitDate: visitDate.toISOString()
+    });
 
     return NextResponse.json(history, { status: 201 });
   } catch (error) {
+    if (error instanceof MedicalHistoryInputError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error('Error en POST /api/medical-history:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor' },

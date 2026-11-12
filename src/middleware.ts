@@ -383,6 +383,55 @@ const authMiddleware = withAuth(
 
 const LOGIN_PATH = '/api/auth/login';
 
+const PUBLIC_API_PREFIX = '/api/public/';
+const PUBLIC_RATE_LIMIT_MESSAGE = 'Demasiadas solicitudes. Espera un minuto e intenta de nuevo.';
+
+/**
+ * /api/public/* is anonymous (public booking, customer lookup, analytics,
+ * testimonials), so it never goes through Kinde. Writes and lookups (POST)
+ * are rate limited with rateLimiters.public; public GETs (availability,
+ * promotion, testimonials) are not. checkRateLimit fails open when Upstash
+ * is unreachable.
+ */
+async function publicApiMiddleware(req: NextRequest): Promise<NextResponse> {
+  const { pathname } = req.nextUrl;
+
+  if (req.method === 'POST' && isRateLimitingEnabled()) {
+    // One budget per route, so landing-page analytics or repeated lookups
+    // cannot use up the visitor's booking request.
+    const clientIdentifier = getClientIdentifier(req);
+    const rateLimitResult = await checkRateLimit(`${clientIdentifier}:${pathname}`, pathname);
+
+    if (!rateLimitResult.success) {
+      await logSecurityEvent(req, 'rate_limit_exceeded', undefined, {
+        clientIdentifier,
+        limit: rateLimitResult.limit,
+        remaining: rateLimitResult.remaining,
+        endpoint: pathname,
+      });
+
+      const limited = NextResponse.json(
+        {
+          success: false,
+          error: PUBLIC_RATE_LIMIT_MESSAGE,
+          retryAfter: Math.max(1, Math.ceil((rateLimitResult.reset.getTime() - Date.now()) / 1000)),
+        },
+        { status: 429 }
+      );
+      Object.entries({ ...createRateLimitHeaders(rateLimitResult), ...securityHeaders }).forEach(
+        ([key, value]) => limited.headers.set(key, value)
+      );
+      return limited;
+    }
+  }
+
+  const response = NextResponse.next();
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    response.headers.set(key, value);
+  });
+  return response;
+}
+
 function isLoginRedirect(response: NextResponse): boolean {
   if (response.status < 300 || response.status > 399) return false;
   const location = response.headers.get('location');
@@ -403,6 +452,10 @@ function isLoginRedirect(response: NextResponse): boolean {
  * page routes keep the login redirect.
  */
 export default async function middleware(req: NextRequest) {
+  if (req.nextUrl.pathname.startsWith(PUBLIC_API_PREFIX)) {
+    return publicApiMiddleware(req);
+  }
+
   const response = await authMiddleware(req);
 
   if (req.nextUrl.pathname.startsWith('/api/') && isLoginRedirect(response)) {
@@ -429,8 +482,9 @@ export const config = {
      * IMPORTANT: /api/:path* is included to enable rate limiting on all API routes.
      * The middleware handles public routes (webhooks, etc.) internally with proper bypass logic.
      *
-     * NOTE: /api/public/* is excluded from the matcher to allow unauthenticated access
-     * to public endpoints like /api/public/promotion
+     * NOTE: /api/public/* is excluded from the Kinde matcher below and matched on
+     * its own: the middleware skips Kinde for it and only applies the public
+     * rate limit (see publicApiMiddleware)
      *
      * NOTE: /api/auth/* is excluded to allow the auth status endpoint to work
      * without redirecting unauthenticated users to login
@@ -453,5 +507,6 @@ export const config = {
     '/onboarding',
     '/admin/:path*',
     '/api/((?!public/|auth/|invitations/|internal/|pricing|stripe/webhook|version|health|cron/).*)',
+    '/api/public/:path*',
   ],
 };

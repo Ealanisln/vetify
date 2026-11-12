@@ -1,5 +1,6 @@
 import { requireActiveSubscription } from '../../../../lib/auth';
 import { getPetById } from '../../../../lib/pets';
+import { getTenantTimeZone } from '../../../../lib/clinical-dates';
 import { notFound } from 'next/navigation';
 import { PetHeader } from '../../../../components/pets/PetHeader';
 import { PetInfoCard } from '../../../../components/pets/PetInfoCard';
@@ -15,7 +16,10 @@ export default async function PetProfilePage({ params }: PetProfilePageProps) {
   // CRITICAL FIX: Use requireActiveSubscription to block access with expired trial
   const { tenant } = await requireActiveSubscription();
   const { id } = await params;
-  const pet = await getPetById(id, tenant.id);
+  const [pet, timeZone] = await Promise.all([
+    getPetById(id, tenant.id),
+    getTenantTimeZone(tenant.id),
+  ]);
   
   if (!pet) {
     notFound();
@@ -34,8 +38,8 @@ export default async function PetProfilePage({ params }: PetProfilePageProps) {
         
         {/* Right Column - Medical Activity */}
         <div className="lg:col-span-2 space-y-6">
-          <MedicalHistoryCard pet={pet} />
-          <TreatmentTimelineCard pet={pet} />
+          <MedicalHistoryCard pet={pet} timeZone={timeZone} />
+          <TreatmentTimelineCard pet={pet} timeZone={timeZone} />
         </div>
       </div>
     </div>

@@ -42,27 +42,27 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
 
   // Helper functions for vital signs assessment
   const getWeightStatus = (weight: number) => {
-    if (weight < 1) return { status: 'low', color: 'text-red-600', message: 'Peso muy bajo' };
-    if (weight > 50) return { status: 'high', color: 'text-orange-600', message: 'Peso elevado' };
-    return { status: 'normal', color: 'text-green-600', message: 'Peso normal' };
+    if (weight < 1) return { status: 'low', color: 'text-red-600 dark:text-red-400', message: 'Peso muy bajo' };
+    if (weight > 50) return { status: 'high', color: 'text-orange-600 dark:text-orange-400', message: 'Peso elevado' };
+    return { status: 'normal', color: 'text-green-600 dark:text-green-400', message: 'Peso normal' };
   };
 
   const getTemperatureStatus = (temp: number) => {
-    if (temp < 37.5) return { status: 'low', color: 'text-blue-600', message: 'Hipotermia' };
-    if (temp > 39.5) return { status: 'high', color: 'text-red-600', message: 'Fiebre' };
-    return { status: 'normal', color: 'text-green-600', message: 'Normal' };
+    if (temp < 37.5) return { status: 'low', color: 'text-blue-600 dark:text-blue-400', message: 'Hipotermia' };
+    if (temp > 39.5) return { status: 'high', color: 'text-red-600 dark:text-red-400', message: 'Fiebre' };
+    return { status: 'normal', color: 'text-green-600 dark:text-green-400', message: 'Normal' };
   };
 
   const getHeartRateStatus = (hr: number) => {
-    if (hr < 60) return { status: 'low', color: 'text-blue-600', message: 'Bradicardia' };
-    if (hr > 160) return { status: 'high', color: 'text-red-600', message: 'Taquicardia' };
-    return { status: 'normal', color: 'text-green-600', message: 'Normal' };
+    if (hr < 60) return { status: 'low', color: 'text-blue-600 dark:text-blue-400', message: 'Bradicardia' };
+    if (hr > 160) return { status: 'high', color: 'text-red-600 dark:text-red-400', message: 'Taquicardia' };
+    return { status: 'normal', color: 'text-green-600 dark:text-green-400', message: 'Normal' };
   };
 
   const getRespiratoryRateStatus = (rr: number) => {
-    if (rr < 10) return { status: 'low', color: 'text-blue-600', message: 'Bradipnea' };
-    if (rr > 40) return { status: 'high', color: 'text-red-600', message: 'Taquipnea' };
-    return { status: 'normal', color: 'text-green-600', message: 'Normal' };
+    if (rr < 10) return { status: 'low', color: 'text-blue-600 dark:text-blue-400', message: 'Bradipnea' };
+    if (rr > 40) return { status: 'high', color: 'text-red-600 dark:text-red-400', message: 'Taquipnea' };
+    return { status: 'normal', color: 'text-green-600 dark:text-green-400', message: 'Normal' };
   };
 
   const onSubmit = async (data: VitalSignsFormData) => {
@@ -118,7 +118,7 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
             className="form-input"
           />
           {errors.recorded_date && (
-            <p className="mt-1 text-sm text-red-600">{errors.recorded_date.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.recorded_date.message}</p>
           )}
         </div>
       </div>
@@ -143,7 +143,7 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
                 type="number"
                 id="weight"
                 {...register('weight', { valueAsNumber: true })}
-                step="0.1"
+                step="0.01"
                 min="0.1"
                 max="200"
                 className="form-input pr-8"
@@ -159,13 +159,13 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
               </p>
             )}
             {errors.weight && (
-              <p className="mt-1 text-sm text-red-600">{errors.weight.message}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.weight.message}</p>
             )}
           </div>
 
           {/* Temperature */}
           <div>
-            <label htmlFor="temperature" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="temperature" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               Temperatura (°C) *
             </label>
             <div className="relative">
@@ -176,11 +176,11 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
                 step="0.1"
                 min="35"
                 max="45"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 dark:placeholder-gray-500"
                 placeholder="38.5"
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <span className="text-gray-500 text-sm">°C</span>
+                <span className="text-gray-500 dark:text-gray-400 text-sm">°C</span>
               </div>
             </div>
             {isValidNumber(temperature) && (
@@ -189,13 +189,13 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
               </p>
             )}
             {errors.temperature && (
-              <p className="mt-1 text-sm text-red-600">{errors.temperature.message}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.temperature.message}</p>
             )}
           </div>
 
           {/* Heart Rate */}
           <div>
-            <label htmlFor="heart_rate" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="heart_rate" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               Frecuencia Cardíaca (lpm) *
             </label>
             <div className="relative">
@@ -205,11 +205,11 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
                 {...register('heart_rate', { valueAsNumber: true })}
                 min="30"
                 max="300"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 dark:placeholder-gray-500"
                 placeholder="120"
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <span className="text-gray-500 text-sm">lpm</span>
+                <span className="text-gray-500 dark:text-gray-400 text-sm">lpm</span>
               </div>
             </div>
             {isValidNumber(heartRate) && (
@@ -218,13 +218,13 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
               </p>
             )}
             {errors.heart_rate && (
-              <p className="mt-1 text-sm text-red-600">{errors.heart_rate.message}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.heart_rate.message}</p>
             )}
           </div>
 
           {/* Respiratory Rate */}
           <div>
-            <label htmlFor="respiratory_rate" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="respiratory_rate" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
               Frecuencia Respiratoria (rpm) *
             </label>
             <div className="relative">
@@ -234,11 +234,11 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
                 {...register('respiratory_rate', { valueAsNumber: true })}
                 min="5"
                 max="100"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 dark:placeholder-gray-500"
                 placeholder="24"
               />
               <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <span className="text-gray-500 text-sm">rpm</span>
+                <span className="text-gray-500 dark:text-gray-400 text-sm">rpm</span>
               </div>
             </div>
             {isValidNumber(respiratoryRate) && (
@@ -247,7 +247,7 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
               </p>
             )}
             {errors.respiratory_rate && (
-              <p className="mt-1 text-sm text-red-600">{errors.respiratory_rate.message}</p>
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.respiratory_rate.message}</p>
             )}
           </div>
         </div>
@@ -255,25 +255,25 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
 
       {/* Signos Adicionales */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-          <span className="w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+          <span className="w-8 h-8 bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-400 rounded-full flex items-center justify-center text-sm font-bold mr-3">
             3
           </span>
           Signos Adicionales
         </h3>
         
         <div>
-          <label htmlFor="blood_pressure" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="blood_pressure" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Presión Arterial (opcional)
           </label>
           <input
             type="text"
             id="blood_pressure"
             {...register('blood_pressure')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 dark:placeholder-gray-500"
             placeholder="Ej: 120/80 mmHg"
           />
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
             Formato: sistólica/diastólica mmHg
           </p>
         </div>
@@ -281,22 +281,22 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
 
       {/* Observaciones */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-          <span className="w-8 h-8 bg-gray-100 text-gray-600 rounded-full flex items-center justify-center text-sm font-bold mr-3">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+          <span className="w-8 h-8 bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 rounded-full flex items-center justify-center text-sm font-bold mr-3">
             4
           </span>
           Observaciones
         </h3>
         
         <div>
-          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Notas adicionales (opcional)
           </label>
           <textarea
             id="notes"
             {...register('notes')}
             rows={4}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 placeholder-gray-400 dark:placeholder-gray-500"
             placeholder="Comportamiento durante el examen, condición general, observaciones especiales..."
           />
         </div>
@@ -304,30 +304,30 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
 
       {/* Vital Signs Summary */}
       {(isValidNumber(weight) || isValidNumber(temperature) || isValidNumber(heartRate) || isValidNumber(respiratoryRate)) && (
-        <div className="bg-gray-50 rounded-lg p-4">
-          <h4 className="text-sm font-medium text-gray-900 mb-3">Resumen de Signos Vitales</h4>
+        <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Resumen de Signos Vitales</h4>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             {isValidNumber(weight) && (
               <div className="text-center">
-                <p className="font-medium text-gray-900">{weight} kg</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">{weight} kg</p>
                 <p className={getWeightStatus(weight).color}>Peso</p>
               </div>
             )}
             {isValidNumber(temperature) && (
               <div className="text-center">
-                <p className="font-medium text-gray-900">{temperature}°C</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">{temperature}°C</p>
                 <p className={getTemperatureStatus(temperature).color}>Temperatura</p>
               </div>
             )}
             {isValidNumber(heartRate) && (
               <div className="text-center">
-                <p className="font-medium text-gray-900">{heartRate} lpm</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">{heartRate} lpm</p>
                 <p className={getHeartRateStatus(heartRate).color}>Cardíaca</p>
               </div>
             )}
             {isValidNumber(respiratoryRate) && (
               <div className="text-center">
-                <p className="font-medium text-gray-900">{respiratoryRate} rpm</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">{respiratoryRate} rpm</p>
                 <p className={getRespiratoryRateStatus(respiratoryRate).color}>Respiratoria</p>
               </div>
             )}
@@ -336,11 +336,11 @@ export function VitalSignsForm({ petId, tenantId, consultationId, onSuccess, onC
       )}
 
       {/* Action Buttons */}
-      <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+      <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700">
         <button
           type="button"
           onClick={onCancel}
-          className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           Cancelar
         </button>

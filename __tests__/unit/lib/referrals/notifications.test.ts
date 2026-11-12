@@ -13,6 +13,15 @@ import {
   notifyPartnerReferralSuccess,
 } from '@/lib/email/referral-notifications';
 
+/** Everything passed to console.error, with Error objects as their message */
+function loggedErrors(): string {
+  return JSON.stringify(
+    (console.error as jest.Mock).mock.calls.map((args: unknown[]) =>
+      args.map((arg) => (arg instanceof Error ? arg.message : arg))
+    )
+  );
+}
+
 describe('Referral Notifications', () => {
   const originalEnv = process.env;
 
@@ -47,7 +56,7 @@ describe('Referral Notifications', () => {
     };
 
     it('should send email to admin with conversion details', async () => {
-      mockSend.mockResolvedValue({ id: 'email-1' });
+      mockSend.mockResolvedValue({ data: { id: 'email-1' }, error: null });
 
       await notifyReferralConversion(conversionData);
 
@@ -78,11 +87,36 @@ describe('Referral Notifications', () => {
       expect(console.error).toHaveBeenCalled();
     });
 
+    it('logs a Resend API error as a failure, not as sent', async () => {
+      mockSend.mockResolvedValue({
+        data: null,
+        error: { name: 'rate_limit_exceeded', message: 'Too many requests' },
+      });
+
+      await notifyReferralConversion(conversionData);
+
+      expect(console.log).not.toHaveBeenCalledWith(expect.stringContaining('sent'));
+      expect(loggedErrors()).toContain('Too many requests');
+    });
+
+    it('uses accented Spanish copy', async () => {
+      mockSend.mockResolvedValue({ data: { id: 'email-5' }, error: null });
+
+      await notifyReferralConversion(conversionData);
+
+      const { html } = mockSend.mock.calls[0][0];
+      expect(html).toContain('Una clínica referida');
+      expect(html).toContain('Código');
+      expect(html).toContain('Clínica');
+      expect(html).toContain('Monto Suscripción');
+      expect(html).toContain('Comisión (20%)');
+    });
+
     it('should use default admin email when env not set', async () => {
       delete process.env.ADMIN_EMAIL;
       // Re-import to pick up env change? No - the module reads env at call time via const ADMIN_EMAIL
       // Actually ADMIN_EMAIL is set at module load time, so we need to accept the cached value
-      mockSend.mockResolvedValue({ id: 'email-1' });
+      mockSend.mockResolvedValue({ data: { id: 'email-1' }, error: null });
 
       await notifyReferralConversion(conversionData);
 
@@ -100,7 +134,7 @@ describe('Referral Notifications', () => {
     };
 
     it('should send email to partner with commission info', async () => {
-      mockSend.mockResolvedValue({ id: 'email-2' });
+      mockSend.mockResolvedValue({ data: { id: 'email-2' }, error: null });
 
       await notifyPartnerReferralSuccess(partnerData);
 
@@ -120,14 +154,40 @@ describe('Referral Notifications', () => {
       expect(console.error).toHaveBeenCalled();
     });
 
-    it('should log success on successful send', async () => {
-      mockSend.mockResolvedValue({ id: 'email-3' });
+    it('should log success without the partner email address', async () => {
+      mockSend.mockResolvedValue({ data: { id: 'email-3' }, error: null });
 
       await notifyPartnerReferralSuccess(partnerData);
 
       expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('Partner notification sent to drsmith@example.com')
+        expect.stringContaining('Partner notification sent')
       );
+      expect(JSON.stringify((console.log as jest.Mock).mock.calls)).not.toContain('drsmith@example.com');
+    });
+
+    it('logs a Resend API error as a failure, not as sent', async () => {
+      // Resend resolves (does not throw) on API errors
+      mockSend.mockResolvedValue({
+        data: null,
+        error: { name: 'validation_error', message: 'The vetify.pro domain is not verified.' },
+      });
+
+      await notifyPartnerReferralSuccess(partnerData);
+
+      expect(console.log).not.toHaveBeenCalledWith(expect.stringContaining('sent'));
+      expect(loggedErrors()).toContain('not verified');
+    });
+
+    it('uses accented Spanish copy', async () => {
+      mockSend.mockResolvedValue({ data: { id: 'email-4' }, error: null });
+
+      await notifyPartnerReferralSuccess(partnerData);
+
+      const { html } = mockSend.mock.calls[0][0];
+      expect(html).toContain('se suscribió');
+      expect(html).toContain('La clínica');
+      expect(html).toContain('suscripción');
+      expect(html).toContain('comisión');
     });
   });
 });
