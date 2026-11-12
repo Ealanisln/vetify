@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { MedicalHistoryFormData, MedicalHistoryWithDetails } from '@/types';
+import { VITAL_SIGNS_REASON } from './treatment-labels';
 
 /** Invalid input detected while creating a history entry (answer 400). */
 export class MedicalHistoryInputError extends Error {
@@ -368,24 +369,28 @@ export async function getMedicalHistoryStats(tenantId: string) {
 
   const nextMonth = new Date(thisMonth.getFullYear(), thisMonth.getMonth() + 1, 1);
 
+  // Vital-signs entries are not consultations
+  const notVitals = { reasonForVisit: { not: VITAL_SIGNS_REASON } };
+
   const [monthConsultations, totalConsultations, uniquePetsGroups, commonDiagnosesRaw] = await Promise.all([
     // Consultas del mes
     prisma.medicalHistory.count({
       where: {
         tenantId,
+        ...notVitals,
         visitDate: { gte: thisMonth, lt: nextMonth }
       }
     }),
 
     // Total de consultas
     prisma.medicalHistory.count({
-      where: { tenantId }
+      where: { tenantId, ...notVitals }
     }),
 
     // Mascotas únicas con historial médico (optimized with groupBy)
     prisma.medicalHistory.groupBy({
       by: ['petId'],
-      where: { tenantId }
+      where: { tenantId, ...notVitals }
     }),
 
     // Diagnósticos más comunes
@@ -393,6 +398,7 @@ export async function getMedicalHistoryStats(tenantId: string) {
       by: ['diagnosis'],
       where: {
         tenantId,
+        ...notVitals,
         diagnosis: { not: null }
       },
       _count: {

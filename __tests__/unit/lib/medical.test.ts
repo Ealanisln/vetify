@@ -405,8 +405,9 @@ describe('medical.ts', () => {
           tenantId: testTenantId,
           visitDate: validVitalSignsData.recorded_date,
           reasonForVisit: 'Registro de Signos Vitales',
-          diagnosis: 'N/A',
-          treatment: 'N/A',
+          // No fake diagnosis/treatment: keeps vitals out of diagnosis stats
+          diagnosis: null,
+          treatment: null,
         }),
         include: {
           pet: { include: { customer: true } },

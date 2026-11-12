@@ -2,6 +2,7 @@ import { prisma } from './prisma';
 import { TreatmentType } from '@prisma/client';
 import { clinicDateAtNoon, clinicDaysBetween, getTenantTimeZone } from './clinical-dates';
 import { buildTreatmentReminderData } from './treatment-reminder-content';
+import { VITAL_SIGNS_REASON } from './treatment-labels';
 // NOTE: n8nService import removed - integration temporarily disabled for future implementation
 import type {
   ConsultationFormData,
@@ -238,31 +239,44 @@ export async function recordVitalSigns(
   data: VitalSignsFormData
 ) {
   try {
-    // For now, we'll store vital signs as a special medical history entry
-    // In a real implementation, you might want a separate VitalSigns model
-    const vitals = await prisma.medicalHistory.create({
-      data: {
-        petId,
-        tenantId,
-        visitDate: data.recorded_date,
-        reasonForVisit: 'Registro de Signos Vitales',
-        diagnosis: 'N/A',
-        treatment: 'N/A',
-        notes: `SIGNOS VITALES:
-Peso: ${data.weight} kg
-Temperatura: ${data.temperature}°C
-Frecuencia Cardíaca: ${data.heart_rate} lpm
-Frecuencia Respiratoria: ${data.respiratory_rate} rpm
-${data.blood_pressure ? `Presión Arterial: ${data.blood_pressure}` : ''}
-${data.notes ? `Observaciones: ${data.notes}` : ''}`,
-      },
-      include: {
-        pet: {
-          include: {
-            customer: true,
+    // Vital signs have no dedicated model: they are stored as a MedicalHistory
+    // row marked by VITAL_SIGNS_REASON, with no diagnosis/treatment, so stats
+    // and the timeline do not treat them as a consultation.
+    const vitals = await prisma.$transaction(async (tx) => {
+      const entry = await tx.medicalHistory.create({
+        data: {
+          petId,
+          tenantId,
+          visitDate: data.recorded_date,
+          reasonForVisit: VITAL_SIGNS_REASON,
+          diagnosis: null,
+          treatment: null,
+          notes: [
+            'SIGNOS VITALES:',
+            `Peso: ${data.weight} kg`,
+            `Temperatura: ${data.temperature}°C`,
+            `Frecuencia Cardíaca: ${data.heart_rate} lpm`,
+            `Frecuencia Respiratoria: ${data.respiratory_rate} rpm`,
+            data.blood_pressure ? `Presión Arterial: ${data.blood_pressure}` : null,
+            data.notes ? `Observaciones: ${data.notes}` : null,
+          ].filter(Boolean).join('\n'),
+        },
+        include: {
+          pet: {
+            include: {
+              customer: true,
+            },
           },
         },
-      },
+      });
+
+      // Keep the pet's current weight in sync with the latest measurement
+      await tx.pet.updateMany({
+        where: { id: petId, tenantId },
+        data: { weight: data.weight, weightUnit: 'kg' },
+      });
+
+      return entry;
     });
 
     // NOTE: N8N integration temporarily disabled - will be enabled later

@@ -53,10 +53,15 @@ export const vaccinationSchema = z.object({
 
 // Vital Signs Form Schema
 export const vitalSignsSchema = z.object({
-  weight: z.number().min(0.1, "Peso debe ser mayor a 0").max(200, "Peso excesivo"),
-  temperature: z.number().min(35, "Temperatura muy baja").max(45, "Temperatura muy alta"),
-  heart_rate: z.number().min(30, "Frecuencia cardíaca muy baja").max(300, "Frecuencia cardíaca muy alta"),
-  respiratory_rate: z.number().min(5, "Frecuencia respiratoria muy baja").max(100, "Frecuencia respiratoria muy alta"),
+  // Empty number inputs arrive as NaN; answer in Spanish instead of zod's default
+  weight: z.number({ invalid_type_error: "Ingresa el peso", required_error: "Ingresa el peso" })
+    .min(0.1, "Peso debe ser mayor a 0").max(200, "Peso excesivo"),
+  temperature: z.number({ invalid_type_error: "Ingresa la temperatura", required_error: "Ingresa la temperatura" })
+    .min(35, "Temperatura muy baja").max(45, "Temperatura muy alta"),
+  heart_rate: z.number({ invalid_type_error: "Ingresa la frecuencia cardíaca", required_error: "Ingresa la frecuencia cardíaca" })
+    .min(30, "Frecuencia cardíaca muy baja").max(300, "Frecuencia cardíaca muy alta"),
+  respiratory_rate: z.number({ invalid_type_error: "Ingresa la frecuencia respiratoria", required_error: "Ingresa la frecuencia respiratoria" })
+    .min(5, "Frecuencia respiratoria muy baja").max(100, "Frecuencia respiratoria muy alta"),
   blood_pressure: z.string().optional(),
   notes: z.string().optional(),
   recorded_date: z.union([z.date(), z.string().datetime()]).transform((val) => 

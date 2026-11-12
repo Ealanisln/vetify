@@ -18,3 +18,9 @@ export const DEWORMING_TYPE_LABELS: Record<DewormingType, string> = {
 export function labelFor(labels: Record<string, string>, value: string): string {
   return labels[value] ?? value;
 }
+
+/**
+ * reasonForVisit of the MedicalHistory rows that hold vital signs (there is no
+ * dedicated model); stats use it to leave them out of consultations.
+ */
+export const VITAL_SIGNS_REASON = 'Registro de Signos Vitales';
