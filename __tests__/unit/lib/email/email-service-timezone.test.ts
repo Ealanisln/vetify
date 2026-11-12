@@ -6,6 +6,10 @@
  * the next day in UTC) keeps its own date.
  */
 
+// Module scope (the test only uses dynamic imports), so names don't clash
+// with other test files in the type check.
+export {};
+
 const mockSend = jest.fn();
 
 jest.mock('resend', () => ({
