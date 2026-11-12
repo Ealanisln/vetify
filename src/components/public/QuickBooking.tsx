@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
-import { CheckCircle, AlertCircle, User, ArrowRight, Users, Clock, Heart, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertCircle, User, Clock, Heart, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import type { PublicTenant } from '../../lib/tenant';
 import { buildBookingServiceOptions, type BookingCatalogService } from '@/lib/public-booking-services';
@@ -11,33 +11,17 @@ import { formatDate } from '../../lib/utils/date-format';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
 import { getSessionId, trackConversion } from '@/lib/analytics/landing-tracker';
-import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
+import { phoneMatchKey } from '@/lib/phone';
 import { DEFAULT_CLINIC_TIME_ZONE, clinicToday } from '@/lib/clinic-timezone';
 
 interface Pet {
   id: string;
   name: string;
-  species: string;
-  breed?: string;
-  photoUrl?: string;
 }
 
+/** The lookup only returns the caller's own pets (id + name), never customer data. */
 interface CustomerLookupResult {
-  found: boolean;
-  customer?: {
-    id: string;
-    name: string;
-    hasPhone: boolean;
-    hasEmail: boolean;
-  };
-  pets?: Pet[];
-}
-
-interface Customer {
-  id: string;
-  name: string;
-  phone: string;
-  email?: string;
+  pets: Array<Pick<Pet, 'id' | 'name'>>;
 }
 
 interface AppointmentRequest {
@@ -47,10 +31,6 @@ interface AppointmentRequest {
   preferredDate?: string;
   preferredTime?: string;
   notes?: string;
-}
-
-interface SimilarCustomer extends Customer {
-  pets?: Pet[];
 }
 
 interface QuickBookingProps {
@@ -83,15 +63,6 @@ interface SubmissionResult {
   success: boolean;
   data?: {
     appointmentRequest: AppointmentRequest;
-    customerStatus: 'existing' | 'new' | 'needs_review';
-    existingPets: Pet[];
-    hasAccount: boolean;
-    confidence: 'high' | 'medium' | 'low';
-    loginPrompt?: {
-      message: string;
-      loginUrl: string;
-    };
-    similarCustomers?: SimilarCustomer[];
   };
   error?: string;
 }
@@ -152,14 +123,14 @@ export function QuickBooking({ tenant, services: catalogServices }: QuickBooking
   const [isLookingUpCustomer, setIsLookingUpCustomer] = useState(false);
   const [lookupDebounceTimer, setLookupDebounceTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // Lookup customer when phone or email changes (debounced)
-  const lookupCustomer = useCallback(async (phone: string, email: string) => {
-    // Need at least phone (10 digits) or valid email
-    const normalizedPhone = phone.replace(/\D/g, '');
-    const hasValidPhone = normalizedPhone.length >= 10;
-    const hasValidEmail = email && email.includes('@') && email.includes('.');
+  // Lookup the caller's pets when phone, name or email change (debounced).
+  // The API requires the full phone plus a second factor (name or email).
+  const lookupCustomer = useCallback(async (phone: string, name: string, email: string) => {
+    const hasValidPhone = phoneMatchKey(phone) !== null;
+    const trimmedName = name.trim();
+    const hasValidEmail = email.includes('@') && email.includes('.');
 
-    if (!hasValidPhone && !hasValidEmail) {
+    if (!hasValidPhone || (!trimmedName && !hasValidEmail)) {
       setCustomerLookup(null);
       return;
     }
@@ -171,25 +142,22 @@ export function QuickBooking({ tenant, services: catalogServices }: QuickBooking
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           tenantSlug: tenant.slug,
-          phone: hasValidPhone ? phone : undefined,
+          phone,
+          customerName: trimmedName || undefined,
           email: hasValidEmail ? email : undefined
         })
       });
 
       const result = await response.json();
       if (result.success) {
-        setCustomerLookup(result);
-        // If we found a customer and they have a different name, suggest it
-        if (result.found && result.customer && !formData.customerName) {
-          setFormData(prev => ({ ...prev, customerName: result.customer.name }));
-        }
+        setCustomerLookup({ pets: Array.isArray(result.pets) ? result.pets : [] });
       }
     } catch (error) {
       console.error('Error looking up customer:', error);
     } finally {
       setIsLookingUpCustomer(false);
     }
-  }, [tenant.slug, formData.customerName]);
+  }, [tenant.slug]);
 
   // Debounced lookup effect
   useEffect(() => {
@@ -198,7 +166,7 @@ export function QuickBooking({ tenant, services: catalogServices }: QuickBooking
     }
 
     const timer = setTimeout(() => {
-      lookupCustomer(formData.customerPhone, formData.customerEmail);
+      lookupCustomer(formData.customerPhone, formData.customerName, formData.customerEmail);
     }, 500); // Wait 500ms after user stops typing
 
     setLookupDebounceTimer(timer);
@@ -207,7 +175,7 @@ export function QuickBooking({ tenant, services: catalogServices }: QuickBooking
       if (timer) clearTimeout(timer);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.customerPhone, formData.customerEmail]);
+  }, [formData.customerPhone, formData.customerName, formData.customerEmail]);
 
   // Handle pet selection
   const handlePetSelect = (pet: Pet | null) => {
@@ -312,8 +280,6 @@ export function QuickBooking({ tenant, services: catalogServices }: QuickBooking
 
   // 🎉 MOSTRAR RESULTADO DE LA SOLICITUD
   if (submissionResult?.success) {
-    const data = submissionResult.data!;
-
     return (
       <section className="py-16 transition-colors duration-200" style={{ backgroundColor: colors.cardBg }}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -325,81 +291,6 @@ export function QuickBooking({ tenant, services: catalogServices }: QuickBooking
             <p className="text-lg mb-8" style={{ color: colors.textMuted }}>
               Hemos recibido tu solicitud de cita. Nos contactaremos contigo pronto para confirmar.
             </p>
-
-            {/* 🔍 INFORMACIÓN DE IDENTIFICACIÓN */}
-            {data.customerStatus === 'existing' && data.confidence === 'high' && (
-              <div className="mb-6 border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950 rounded-lg p-4 transition-colors">
-                <div className="flex items-start space-x-3">
-                  <User className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-1" />
-                  <div className="text-left">
-                    <p className="font-semibold text-blue-800 dark:text-blue-300 mb-2">
-                      ¡Te reconocemos! 👋
-                    </p>
-                    <p className="text-blue-700 dark:text-blue-400 mb-3">
-                      Encontramos tu perfil en nuestro sistema. Esta solicitud se agregará a tu historial.
-                    </p>
-                    {data.existingPets?.length > 0 && (
-                      <div className="bg-blue-100 dark:bg-blue-900 rounded-lg p-3">
-                        <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1 flex items-center">
-                          <Heart className="h-4 w-4 mr-2" />
-                          Tus mascotas registradas:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {data.existingPets.map((pet: Pet) => (
-                            <span key={pet.id} className="bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full text-xs">
-                              {pet.name} ({mapSpeciesToSpanish(pet.species)})
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 🔐 PROMPT PARA LOGIN */}
-            {data.hasAccount && data.loginPrompt && (
-              <div className="mb-6 border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950 rounded-lg p-4 transition-colors">
-                <div className="flex items-start space-x-3">
-                  <AlertCircle className="h-4 w-4 text-green-600 dark:text-green-400 mt-1" />
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-                    <div className="text-left">
-                      <p className="font-semibold text-green-800 dark:text-green-300">
-                        {data.loginPrompt.message}
-                      </p>
-                      <p className="text-sm text-green-700 dark:text-green-400 mt-1">
-                        Accede a tu historial, mascotas y citas anteriores
-                      </p>
-                    </div>
-                    <Link href={data.loginPrompt.loginUrl}>
-                      <Button className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 whitespace-nowrap text-sm px-3 py-1">
-                        Iniciar Sesión
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ⚠️ CLIENTE NECESITA REVISIÓN */}
-            {data.customerStatus === 'needs_review' && (
-              <div className="mb-6 border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950 rounded-lg p-4 transition-colors">
-                <div className="flex items-start space-x-3">
-                  <Users className="h-4 w-4 text-orange-600 dark:text-orange-400 mt-1" />
-                  <div className="text-left">
-                    <p className="font-semibold text-orange-800 dark:text-orange-300 mb-2">
-                      Información recibida ✓
-                    </p>
-                    <p className="text-orange-700 dark:text-orange-400 text-sm">
-                      Hemos encontrado información similar en nuestro sistema.
-                      Nuestro equipo revisará y consolidará tu información para brindarte un mejor servicio.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* 📋 RESUMEN DE LA SOLICITUD */}
             <div className="rounded-lg p-6 text-left transition-colors" style={{ backgroundColor: colors.backgroundAlt }}>
@@ -575,7 +466,7 @@ export function QuickBooking({ tenant, services: catalogServices }: QuickBooking
                 </label>
 
                 {/* Show existing pets if customer is recognized */}
-                {customerLookup?.found && customerLookup.pets && customerLookup.pets.length > 0 ? (
+                {customerLookup && customerLookup.pets.length > 0 ? (
                   <div className="space-y-3">
                     <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md text-sm text-blue-700 dark:text-blue-300 mb-2 transition-colors">
                       <User className="inline-block h-4 w-4 mr-1" />
@@ -598,11 +489,6 @@ export function QuickBooking({ tenant, services: catalogServices }: QuickBooking
                         >
                           <Heart className="h-4 w-4" />
                           <span>{pet.name}</span>
-                          {pet.species && (
-                            <span className={`text-xs ${formData.petId === pet.id ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
-                              ({mapSpeciesToSpanish(pet.species)})
-                            </span>
-                          )}
                         </button>
                       ))}
 
