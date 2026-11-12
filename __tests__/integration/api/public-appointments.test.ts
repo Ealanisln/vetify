@@ -91,7 +91,6 @@ describe('Public Appointments API', () => {
 
       // No date/time provided, skips conflict check
       prismaMock.appointment.findMany.mockResolvedValue([]);
-      prismaMock.appointmentRequest.findFirst.mockResolvedValue(null);
 
       const request = createMockRequest({
         tenantSlug: 'test-clinic',
@@ -198,41 +197,6 @@ describe('Public Appointments API', () => {
       expect(data.success).toBe(false);
       expect(data.error).toContain('horario seleccionado ya no está disponible');
       expect(data.conflictType).toBe('appointment');
-    });
-
-    it('should return 409 for conflicting confirmed request', async () => {
-      mockGetTenantBySlug.mockResolvedValue(mockTenant);
-
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
-      const dateString = futureDate.toISOString().split('T')[0];
-
-      // No appointment conflicts
-      prismaMock.appointment.findMany.mockResolvedValue([]);
-
-      // But there's a confirmed request at that time
-      prismaMock.appointmentRequest.findFirst.mockResolvedValue({
-        id: 'existing-req',
-        preferredDate: new Date(`${dateString}T00:00:00.000Z`),
-        preferredTime: '11:00',
-        status: 'CONFIRMED',
-      } as any);
-
-      const request = createMockRequest({
-        tenantSlug: 'test-clinic',
-        customerName: 'Juan García',
-        customerPhone: '+52 55 1234 5678',
-        petName: 'Firulais',
-        preferredDate: dateString,
-        preferredTime: '11:00', // Conflicts with confirmed request
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(409);
-      expect(data.success).toBe(false);
-      expect(data.conflictType).toBe('request');
     });
 
     it('should find existing customer by phone', async () => {
@@ -592,7 +556,6 @@ describe('Public Appointments API', () => {
 
       // No conflicts
       prismaMock.appointment.findMany.mockResolvedValue([]);
-      prismaMock.appointmentRequest.findFirst.mockResolvedValue(null);
 
       mockFindOrCreateCustomer.mockResolvedValue({
         customer: mockCustomer,
@@ -675,7 +638,6 @@ describe('Public Appointments API', () => {
       useClock('2026-11-10T18:00:00.000Z');
       mockGetTenantBySlug.mockResolvedValue({ ...mockTenant, timeZone: 'America/Mexico_City' });
       prismaMock.appointment.findMany.mockResolvedValue([]);
-      prismaMock.appointmentRequest.findFirst.mockResolvedValue(null);
       mockFindOrCreateCustomer.mockResolvedValue({
         customer: mockCustomer,
         status: 'existing',

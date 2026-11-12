@@ -115,30 +115,10 @@ export async function POST(request: NextRequest) {
         }, { status: 409 });
       }
 
-      // Check for conflicts with confirmed appointment requests. preferredDate
-      // is a calendar date stored at UTC midnight, so match the UTC calendar day.
-      const startOfDay = new Date(`${clinicDate}T00:00:00.000Z`);
-      const endOfDay = new Date(`${clinicDate}T23:59:59.999Z`);
-
-      const conflictingRequest = await prisma.appointmentRequest.findFirst({
-        where: {
-          tenantId: tenant.id,
-          status: 'CONFIRMED',
-          preferredDate: {
-            gte: startOfDay,
-            lte: endOfDay
-          },
-          preferredTime: validatedData.preferredTime
-        }
-      });
-
-      if (conflictingRequest) {
-        return NextResponse.json({
-          success: false,
-          error: 'El horario seleccionado ya no está disponible. Por favor selecciona otro horario.',
-          conflictType: 'request'
-        }, { status: 409 });
-      }
+      // AppointmentRequest rows are not checked. A former check for CONFIRMED
+      // requests never matched: nothing sets that status (there is no staff
+      // inbox yet). Whether PENDING requests should hold a slot is a product
+      // decision for when that inbox exists.
     }
 
     // 🔍 IDENTIFICACIÓN INTELIGENTE DE CLIENTE
