@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requirePermission } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
+import { getScheduleErrors, type ScheduleField } from '../../../../lib/business-hours';
 
 // Time format regex for HH:MM validation
 const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
@@ -24,7 +25,31 @@ const businessHoursSchema = z.object({
     lunchEnd: optionalTimeField,
     slotDuration: z.number().min(5).max(120).nullish(),
   }).passthrough()).optional() // Make the array optional; passthrough allows extra Prisma fields (id, tenantId, etc.)
-}).passthrough(); // Allow extra fields from Prisma (id, tenantId, etc.)
+}).passthrough() // Allow extra fields from Prisma (id, tenantId, etc.)
+  .superRefine((data, ctx) => {
+    const defaultFieldNames: Record<ScheduleField, string> = {
+      startTime: 'defaultStartTime',
+      endTime: 'defaultEndTime',
+      lunchStart: 'defaultLunchStart',
+      lunchEnd: 'defaultLunchEnd',
+    };
+    for (const error of getScheduleErrors({
+      startTime: data.defaultStartTime,
+      endTime: data.defaultEndTime,
+      lunchStart: data.defaultLunchStart,
+      lunchEnd: data.defaultLunchEnd,
+    })) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: [defaultFieldNames[error.field]], message: error.message });
+    }
+
+    // Closed days keep whatever times they had; only open days must be coherent.
+    data.businessHours?.forEach((day, index) => {
+      if (!day.isWorkingDay) return;
+      for (const error of getScheduleErrors(day)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['businessHours', index, error.field], message: error.message });
+      }
+    });
+  });
 
 export async function GET() {
   try {

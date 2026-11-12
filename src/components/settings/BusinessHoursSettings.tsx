@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Loader2, Clock, Save, RotateCcw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { getScheduleErrors, type ScheduleError, type ScheduleField } from '../../lib/business-hours';
 
 interface BusinessHour {
   dayOfWeek: number;
@@ -59,6 +60,48 @@ const slotDurations = [
   { value: 45, label: '45 minutos' },
   { value: 60, label: '1 hora' },
 ];
+
+interface ValidationDetail {
+  path?: (string | number)[];
+  message?: string;
+}
+
+const errorFor = (errors: ScheduleError[], field: ScheduleField) =>
+  errors.find(error => error.field === field)?.message;
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <p className="mt-1 text-xs text-red-600 dark:text-red-400">{message}</p>;
+}
+
+function getDefaultErrors(data: BusinessHoursData): ScheduleError[] {
+  return getScheduleErrors({
+    startTime: data.defaultStartTime,
+    endTime: data.defaultEndTime,
+    lunchStart: data.defaultLunchStart,
+    lunchEnd: data.defaultLunchEnd,
+  });
+}
+
+function getDayErrors(day: BusinessHour): ScheduleError[] {
+  return day.isWorkingDay ? getScheduleErrors(day) : [];
+}
+
+/** Turns zod issue details from the API into "Martes: mensaje" lines. */
+function describeValidationDetails(details: ValidationDetail[] | undefined, data: BusinessHoursData): string | null {
+  if (!Array.isArray(details) || details.length === 0) return null;
+  const lines = details
+    .filter(detail => detail?.message)
+    .map(detail => {
+      const [section, index] = detail.path ?? [];
+      if (section === 'businessHours' && typeof index === 'number') {
+        const dayOfWeek = data.businessHours[index]?.dayOfWeek;
+        return dayOfWeek !== undefined ? `${dayNames[dayOfWeek]}: ${detail.message}` : detail.message!;
+      }
+      return `Configuración por defecto: ${detail.message}`;
+    });
+  return lines.length > 0 ? Array.from(new Set(lines)).join('; ') : null;
+}
 
 export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
   const [loading, setLoading] = useState(true);
@@ -158,6 +201,13 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
   const handleSave = async () => {
     if (!businessHours) return;
 
+    const hasErrors = getDefaultErrors(businessHours).length > 0
+      || businessHours.businessHours.some(day => getDayErrors(day).length > 0);
+    if (hasErrors) {
+      toast.error('Revisa los horarios marcados antes de guardar');
+      return;
+    }
+
     try {
       setSaving(true);
       const response = await fetch('/api/settings/business-hours', {
@@ -171,7 +221,9 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Error al guardar horarios');
+        const details = describeValidationDetails(result.details, businessHours);
+        toast.error(details ?? result.error ?? 'Error al guardar los horarios');
+        return;
       }
 
       setBusinessHours(result.data);
@@ -204,9 +256,15 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
       <div className="text-center py-8">
         <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
         <p className="text-gray-600 dark:text-gray-400">Error al cargar la configuración de horarios</p>
+        <Button onClick={fetchBusinessHours} variant="outline" size="sm" className="mt-4">
+          <RotateCcw className="h-4 w-4 mr-2" />
+          Reintentar
+        </Button>
       </div>
     );
   }
+
+  const defaultErrors = getDefaultErrors(businessHours);
 
   return (
     <div className="space-y-6" data-testid="business-hours-settings">
@@ -237,6 +295,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                   <option key={time} value={time}>{time}</option>
                 ))}
               </select>
+              <FieldError message={errorFor(defaultErrors, 'startTime')} />
             </div>
 
             <div>
@@ -253,6 +312,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                   <option key={time} value={time}>{time}</option>
                 ))}
               </select>
+              <FieldError message={errorFor(defaultErrors, 'endTime')} />
             </div>
 
             <div>
@@ -288,6 +348,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                   <option key={time} value={time}>{time}</option>
                 ))}
               </select>
+              <FieldError message={errorFor(defaultErrors, 'lunchStart')} />
             </div>
 
             <div>
@@ -306,6 +367,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                   <option key={time} value={time}>{time}</option>
                 ))}
               </select>
+              <FieldError message={errorFor(defaultErrors, 'lunchEnd')} />
             </div>
           </div>
 
@@ -332,7 +394,9 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {businessHours.businessHours.map((day) => (
+            {businessHours.businessHours.map((day) => {
+              const dayErrors = getDayErrors(day);
+              return (
               <div
                 key={day.dayOfWeek}
                 className={`p-4 border rounded-lg ${day.isWorkingDay ? 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50'}`}
@@ -372,6 +436,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                           <option key={time} value={time}>{time}</option>
                         ))}
                       </select>
+                      <FieldError message={errorFor(dayErrors, 'startTime')} />
                     </div>
 
                     <div>
@@ -388,6 +453,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                           <option key={time} value={time}>{time}</option>
                         ))}
                       </select>
+                      <FieldError message={errorFor(dayErrors, 'endTime')} />
                     </div>
 
                     <div>
@@ -405,6 +471,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                           <option key={time} value={time}>{time}</option>
                         ))}
                       </select>
+                      <FieldError message={errorFor(dayErrors, 'lunchStart')} />
                     </div>
 
                     <div>
@@ -423,11 +490,13 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                           <option key={time} value={time}>{time}</option>
                         ))}
                       </select>
+                      <FieldError message={errorFor(dayErrors, 'lunchEnd')} />
                     </div>
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

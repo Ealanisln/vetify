@@ -229,6 +229,70 @@ describe('Business Hours API', () => {
       });
     });
 
+    describe('Schedule consistency', () => {
+      const payload = (day: Record<string, unknown>, defaults: Record<string, unknown> = {}) => ({
+        defaultStartTime: '08:00',
+        defaultEndTime: '18:00',
+        defaultLunchStart: '13:00',
+        defaultLunchEnd: '14:00',
+        defaultSlotDuration: 15,
+        ...defaults,
+        businessHours: [{
+          dayOfWeek: 1,
+          isWorkingDay: true,
+          startTime: '08:00',
+          endTime: '18:00',
+          lunchStart: '13:00',
+          lunchEnd: '14:00',
+          slotDuration: 15,
+          ...day,
+        }],
+      });
+
+      beforeEach(() => {
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
+        prismaMock.tenantSettings.findUnique.mockResolvedValue({
+          ...mockTenantSettings,
+          businessHours: mockBusinessHours,
+        } as any);
+      });
+
+      it.each([
+        ['closing before opening', { startTime: '18:00', endTime: '09:00' }, 'endTime', 'La hora de cierre debe ser posterior a la de apertura'],
+        ['lunch start without end', { lunchEnd: null }, 'lunchEnd', 'Indica el fin de la comida'],
+        ['lunch end before start', { lunchStart: '14:00', lunchEnd: '13:00' }, 'lunchEnd', 'El fin de la comida debe ser posterior al inicio'],
+        ['lunch outside open hours', { lunchStart: '19:00', lunchEnd: '20:00' }, 'lunchStart', 'La comida debe quedar dentro del horario de atención'],
+      ])('rejects a working day with %s', async (_label, day, field, message) => {
+        const response = await PUT(createMockPutRequest(payload(day)));
+        const data = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(data.details).toContainEqual(expect.objectContaining({
+          path: ['businessHours', 0, field],
+          message,
+        }));
+        expect(prismaMock.$transaction).not.toHaveBeenCalled();
+      });
+
+      it('rejects inconsistent defaults', async () => {
+        const response = await PUT(createMockPutRequest(payload({}, { defaultStartTime: '18:00', defaultEndTime: '08:00' })));
+        const data = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(data.details).toContainEqual(expect.objectContaining({
+          path: ['defaultEndTime'],
+          message: 'La hora de cierre debe ser posterior a la de apertura',
+        }));
+      });
+
+      it('does not validate times on a closed day', async () => {
+        const response = await PUT(createMockPutRequest(payload({ isWorkingDay: false, startTime: '18:00', endTime: '08:00' })));
+
+        expect(response.status).toBe(200);
+      });
+    });
+
     describe('Clearing lunch ("Sin comida")', () => {
       beforeEach(() => {
         mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });

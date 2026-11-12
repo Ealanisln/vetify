@@ -85,4 +85,64 @@ describe('BusinessHoursSettings', () => {
       expect(putBody().defaultLunchEnd).toBeNull();
     });
   });
+
+  describe('validation', () => {
+    it('shows an inline message and blocks saving when closing is before opening', async () => {
+      mockGetThenPut();
+      await renderLoaded();
+
+      fireEvent.change(screen.getByTestId('close-time-monday'), { target: { value: '07:00' } });
+
+      expect(screen.getByText('La hora de cierre debe ser posterior a la de apertura')).toBeInTheDocument();
+      fireEvent.click(screen.getByTestId('save-business-hours'));
+
+      expect(mockFetch.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
+      expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Revisa'));
+    });
+
+    it('asks for the lunch end when only the start is set', async () => {
+      mockGetThenPut(settings({
+        businessHours: Array.from({ length: 7 }, (_, i) => day(i, { lunchStart: null, lunchEnd: null })),
+      }));
+      await renderLoaded();
+
+      fireEvent.change(screen.getByTestId('lunch-start-monday'), { target: { value: '13:00' } });
+
+      expect(screen.getByText('Indica el fin de la comida')).toBeInTheDocument();
+    });
+
+    it('shows server validation details in the error toast', async () => {
+      mockFetch.mockImplementation((_url: string, init?: RequestInit) => {
+        if (init?.method === 'PUT') {
+          return jsonResponse({
+            success: false,
+            error: 'Datos inválidos',
+            details: [{ path: ['businessHours', 2, 'lunchStart'], message: 'La comida debe quedar dentro del horario de atención' }],
+          }, false);
+        }
+        return jsonResponse({ success: true, data: settings() });
+      });
+      await renderLoaded();
+
+      fireEvent.change(screen.getByTestId('open-time-tuesday'), { target: { value: '09:00' } });
+      fireEvent.click(screen.getByTestId('save-business-hours'));
+
+      await waitFor(() => expect(toast.error).toHaveBeenCalledWith(
+        'Martes: La comida debe quedar dentro del horario de atención'
+      ));
+    });
+  });
+
+  describe('load error', () => {
+    it('offers a retry that reloads the settings', async () => {
+      mockFetch
+        .mockImplementationOnce(() => jsonResponse({ success: false, error: 'boom' }, false))
+        .mockImplementation(() => jsonResponse({ success: true, data: settings() }));
+
+      render(<BusinessHoursSettings tenantId="tenant-1" />);
+      fireEvent.click(await screen.findByRole('button', { name: /reintentar/i }));
+
+      expect(await screen.findByTestId('business-hours-settings')).toBeInTheDocument();
+    });
+  });
 });
