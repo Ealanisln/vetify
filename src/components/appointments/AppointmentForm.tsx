@@ -16,6 +16,7 @@ import { cn } from '../../lib/utils';
 import LocationSelector from '@/components/locations/LocationSelector';
 import { POSITION_LABELS_ES, StaffPositionType } from '@/lib/staff-positions';
 import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
+import { clinicPickerDate } from '@/lib/clinic-timezone';
 
 interface Customer {
   id: string;
@@ -49,6 +50,8 @@ interface AppointmentFormProps {
   onCancel: () => void;
   loading?: boolean;
   className?: string;
+  /** Clinic IANA timezone: a prefilled instant opens on its clinic day */
+  timeZone?: string;
 }
 
 export function AppointmentForm({
@@ -62,10 +65,13 @@ export function AppointmentForm({
   onCancel,
   loading = false,
   className,
+  timeZone,
 }: AppointmentFormProps) {
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
-    initialData?.dateTime || new Date()
-  );
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => {
+    const initial = initialData?.dateTime ? new Date(initialData.dateTime) : new Date();
+    // The picker works in browser-local dates; open it on the clinic's day
+    return timeZone ? clinicPickerDate(initial, timeZone) : initial;
+  });
   const [selectedCustomer, setSelectedCustomer] = useState<string>(
     initialData?.customerId || ''
   );
@@ -116,7 +122,7 @@ export function AppointmentForm({
   // Slot labels come from the API in clinic time; format the chosen instant
   // in the same zone so the summary matches the button the user clicked.
   const clinicTimeZone =
-    availability?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+    availability?.timeZone ?? timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
   const chosenDateTime = timeChosen && watchedDateTime ? new Date(watchedDateTime) : null;
   const isPastDateTime = chosenDateTime !== null && chosenDateTime.getTime() < Date.now();
 

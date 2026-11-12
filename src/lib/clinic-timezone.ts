@@ -121,3 +121,13 @@ export function dayOfWeekForDate(date: string): number {
   const [y, m, d] = date.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
+
+/**
+ * The clinic calendar day of an instant, as a browser-local midnight Date.
+ * For date pickers, which work in the browser's local dates: the picker
+ * shows the clinic day, and format(date, 'yyyy-MM-dd') returns it.
+ */
+export function clinicPickerDate(instant: Date, timeZone: string): Date {
+  const [y, m, d] = formatInTimeZone(instant, timeZone, 'yyyy-MM-dd').split('-').map(Number);
+  return new Date(y, m - 1, d);
+}

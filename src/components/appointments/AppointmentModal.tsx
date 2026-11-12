@@ -38,6 +38,8 @@ interface AppointmentModalProps {
   staff: Staff[];
   onSuccess?: () => void;
   initialDate?: Date;
+  /** Clinic IANA timezone, passed to the form */
+  timeZone?: string;
 }
 
 export function AppointmentModal({
@@ -49,6 +51,7 @@ export function AppointmentModal({
   staff,
   onSuccess,
   initialDate,
+  timeZone,
 }: AppointmentModalProps) {
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -138,6 +141,7 @@ export function AppointmentModal({
             onSubmit={handleSubmit}
             onCancel={handleCancel}
             loading={loading}
+            timeZone={timeZone}
           />
         </div>
       </div>

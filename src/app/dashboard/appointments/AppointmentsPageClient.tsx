@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { Badge } from '../../../components/ui/badge';
 import { PlusIcon, Calendar, Clock, Users, Loader2 } from 'lucide-react';
 import { useStaffPermissions } from '../../../hooks/useStaffPermissions';
+import { useClinicCalendarSettings } from '../../../hooks/useCalendar';
 import { DateSelectArg } from '@fullcalendar/core';
 import { formatDate, formatTime } from '../../../lib/utils/date-format';
 import { POSITION_LABELS_ES, StaffPositionType } from '../../../lib/staff-positions';
@@ -103,6 +104,8 @@ function AppointmentsPageContent({
   // Use context for quickAction and refresh (single source of truth)
   const { quickAction, refresh } = useAppointmentsContext();
   const { canAccess: checkPermission } = useStaffPermissions();
+  // Clinic hours and timezone, shared by the calendar and the appointment form
+  const clinicSettings = useClinicCalendarSettings();
 
   // Check if user has permission to create/edit appointments
   const canWriteAppointments = checkPermission('appointments', 'write');
@@ -280,6 +283,7 @@ function AppointmentsPageContent({
           selectable={canWriteAppointments}
           className="mobile-calendar"
           refreshTrigger={calendarRefreshTrigger}
+          clinicSettings={clinicSettings}
         />
       </div>
 
@@ -362,6 +366,7 @@ function AppointmentsPageContent({
         staff={staff}
         onSuccess={handleModalSuccess}
         initialDate={selectedDate}
+        timeZone={clinicSettings.timeZone ?? undefined}
       />
     </div>
   );
