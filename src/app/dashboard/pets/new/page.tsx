@@ -3,8 +3,14 @@ import { AddPetForm } from '../../../../components/pets/AddPetForm';
 import { prisma } from '../../../../lib/prisma';
 import Link from 'next/link';
 
-export default async function AddPetPage() {
+interface AddPetPageProps {
+  searchParams: Promise<{ customerId?: string | string[] }>;
+}
+
+export default async function AddPetPage({ searchParams }: AddPetPageProps) {
   const { tenant } = await requireAuth();
+  const { customerId } = await searchParams;
+  const initialCustomerId = typeof customerId === 'string' && customerId ? customerId : undefined;
   
   // Check limits
   const petCount = await prisma.pet.count({ where: { tenantId: tenant.id } });
@@ -41,7 +47,7 @@ export default async function AddPetPage() {
 
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         <div className="px-4 py-5 sm:p-6">
-          <AddPetForm />
+          <AddPetForm initialCustomerId={initialCustomerId} />
         </div>
       </div>
     </div>

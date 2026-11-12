@@ -111,7 +111,7 @@ describe('AddPetForm', () => {
       render(<AddPetForm />);
 
       await waitFor(() => {
-        expect(mockFetch).toHaveBeenCalledWith('/api/customers');
+        expect(mockFetch).toHaveBeenCalledWith('/api/customers?page=1&limit=100&sortBy=name&sortOrder=asc');
       });
     });
 
@@ -772,6 +772,89 @@ describe('AddPetForm', () => {
       fireEvent.submit(document.querySelector('form') as HTMLFormElement);
 
       expect(await screen.findByTestId('customer-error-email')).toHaveTextContent('El email no es válido');
+    });
+  });
+
+  describe('Retry after a pet failure with a new customer', () => {
+    const fillNewCustomerAndPet = async () => {
+      fireEvent.click(screen.getAllByRole('button').find((b) => b.textContent?.includes('Nuevo Cliente'))!);
+      fireEvent.change(await screen.findByPlaceholderText('Ej: Juan Pérez'), { target: { value: 'Ana López' } });
+      fireEvent.change(screen.getByPlaceholderText('Ej: juan@email.com'), { target: { value: 'ana@test.com' } });
+      fireEvent.change(screen.getByPlaceholderText('Ej: Firulais'), { target: { value: 'Max' } });
+      fireEvent.change(document.querySelector('input[type="date"]')!, { target: { value: '2020-01-01' } });
+    };
+
+    it('selects the created customer and does not post it again on retry', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => mockCustomers } as Response)
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ id: 'new-customer-123', name: 'Ana López', email: 'ana@test.com' }) } as Response)
+        .mockResolvedValueOnce({ ok: false, json: async () => ({ message: 'La especie no es válida' }) } as Response)
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ pet: { id: 'pet-1' } }) } as Response);
+
+      render(<AddPetForm />);
+      await screen.findByText('Juan Pérez (+52 55 1234 5678)');
+      await fillNewCustomerAndPet();
+
+      fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+      expect(await screen.findByRole('alert')).toHaveTextContent('La especie no es válida');
+
+      // Switched to the existing-customer mode with the new customer chosen
+      expect(screen.getByTestId('pet-owner-select')).toHaveValue('new-customer-123');
+      expect(screen.getByRole('option', { name: /Ana López/ })).toBeInTheDocument();
+
+      fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+
+      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/dashboard/pets'));
+      const customerPosts = mockFetch.mock.calls.filter(
+        ([url, init]) => url === '/api/customers' && init?.method === 'POST'
+      );
+      expect(customerPosts).toHaveLength(1);
+      const petPosts = mockFetch.mock.calls.filter(([url]) => url === '/api/pets');
+      expect(petPosts).toHaveLength(2);
+      expect(JSON.parse(String(petPosts[1][1]?.body)).customerId).toBe('new-customer-123');
+    });
+  });
+
+  describe('Owner selector', () => {
+    const page = (from: number, count: number, hasMore: boolean) => ({
+      ok: true,
+      json: async () => ({
+        success: true,
+        data: Array.from({ length: count }, (_, i) => ({ id: `c-${from + i}`, name: `Cliente ${from + i}` })),
+        pagination: { page: 1, limit: 100, total: 105, totalPages: 2, hasMore },
+      }),
+    }) as Response;
+
+    it('loads every customer, not only the first page', async () => {
+      mockFetch.mockReset();
+      mockFetch.mockResolvedValueOnce(page(1, 100, true)).mockResolvedValueOnce(page(101, 5, false));
+
+      render(<AddPetForm />);
+
+      await screen.findByText('Cliente 105');
+      const select = screen.getByTestId('pet-owner-select') as HTMLSelectElement;
+      expect(select.options).toHaveLength(106); // placeholder + 105
+      expect(mockFetch).toHaveBeenCalledWith('/api/customers?page=2&limit=100&sortBy=name&sortOrder=asc');
+    });
+
+    it('preselects the customer passed from the customer page', async () => {
+      render(<AddPetForm initialCustomerId="customer-2" />);
+
+      await screen.findByText('María García (+52 55 8765 4321)');
+      expect(screen.getByTestId('pet-owner-select')).toHaveValue('customer-2');
+    });
+
+    it('filters the owners ignoring accents and phone formatting', async () => {
+      render(<AddPetForm />);
+      await screen.findByText('Juan Pérez (+52 55 1234 5678)');
+
+      fireEvent.change(screen.getByTestId('pet-owner-search'), { target: { value: 'garcia' } });
+      expect(screen.queryByText('Juan Pérez (+52 55 1234 5678)')).not.toBeInTheDocument();
+      expect(screen.getByText('María García (+52 55 8765 4321)')).toBeInTheDocument();
+
+      fireEvent.change(screen.getByTestId('pet-owner-search'), { target: { value: '551234' } });
+      expect(screen.getByText('Juan Pérez (+52 55 1234 5678)')).toBeInTheDocument();
+      expect(screen.queryByText('María García (+52 55 8765 4321)')).not.toBeInTheDocument();
     });
   });
 });

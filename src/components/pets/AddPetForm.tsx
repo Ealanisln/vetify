@@ -7,6 +7,39 @@ import LocationSelector from '@/components/locations/LocationSelector';
 import { getMaxDateForInput } from '@/lib/utils/date-validation';
 import { PET_WEIGHT_UNITS, validatePetFormFields } from '@/lib/utils/pet-form-validation';
 import { fieldErrorsByName } from '@/lib/validations/spanish-errors';
+import { matchesSearch } from '@/lib/utils/search-text';
+
+// The API caps a page at 100 rows; the owner selector needs every active
+// customer, so it walks the pages (bounded, in case the API misbehaves).
+const CUSTOMERS_PAGE_SIZE = 100;
+const MAX_CUSTOMER_PAGES = 50;
+
+async function fetchAllCustomers(): Promise<Customer[]> {
+  const all: Customer[] = [];
+  for (let page = 1; page <= MAX_CUSTOMER_PAGES; page++) {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(CUSTOMERS_PAGE_SIZE),
+      sortBy: 'name',
+      sortOrder: 'asc',
+    });
+    const response = await fetch(`/api/customers?${params.toString()}`);
+    if (!response.ok) {
+      throw new Error('Error al cargar clientes');
+    }
+    const data = await response.json();
+    if (Array.isArray(data)) {
+      return [...all, ...data];
+    }
+    all.push(...(data.data || []));
+    if (!data.pagination?.hasMore) break;
+  }
+  return all;
+}
+
+function sortByName(list: Customer[]): Customer[] {
+  return [...list].sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', 'es'));
+}
 
 type FieldErrors = Record<string, string | undefined>;
 
@@ -26,12 +59,18 @@ interface Customer {
   email?: string;
 }
 
-export function AddPetForm() {
+interface AddPetFormProps {
+  /** Owner to preselect, e.g. from /dashboard/pets/new?customerId=... */
+  initialCustomerId?: string;
+}
+
+export function AddPetForm({ initialCustomerId }: AddPetFormProps = {}) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
+  const [customerSearch, setCustomerSearch] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [customerFieldErrors, setCustomerFieldErrors] = useState<FieldErrors>({});
@@ -64,18 +103,16 @@ export function AddPetForm() {
 
   // Cargar clientes al montar el componente
   useEffect(() => {
-    const fetchCustomers = async () => {
+    const loadCustomers = async () => {
       try {
-        const response = await fetch('/api/customers');
-        if (response.ok) {
-          const data = await response.json();
-          const loadedCustomers: Customer[] = Array.isArray(data) ? data : (data.data || []);
-          setCustomers(loadedCustomers);
+        const loadedCustomers = await fetchAllCustomers();
+        setCustomers(loadedCustomers);
+        if (initialCustomerId && loadedCustomers.some((c) => c.id === initialCustomerId)) {
+          setFormData((prev) => ({ ...prev, customerId: initialCustomerId }));
+        } else if (loadedCustomers.length === 0) {
           // First run: with no customers to pick from, the pet cannot be saved
           // until an owner exists, so open the new-customer form by default.
-          if (loadedCustomers.length === 0) {
-            setShowNewCustomerForm(true);
-          }
+          setShowNewCustomerForm(true);
         }
       } catch (error) {
         console.error('Error loading customers:', error);
@@ -84,8 +121,8 @@ export function AddPetForm() {
       }
     };
 
-    fetchCustomers();
-  }, []);
+    loadCustomers();
+  }, [initialCustomerId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,8 +154,21 @@ export function AddPetForm() {
           throw new Error(errorData.message || 'Error al crear el cliente');
         }
 
-        const newCustomer = await customerResponse.json();
+        const created: Partial<Customer> & { id: string } = await customerResponse.json();
+        const newCustomer: Customer = {
+          id: created.id,
+          name: created.name ?? newCustomerData.name,
+          phone: created.phone ?? (newCustomerData.phone || undefined),
+          email: created.email ?? (newCustomerData.email || undefined),
+        };
         customerId = newCustomer.id;
+
+        // The customer now exists: from here on it is an existing customer,
+        // so a retry after a pet error must not post it again.
+        setCustomers((prev) => sortByName([...prev.filter((c) => c.id !== newCustomer.id), newCustomer]));
+        setFormData((prev) => ({ ...prev, customerId: newCustomer.id }));
+        setCustomerSearch('');
+        setShowNewCustomerForm(false);
       }
 
       if (!customerId) {
@@ -174,6 +224,11 @@ export function AddPetForm() {
   };
 
   const selectedCustomer = customers.find(c => c.id === formData.customerId);
+  const visibleCustomers = customers.filter(
+    (c) =>
+      c.id === formData.customerId ||
+      matchesSearch(customerSearch, { text: [c.name, c.email], phones: [c.phone] })
+  );
   const hasNoCustomers = !loadingCustomers && customers.length === 0;
 
   return (
@@ -226,6 +281,18 @@ export function AddPetForm() {
               {loadingCustomers ? (
                 <div className={`text-sm ${getThemeClasses('text.tertiary')}`}>Cargando clientes...</div>
               ) : (
+                <>
+                {customers.length > 0 && (
+                  <input
+                    type="search"
+                    value={customerSearch}
+                    onChange={(e) => setCustomerSearch(e.target.value)}
+                    placeholder="Buscar por nombre, email o teléfono"
+                    aria-label="Buscar cliente"
+                    className="mb-2 block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    data-testid="pet-owner-search"
+                  />
+                )}
                 <select
                   name="customerId"
                   required
@@ -235,12 +302,18 @@ export function AddPetForm() {
                   data-testid="pet-owner-select"
                 >
                   <option value="">Selecciona un cliente</option>
-                  {customers.map((customer) => (
+                  {visibleCustomers.map((customer) => (
                     <option key={customer.id} value={customer.id} data-testid="owner-option">
                       {customer.name} {customer.phone && `(${customer.phone})`}
                     </option>
                   ))}
                 </select>
+                {customerSearch && visibleCustomers.length === 0 && (
+                  <p className={`mt-1 text-sm ${getThemeClasses('text.tertiary')}`}>
+                    Ningún cliente coincide con la búsqueda.
+                  </p>
+                )}
+                </>
               )}
 
               {selectedCustomer && (
