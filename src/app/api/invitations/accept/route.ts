@@ -27,7 +27,9 @@ export async function POST(request: NextRequest) {
     // Get authenticated user
     // NOTE: This call may trigger autoAcceptPendingInvitation which could
     // accept the invitation before we get to the manual acceptance below
-    const user = await getAuthenticatedUser();
+    // Accept the exact invitation from the link: skip the login-time
+    // auto-accept, which matches by email and could pick another clinic.
+    const user = await getAuthenticatedUser({ autoAcceptInvitations: false });
 
     if (!user?.id) {
       return NextResponse.json(
@@ -83,6 +85,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
+          code: 'EMAIL_MISMATCH',
+          invitationEmail: invitation.email,
           error: `Esta invitación es para ${invitation.email}. Debes iniciar sesión con ese email.`,
         },
         { status: 403 }
@@ -92,20 +96,14 @@ export async function POST(request: NextRequest) {
     // Accept the invitation
     const result = await acceptInvitation(token, user.id);
 
-    if (!result.success) {
-      // One more check: if it failed because "already linked", and user has tenant, treat as success
-      if (result.error === 'Este personal ya tiene una cuenta vinculada' && user.tenantId) {
-        return NextResponse.json({
-          success: true,
-          message: '¡Invitación aceptada! Ahora tienes acceso al sistema.',
-          tenantName: invitation.tenant.name,
-          alreadyAccepted: true,
-        });
-      }
-
+    // `in` check: boolean-discriminant narrowing needs strictNullChecks,
+    // which this repo has off.
+    if ('error' in result) {
+      // Conflicts with an existing account link are 409 so the page can
+      // offer to switch accounts instead of retrying.
       return NextResponse.json(
-        { success: false, error: result.error },
-        { status: 400 }
+        { success: false, error: result.error, code: result.code },
+        { status: result.code ? 409 : 400 }
       );
     }
 

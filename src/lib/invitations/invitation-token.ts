@@ -37,6 +37,15 @@ export interface InvitationWithDetails {
   } | null;
 }
 
+export type AcceptInvitationErrorCode =
+  | 'USER_IN_OTHER_TENANT'
+  | 'USER_ALREADY_LINKED'
+  | 'STAFF_ALREADY_LINKED';
+
+export type AcceptInvitationResult =
+  | { success: true; staffId: string }
+  | { success: false; error: string; code?: AcceptInvitationErrorCode };
+
 export type ValidationResult =
   | { valid: true; invitation: InvitationWithDetails }
   | { valid: false; reason: string };
@@ -81,41 +90,35 @@ export async function generateStaffInvitation(
   });
 
   if (existing) {
-    // Update the existing invitation with new expiration
+    // Keep the same link working and extend its expiration
     return prisma.tenantInvitation.update({
       where: { id: existing.id },
       data: {
         expiresAt: addDays(new Date(), expirationDays),
         email: normalizedEmail, // Update email in case it changed
+        roleKey: position,
       },
     });
   }
 
-  // Revoke any old invitations for this staff
-  await prisma.tenantInvitation.updateMany({
-    where: {
-      staffId,
-      status: 'PENDING',
-    },
-    data: {
-      status: 'REVOKED',
-    },
-  });
-
-  // Create new invitation
+  // TenantInvitation.staffId is @unique, so a staff member has at most one
+  // invitation row. Re-inviting after it expired, was revoked or accepted
+  // reuses that row with a fresh token instead of creating a second one.
   const token = nanoid(TOKEN_LENGTH);
   const expiresAt = addDays(new Date(), expirationDays);
+  const fields = {
+    tenantId,
+    email: normalizedEmail,
+    roleKey: position,
+    token,
+    status: 'PENDING' as const,
+    expiresAt,
+  };
 
-  return prisma.tenantInvitation.create({
-    data: {
-      tenantId,
-      staffId,
-      email: normalizedEmail,
-      roleKey: position,
-      token,
-      status: 'PENDING',
-      expiresAt,
-    },
+  return prisma.tenantInvitation.upsert({
+    where: { staffId },
+    update: fields,
+    create: { ...fields, staffId },
   });
 }
 
@@ -152,7 +155,11 @@ export async function validateInvitation(token: string): Promise<ValidationResul
   });
 
   if (!invitation) {
-    return { valid: false, reason: 'Invitación no encontrada' };
+    return {
+      valid: false,
+      reason:
+        'Invitación no encontrada. Si te enviaron una invitación nueva, usa el enlace del correo más reciente.',
+    };
   }
 
   if (invitation.status === 'ACCEPTED') {
@@ -197,7 +204,7 @@ export async function validateInvitation(token: string): Promise<ValidationResul
 export async function acceptInvitation(
   token: string,
   userId: string
-): Promise<{ success: true; staffId: string } | { success: false; error: string }> {
+): Promise<AcceptInvitationResult> {
   const validation = await validateInvitation(token);
 
   if (!validation.valid) {
@@ -217,10 +224,76 @@ export async function acceptInvitation(
     select: { userId: true },
   });
 
-  if (existingStaff?.userId) {
-    return { success: false, error: 'Este personal ya tiene una cuenta vinculada' };
+  if (existingStaff?.userId === userId) {
+    // Already linked to this same user (e.g. auto-accepted on login)
+    return { success: true, staffId: invitation.staff.id };
   }
 
+  if (existingStaff?.userId) {
+    return {
+      success: false,
+      code: 'STAFF_ALREADY_LINKED',
+      error: 'Este personal ya tiene una cuenta vinculada',
+    };
+  }
+
+  // Never move a user out of the clinic they already belong to
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, tenantId: true },
+  });
+
+  if (user?.tenantId && user.tenantId !== invitation.tenantId) {
+    return {
+      success: false,
+      code: 'USER_IN_OTHER_TENANT',
+      error: USER_IN_OTHER_TENANT_ERROR,
+    };
+  }
+
+  // Staff.userId is unique: one account can be linked to one staff record
+  const staffOfUser = await prisma.staff.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+
+  if (staffOfUser) {
+    return {
+      success: false,
+      code: 'USER_ALREADY_LINKED',
+      error: USER_ALREADY_LINKED_ERROR,
+    };
+  }
+
+  try {
+    await linkUserToInvitation(invitation, userId);
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      console.error('[acceptInvitation] Unique constraint while linking:', error);
+      return { success: false, code: 'USER_ALREADY_LINKED', error: USER_ALREADY_LINKED_ERROR };
+    }
+    throw error;
+  }
+
+  return { success: true, staffId: invitation.staff.id };
+}
+
+const USER_IN_OTHER_TENANT_ERROR =
+  'Tu cuenta ya pertenece a otra clínica en Vetify. Para unirte a este equipo, cierra sesión e inicia con otro correo, o pide a la clínica que te invite con un correo distinto.';
+
+const USER_ALREADY_LINKED_ERROR =
+  'Tu cuenta ya está vinculada a otro registro de personal. Cierra sesión e inicia con el correo de la invitación.';
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    !!error &&
+    typeof error === 'object' &&
+    'code' in error &&
+    (error as { code: unknown }).code === 'P2002'
+  );
+}
+
+async function linkUserToInvitation(invitation: InvitationWithDetails, userId: string) {
   // Perform all updates in a transaction
   await prisma.$transaction(async (tx) => {
     // 1. Update User with tenant ID
@@ -241,8 +314,6 @@ export async function acceptInvitation(
       data: { status: 'ACCEPTED' },
     });
   });
-
-  return { success: true, staffId: invitation.staff.id };
 }
 
 // =============================================================================
@@ -250,18 +321,18 @@ export async function acceptInvitation(
 // =============================================================================
 
 /**
- * Get a pending invitation by email for a specific tenant.
+ * Get the pending invitation for an email, only when it is unambiguous.
  * Used during user login to auto-accept pending invitations.
  *
  * @param email - User's email address
- * @returns The pending invitation or null
+ * @returns The single pending invitation, or null if there are none or several
  */
 export async function getPendingInvitationByEmail(
   email: string
 ): Promise<InvitationWithDetails | null> {
   const normalizedEmail = email.toLowerCase().trim();
 
-  const invitation = await prisma.tenantInvitation.findFirst({
+  const invitations = await prisma.tenantInvitation.findMany({
     where: {
       email: normalizedEmail,
       status: 'PENDING',
@@ -284,10 +355,17 @@ export async function getPendingInvitationByEmail(
         },
       },
     },
-    orderBy: { createdAt: 'desc' }, // Get most recent
+    orderBy: { createdAt: 'desc' },
+    take: 2, // Only need to know whether there is more than one
   });
 
-  return invitation as InvitationWithDetails | null;
+  // With invitations from several clinics we cannot know which link the
+  // user clicked; the invite page accepts by token in that case.
+  if (invitations.length !== 1) {
+    return null;
+  }
+
+  return invitations[0] as InvitationWithDetails;
 }
 
 /**
