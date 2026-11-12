@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getKindeServerSession } from '@kinde-oss/kinde-auth-nextjs/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { ACTIVE_OWNER_PETS } from '@/lib/pets';
 import NewAppointmentClient from './NewAppointmentClient';
 import { Loader2 } from 'lucide-react';
 
@@ -26,6 +27,7 @@ async function getRequiredData() {
   const customers = await prisma.customer.findMany({
     where: {
       tenantId: tenant.id,
+      isActive: true,
     },
     select: {
       id: true,
@@ -42,6 +44,7 @@ async function getRequiredData() {
   const pets = await prisma.pet.findMany({
     where: {
       tenantId: tenant.id,
+      ...ACTIVE_OWNER_PETS,
     },
     select: {
       id: true,

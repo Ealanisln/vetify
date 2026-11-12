@@ -25,6 +25,7 @@ import {
 } from '@/lib/api/api-key-auth';
 import { serializePet, serializeCustomerSummary } from '../_shared/serializers';
 import { weightUnitSchema } from '../_shared/weight-unit';
+import { ACTIVE_OWNER_PETS } from '@/lib/pets';
 import { triggerWebhookEvent } from '@/lib/webhooks';
 
 // Validation schema for creating a pet
@@ -63,7 +64,8 @@ export const GET = withApiAuth(
 
     const where = {
       ...baseWhere,
-      ...(customerId && { customerId }),
+      // Pets of archived customers are hidden unless that customer is asked for
+      ...(customerId ? { customerId } : ACTIVE_OWNER_PETS),
       ...(species && { species: { equals: species, mode: 'insensitive' as const } }),
       ...(isDeceased !== undefined && { isDeceased }),
     };

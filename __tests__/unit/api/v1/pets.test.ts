@@ -209,6 +209,38 @@ describe('API v1 Pets', () => {
       );
     });
 
+    it('leaves out pets whose owner is archived', async () => {
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(createMockApiKey());
+      (mockPrisma.pet.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.pet.count as jest.Mock).mockResolvedValue(0);
+
+      await listPets(
+        createMockRequest('https://api.vetify.com/api/v1/pets', {
+          headers: { authorization: `Bearer ${validKey}` },
+        })
+      );
+
+      const where = (mockPrisma.pet.findMany as jest.Mock).mock.calls[0][0].where;
+      expect(where).toEqual(expect.objectContaining({ tenantId: TEST_TENANT_ID, customer: { isActive: true } }));
+      expect((mockPrisma.pet.count as jest.Mock).mock.calls[0][0].where).toEqual(where);
+    });
+
+    it('still lists the pets of an archived owner when filtering by that customer', async () => {
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(createMockApiKey());
+      (mockPrisma.pet.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.pet.count as jest.Mock).mockResolvedValue(0);
+
+      await listPets(
+        createMockRequest(`https://api.vetify.com/api/v1/pets?customerId=${TEST_CUSTOMER_ID}`, {
+          headers: { authorization: `Bearer ${validKey}` },
+        })
+      );
+
+      const where = (mockPrisma.pet.findMany as jest.Mock).mock.calls[0][0].where;
+      expect(where.customerId).toBe(TEST_CUSTOMER_ID);
+      expect(where).not.toHaveProperty('customer');
+    });
+
     it('should filter by species', async () => {
       const mockApiKey = createMockApiKey();
       (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
