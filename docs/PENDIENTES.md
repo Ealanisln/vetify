@@ -41,21 +41,27 @@ Lista viva de lo que falta. Lo más importante va arriba. Cuando algo se cierre,
 
 El detalle completo está en `docs/AUDITORIA-FLUJOS-2026-11.md`. Aquí solo va lo que más le duele a una clínica real.
 
-**Se puede arreglar ya (sin decisiones de cobro ni de esquema):**
-- [ ] El onboarding no muestra el error cuando falla el alta.
-- [ ] El formulario combinado dice "éxito" aunque la mascota falle, y las unidades de peso no coinciden (`g`/`lb` contra `kg`/`lbs`).
-- [ ] `AddPetForm` vuelve a crear el cliente en cada reintento, y el selector de dueño solo muestra 10 clientes.
-- [ ] El calendario y la lista de hoy ven como máximo 10 citas.
-- [ ] Los correos de cita y la tarjeta de "Próximas citas" muestran la hora en UTC.
-- [ ] Recordatorios de cita: el cron solo busca citas entre 24 y 25 horas adelante.
-- [ ] Los recordatorios de vacunas y tratamientos nunca se crean.
-- [ ] Las alertas de inventario consultan relaciones que no existen.
-- [ ] El cron esconde sus fallas.
-- [ ] `/dashboard/medical-history/new` está roto y el detalle de una historia dice "no encontrada".
-- [ ] La vacuna no se guarda si "Etapa" queda vacía, y los chips de medicamento no llenan el campo.
-- [ ] Arrastrar una cita se revierte, editar obliga a reprogramar y las citas después de las 18:00 no se ven.
-- [ ] La reserva pública expone datos de otros clientes y no tiene límite de peticiones.
-- [ ] El plan anual se cobra como mensual (es un mapeo de `annual` a `yearly`).
+**Se puede arreglar ya:** ✅ resuelto en el PR de la tanda 2 (`fix/p0b-indispensable-flows`, 12/Nov). Incluye:
+- Onboarding: el error ahora se muestra, hay slugs reservados, el slug ya no cambia por respuestas viejas, el trial muestra los días reales y los slugs ya no quedan con guiones en las orillas.
+- Plan anual: `annual` ahora se mapea a `yearly`.
+- Clientes y mascotas: falso éxito, unidades de peso, cliente duplicado al reintentar, selector de dueño, errores en español, límites de mascotas, ubicación del cliente y búsqueda sin acentos.
+- Calendario: carga todas las citas, arrastrar funciona, editar sin reprogramar, horario real de la clínica y la tarjeta de "Próximas citas".
+- Correos y crons: recordatorios de cita, horas en la zona de la clínica, alertas de inventario, el cron reporta sus fallas, "trial vencido" a tiempo y firma de Resend.
+- Historia clínica: recordatorios de vacunas, el formulario de historia nueva, el detalle, "Etapa" vacía, chips, línea de tiempo y signos vitales.
+- Reserva pública: sin exposición de datos, búsqueda segura, sin cambios a clientes existentes y límite de peticiones.
+
+**Siguiente tanda (no requiere decisión):**
+- [ ] Citas: bloquear en el server las transiciones de estado inválidas y la cancelación doble. Hoy se puede cancelar una cita completada y la doble cancelación manda dos correos.
+- [ ] Citas: la validación de choques usa la duración equivocada y no valida nada si la cita no tiene staff.
+- [ ] Calendario: mostrar las horas en la zona de la clínica (FullCalendar usa la del navegador; necesita un plugin).
+- [ ] `updateCustomer` pone el email en null si un update parcial no lo incluye. Hoy la UI manda todo, pero el API lo permite. También ignora `locationId`.
+- [ ] `validatePlanAction` trata `-1` (ilimitado) como agotado para WhatsApp y cajas.
+- [ ] `/api/v1/pets` usa `lb` en vez de `lbs`.
+- [ ] Las mascotas de clientes archivados siguen apareciendo en las listas.
+- [ ] Los correos de trial, cobro y retención aún muestran fechas sin zona horaria.
+- [ ] Las URLs base caen a `localhost` o a la apex, y el reply-to de los correos a clientes debería ser el de la clínica.
+- [ ] Historia clínica: un campo "Próxima aplicación" para desparasitación y pulgas, un botón de "Agendar seguimiento", fecha de visita opcional y un selector de productos de inventario.
+- [ ] Hay una consulta muerta de citas en estado `CONFIRMED` en `api/public/availability`.
 
 **Requiere decisión (💳 cobro/permisos, 🗄 esquema):**
 - [ ] 💳 Cambiar de plan cancela la suscripción antes de cobrar la nueva.
@@ -65,7 +71,8 @@ El detalle completo está en `docs/AUDITORIA-FLUJOS-2026-11.md`. Aquí solo va l
 - [ ] 💳 Promociones aplicadas dos veces, y 30 días extra al volver a suscribirse.
 - [ ] 💳 El acceso solo se valida en algunas rutas, las API keys siguen después de vencer y no hay permisos por rol en las rutas clínicas.
 - [ ] 🗄 `Staff.email` es único entre clínicas, y eso impide el alta de algunas personas.
-- [ ] Reserva pública: hacer la bandeja de solicitudes o apagarla mientras tanto.
+- [ ] **Reserva pública: hoy nadie en la clínica se entera de las solicitudes.** La propuesta es mandarle un correo al dueño y a los admins con el resumen y un link al dashboard, más un contador de pendientes en el dashboard. Los contactos que da quien reserva ya se guardan en `reviewNotes`.
+- [ ] **6 clínicas tienen el slug terminado en guion** (por ejemplo `kvet-`), por un nombre con espacio al final. Ya no pasa en altas nuevas. Corregirlas rompería los links que ya hayan compartido: decidir si se avisa y se cambia.
 - [ ] El correo de "trial vencido" llega 6 días tarde (una columna nueva o leer el EmailLog).
 
 **La red de pruebas:**

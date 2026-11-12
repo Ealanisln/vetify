@@ -30,16 +30,44 @@ interface ClinicInfoData {
   address?: string;
 }
 
+const GENERIC_ERROR = 'No pudimos crear tu clínica. Inténtalo de nuevo en unos momentos.';
+const NETWORK_ERROR = 'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
+
+/** Server messages are only shown when they look Spanish (ours are; proxies/middleware may not be). */
+const looksSpanish = (text: string) => /[áéíóúñ¿¡]|\b(el|la|los|las|del|para|debe|puede)\b/i.test(text);
+
+interface OnboardingErrorBody {
+  message?: unknown;
+  errors?: Array<{ message?: unknown }>;
+}
+
+function getSubmitErrorMessage(status: number, body: OnboardingErrorBody | null): string {
+  if (status === 429) return 'Demasiados intentos, espera un momento e inténtalo de nuevo.';
+  if (status === 401 || status === 403) {
+    return 'Tu sesión expiró o no tienes permiso para continuar. Vuelve a iniciar sesión e inténtalo de nuevo.';
+  }
+  if (status >= 500) return GENERIC_ERROR;
+
+  const candidates = [body?.errors?.[0]?.message, body?.message];
+  const spanish = candidates.find(
+    (text): text is string => typeof text === 'string' && text !== 'Datos inválidos' && looksSpanish(text)
+  );
+  return spanish ?? GENERIC_ERROR;
+}
+
 export function OnboardingForm({ user, promoInfo, detectedCountry }: OnboardingFormProps) {
   const trialDays = promoInfo?.trialDays ?? TRIAL_PERIOD_DAYS;
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleSubmit = async (clinicInfo: ClinicInfoData) => {
     setIsSubmitting(true);
+    setSubmitError(null);
 
+    let response: Response;
     try {
-      const response = await fetch('/api/onboarding', {
+      response = await fetch('/api/onboarding', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,19 +75,32 @@ export function OnboardingForm({ user, promoInfo, detectedCountry }: OnboardingF
         // El plan se aplica por default en el servidor (Profesional / trial).
         body: JSON.stringify(clinicInfo),
       });
+    } catch (err) {
+      console.error('Onboarding request failed:', err);
+      setSubmitError(NETWORK_ERROR);
+      setIsSubmitting(false);
+      return;
+    }
 
+    try {
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData: OnboardingErrorBody | null = await response.json().catch(() => null);
 
         // Handle specific error cases
-        if (response.status === 400 && errorData.message?.includes('ya tiene una clínica')) {
+        if (
+          response.status === 400 &&
+          typeof errorData?.message === 'string' &&
+          errorData.message.includes('ya tiene una clínica')
+        ) {
           // User already has a tenant, redirect to dashboard
           router.push('/dashboard');
           router.refresh();
           return;
         }
 
-        throw new Error(errorData.message || 'Error al crear la clínica');
+        console.error('Onboarding error:', response.status, errorData);
+        setSubmitError(getSubmitErrorMessage(response.status, errorData));
+        return;
       }
 
       await response.json();
@@ -108,7 +149,7 @@ export function OnboardingForm({ user, promoInfo, detectedCountry }: OnboardingF
       }
     } catch (err) {
       console.error('Onboarding error:', err);
-      // You might want to show an error message here
+      setSubmitError(GENERIC_ERROR);
     } finally {
       setIsSubmitting(false);
     }
@@ -124,6 +165,8 @@ export function OnboardingForm({ user, promoInfo, detectedCountry }: OnboardingF
         } : null}
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
+        submitError={submitError}
+        trialDays={trialDays}
         detectedCountry={detectedCountry}
       />
     </div>

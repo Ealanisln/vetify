@@ -13,54 +13,64 @@ function toDate(date: Date | string): Date {
   return new Date(date);
 }
 
+/*
+ * The optional `timeZone` (IANA, e.g. the clinic's from getClinicTimeZone)
+ * pins the output to that zone. Without it the runtime's zone is used, which
+ * is fine in the browser but means UTC on the server: anything rendered
+ * server-side for a person (emails, PDFs) must pass the clinic timezone.
+ */
+
 /**
  * Formato corto de fecha: "4 dic 2025"
  */
-export function formatDate(date: Date | string): string {
+export function formatDate(date: Date | string, timeZone?: string): string {
   return toDate(date).toLocaleDateString(LOCALE, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+    timeZone,
   });
 }
 
 /**
  * Formato largo de fecha: "jueves, 4 de diciembre de 2025"
  */
-export function formatDateLong(date: Date | string): string {
+export function formatDateLong(date: Date | string, timeZone?: string): string {
   return toDate(date).toLocaleDateString(LOCALE, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+    timeZone,
   });
 }
 
 /**
  * Solo hora en formato 24h: "10:30"
  */
-export function formatTime(date: Date | string): string {
+export function formatTime(date: Date | string, timeZone?: string): string {
   return toDate(date).toLocaleTimeString(LOCALE, {
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false,
+    hourCycle: 'h23',
+    timeZone,
   });
 }
 
 /**
  * Fecha y hora combinadas: "4 dic 2025, 10:30"
  */
-export function formatDateTime(date: Date | string): string {
+export function formatDateTime(date: Date | string, timeZone?: string): string {
   const d = toDate(date);
-  return `${formatDate(d)}, ${formatTime(d)}`;
+  return `${formatDate(d, timeZone)}, ${formatTime(d, timeZone)}`;
 }
 
 /**
  * Fecha y hora en formato largo: "jueves, 4 de diciembre de 2025, 10:30"
  */
-export function formatDateTimeLong(date: Date | string): string {
+export function formatDateTimeLong(date: Date | string, timeZone?: string): string {
   const d = toDate(date);
-  return `${formatDateLong(d)}, ${formatTime(d)}`;
+  return `${formatDateLong(d, timeZone)}, ${formatTime(d, timeZone)}`;
 }
 
 /**

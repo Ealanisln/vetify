@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     
     if (!tenant || !tenant.publicBookingEnabled) {
       return NextResponse.json(
-        { error: 'Booking not available for this clinic' },
+        { success: false, error: 'La reserva en línea no está disponible para esta clínica' },
         { status: 404 }
       );
     }
@@ -115,30 +115,10 @@ export async function POST(request: NextRequest) {
         }, { status: 409 });
       }
 
-      // Check for conflicts with confirmed appointment requests. preferredDate
-      // is a calendar date stored at UTC midnight, so match the UTC calendar day.
-      const startOfDay = new Date(`${clinicDate}T00:00:00.000Z`);
-      const endOfDay = new Date(`${clinicDate}T23:59:59.999Z`);
-
-      const conflictingRequest = await prisma.appointmentRequest.findFirst({
-        where: {
-          tenantId: tenant.id,
-          status: 'CONFIRMED',
-          preferredDate: {
-            gte: startOfDay,
-            lte: endOfDay
-          },
-          preferredTime: validatedData.preferredTime
-        }
-      });
-
-      if (conflictingRequest) {
-        return NextResponse.json({
-          success: false,
-          error: 'El horario seleccionado ya no está disponible. Por favor selecciona otro horario.',
-          conflictType: 'request'
-        }, { status: 409 });
-      }
+      // AppointmentRequest rows are not checked. A former check for CONFIRMED
+      // requests never matched: nothing sets that status (there is no staff
+      // inbox yet). Whether PENDING requests should hold a slot is a product
+      // decision for when that inbox exists.
     }
 
     // 🔍 IDENTIFICACIÓN INTELIGENTE DE CLIENTE
@@ -190,10 +170,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 📊 RESPUESTA CON INFORMACIÓN DE IDENTIFICACIÓN
+    // Generic answer: an anonymous caller must not learn whether the phone or
+    // name belongs to a client, nor anything about that client or others.
     return NextResponse.json({
       success: true,
-      message: 'Appointment request created successfully',
+      message: 'Solicitud de cita recibida',
       data: {
         appointmentRequest: {
           id: appointmentRequest.id,
@@ -201,18 +182,7 @@ export async function POST(request: NextRequest) {
           service: appointmentRequest.service,
           preferredDate: appointmentRequest.preferredDate,
           status: appointmentRequest.status
-        },
-        customerStatus: identificationResult.status,
-        existingPets: identificationResult.existingPets || [],
-        hasAccount: identificationResult.hasUserAccount,
-        confidence: identificationResult.confidence,
-        loginPrompt: identificationResult.hasUserAccount ? {
-          message: "¡Te reconocemos! Inicia sesión para ver tu historial completo",
-          loginUrl: `/sign-in?redirect=dashboard${identificationResult.customer.email ? `&email=${identificationResult.customer.email}` : ''}`
-        } : null,
-        similarCustomers: identificationResult.status === 'needs_review' 
-          ? identificationResult.similarCustomers?.slice(0, 2) 
-          : null
+        }
       }
     });
 
@@ -221,13 +191,13 @@ export async function POST(request: NextRequest) {
     
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid data provided', details: error.errors },
+        { success: false, error: 'Datos inválidos', details: error.errors },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { success: false, error: 'Error interno del servidor' },
       { status: 500 }
     );
   }

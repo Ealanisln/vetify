@@ -75,7 +75,7 @@ export default async function DashboardPage() {
           {/* Content Grid */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <RecentPetsCard pets={stats.recentPets} />
-            <UpcomingAppointmentsCard appointments={stats.upcomingAppointments} />
+            <UpcomingAppointmentsCard appointments={stats.upcomingAppointments} timeZone={stats.timeZone} />
           </div>
         </div>
         

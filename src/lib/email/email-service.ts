@@ -51,6 +51,7 @@ import {
   DataRetentionWarningEmail,
 } from './templates';
 import { formatDateLong, formatDateTimeLong, formatDate, formatCurrency } from '../utils/date-format';
+import { DEFAULT_CLINIC_TIME_ZONE } from '../clinic-timezone';
 
 // Lazy-load Resend client to avoid initialization during build
 let resendClient: Resend | null = null;
@@ -231,10 +232,12 @@ export async function sendTestimonialRequest(
  * Render email template to HTML using React Email
  */
 async function renderTemplate(emailData: EmailData): Promise<string> {
+  // The server runs in UTC; clinic-facing dates must use the clinic's zone
+  const timeZone = emailData.timeZone ?? DEFAULT_CLINIC_TIME_ZONE;
   switch (emailData.template) {
     case 'appointment-confirmation': {
       const d = emailData.data;
-      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      const appointmentDateStr = formatDateLong(d.appointmentDate, timeZone);
       return await render(
         AppointmentConfirmationEmail({
           ownerName: d.ownerName,
@@ -253,7 +256,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'appointment-reminder': {
       const d = emailData.data;
-      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      const appointmentDateStr = formatDateLong(d.appointmentDate, timeZone);
       return await render(
         AppointmentReminderEmail({
           ownerName: d.ownerName,
@@ -272,7 +275,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'appointment-cancellation': {
       const d = emailData.data;
-      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      const appointmentDateStr = formatDateLong(d.appointmentDate, timeZone);
       return await render(
         AppointmentCancellationEmail({
           ownerName: d.ownerName,
@@ -290,8 +293,8 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'appointment-rescheduled': {
       const d = emailData.data;
-      const previousDateStr = formatDateLong(d.previousDate);
-      const newDateStr = formatDateLong(d.newDate);
+      const previousDateStr = formatDateLong(d.previousDate, timeZone);
+      const newDateStr = formatDateLong(d.newDate, timeZone);
       return await render(
         AppointmentRescheduledEmail({
           ownerName: d.ownerName,
@@ -311,7 +314,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'appointment-staff-notification': {
       const d = emailData.data;
-      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      const appointmentDateStr = formatDateLong(d.appointmentDate, timeZone);
       return await render(
         AppointmentStaffNotificationEmail({
           staffName: d.staffName,
@@ -331,7 +334,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'low-stock-alert': {
       const d = emailData.data;
-      const alertDateStr = formatDateTimeLong(d.alertDate);
+      const alertDateStr = formatDateTimeLong(d.alertDate, timeZone);
       return await render(
         LowStockAlertEmail({
           clinicName: d.clinicName,
@@ -427,7 +430,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'testimonial-request': {
       const d = emailData.data;
-      const appointmentDateStr = formatDateLong(d.appointmentDate);
+      const appointmentDateStr = formatDateLong(d.appointmentDate, timeZone);
       return await render(
         TestimonialRequestEmail({
           ownerName: d.ownerName,

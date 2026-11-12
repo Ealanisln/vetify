@@ -5,6 +5,7 @@ import { buildDefaultWeek } from './business-hours';
 import { DEFAULT_CURRENCY } from './currency';
 import type { SubscriptionStatus } from '@prisma/client';
 import type { ThemeId } from './themes';
+import { isReservedSlug } from './reserved-slugs';
 
 /**
  * Initialize trial period for a tenant
@@ -316,6 +317,7 @@ export async function createTenantWithDefaults(data: {
  * Check if a slug is available
  */
 export async function isSlugAvailable(slug: string): Promise<boolean> {
+  if (isReservedSlug(slug)) return false;
   const existingTenant = await prisma.tenant.findUnique({
     where: { slug }
   });
@@ -354,7 +356,7 @@ export function generateSlugFromName(name: string): string {
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-    .trim();
+    .replace(/^-+|-+$/g, '');
 }
 
 /**

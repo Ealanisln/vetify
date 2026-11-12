@@ -1,19 +1,22 @@
 import { TreatmentRecord, Staff } from '@prisma/client';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import Link from 'next/link';
 import { Plus, Syringe, Bug, Shield, Pill, Calendar, User, Tag, Building2, StickyNote, Layers } from 'lucide-react';
+import { DEFAULT_CLINIC_TIME_ZONE } from '@/lib/clinic-timezone';
+import { formatClinicDate } from '@/lib/clinical-dates';
+import { DEWORMING_TYPE_LABELS, VACCINE_STAGE_LABELS, labelFor } from '@/lib/treatment-labels';
 
-type TreatmentRecordWithStaff = TreatmentRecord & { staff?: Staff | null };
+type TreatmentRecordWithStaff = TreatmentRecord & { staff?: Pick<Staff, 'id' | 'name'> | null };
 
 interface TreatmentTimelineCardProps {
   pet: {
     id: string;
     treatmentRecords: TreatmentRecordWithStaff[];
   };
+  /** Clinic timezone; this card renders on the server (UTC) */
+  timeZone?: string;
 }
 
-export function TreatmentTimelineCard({ pet }: TreatmentTimelineCardProps) {
+export function TreatmentTimelineCard({ pet, timeZone = DEFAULT_CLINIC_TIME_ZONE }: TreatmentTimelineCardProps) {
   const treatments = pet.treatmentRecords || [];
 
   const getTreatmentIcon = (type: string) => {
@@ -158,7 +161,7 @@ export function TreatmentTimelineCard({ pet }: TreatmentTimelineCardProps) {
                         <div className="flex-shrink-0 flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-2.5 py-1 rounded-full border border-gray-200 dark:border-gray-600">
                           <Calendar className="w-3.5 h-3.5" />
                           <time dateTime={treatment.administrationDate.toISOString()}>
-                            {format(new Date(treatment.administrationDate), 'dd MMM yyyy', { locale: es })}
+                            {formatClinicDate(treatment.administrationDate, timeZone, 'dd MMM yyyy', { dateOnly: true })}
                           </time>
                         </div>
                       </div>
@@ -186,7 +189,7 @@ export function TreatmentTimelineCard({ pet }: TreatmentTimelineCardProps) {
                             <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800/50 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
                               <Layers className="w-4 h-4 text-gray-400 flex-shrink-0" />
                               <span className="truncate">
-                                <span className="font-medium text-gray-700 dark:text-gray-300">Etapa:</span> {treatment.vaccineStage}
+                                <span className="font-medium text-gray-700 dark:text-gray-300">Etapa:</span> {labelFor(VACCINE_STAGE_LABELS, treatment.vaccineStage)}
                               </span>
                             </div>
                           )}
@@ -194,7 +197,7 @@ export function TreatmentTimelineCard({ pet }: TreatmentTimelineCardProps) {
                             <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800/50 px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
                               <Bug className="w-4 h-4 text-gray-400 flex-shrink-0" />
                               <span className="truncate">
-                                <span className="font-medium text-gray-700 dark:text-gray-300">Tipo:</span> {treatment.dewormingType}
+                                <span className="font-medium text-gray-700 dark:text-gray-300">Tipo:</span> {labelFor(DEWORMING_TYPE_LABELS, treatment.dewormingType)}
                               </span>
                             </div>
                           )}
@@ -210,7 +213,7 @@ export function TreatmentTimelineCard({ pet }: TreatmentTimelineCardProps) {
                               Notas
                             </span>
                           </div>
-                          <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed pl-6">
+                          <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed pl-6 whitespace-pre-line">
                             {treatment.notes}
                           </p>
                         </div>

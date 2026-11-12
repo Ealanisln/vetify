@@ -49,6 +49,8 @@ export type DashboardStats = {
   totalAppointments: number;
   recentPets: PetWithOwner[];
   upcomingAppointments: AppointmentWithDetails[];
+  /** IANA timezone the clinic's appointment times are shown in */
+  timeZone: string;
   planLimits: {
     maxPets: number;
     maxUsers: number;
@@ -119,6 +121,7 @@ export type InventoryFormData = {
 
 // Tipos para historia clínica
 export type MedicalHistoryWithDetails = NonNullable<Awaited<ReturnType<typeof prisma.medicalHistory.findUnique>>> & {
+  staff?: { id: string; name: string } | null;
   pet: NonNullable<Awaited<ReturnType<typeof prisma.pet.findUnique>>> & {
     customer: NonNullable<Awaited<ReturnType<typeof prisma.customer.findUnique>>>;
   };
@@ -137,7 +140,9 @@ export type MedicalHistoryFormData = {
   treatment?: string;
   notes?: string;
   prescriptions?: {
-    productId: string;
+    /** Inventory product; free-text prescriptions omit it and use productName */
+    productId?: string;
+    productName?: string;
     quantity: number;
     dosage?: string;
     frequency?: string;

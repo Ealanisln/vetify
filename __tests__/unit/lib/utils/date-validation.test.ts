@@ -56,31 +56,31 @@ describe('date-validation utilities', () => {
     describe('invalid dates', () => {
       it('should throw error for invalid date format (DD/MM/YYYY)', () => {
         expect(() => validateDateOfBirth('15/01/2020')).toThrow(
-          'Invalid date format'
+          'La fecha de nacimiento no es válida'
         );
       });
 
       it('should throw error for invalid date format (MM-DD-YYYY)', () => {
         expect(() => validateDateOfBirth('01-15-2020')).toThrow(
-          'Invalid date format'
+          'La fecha de nacimiento no es válida'
         );
       });
 
       it('should throw error for completely invalid string', () => {
         expect(() => validateDateOfBirth('not-a-date')).toThrow(
-          'Invalid date format'
+          'La fecha de nacimiento no es válida'
         );
       });
 
       it('should throw error for empty string', () => {
         expect(() => validateDateOfBirth('')).toThrow(
-          'Invalid date format'
+          'La fecha de nacimiento no es válida'
         );
       });
 
       it('should throw error for whitespace only', () => {
         expect(() => validateDateOfBirth('   ')).toThrow(
-          'Invalid date format'
+          'La fecha de nacimiento no es válida'
         );
       });
 
@@ -94,7 +94,7 @@ describe('date-validation utilities', () => {
       it('should throw error for invalid month', () => {
         // JavaScript Date rejects invalid months (unlike days)
         expect(() => validateDateOfBirth('2020-13-01')).toThrow(
-          'Invalid date format'
+          'La fecha de nacimiento no es válida'
         );
       });
 
@@ -109,13 +109,13 @@ describe('date-validation utilities', () => {
     describe('date boundaries', () => {
       it('should throw error for date before 1900', () => {
         expect(() => validateDateOfBirth('1899-12-31')).toThrow(
-          'cannot be before January 1, 1900'
+          'no puede ser anterior a 1900'
         );
       });
 
       it('should throw error for very old date', () => {
         expect(() => validateDateOfBirth('1800-01-01')).toThrow(
-          'cannot be before January 1, 1900'
+          'no puede ser anterior a 1900'
         );
       });
 
@@ -124,7 +124,7 @@ describe('date-validation utilities', () => {
         futureDate.setFullYear(futureDate.getFullYear() + 1);
         const dateStr = futureDate.toISOString().split('T')[0];
         expect(() => validateDateOfBirth(dateStr)).toThrow(
-          'cannot be in the future'
+          'no puede ser una fecha futura'
         );
       });
 
@@ -133,7 +133,7 @@ describe('date-validation utilities', () => {
         tomorrow.setDate(tomorrow.getDate() + 1);
         const dateStr = tomorrow.toISOString().split('T')[0];
         expect(() => validateDateOfBirth(dateStr)).toThrow(
-          'cannot be in the future'
+          'no puede ser una fecha futura'
         );
       });
     });

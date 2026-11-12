@@ -91,7 +91,6 @@ describe('Public Appointments API', () => {
 
       // No date/time provided, skips conflict check
       prismaMock.appointment.findMany.mockResolvedValue([]);
-      prismaMock.appointmentRequest.findFirst.mockResolvedValue(null);
 
       const request = createMockRequest({
         tenantSlug: 'test-clinic',
@@ -106,7 +105,7 @@ describe('Public Appointments API', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.message).toBe('Appointment request created successfully');
+      expect(data.message).toBe('Solicitud de cita recibida');
       expect(data.data.appointmentRequest.petName).toBe('Firulais');
     });
 
@@ -120,7 +119,8 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Invalid data provided');
+      expect(data.success).toBe(false);
+      expect(data.error).toBe('Datos inválidos');
       expect(data.details).toBeDefined();
     });
 
@@ -138,7 +138,7 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(404);
-      expect(data.error).toBe('Booking not available for this clinic');
+      expect(data.error).toBe('La reserva en línea no está disponible para esta clínica');
     });
 
     it('should return 404 when publicBookingEnabled is false', async () => {
@@ -158,7 +158,7 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(404);
-      expect(data.error).toBe('Booking not available for this clinic');
+      expect(data.error).toBe('La reserva en línea no está disponible para esta clínica');
     });
 
     it('should return 409 for conflicting appointment time slot', async () => {
@@ -199,41 +199,6 @@ describe('Public Appointments API', () => {
       expect(data.conflictType).toBe('appointment');
     });
 
-    it('should return 409 for conflicting confirmed request', async () => {
-      mockGetTenantBySlug.mockResolvedValue(mockTenant);
-
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
-      const dateString = futureDate.toISOString().split('T')[0];
-
-      // No appointment conflicts
-      prismaMock.appointment.findMany.mockResolvedValue([]);
-
-      // But there's a confirmed request at that time
-      prismaMock.appointmentRequest.findFirst.mockResolvedValue({
-        id: 'existing-req',
-        preferredDate: new Date(`${dateString}T00:00:00.000Z`),
-        preferredTime: '11:00',
-        status: 'CONFIRMED',
-      } as any);
-
-      const request = createMockRequest({
-        tenantSlug: 'test-clinic',
-        customerName: 'Juan García',
-        customerPhone: '+52 55 1234 5678',
-        petName: 'Firulais',
-        preferredDate: dateString,
-        preferredTime: '11:00', // Conflicts with confirmed request
-      });
-
-      const response = await POST(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(409);
-      expect(data.success).toBe(false);
-      expect(data.conflictType).toBe('request');
-    });
-
     it('should find existing customer by phone', async () => {
       mockGetTenantBySlug.mockResolvedValue(mockTenant);
 
@@ -268,8 +233,10 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.data.customerStatus).toBe('existing');
-      expect(data.data.existingPets).toEqual(existingPets);
+      // Knowing a phone must not reveal that it belongs to a client, nor their pets
+      expect(Object.keys(data.data)).toEqual(['appointmentRequest']);
+      expect(JSON.stringify(data)).not.toContain('pet-1');
+      expect(JSON.stringify(data)).not.toContain(mockCustomer.id);
 
       // Verify findOrCreateCustomer was called with correct params
       expect(mockFindOrCreateCustomer).toHaveBeenCalledWith({
@@ -309,9 +276,9 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.data.customerStatus).toBe('existing');
-      expect(data.data.hasAccount).toBe(true);
-      expect(data.data.loginPrompt).not.toBeNull();
+      // No login prompt: it disclosed the account and its email to anyone
+      expect(Object.keys(data.data)).toEqual(['appointmentRequest']);
+      expect(JSON.stringify(data)).not.toContain('juan@example.com');
     });
 
     it('should create new customer when not found', async () => {
@@ -348,9 +315,15 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.data.customerStatus).toBe('new');
-      expect(data.data.hasAccount).toBe(false);
-      expect(data.data.loginPrompt).toBeNull();
+      expect(data.data).toEqual({
+        appointmentRequest: {
+          id: 'appt-req-new',
+          petName: 'Rocky',
+          service: 'Vacunación',
+          preferredDate: null,
+          status: 'PENDING',
+        },
+      });
     });
 
     it('should return needs_review status for ambiguous match', async () => {
@@ -392,9 +365,10 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.data.customerStatus).toBe('needs_review');
-      expect(data.data.confidence).toBe('low');
-      expect(data.data.similarCustomers).toHaveLength(2);
+      // Other customers with a similar name are never returned
+      expect(Object.keys(data.data)).toEqual(['appointmentRequest']);
+      expect(JSON.stringify(data)).not.toContain('similar-1');
+      expect(JSON.stringify(data)).not.toContain('Juan Garza');
     });
 
     it('should match pet by ID when provided', async () => {
@@ -523,7 +497,7 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('Invalid data provided');
+      expect(data.error).toBe('Datos inválidos');
     });
 
     it('should accept empty string for optional email', async () => {
@@ -558,6 +532,21 @@ describe('Public Appointments API', () => {
       expect(data.success).toBe(true);
     });
 
+    it('should answer unexpected failures in Spanish', async () => {
+      mockGetTenantBySlug.mockRejectedValue(new Error('db down'));
+
+      const response = await POST(createMockRequest({
+        tenantSlug: 'test-clinic',
+        customerName: 'Juan García',
+        customerPhone: '+52 55 1234 5678',
+        petName: 'Firulais',
+      }));
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data).toEqual({ success: false, error: 'Error interno del servidor' });
+    });
+
     it('should create appointment request with date and time', async () => {
       mockGetTenantBySlug.mockResolvedValue(mockTenant);
 
@@ -567,7 +556,6 @@ describe('Public Appointments API', () => {
 
       // No conflicts
       prismaMock.appointment.findMany.mockResolvedValue([]);
-      prismaMock.appointmentRequest.findFirst.mockResolvedValue(null);
 
       mockFindOrCreateCustomer.mockResolvedValue({
         customer: mockCustomer,
@@ -650,7 +638,6 @@ describe('Public Appointments API', () => {
       useClock('2026-11-10T18:00:00.000Z');
       mockGetTenantBySlug.mockResolvedValue({ ...mockTenant, timeZone: 'America/Mexico_City' });
       prismaMock.appointment.findMany.mockResolvedValue([]);
-      prismaMock.appointmentRequest.findFirst.mockResolvedValue(null);
       mockFindOrCreateCustomer.mockResolvedValue({
         customer: mockCustomer,
         status: 'existing',

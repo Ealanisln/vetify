@@ -165,7 +165,7 @@ export async function processTrialLifecycleEmails(): Promise<TrialLifecycleResul
         // Bounded to EXPIRED_EMAIL_WINDOW_DAYS so stale TRIALING tenants
         // don't keep receiving expired emails indefinitely.
         if (daysRemaining < 0 && daysRemaining >= -EXPIRED_EMAIL_WINDOW_DAYS) {
-          if (!shouldSendExpiredEmail(tenant.lastTrialCheck, now)) continue;
+          if (!(await shouldSendExpiredEmail(tenant.id, now))) continue;
 
           const adminEmail = await getAdminEmail(tenant.id);
           if (!adminEmail) continue;
@@ -379,11 +379,23 @@ function shouldSendExpiringEmail(lastCheck: Date | null, now: Date): boolean {
 }
 
 /**
- * Check if enough time has passed since the last expired email (7-day cooldown)
+ * Send the first expired email on the first run after expiry, then weekly.
+ * Decided from EmailLog, not lastTrialCheck: that column is shared with the
+ * expiring email, so an expiring email sent the day before expiry used to
+ * delay the expired one by a week.
  */
-function shouldSendExpiredEmail(lastCheck: Date | null, now: Date): boolean {
-  if (!lastCheck) return true;
-  const daysSince = (now.getTime() - lastCheck.getTime()) / MS_PER_DAY;
+async function shouldSendExpiredEmail(tenantId: string, now: Date): Promise<boolean> {
+  const lastExpired = await prisma.emailLog.findFirst({
+    where: {
+      tenantId,
+      template: 'TRIAL_EXPIRED',
+      status: { not: 'FAILED' },
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true },
+  });
+  if (!lastExpired) return true;
+  const daysSince = (now.getTime() - lastExpired.createdAt.getTime()) / MS_PER_DAY;
   return daysSince >= EXPIRED_COOLDOWN_DAYS;
 }
 

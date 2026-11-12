@@ -76,7 +76,6 @@ export async function notifyNewUserRegistration(data: {
     if (result.success) {
       console.log('[ADMIN_NOTIFICATIONS] New user registration notification sent:', {
         messageId: result.messageId,
-        user: data.userEmail,
         tenant: data.tenantName,
       });
     } else {
@@ -163,7 +162,6 @@ export async function notifyNewSubscriptionPayment(data: {
     if (result.success) {
       console.log('[ADMIN_NOTIFICATIONS] New subscription payment notification sent:', {
         messageId: result.messageId,
-        user: data.userEmail,
         tenant: data.tenantName,
         plan: data.planName,
         amount: data.planAmount / 100,

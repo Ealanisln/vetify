@@ -135,9 +135,16 @@ describe('AppointmentForm Component', () => {
     });
 
     it('should show "Actualizar Cita" button text for editing', () => {
-      render(<AppointmentForm {...defaultProps} initialData={{ customerId: 'cust-1' }} />);
+      render(<AppointmentForm {...defaultProps} appointmentId="apt-1" initialData={{ customerId: 'cust-1' }} />);
 
       expect(screen.getByText('Actualizar Cita')).toBeInTheDocument();
+    });
+
+    it('should show "Crear Cita" when creating with a time prefilled from the calendar', () => {
+      render(<AppointmentForm {...defaultProps} initialData={{ dateTime: new Date('2024-01-15T16:00:00.000Z') }} />);
+
+      expect(screen.getByText('Crear Cita')).toBeInTheDocument();
+      expect(screen.queryByText('Actualizar Cita')).not.toBeInTheDocument();
     });
   });
 

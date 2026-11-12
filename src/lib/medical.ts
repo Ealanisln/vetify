@@ -1,5 +1,8 @@
 import { prisma } from './prisma';
 import { TreatmentType } from '@prisma/client';
+import { clinicDateAtNoon, clinicDaysBetween, getTenantTimeZone } from './clinical-dates';
+import { buildTreatmentReminderData } from './treatment-reminder-content';
+import { VITAL_SIGNS_REASON } from './treatment-labels';
 // NOTE: n8nService import removed - integration temporarily disabled for future implementation
 import type {
   ConsultationFormData,
@@ -141,43 +144,71 @@ export async function createVaccination(
   data: VaccinationFormData
 ) {
   try {
-    const vaccination = await prisma.treatmentRecord.create({
-      data: {
-        petId,
-        tenantId,
-        treatmentType: TreatmentType.VACCINATION,
-        productName: data.vaccine_brand,
-        administrationDate: data.administered_date,
-        batchNumber: data.batch_number,
-        manufacturer: data.manufacturer,
-        staffId: data.veterinarian_id,
-        notes: data.side_effects ? `Efectos secundarios: ${data.side_effects}\n${data.notes || ''}` : data.notes,
-        vaccineStage: data.vaccine_stage,
-      },
-      include: {
-        pet: {
-          include: {
-            customer: true,
-          },
-        },
-        staff: true,
-      },
-    });
+    const timeZone = await getTenantTimeZone(tenantId);
 
-    // Schedule next vaccination if provided
-    if (data.next_due_date) {
-      await prisma.treatmentSchedule.create({
+    const vaccination = await prisma.$transaction(async (tx) => {
+      const record = await tx.treatmentRecord.create({
         data: {
           petId,
           tenantId,
           treatmentType: TreatmentType.VACCINATION,
           productName: data.vaccine_brand,
-          scheduledDate: data.next_due_date,
-          status: 'SCHEDULED',
+          administrationDate: clinicDateAtNoon(data.administered_date, timeZone),
+          batchNumber: data.batch_number,
+          manufacturer: data.manufacturer,
+          staffId: data.veterinarian_id,
+          notes: data.side_effects ? `Efectos secundarios: ${data.side_effects}\n${data.notes || ''}` : data.notes,
           vaccineStage: data.vaccine_stage,
         },
+        include: {
+          pet: {
+            include: {
+              customer: true,
+            },
+          },
+          staff: true,
+        },
       });
-    }
+
+      // Schedule the next dose and its owner reminder together
+      if (data.next_due_date) {
+        const dueDate = clinicDateAtNoon(data.next_due_date, timeZone);
+        await tx.treatmentSchedule.create({
+          data: {
+            petId,
+            tenantId,
+            treatmentType: TreatmentType.VACCINATION,
+            productName: data.vaccine_brand,
+            scheduledDate: dueDate,
+            status: 'SCHEDULED',
+            vaccineStage: data.vaccine_stage,
+          },
+        });
+
+        if (clinicDaysBetween(new Date(), dueDate, timeZone) >= 0) {
+          const pet = await tx.pet.findFirst({
+            where: { id: petId, tenantId },
+            select: { name: true, customerId: true },
+          });
+          if (pet) {
+            await tx.reminder.create({
+              data: buildTreatmentReminderData({
+                tenantId,
+                petId,
+                petName: pet.name,
+                customerId: pet.customerId,
+                treatmentType: TreatmentType.VACCINATION,
+                productName: data.vaccine_brand,
+                dueDate,
+                timeZone,
+              }),
+            });
+          }
+        }
+      }
+
+      return record;
+    });
 
     // NOTE: N8N integration temporarily disabled - will be enabled later
     /*
@@ -208,31 +239,44 @@ export async function recordVitalSigns(
   data: VitalSignsFormData
 ) {
   try {
-    // For now, we'll store vital signs as a special medical history entry
-    // In a real implementation, you might want a separate VitalSigns model
-    const vitals = await prisma.medicalHistory.create({
-      data: {
-        petId,
-        tenantId,
-        visitDate: data.recorded_date,
-        reasonForVisit: 'Registro de Signos Vitales',
-        diagnosis: 'N/A',
-        treatment: 'N/A',
-        notes: `SIGNOS VITALES:
-Peso: ${data.weight} kg
-Temperatura: ${data.temperature}°C
-Frecuencia Cardíaca: ${data.heart_rate} lpm
-Frecuencia Respiratoria: ${data.respiratory_rate} rpm
-${data.blood_pressure ? `Presión Arterial: ${data.blood_pressure}` : ''}
-${data.notes ? `Observaciones: ${data.notes}` : ''}`,
-      },
-      include: {
-        pet: {
-          include: {
-            customer: true,
+    // Vital signs have no dedicated model: they are stored as a MedicalHistory
+    // row marked by VITAL_SIGNS_REASON, with no diagnosis/treatment, so stats
+    // and the timeline do not treat them as a consultation.
+    const vitals = await prisma.$transaction(async (tx) => {
+      const entry = await tx.medicalHistory.create({
+        data: {
+          petId,
+          tenantId,
+          visitDate: data.recorded_date,
+          reasonForVisit: VITAL_SIGNS_REASON,
+          diagnosis: null,
+          treatment: null,
+          notes: [
+            'SIGNOS VITALES:',
+            `Peso: ${data.weight} kg`,
+            `Temperatura: ${data.temperature}°C`,
+            `Frecuencia Cardíaca: ${data.heart_rate} lpm`,
+            `Frecuencia Respiratoria: ${data.respiratory_rate} rpm`,
+            data.blood_pressure ? `Presión Arterial: ${data.blood_pressure}` : null,
+            data.notes ? `Observaciones: ${data.notes}` : null,
+          ].filter(Boolean).join('\n'),
+        },
+        include: {
+          pet: {
+            include: {
+              customer: true,
+            },
           },
         },
-      },
+      });
+
+      // Keep the pet's current weight in sync with the latest measurement
+      await tx.pet.updateMany({
+        where: { id: petId, tenantId },
+        data: { weight: data.weight, weightUnit: 'kg' },
+      });
+
+      return entry;
     });
 
     // NOTE: N8N integration temporarily disabled - will be enabled later

@@ -395,6 +395,17 @@ describe('useAppointmentStatsFromData', () => {
     expect(result.current.completionRate).toBe(50);
   });
 
+  it('should not count appointments after this week or this month', () => {
+    const farFuture = addDays(new Date(), 45);
+
+    const appointments = [createMockAppointment({ id: 'later', dateTime: farFuture })];
+
+    const { result } = renderHook(() => useAppointmentStatsFromData(appointments));
+
+    expect(result.current.thisWeek).toBe(0);
+    expect(result.current.thisMonth).toBe(0);
+  });
+
   it('should return 0 completion rate when no month appointments', () => {
     const lastMonth = subDays(startOfMonth(new Date()), 5);
 

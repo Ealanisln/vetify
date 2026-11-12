@@ -13,10 +13,14 @@ const onboardingSchema = z.object({
   // y lo elige después (fin de trial / Configuración → suscripción).
   planKey: z.enum(['BASICO', 'PROFESIONAL', 'CORPORATIVO']).optional().default('PROFESIONAL'),
   billingInterval: z.enum(['monthly', 'yearly']).optional().default('monthly'),
-  clinicName: z.string().min(1, 'El nombre de la clínica es requerido'),
+  clinicName: z.string()
+    .trim()
+    .min(1, 'El nombre de la clínica es requerido')
+    .max(100, 'El nombre de la clínica no puede pasar de 100 caracteres'),
   slug: z.string()
     .min(1, 'El slug es requerido')
-    .regex(/^[a-z0-9-]+$/, 'El slug solo puede contener letras minúsculas, números y guiones'),
+    .regex(/^[a-z0-9-]+$/, 'El slug solo puede contener letras minúsculas, números y guiones')
+    .regex(/[a-z0-9]/, 'El slug debe tener al menos una letra o un número'),
   countryCode: z.string()
     .length(2, 'El país debe ser un código ISO de 2 letras')
     .transform(value => value.toUpperCase())
