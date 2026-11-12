@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { tenantCurrencyDefaults } from './onboarding-defaults';
+import { buildDefaultWeek } from './business-hours';
 import type { SubscriptionStatus } from '@prisma/client';
 import type { ThemeId } from './themes';
 
@@ -176,7 +177,7 @@ export async function createTenantWithDefaults(data: {
     });
 
     // Create tenant settings
-    await tx.tenantSettings.create({
+    const tenantSettings = await tx.tenantSettings.create({
       data: {
         tenantId: tenant.id,
         timezone: 'UTC',
@@ -189,6 +190,16 @@ export async function createTenantWithDefaults(data: {
         currencyConfirmed: currencyDefaults.currencyConfirmed,
         appointmentDuration: 30,
       }
+    });
+
+    // Seed the default week so appointments and public booking work before
+    // the owner ever opens the Horarios tab.
+    await tx.businessHours.createMany({
+      data: buildDefaultWeek().map(day => ({
+        ...day,
+        tenantId: tenant.id,
+        tenantSettingsId: tenantSettings.id,
+      })),
     });
 
     // Create tenant usage stats

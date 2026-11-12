@@ -54,3 +54,68 @@ export function getScheduleErrors(schedule: DaySchedule): ScheduleError[] {
 
   return errors;
 }
+
+/** The schedule a clinic gets until it configures its own. */
+export const DEFAULT_SCHEDULE = {
+  startTime: '08:00',
+  endTime: '18:00',
+  lunchStart: '13:00',
+  lunchEnd: '14:00',
+  slotDuration: 15,
+} as const;
+
+/** Monday to Saturday open, Sunday closed. */
+export const isDefaultWorkingDay = (dayOfWeek: number) => dayOfWeek >= 1 && dayOfWeek <= 6;
+
+/** Tenant-wide defaults as stored on TenantSettings. */
+export interface ScheduleDefaults {
+  defaultStartTime: string;
+  defaultEndTime: string;
+  defaultLunchStart: string | null;
+  defaultLunchEnd: string | null;
+  defaultSlotDuration: number;
+}
+
+export interface DayHours {
+  dayOfWeek: number;
+  isWorkingDay: boolean;
+  startTime: string;
+  endTime: string;
+  lunchStart: string | null;
+  lunchEnd: string | null;
+  slotDuration: number;
+}
+
+/**
+ * Hours for a day that has no BusinessHours row: the tenant defaults when they
+ * exist (an explicit null lunch means "Sin comida"), otherwise DEFAULT_SCHEDULE.
+ */
+export function defaultDayHours(dayOfWeek: number, defaults?: Partial<ScheduleDefaults> | null): DayHours {
+  return {
+    dayOfWeek,
+    isWorkingDay: isDefaultWorkingDay(dayOfWeek),
+    startTime: defaults?.defaultStartTime ?? DEFAULT_SCHEDULE.startTime,
+    endTime: defaults?.defaultEndTime ?? DEFAULT_SCHEDULE.endTime,
+    lunchStart: defaults?.defaultLunchStart !== undefined ? defaults.defaultLunchStart : DEFAULT_SCHEDULE.lunchStart,
+    lunchEnd: defaults?.defaultLunchEnd !== undefined ? defaults.defaultLunchEnd : DEFAULT_SCHEDULE.lunchEnd,
+    slotDuration: defaults?.defaultSlotDuration ?? DEFAULT_SCHEDULE.slotDuration,
+  };
+}
+
+/** Seven default rows, Sunday (0) first. */
+export function buildDefaultWeek(defaults?: Partial<ScheduleDefaults> | null): DayHours[] {
+  return Array.from({ length: 7 }, (_, dayOfWeek) => defaultDayHours(dayOfWeek, defaults));
+}
+
+/**
+ * Exactly one entry per day, Sunday first: the first stored row for each day
+ * (older data can hold duplicates, since NULL locationIds never collide on the
+ * unique index) or the default for days without a row.
+ */
+export function completeWeek<T extends { dayOfWeek: number }>(
+  rows: T[],
+  defaults?: Partial<ScheduleDefaults> | null,
+): (T | DayHours)[] {
+  return Array.from({ length: 7 }, (_, dayOfWeek) =>
+    rows.find(row => row.dayOfWeek === dayOfWeek) ?? defaultDayHours(dayOfWeek, defaults));
+}

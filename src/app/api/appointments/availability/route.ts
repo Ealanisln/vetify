@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAuth } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
+import { defaultDayHours } from '../../../../lib/business-hours';
 import { addMinutes, format, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
@@ -37,7 +38,8 @@ async function getBusinessHours(tenantId: string, dayOfWeek: number) {
       }
     });
 
-    const dayBusinessHours = tenantSettings?.businessHours?.[0];
+    // No row yet (tenant predates signup seeding): use the default week
+    const dayBusinessHours = tenantSettings?.businessHours?.[0] ?? defaultDayHours(dayOfWeek, tenantSettings);
     
     // Return parsed business hours or null if not a working day
     if (!dayBusinessHours?.isWorkingDay) {
