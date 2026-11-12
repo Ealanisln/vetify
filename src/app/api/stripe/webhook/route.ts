@@ -1,5 +1,6 @@
 import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { runAfterResponse } from '@/lib/after-response';
 import * as Sentry from '@sentry/nextjs';
 import { stripe, handleSubscriptionChange } from '../../../../lib/payments/stripe';
 import { isPermanentError } from '../../../../lib/payments/webhook-errors';
@@ -306,7 +307,7 @@ export async function POST(request: NextRequest) {
                 const currency = invoice.currency;
                 const billingInterval = planItem.price.recurring?.interval === 'year' ? 'year' : 'month';
 
-                notifyNewSubscriptionPayment({
+                const paymentNotification = {
                   userName: tenant.staff[0].name || 'Usuario',
                   userEmail: tenant.staff[0].email,
                   tenantId: tenant.id,
@@ -318,11 +319,15 @@ export async function POST(request: NextRequest) {
                   billingInterval,
                   stripeCustomerId: customer.id,
                   stripeSubscriptionId: subscription.id,
-                }).catch(notifError => {
-                  elog.error('Failed to send payment notification', {
-                    err: notifError instanceof Error ? notifError.message : String(notifError),
-                  });
-                });
+                };
+                runAfterResponse(
+                  () => notifyNewSubscriptionPayment(paymentNotification).catch(notifError => {
+                    elog.error('Failed to send payment notification', {
+                      err: notifError instanceof Error ? notifError.message : String(notifError),
+                    });
+                  }),
+                  '[STRIPE_WEBHOOK] Failed to send payment notification:'
+                );
               }
             }
           } catch (notifError) {
@@ -359,29 +364,35 @@ export async function POST(request: NextRequest) {
                   });
 
                   if (refConversion) {
-                    // Notify admin (non-blocking)
-                    notifyReferralConversion({
-                      partnerName: refConversion.partner.name,
-                      partnerEmail: refConversion.partner.email,
-                      referralCode: refConversion.code.code,
-                      tenantName: refConversion.tenant.name,
-                      planKey,
-                      subscriptionAmount: amount,
-                      commissionPercent: Number(refConversion.commissionPercent),
-                      commissionAmount: Number(refConversion.commissionAmount),
-                    }).catch(e => elog.error('Referral admin notification error', {
-                      err: e instanceof Error ? e.message : String(e),
-                    }));
+                    // Notify admin (after the response)
+                    runAfterResponse(
+                      () => notifyReferralConversion({
+                        partnerName: refConversion.partner.name,
+                        partnerEmail: refConversion.partner.email,
+                        referralCode: refConversion.code.code,
+                        tenantName: refConversion.tenant.name,
+                        planKey,
+                        subscriptionAmount: amount,
+                        commissionPercent: Number(refConversion.commissionPercent),
+                        commissionAmount: Number(refConversion.commissionAmount),
+                      }).catch(e => elog.error('Referral admin notification error', {
+                        err: e instanceof Error ? e.message : String(e),
+                      })),
+                      '[STRIPE_WEBHOOK] Referral admin notification error:'
+                    );
 
-                    // Notify partner (non-blocking)
-                    notifyPartnerReferralSuccess({
-                      partnerEmail: refConversion.partner.email,
-                      partnerName: refConversion.partner.name,
-                      tenantName: refConversion.tenant.name,
-                      commissionAmount: Number(refConversion.commissionAmount),
-                    }).catch(e => elog.error('Referral partner notification error', {
-                      err: e instanceof Error ? e.message : String(e),
-                    }));
+                    // Notify partner (after the response)
+                    runAfterResponse(
+                      () => notifyPartnerReferralSuccess({
+                        partnerEmail: refConversion.partner.email,
+                        partnerName: refConversion.partner.name,
+                        tenantName: refConversion.tenant.name,
+                        commissionAmount: Number(refConversion.commissionAmount),
+                      }).catch(e => elog.error('Referral partner notification error', {
+                        err: e instanceof Error ? e.message : String(e),
+                      })),
+                      '[STRIPE_WEBHOOK] Referral partner notification error:'
+                    );
                   }
                 }
               }
@@ -455,7 +466,7 @@ export async function POST(request: NextRequest) {
             }
           }
 
-          notifyPaymentFailed({
+          const failedNotification = {
             tenantName,
             tenantSlug,
             userName: ownerName,
@@ -466,11 +477,15 @@ export async function POST(request: NextRequest) {
             currency: invoice.currency,
             stripeCustomerId: customer.id,
             stripeSubscriptionId: invoice.subscription as string | undefined,
-          }).catch(notifError => {
-            elog.error('Failed to send payment failed notification', {
-              err: notifError instanceof Error ? notifError.message : String(notifError),
-            });
-          });
+          };
+          runAfterResponse(
+            () => notifyPaymentFailed(failedNotification).catch(notifError => {
+              elog.error('Failed to send payment failed notification', {
+                err: notifError instanceof Error ? notifError.message : String(notifError),
+              });
+            }),
+            '[STRIPE_WEBHOOK] Failed to send payment failed notification:'
+          );
         } catch (notifError) {
           elog.error('Error preparing payment failed notification', {
             err: notifError instanceof Error ? notifError.message : String(notifError),

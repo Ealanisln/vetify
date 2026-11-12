@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { runAfterResponse } from '@/lib/after-response';
 import { requireAuth, requirePermission } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
@@ -329,9 +330,10 @@ export async function PUT(
             },
           };
 
-          sendAppointmentCancellation(cancellationEmailData).catch((error) => {
-            console.error('[APPOINTMENT] Failed to send cancellation email:', error);
-          });
+          runAfterResponse(
+            () => sendAppointmentCancellation(cancellationEmailData),
+            '[APPOINTMENT] Failed to send cancellation email:'
+          );
         }
       } else if (wasRescheduled) {
         // Check notification preference before sending
@@ -371,9 +373,10 @@ export async function PUT(
             },
           };
 
-          sendAppointmentRescheduled(rescheduledEmailData).catch((error) => {
-            console.error('[APPOINTMENT] Failed to send rescheduled email:', error);
-          });
+          runAfterResponse(
+            () => sendAppointmentRescheduled(rescheduledEmailData),
+            '[APPOINTMENT] Failed to send rescheduled email:'
+          );
         }
       }
     }
@@ -505,9 +508,10 @@ export async function DELETE(
         },
       };
 
-      sendAppointmentCancellation(cancellationEmailData).catch((error) => {
-        console.error('[APPOINTMENT] Failed to send cancellation email:', error);
-      });
+      runAfterResponse(
+        () => sendAppointmentCancellation(cancellationEmailData),
+        '[APPOINTMENT] Failed to send cancellation email:'
+      );
     }
 
     return NextResponse.json({
