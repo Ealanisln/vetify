@@ -2,6 +2,7 @@ import { prisma } from './prisma';
 import { z } from 'zod';
 import { serializePet, serializePets } from './serializers';
 import type { PaginationParams, SortParams } from './pagination';
+import { PET_FIELD_MESSAGES, PET_WEIGHT_UNITS } from './utils/pet-form-validation';
 
 // Allowed sort fields for pets (whitelist for security)
 export const PETS_ALLOWED_SORT_FIELDS = ['name', 'species', 'breed', 'createdAt'] as const;
@@ -13,8 +14,10 @@ export const createPetSchema = z.object({
   breed: z.string().optional(),
   dateOfBirth: z.date(),
   gender: z.enum(['male', 'female']),
-  weight: z.number().positive().optional(),
-  weightUnit: z.enum(['kg', 'lbs']).default('kg'),
+  weight: z.number().positive(PET_FIELD_MESSAGES.weightPositive).optional(),
+  weightUnit: z
+    .enum(PET_WEIGHT_UNITS, { errorMap: () => ({ message: PET_FIELD_MESSAGES.weightUnit }) })
+    .default('kg'),
   microchipNumber: z.string().optional(),
   isNeutered: z.boolean().default(false),
   customerId: z.string().min(1, 'Cliente es requerido'),

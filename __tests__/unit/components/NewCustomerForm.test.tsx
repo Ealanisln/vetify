@@ -773,4 +773,56 @@ describe('NewCustomerForm', () => {
       expect(contactMethodSelect).toHaveValue('phone');
     });
   });
+
+  describe('Pet field validation', () => {
+    const addPetWithBasics = () => {
+      fireEvent.change(document.querySelectorAll('input[type="text"]')[0], { target: { value: 'Juan' } });
+      fireEvent.click(screen.getByTestId('add-pet-button'));
+      const textInputs = document.querySelectorAll('input[type="text"]');
+      fireEvent.change(textInputs[1], { target: { value: 'Max' } });
+      fireEvent.change(textInputs[2], { target: { value: 'Labrador' } });
+      fireEvent.change(document.querySelector('input[type="date"]')!, { target: { value: '2020-01-01' } });
+    };
+
+    it('offers only the weight units the server accepts', () => {
+      render(<NewCustomerForm {...defaultProps} />);
+      fireEvent.click(screen.getByTestId('add-pet-button'));
+
+      const unitSelect = screen.getByTestId('pet-weight-unit-0') as HTMLSelectElement;
+      expect(Array.from(unitSelect.options).map((o) => o.value)).toEqual(['kg', 'lbs']);
+    });
+
+    it('lets the weight take two decimals and caps the birth date at today', () => {
+      render(<NewCustomerForm {...defaultProps} />);
+      fireEvent.click(screen.getByTestId('add-pet-button'));
+
+      const weightInput = document.querySelector('input[type="number"]') as HTMLInputElement;
+      expect(weightInput.step).toBe('0.01');
+      expect(weightInput.min).toBe('0.01');
+      const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+      expect(dateInput.max).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('blocks a zero weight with a Spanish message before creating anything', async () => {
+      render(<NewCustomerForm {...defaultProps} />);
+      addPetWithBasics();
+      fireEvent.change(document.querySelector('input[type="number"]')!, { target: { value: '0' } });
+
+      fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+
+      expect(await screen.findByText('El peso debe ser mayor a 0')).toBeInTheDocument();
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('blocks a future birth date with a Spanish message before creating anything', async () => {
+      render(<NewCustomerForm {...defaultProps} />);
+      addPetWithBasics();
+      fireEvent.change(document.querySelector('input[type="date"]')!, { target: { value: '2999-01-01' } });
+
+      fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+
+      expect(await screen.findByText('La fecha de nacimiento no puede ser una fecha futura')).toBeInTheDocument();
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+  });
 });

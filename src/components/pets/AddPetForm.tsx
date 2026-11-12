@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getThemeClasses } from '../../utils/theme-colors';
 import LocationSelector from '@/components/locations/LocationSelector';
+import { getMaxDateForInput } from '@/lib/utils/date-validation';
+import {
+  PET_WEIGHT_UNITS,
+  validatePetFormFields,
+  type PetFormFieldErrors,
+} from '@/lib/utils/pet-form-validation';
 
 interface Customer {
   id: string;
@@ -19,6 +25,8 @@ export function AddPetForm() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<PetFormFieldErrors>({});
+  const maxBirthDate = getMaxDateForInput();
   const [formData, setFormData] = useState({
     name: '',
     species: 'dog',
@@ -72,8 +80,15 @@ export function AddPetForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setSubmitError(null);
+
+    const petErrors = validatePetFormFields(formData, maxBirthDate);
+    setFieldErrors(petErrors);
+    if (Object.keys(petErrors).length > 0) {
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       let customerId = formData.customerId;
@@ -386,11 +401,14 @@ export function AddPetForm() {
               type="date"
               name="dateOfBirth"
               required
-              max={new Date().toISOString().split('T')[0]}
+              max={maxBirthDate}
               value={formData.dateOfBirth}
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-green-500 focus:ring-green-500"
             />
+            {fieldErrors.dateOfBirth && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.dateOfBirth}</p>
+            )}
           </div>
 
           <div>
@@ -401,8 +419,8 @@ export function AddPetForm() {
               <input
                 type="number"
                 name="weight"
-                step="0.1"
-                min="0"
+                step="0.01"
+                min="0.01"
                 value={formData.weight}
                 onChange={handleChange}
                 className="block w-full rounded-l-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-green-500 focus:ring-green-500"
@@ -414,10 +432,14 @@ export function AddPetForm() {
                 onChange={handleChange}
                 className="rounded-r-md border-l-0 border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-600 text-gray-500 dark:text-gray-300 focus:border-green-500 focus:ring-green-500"
               >
-                <option value="kg">kg</option>
-                <option value="lbs">lbs</option>
+                {PET_WEIGHT_UNITS.map((unit) => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
               </select>
             </div>
+            {fieldErrors.weight && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.weight}</p>
+            )}
           </div>
 
           <div className="sm:col-span-2">

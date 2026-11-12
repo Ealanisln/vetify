@@ -683,4 +683,44 @@ describe('AddPetForm', () => {
       expect(screen.getByText('Otro')).toBeInTheDocument();
     });
   });
+
+  describe('Pet field validation', () => {
+    const fillPet = async () => {
+      await waitFor(() => {
+        expect(screen.getByText('Juan Pérez (+52 55 1234 5678)')).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByTestId('pet-owner-select'), { target: { value: 'customer-1' } });
+      fireEvent.change(screen.getByPlaceholderText('Ej: Firulais'), { target: { value: 'Max' } });
+      fireEvent.change(document.querySelector('input[type="date"]')!, { target: { value: '2020-01-01' } });
+    };
+
+    it('lets the weight take two decimals', async () => {
+      render(<AddPetForm />);
+      const weightInput = await screen.findByPlaceholderText('0.0');
+      expect((weightInput as HTMLInputElement).step).toBe('0.01');
+      expect((weightInput as HTMLInputElement).min).toBe('0.01');
+    });
+
+    it('blocks a zero weight with a Spanish message', async () => {
+      render(<AddPetForm />);
+      await fillPet();
+      fireEvent.change(screen.getByPlaceholderText('0.0'), { target: { value: '0' } });
+
+      fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+
+      expect(await screen.findByText('El peso debe ser mayor a 0')).toBeInTheDocument();
+      expect(mockFetch).not.toHaveBeenCalledWith('/api/pets', expect.anything());
+    });
+
+    it('blocks a future birth date with a Spanish message', async () => {
+      render(<AddPetForm />);
+      await fillPet();
+      fireEvent.change(document.querySelector('input[type="date"]')!, { target: { value: '2999-01-01' } });
+
+      fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+
+      expect(await screen.findByText('La fecha de nacimiento no puede ser una fecha futura')).toBeInTheDocument();
+      expect(mockFetch).not.toHaveBeenCalledWith('/api/pets', expect.anything());
+    });
+  });
 });

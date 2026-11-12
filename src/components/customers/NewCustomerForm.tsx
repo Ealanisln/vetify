@@ -9,6 +9,12 @@ import { mapSpeciesToEnglish, mapGenderToEnglish } from '@/lib/utils/pet-enum-ma
 import { type PetCreationResponse, type CustomerCreationResponse } from '@/types/api';
 import LocationSelector from '@/components/locations/LocationSelector';
 import { toast } from 'sonner';
+import { getMaxDateForInput } from '@/lib/utils/date-validation';
+import {
+  PET_WEIGHT_UNITS,
+  validatePetFormFields,
+  type PetFormFieldErrors,
+} from '@/lib/utils/pet-form-validation';
 
 interface NewCustomerFormProps {
   tenantId: string;
@@ -46,6 +52,8 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
   const [createdCustomerId, setCreatedCustomerId] = useState<string | null>(null);
   const [createdPets, setCreatedPets] = useState<Array<{ id: string; name: string }>>([]);
   const [locationId, setLocationId] = useState<string>('');
+  const [petFieldErrors, setPetFieldErrors] = useState<Record<number, PetFormFieldErrors>>({});
+  const maxBirthDate = getMaxDateForInput();
   const [formData, setFormData] = useState<CustomerFormData>({
     name: '',
     firstName: '',
@@ -103,6 +111,19 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
 
     // Prevent double submit
     if (isSubmittingRef.current) {
+      return;
+    }
+
+    // Validate pet fields before creating anything, so a bad weight or date
+    // never leaves a customer saved without its pets
+    const fieldErrors: Record<number, PetFormFieldErrors> = {};
+    formData.pets.forEach((pet, index) => {
+      const errors = validatePetFormFields(pet, maxBirthDate);
+      if (Object.keys(errors).length > 0) fieldErrors[index] = errors;
+    });
+    setPetFieldErrors(fieldErrors);
+    if (Object.keys(fieldErrors).length > 0) {
+      toast.error('Revisa los datos de las mascotas marcados en rojo.');
       return;
     }
     isSubmittingRef.current = true;
@@ -380,10 +401,16 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
                     <input
                       type="date"
                       required
+                      max={maxBirthDate}
                       value={pet.dateOfBirth}
                       onChange={(e) => updatePet(index, { dateOfBirth: e.target.value })}
                       className="form-input mt-1"
                     />
+                    {petFieldErrors[index]?.dateOfBirth && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {petFieldErrors[index].dateOfBirth}
+                      </p>
+                    )}
                   </div>
 
                   <div>
@@ -408,7 +435,8 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
                     <div className="flex mt-1">
                       <input
                         type="number"
-                        step="0.1"
+                        step="0.01"
+                        min="0.01"
                         value={pet.weight}
                         onChange={(e) => updatePet(index, { weight: e.target.value })}
                         className="form-input rounded-r-none border-r-0"
@@ -417,12 +445,18 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
                         value={pet.weightUnit}
                         onChange={(e) => updatePet(index, { weightUnit: e.target.value })}
                         className="form-input rounded-l-none border-l-0 w-20"
+                        data-testid={`pet-weight-unit-${index}`}
                       >
-                        <option value="kg">kg</option>
-                        <option value="g">g</option>
-                        <option value="lb">lb</option>
+                        {PET_WEIGHT_UNITS.map((unit) => (
+                          <option key={unit} value={unit}>{unit}</option>
+                        ))}
                       </select>
                     </div>
+                    {petFieldErrors[index]?.weight && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        {petFieldErrors[index].weight}
+                      </p>
+                    )}
                   </div>
 
                   <div className="sm:col-span-2 lg:col-span-1">

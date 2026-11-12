@@ -193,8 +193,8 @@ export function EditPetForm({ pet }: EditPetFormProps) {
               <input
                 type="number"
                 name="weight"
-                step="0.1"
-                min="0"
+                step="0.01"
+                min="0.01"
                 value={formData.weight}
                 onChange={handleChange}
                 className="block w-full rounded-l-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:border-green-500 focus:ring-green-500"
