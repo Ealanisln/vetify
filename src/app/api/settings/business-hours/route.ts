@@ -121,104 +121,64 @@ export async function PUT(request: Request) {
 
     const validatedData = businessHoursSchema.parse(body);
 
-    // Update tenant settings
-    await prisma.tenantSettings.upsert({
-      where: { tenantId: tenant.id },
-      update: {
-        defaultStartTime: validatedData.defaultStartTime,
-        defaultEndTime: validatedData.defaultEndTime,
-        defaultLunchStart: validatedData.defaultLunchStart,
-        defaultLunchEnd: validatedData.defaultLunchEnd,
-        defaultSlotDuration: validatedData.defaultSlotDuration,
-      },
-      create: {
-        tenantId: tenant.id,
-        defaultStartTime: validatedData.defaultStartTime,
-        defaultEndTime: validatedData.defaultEndTime,
-        defaultLunchStart: validatedData.defaultLunchStart,
-        defaultLunchEnd: validatedData.defaultLunchEnd,
-        defaultSlotDuration: validatedData.defaultSlotDuration,
-      }
-    });
+    const updatedSettings = await prisma.$transaction(async (tx) => {
+      const tenantSettings = await tx.tenantSettings.upsert({
+        where: { tenantId: tenant.id },
+        update: {
+          defaultStartTime: validatedData.defaultStartTime,
+          defaultEndTime: validatedData.defaultEndTime,
+          defaultLunchStart: validatedData.defaultLunchStart,
+          defaultLunchEnd: validatedData.defaultLunchEnd,
+          defaultSlotDuration: validatedData.defaultSlotDuration,
+        },
+        create: {
+          tenantId: tenant.id,
+          defaultStartTime: validatedData.defaultStartTime,
+          defaultEndTime: validatedData.defaultEndTime,
+          defaultLunchStart: validatedData.defaultLunchStart,
+          defaultLunchEnd: validatedData.defaultLunchEnd,
+          defaultSlotDuration: validatedData.defaultSlotDuration,
+        }
+      });
 
-    // Get the tenant settings to get the ID
-    const tenantSettings = await prisma.tenantSettings.findUnique({
-      where: { tenantId: tenant.id }
-    });
+      // Rows are addressed by (tenant, tenant-level location, day), never by an
+      // id from the request body, so a caller can only write its own tenant.
+      for (const businessHour of validatedData.businessHours ?? []) {
+        const data = {
+          isWorkingDay: businessHour.isWorkingDay,
+          startTime: businessHour.startTime,
+          endTime: businessHour.endTime,
+          lunchStart: businessHour.lunchStart,
+          lunchEnd: businessHour.lunchEnd,
+          slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
+        };
 
-    if (!tenantSettings) {
-      throw new Error('Failed to create/update tenant settings');
-    }
+        const { count } = await tx.businessHours.updateMany({
+          where: { tenantId: tenant.id, locationId: null, dayOfWeek: businessHour.dayOfWeek },
+          data,
+        });
 
-    // Update business hours for each day (only if businessHours array is provided)
-    if (validatedData.businessHours && validatedData.businessHours.length > 0) {
-      for (const businessHour of validatedData.businessHours) {
-        // Cast to access potential id field from passthrough
-        const hourWithId = businessHour as typeof businessHour & { id?: string };
-
-        if (hourWithId.id) {
-          // Update existing record by ID (most reliable)
-          await prisma.businessHours.update({
-            where: { id: hourWithId.id },
+        if (count === 0) {
+          await tx.businessHours.create({
             data: {
-              isWorkingDay: businessHour.isWorkingDay,
-              startTime: businessHour.startTime,
-              endTime: businessHour.endTime,
-              lunchStart: businessHour.lunchStart,
-              lunchEnd: businessHour.lunchEnd,
-              slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
-            }
-          });
-        } else {
-          // Find existing record or create new one
-          const existingHour = await prisma.businessHours.findFirst({
-            where: {
               tenantId: tenant.id,
-              locationId: null,
-              dayOfWeek: businessHour.dayOfWeek
+              tenantSettingsId: tenantSettings.id,
+              dayOfWeek: businessHour.dayOfWeek,
+              ...data,
             }
           });
+        }
+      }
 
-          if (existingHour) {
-            await prisma.businessHours.update({
-              where: { id: existingHour.id },
-              data: {
-                isWorkingDay: businessHour.isWorkingDay,
-                startTime: businessHour.startTime,
-                endTime: businessHour.endTime,
-                lunchStart: businessHour.lunchStart,
-                lunchEnd: businessHour.lunchEnd,
-                slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
-              }
-            });
-          } else {
-            // Create new record
-            await prisma.businessHours.create({
-              data: {
-                tenantId: tenant.id,
-                tenantSettingsId: tenantSettings.id,
-                dayOfWeek: businessHour.dayOfWeek,
-                isWorkingDay: businessHour.isWorkingDay,
-                startTime: businessHour.startTime,
-                endTime: businessHour.endTime,
-                lunchStart: businessHour.lunchStart,
-                lunchEnd: businessHour.lunchEnd,
-                slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
-              }
-            });
+      return tx.tenantSettings.findUnique({
+        where: { tenantId: tenant.id },
+        include: {
+          businessHours: {
+            where: { locationId: null },
+            orderBy: { dayOfWeek: 'asc' }
           }
         }
-      }
-    }
-
-    // Fetch the updated settings
-    const updatedSettings = await prisma.tenantSettings.findUnique({
-      where: { tenantId: tenant.id },
-      include: {
-        businessHours: {
-          orderBy: { dayOfWeek: 'asc' }
-        }
-      }
+      });
     });
 
     return NextResponse.json({
