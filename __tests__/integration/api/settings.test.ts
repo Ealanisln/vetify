@@ -19,23 +19,6 @@ const createTestTenantSettings = (overrides = {}) => ({
   ...overrides,
 });
 
-const createTestBusinessHours = (overrides = {}) => ({
-  id: 'hours-1',
-  tenantId: 'tenant-1',
-  tenantSettingsId: 'settings-1',
-  locationId: null,
-  dayOfWeek: 1, // Monday
-  isWorkingDay: true,
-  startTime: '08:00',
-  endTime: '18:00',
-  lunchStart: '13:00',
-  lunchEnd: '14:00',
-  slotDuration: 15,
-  createdAt: new Date('2024-01-01'),
-  updatedAt: new Date('2024-01-01'),
-  ...overrides,
-});
-
 const createTestUserRole = (overrides = {}) => ({
   id: 'role-1',
   tenantId: 'tenant-1',
@@ -63,7 +46,6 @@ describe('Settings API Integration Tests', () => {
   let mockTenant: ReturnType<typeof createTestTenant>;
   let mockUser: ReturnType<typeof createTestUser>;
   let mockTenantSettings: ReturnType<typeof createTestTenantSettings>;
-  let mockBusinessHours: ReturnType<typeof createTestBusinessHours>[];
   let mockUserRole: ReturnType<typeof createTestUserRole>;
 
   beforeEach(() => {
@@ -73,15 +55,6 @@ describe('Settings API Integration Tests', () => {
     mockTenant = createTestTenant();
     mockUser = createTestUser({ tenantId: mockTenant.id });
     mockTenantSettings = createTestTenantSettings({ tenantId: mockTenant.id });
-    mockBusinessHours = [
-      createTestBusinessHours({ tenantId: mockTenant.id, dayOfWeek: 0, isWorkingDay: false }),
-      createTestBusinessHours({ tenantId: mockTenant.id, dayOfWeek: 1, isWorkingDay: true }),
-      createTestBusinessHours({ tenantId: mockTenant.id, dayOfWeek: 2, isWorkingDay: true }),
-      createTestBusinessHours({ tenantId: mockTenant.id, dayOfWeek: 3, isWorkingDay: true }),
-      createTestBusinessHours({ tenantId: mockTenant.id, dayOfWeek: 4, isWorkingDay: true }),
-      createTestBusinessHours({ tenantId: mockTenant.id, dayOfWeek: 5, isWorkingDay: true }),
-      createTestBusinessHours({ tenantId: mockTenant.id, dayOfWeek: 6, isWorkingDay: true }),
-    ];
     mockUserRole = createTestUserRole({ tenantId: mockTenant.id });
 
     // Mock Prisma responses
@@ -189,155 +162,9 @@ describe('Settings API Integration Tests', () => {
     });
   });
 
-  describe('Business Hours', () => {
-    describe('GET /api/settings/business-hours', () => {
-      it('should return business hours with tenant settings', async () => {
-        const settingsWithHours = {
-          ...mockTenantSettings,
-          businessHours: mockBusinessHours,
-        };
-
-        prismaMock.tenantSettings.findUnique.mockResolvedValue(settingsWithHours);
-
-        const result = await prismaMock.tenantSettings.findUnique({
-          where: { tenantId: mockTenant.id },
-          include: {
-            businessHours: {
-              orderBy: { dayOfWeek: 'asc' },
-            },
-          },
-        });
-
-        expect(result?.businessHours).toHaveLength(7);
-        expect(result?.defaultStartTime).toBe('08:00');
-        expect(result?.defaultEndTime).toBe('18:00');
-      });
-
-      it('should create default settings if none exist', async () => {
-        // First call returns null, simulating no existing settings
-        prismaMock.tenantSettings.findUnique.mockResolvedValueOnce(null);
-
-        // Create default settings
-        const defaultSettings = createTestTenantSettings({ tenantId: mockTenant.id });
-        prismaMock.tenantSettings.create.mockResolvedValue({
-          ...defaultSettings,
-          businessHours: [],
-        });
-
-        const existing = await prismaMock.tenantSettings.findUnique({
-          where: { tenantId: mockTenant.id },
-        });
-
-        expect(existing).toBeNull();
-
-        const created = await prismaMock.tenantSettings.create({
-          data: {
-            tenantId: mockTenant.id,
-            defaultStartTime: '08:00',
-            defaultEndTime: '18:00',
-            defaultLunchStart: '13:00',
-            defaultLunchEnd: '14:00',
-            defaultSlotDuration: 15,
-          },
-          include: { businessHours: true },
-        });
-
-        expect(created.tenantId).toBe(mockTenant.id);
-        expect(created.defaultStartTime).toBe('08:00');
-      });
-
-      it('should create default business hours for all days', async () => {
-        const defaultBusinessHours = Array.from({ length: 7 }, (_, i) => ({
-          tenantId: mockTenant.id,
-          tenantSettingsId: mockTenantSettings.id,
-          dayOfWeek: i,
-          isWorkingDay: i >= 1 && i <= 6, // Monday to Saturday
-          startTime: '08:00',
-          endTime: '18:00',
-          lunchStart: '13:00',
-          lunchEnd: '14:00',
-          slotDuration: 15,
-        }));
-
-        prismaMock.businessHours.createMany.mockResolvedValue({ count: 7 });
-
-        const result = await prismaMock.businessHours.createMany({
-          data: defaultBusinessHours,
-        });
-
-        expect(result.count).toBe(7);
-      });
-    });
-
-    describe('PUT /api/settings/business-hours', () => {
-      it('should update business hours for all days', async () => {
-        const updateData = {
-          defaultStartTime: '09:00',
-          defaultEndTime: '19:00',
-          defaultSlotDuration: 30,
-          businessHours: mockBusinessHours.map((h) => ({
-            ...h,
-            startTime: '09:00',
-            endTime: '19:00',
-          })),
-        };
-
-        prismaMock.tenantSettings.upsert.mockResolvedValue({
-          ...mockTenantSettings,
-          defaultStartTime: '09:00',
-          defaultEndTime: '19:00',
-          defaultSlotDuration: 30,
-        });
-
-        const result = await prismaMock.tenantSettings.upsert({
-          where: { tenantId: mockTenant.id },
-          update: {
-            defaultStartTime: updateData.defaultStartTime,
-            defaultEndTime: updateData.defaultEndTime,
-            defaultSlotDuration: updateData.defaultSlotDuration,
-          },
-          create: {
-            tenantId: mockTenant.id,
-            defaultStartTime: updateData.defaultStartTime,
-            defaultEndTime: updateData.defaultEndTime,
-            defaultSlotDuration: updateData.defaultSlotDuration,
-          },
-        });
-
-        expect(result.defaultStartTime).toBe('09:00');
-        expect(result.defaultEndTime).toBe('19:00');
-        expect(result.defaultSlotDuration).toBe(30);
-      });
-
-      it('should validate time format (HH:MM)', () => {
-        // Note: The regex allows single-digit hours (e.g., 8:00 is valid)
-        const invalidTimeFormats = ['25:00', '12:60', 'invalid', '24:00', '-1:00'];
-        const validTimeFormat = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-
-        invalidTimeFormats.forEach((time) => {
-          expect(validTimeFormat.test(time)).toBe(false);
-        });
-
-        const validTimes = ['08:00', '12:30', '23:59', '00:00', '8:00', '9:30'];
-        validTimes.forEach((time) => {
-          expect(validTimeFormat.test(time)).toBe(true);
-        });
-      });
-
-      it('should validate slot duration (5-120 minutes)', () => {
-        const invalidDurations = [0, 4, 121, -10];
-        const validDurations = [5, 15, 30, 60, 120];
-
-        invalidDurations.forEach((duration) => {
-          expect(duration >= 5 && duration <= 120).toBe(false);
-        });
-
-        validDurations.forEach((duration) => {
-          expect(duration >= 5 && duration <= 120).toBe(true);
-        });
-      });
-    });
-  });
+  // Business hours: GET/PUT /api/settings/business-hours are tested against
+  // the real route handler in __tests__/unit/api/business-hours.test.ts
+  // (tenant-scoped writes, "Sin comida" saved as null, range validation).
 
   describe('Notification Preferences', () => {
     describe('GET /api/settings/notifications', () => {
