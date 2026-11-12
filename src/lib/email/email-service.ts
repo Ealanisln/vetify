@@ -366,9 +366,9 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'new-user-registration': {
       const d = emailData.data;
-      const registrationDateStr = formatDateTimeLong(d.registrationDate);
+      const registrationDateStr = formatDateTimeLong(d.registrationDate, timeZone);
       const trialEndsStr = d.trialEndsAt
-        ? formatDate(d.trialEndsAt)
+        ? formatDate(d.trialEndsAt, timeZone)
         : undefined;
       return await render(
         NewUserRegistrationEmail({
@@ -386,7 +386,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'new-subscription-payment': {
       const d = emailData.data;
-      const paymentDateStr = formatDateTimeLong(d.paymentDate);
+      const paymentDateStr = formatDateTimeLong(d.paymentDate, timeZone);
       const formattedAmount = formatCurrency(d.planAmount / 100, d.currency.toUpperCase());
       return await render(
         NewSubscriptionPaymentEmail({
@@ -407,7 +407,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'payment-failed-alert': {
       const d = (emailData as PaymentFailedAlertData).data;
-      const failureDateStr = formatDateTimeLong(d.failureDate);
+      const failureDateStr = formatDateTimeLong(d.failureDate, timeZone);
       const formattedAmount = d.amountDue && d.currency
         ? formatCurrency(d.amountDue / 100, d.currency.toUpperCase())
         : undefined;
@@ -460,7 +460,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'trial-expiring': {
       const d = (emailData as TrialExpiringData).data;
-      const trialEndsDateStr = formatDateLong(d.trialEndsDate);
+      const trialEndsDateStr = formatDateLong(d.trialEndsDate, timeZone);
       return await render(
         TrialExpiringEmail({
           clinicName: d.clinicName,
@@ -474,7 +474,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'trial-expired': {
       const d = (emailData as TrialExpiredData).data;
-      const expiredDateStr = formatDateLong(d.expiredDate);
+      const expiredDateStr = formatDateLong(d.expiredDate, timeZone);
       return await render(
         TrialExpiredEmail({
           clinicName: d.clinicName,
@@ -487,7 +487,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'trial-welcome': {
       const d = (emailData as TrialWelcomeData).data;
-      const trialEndsDateStr = formatDateLong(d.trialEndsDate);
+      const trialEndsDateStr = formatDateLong(d.trialEndsDate, timeZone);
       return await render(
         TrialWelcomeEmail({
           clinicName: d.clinicName,
@@ -523,7 +523,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
 
     case 'data-retention-warning': {
       const d = (emailData as DataRetentionWarningData).data;
-      const deletionDateStr = formatDateLong(d.deletionDate);
+      const deletionDateStr = formatDateLong(d.deletionDate, timeZone);
       return await render(
         DataRetentionWarningEmail({
           clinicName: d.clinicName,

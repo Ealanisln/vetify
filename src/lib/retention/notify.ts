@@ -1,6 +1,7 @@
 import { prisma } from '../prisma';
 import { sendEmail } from '../email/email-service';
 import type { DataRetentionWarningData } from '../email/types';
+import { getClinicTimeZone } from '../clinic-timezone';
 import {
   RETENTION_TRIGGER_STATUSES,
   RETENTION_WARNING_BATCH_LIMIT,
@@ -60,7 +61,13 @@ export async function sendRetentionWarnings(
       dataRetentionEndsAt: { not: null, gte: now, lte: windowEnd },
       retentionWarningSentAt: null,
     },
-    select: { id: true, name: true, dataRetentionEndsAt: true },
+    select: {
+      id: true,
+      name: true,
+      dataRetentionEndsAt: true,
+      countryCode: true,
+      tenantSettings: { select: { timezone: true } },
+    },
     take: limit + 1,
     orderBy: { dataRetentionEndsAt: 'asc' },
   });
@@ -93,6 +100,7 @@ export async function sendRetentionWarnings(
         to: { email: admin.email, name: admin.name },
         subject: `⚠️ La información de ${tenant.name} se eliminará en ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`,
         tenantId: tenant.id,
+        timeZone: getClinicTimeZone(tenant),
         data: {
           clinicName: tenant.name,
           ownerName: admin.name,

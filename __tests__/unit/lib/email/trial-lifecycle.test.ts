@@ -540,3 +540,43 @@ describe('processTrialLifecycleEmails – expired email timing', () => {
     expect(result.expiredEmailsSent).toBe(1);
   });
 });
+
+describe('trial emails carry the clinic timezone', () => {
+  it.each([
+    ['a deliberate TenantSettings.timezone', { countryCode: 'MX', tenantSettings: { timezone: 'America/Bogota' } }, 'America/Bogota'],
+    ['the country zone when the setting is the legacy UTC', { countryCode: 'CO', tenantSettings: { timezone: 'UTC' } }, 'America/Bogota'],
+    ['Mexico City when nothing is known', { countryCode: null, tenantSettings: null }, 'America/Mexico_City'],
+  ])('uses %s', async (_label, clinic, expected) => {
+    primeTenants([
+      mockTenantRow({ id: 'tenant-1', trialEndsAt: daysFromNow(2), ...clinic }),
+      mockTenantRow({ id: 'tenant-2', trialEndsAt: daysFromNow(-2), ...clinic }),
+      freshTenantRow(1, { id: 'tenant-3', ...clinic }),
+    ]);
+
+    await processTrialLifecycleEmails();
+
+    const sent = mockSendEmail.mock.calls.map(([email]) => [email.template, email.timeZone]);
+    expect(sent).toEqual(
+      expect.arrayContaining([
+        ['trial-expiring', expected],
+        ['trial-expired', expected],
+        ['trial-welcome', expected],
+      ])
+    );
+  });
+
+  it('passes the clinic timezone on the onboarding welcome email', async () => {
+    mockFindUnique.mockImplementation(async (args?: { select?: Record<string, unknown> }) =>
+      applySelect(
+        freshTenantRow(0, { countryCode: 'CO', tenantSettings: { timezone: 'UTC' } }),
+        args?.select
+      )
+    );
+
+    await sendTrialWelcomeEmail('tenant-1');
+
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({ template: 'trial-welcome', timeZone: 'America/Bogota' })
+    );
+  });
+});
