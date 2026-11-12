@@ -6,6 +6,7 @@ import {
   completeWeek,
   DEFAULT_SCHEDULE,
   getScheduleErrors,
+  type DaySchedule,
   type ScheduleField,
 } from '../../../../lib/business-hours';
 
@@ -50,7 +51,13 @@ const businessHoursSchema = z.object({
     // Closed days keep whatever times they had; only open days must be coherent.
     data.businessHours?.forEach((day, index) => {
       if (!day.isWorkingDay) return;
-      for (const error of getScheduleErrors(day)) {
+      const schedule: DaySchedule = {
+        startTime: day.startTime,
+        endTime: day.endTime,
+        lunchStart: day.lunchStart,
+        lunchEnd: day.lunchEnd,
+      };
+      for (const error of getScheduleErrors(schedule)) {
         ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['businessHours', index, error.field], message: error.message });
       }
     });
