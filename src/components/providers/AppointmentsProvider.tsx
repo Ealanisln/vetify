@@ -41,6 +41,8 @@ import {
   endOfDay,
   addMonths,
   subMonths,
+  addDays,
+  subDays,
 } from 'date-fns';
 
 /**
@@ -121,7 +123,12 @@ interface AppointmentsContextValue {
 const AppointmentsContext = createContext<AppointmentsContextValue | null>(null);
 
 /**
- * Get default date range based on view
+ * Get default date range based on view.
+ *
+ * The calendar shows the clinic's days, which can start up to a day before
+ * or after the browser's (the browser may be in another timezone), so week
+ * and day views fetch one extra day on each side. Events outside the
+ * visible range are simply not rendered.
  */
 function getDefaultDateRange(view: CalendarView, date: Date): DateRange {
   switch (view) {
@@ -134,14 +141,14 @@ function getDefaultDateRange(view: CalendarView, date: Date): DateRange {
     case 'timeGridWeek':
     case 'listWeek':
       return {
-        start: startOfWeek(date, { weekStartsOn: 1 }),
-        end: endOfWeek(date, { weekStartsOn: 1 }),
+        start: subDays(startOfWeek(date, { weekStartsOn: 1 }), 1),
+        end: addDays(endOfWeek(date, { weekStartsOn: 1 }), 1),
       };
     case 'timeGridDay':
       // Never mutate `date`: it is the provider's currentDate state.
       return {
-        start: startOfDay(date),
-        end: endOfDay(date),
+        start: subDays(startOfDay(date), 1),
+        end: addDays(endOfDay(date), 1),
       };
     default:
       return {

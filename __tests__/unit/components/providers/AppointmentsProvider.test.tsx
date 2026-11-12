@@ -19,6 +19,8 @@ import {
   endOfWeek,
   addMonths,
   subMonths,
+  addDays,
+  subDays,
 } from 'date-fns';
 
 // Mock the hooks used by the provider
@@ -405,8 +407,9 @@ describe('AppointmentsProvider', () => {
       expect(mockedUseAppointmentsData).toHaveBeenCalled();
       const callArgs = mockedUseAppointmentsData.mock.calls[0][0];
 
-      expect(callArgs.startDate).toEqual(startOfWeek(testDate, { weekStartsOn: 1 }));
-      expect(callArgs.endDate).toEqual(endOfWeek(testDate, { weekStartsOn: 1 }));
+      // One extra day on each side: the clinic's week may be offset from the browser's
+      expect(callArgs.startDate).toEqual(subDays(startOfWeek(testDate, { weekStartsOn: 1 }), 1));
+      expect(callArgs.endDate).toEqual(addDays(endOfWeek(testDate, { weekStartsOn: 1 }), 1));
     });
   });
 
