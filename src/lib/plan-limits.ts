@@ -39,6 +39,19 @@ export interface PlanUsageStats {
 }
 
 /**
+ * Plans store unlimited as -1. Internally it is Number.MAX_SAFE_INTEGER so
+ * comparisons work; the check* functions report it back as -1.
+ */
+function toLimit(value: number): number {
+  return value === -1 ? Number.MAX_SAFE_INTEGER : value;
+}
+
+/** Whether a check result has room for `quantity` more (-1 = unlimited). */
+function hasRoom(check: { remaining: number }, quantity: number): boolean {
+  return check.remaining === -1 || check.remaining >= quantity;
+}
+
+/**
  * Get plan limits for a tenant
  * Falls back to PROFESIONAL plan limits if no subscription exists (30-day trial)
  * CRITICAL: Returns zero limits if trial expired and no active subscription
@@ -81,11 +94,11 @@ export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
   // This will only execute if trial is still valid (checked above)
   if (!tenant?.tenantSubscription?.plan) {
     return {
-      maxPets: DEFAULT_PLAN_LIMITS.maxPets,
-      maxUsers: DEFAULT_PLAN_LIMITS.maxUsers,
-      maxMonthlyWhatsApp: DEFAULT_PLAN_LIMITS.maxMonthlyWhatsApp, // -1 = unlimited
+      maxPets: toLimit(DEFAULT_PLAN_LIMITS.maxPets),
+      maxUsers: toLimit(DEFAULT_PLAN_LIMITS.maxUsers),
+      maxMonthlyWhatsApp: toLimit(DEFAULT_PLAN_LIMITS.maxMonthlyWhatsApp),
       maxStorageGB: DEFAULT_PLAN_LIMITS.maxStorageGB,
-      maxCashRegisters: DEFAULT_PLAN_LIMITS.maxCashRegisters,
+      maxCashRegisters: toLimit(DEFAULT_PLAN_LIMITS.maxCashRegisters),
       canUseAutomations: false, // FUTURE FEATURE
       canUseAdvancedReports: false,
       canUseAdvancedInventory: false,
@@ -101,11 +114,11 @@ export async function getPlanLimits(tenantId: string): Promise<PlanLimits> {
   const features = plan.features as PlanFeatures;
 
   return {
-    maxPets: plan.maxPets === -1 ? Number.MAX_SAFE_INTEGER : plan.maxPets,
-    maxUsers: plan.maxUsers,
-    maxMonthlyWhatsApp: features?.whatsappMessages === -1 ? Number.MAX_SAFE_INTEGER : (features?.whatsappMessages || 0),
+    maxPets: toLimit(plan.maxPets),
+    maxUsers: toLimit(plan.maxUsers),
+    maxMonthlyWhatsApp: toLimit(features?.whatsappMessages || 0),
     maxStorageGB: plan.storageGB,
-    maxCashRegisters: plan.maxCashRegisters === -1 ? Number.MAX_SAFE_INTEGER : (plan.maxCashRegisters || 1),
+    maxCashRegisters: toLimit(plan.maxCashRegisters || 1),
     canUseAutomations: features?.automations || false,
     canUseAdvancedReports: features?.advancedReports || false,
     canUseAdvancedInventory: features?.advancedInventory || false,
@@ -211,7 +224,16 @@ export async function checkUserLimit(tenantId: string): Promise<{
     getPlanLimits(tenantId),
     getPlanUsageStats(tenantId)
   ]);
-  
+
+  if (limits.maxUsers === Number.MAX_SAFE_INTEGER) {
+    return {
+      canAdd: true,
+      current: usage.currentUsers,
+      limit: -1, // Represent unlimited as -1 in response
+      remaining: -1
+    };
+  }
+
   const remaining = limits.maxUsers - usage.currentUsers;
   
   return {
@@ -477,8 +499,7 @@ export async function validatePlanAction(
   switch (action) {
     case 'addPet': {
       const petCheck = await checkPetLimit(tenantId);
-      // remaining is -1 for unlimited plans
-      if (!petCheck.canAdd || (petCheck.remaining !== -1 && petCheck.remaining < quantity)) {
+      if (!petCheck.canAdd || !hasRoom(petCheck, quantity)) {
         throw new PlanLimitError(
           'pets',
           petCheck.current,
@@ -490,7 +511,7 @@ export async function validatePlanAction(
     }
     case 'addUser': {
       const userCheck = await checkUserLimit(tenantId);
-      if (!userCheck.canAdd || userCheck.remaining < quantity) {
+      if (!userCheck.canAdd || !hasRoom(userCheck, quantity)) {
         throw new PlanLimitError(
           'users',
           userCheck.current,
@@ -502,7 +523,7 @@ export async function validatePlanAction(
     }
     case 'sendWhatsApp': {
       const whatsappCheck = await checkWhatsAppLimit(tenantId);
-      if (!whatsappCheck.canSend || whatsappCheck.remaining < quantity) {
+      if (!whatsappCheck.canSend || !hasRoom(whatsappCheck, quantity)) {
         throw new PlanLimitError(
           'whatsapp',
           whatsappCheck.current,
@@ -514,7 +535,7 @@ export async function validatePlanAction(
     }
     case 'addCashRegister': {
       const cashRegisterCheck = await checkCashRegisterLimit(tenantId);
-      if (!cashRegisterCheck.canAdd || cashRegisterCheck.remaining < quantity) {
+      if (!cashRegisterCheck.canAdd || !hasRoom(cashRegisterCheck, quantity)) {
         throw new PlanLimitError(
           'cashRegisters',
           cashRegisterCheck.current,
