@@ -1,9 +1,14 @@
 /**
  * Availability Utility Functions
  *
- * Extracted from src/app/api/appointments/availability/route.ts
- * for better testability and reusability.
+ * Shared by the dashboard and public availability routes. All wall-clock
+ * values (business hours, slot labels) are clinic time; all Dates are
+ * absolute instants.
  */
+
+import { formatInTimeZone } from 'date-fns-tz';
+import { es } from 'date-fns/locale';
+import { clinicDateTime } from '../clinic-timezone';
 
 export interface BusinessHours {
   start: number;
@@ -39,69 +44,37 @@ export const DEFAULT_BUSINESS_HOURS: BusinessHours = {
 };
 
 /**
- * Formats a Date as an ISO-like local datetime string without the 'Z' suffix.
- * This prevents automatic UTC conversion when sending to the client.
+ * Generates the time slots of a clinic calendar day.
  *
- * @param date - The date to format
- * @returns String in format "YYYY-MM-DDTHH:mm:ss"
+ * Business hours are clinic wall-clock times, so every slot is built in the
+ * clinic timezone and returned as an absolute instant. Never build slots with
+ * `new Date(y, m, d, h)`: that uses the server timezone (UTC in production).
  *
- * @example
- * formatLocalDateTime(new Date(2026, 0, 15, 10, 30, 0))
- * // Returns: "2026-01-15T10:30:00"
- */
-export function formatLocalDateTime(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-}
-
-/**
- * Generates available time slots for a given date based on business hours.
- *
- * Slots are generated from the start of business hours to the end,
- * excluding the lunch break period if configured.
- *
- * @param date - The date to generate slots for
- * @param businessHours - Business hours configuration
- * @returns Array of TimeSlot objects with dateTime and period
+ * @param date - Clinic calendar date, yyyy-MM-dd
+ * @param businessHours - Business hours configuration (clinic wall-clock)
+ * @param timeZone - IANA timezone of the clinic
  *
  * @example
- * const slots = generateDaySlots(new Date(2026, 0, 15), {
- *   start: 9, startMinute: 0,
- *   end: 17, endMinute: 0,
- *   lunchStart: 12, lunchStartMinute: 0,
- *   lunchEnd: 13, lunchEndMinute: 0,
- *   slotDuration: 30
- * });
- * // Returns slots from 9:00-12:00 (morning) and 13:00-17:00 (afternoon)
+ * generateDaySlots('2026-11-16', { start: 9, ... }, 'America/Mexico_City')[0].dateTime
+ * // 2026-11-16T15:00:00.000Z
  */
-export function generateDaySlots(date: Date, businessHours: BusinessHours): TimeSlot[] {
+export function generateDaySlots(
+  date: string,
+  businessHours: BusinessHours,
+  timeZone: string
+): TimeSlot[] {
   const slots: TimeSlot[] = [];
-
-  // Create a new date using the exact year, month, day to avoid timezone issues
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const day = date.getDate();
+  const at = (hour: number, minute: number) =>
+    clinicDateTime(date, `${pad(hour)}:${pad(minute)}`, timeZone);
 
   // Morning slots (start - lunch or end if no lunch)
   const morningEnd = businessHours.lunchStart ? businessHours.lunchStart : businessHours.end;
   for (let hour = businessHours.start; hour < morningEnd; hour++) {
     const startMinute = hour === businessHours.start ? businessHours.startMinute : 0;
-    // For morning slots, always go to full hour unless it's the last hour before lunch
     const endMinute = 60;
 
     for (let minute = startMinute; minute < endMinute; minute += businessHours.slotDuration) {
-      // Create slot time with explicit year, month, day to maintain local timezone
-      const slotTime = new Date(year, month, day, hour, minute, 0, 0);
-
-      slots.push({
-        dateTime: slotTime,
-        period: 'morning'
-      });
+      slots.push({ dateTime: at(hour, minute), period: 'morning' });
     }
   }
 
@@ -109,23 +82,66 @@ export function generateDaySlots(date: Date, businessHours: BusinessHours): Time
   if (businessHours.lunchStart && businessHours.lunchEnd) {
     for (let hour = businessHours.lunchEnd; hour < businessHours.end; hour++) {
       const startMinute = hour === businessHours.lunchEnd ? businessHours.lunchEndMinute : 0;
-      // For afternoon slots, always go to full hour except for the last hour
-      // If endMinute is 0 (meaning end at the top of the hour), treat it as if it goes to the full previous hour
+      // If endMinute is 0 (closing on the hour), the previous hour runs to its end
       const endMinute = hour === businessHours.end - 1 ? (businessHours.endMinute || 60) : 60;
 
       for (let minute = startMinute; minute < endMinute; minute += businessHours.slotDuration) {
-        // Create slot time with explicit year, month, day to maintain local timezone
-        const slotTime = new Date(year, month, day, hour, minute, 0, 0);
-
-        slots.push({
-          dateTime: slotTime,
-          period: 'afternoon'
-        });
+        slots.push({ dateTime: at(hour, minute), period: 'afternoon' });
       }
     }
   }
 
   return slots;
+}
+
+export interface SerializedSlot {
+  /** Absolute instant, ISO-8601 with Z. Send it back as-is when booking. */
+  dateTime: string;
+  /** Clinic wall-clock label, HH:mm */
+  time: string;
+  /** Clinic wall-clock label, 12h */
+  displayTime: string;
+  period: TimeSlot['period'];
+}
+
+/** Serializes a slot for the API: absolute instant plus clinic-time labels. */
+export function serializeSlot(slot: TimeSlot, timeZone: string): SerializedSlot {
+  return {
+    dateTime: slot.dateTime.toISOString(),
+    time: formatInTimeZone(slot.dateTime, timeZone, 'HH:mm'),
+    displayTime: formatInTimeZone(slot.dateTime, timeZone, 'h:mm a', { locale: es }),
+    period: slot.period,
+  };
+}
+
+export interface BusyInterval {
+  start: Date;
+  durationMinutes: number;
+}
+
+/**
+ * Removes slots that overlap a busy interval (half-open: a slot may start
+ * exactly when an appointment ends) or start at/before `notBefore`.
+ */
+export function filterAvailableSlots(
+  slots: TimeSlot[],
+  options: { durationMinutes: number; busy: BusyInterval[]; notBefore?: Date }
+): TimeSlot[] {
+  const { durationMinutes, busy, notBefore } = options;
+  return slots.filter((slot) => {
+    const slotStart = slot.dateTime.getTime();
+    if (notBefore && slotStart <= notBefore.getTime()) return false;
+    const slotEnd = slotStart + durationMinutes * 60_000;
+    return !busy.some(({ start, durationMinutes: busyMinutes }) => {
+      const busyStart = start.getTime();
+      const busyEnd = busyStart + busyMinutes * 60_000;
+      return slotStart < busyEnd && slotEnd > busyStart;
+    });
+  });
+}
+
+function pad(n: number): string {
+  return String(n).padStart(2, '0');
 }
 
 /**
@@ -147,15 +163,19 @@ export function parseTimeString(timeString: string): { hour: number; minute: num
 }
 
 /**
- * Checks if a given time falls within business hours.
+ * Checks if an instant falls within business hours, read in clinic time.
  *
- * @param date - The date/time to check
- * @param businessHours - Business hours configuration
+ * @param date - The instant to check
+ * @param businessHours - Business hours configuration (clinic wall-clock)
+ * @param timeZone - IANA timezone of the clinic
  * @returns true if the time is within business hours (excluding lunch)
  */
-export function isWithinBusinessHours(date: Date, businessHours: BusinessHours): boolean {
-  const hour = date.getHours();
-  const minute = date.getMinutes();
+export function isWithinBusinessHours(
+  date: Date,
+  businessHours: BusinessHours,
+  timeZone: string
+): boolean {
+  const [hour, minute] = formatInTimeZone(date, timeZone, 'H:m').split(':').map(Number);
   const totalMinutes = hour * 60 + minute;
 
   const startMinutes = businessHours.start * 60 + businessHours.startMinute;

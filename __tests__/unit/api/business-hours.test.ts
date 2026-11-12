@@ -71,6 +71,11 @@ describe('Business Hours API', () => {
     mockBusinessHours = Array.from({ length: 7 }, (_, i) =>
       createTestBusinessHour(i, { tenantId: mockTenant.id })
     );
+
+    // Interactive transactions run against the same mocked client.
+    prismaMock.$transaction.mockImplementation(((cb: (tx: typeof prismaMock) => unknown) =>
+      cb(prismaMock)) as any);
+    prismaMock.businessHours.updateMany.mockResolvedValue({ count: 1 });
   });
 
   afterEach(() => {
@@ -96,59 +101,70 @@ describe('Business Hours API', () => {
       expect(data.data.businessHours).toHaveLength(7);
     });
 
-    it('should create default settings when none exist', async () => {
+    it('returns default settings without writing when none exist', async () => {
       mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
-
-      // First call returns null (no settings exist)
-      prismaMock.tenantSettings.findUnique.mockResolvedValueOnce(null);
-
-      // Create returns new settings
-      prismaMock.tenantSettings.create.mockResolvedValue({
-        ...mockTenantSettings,
-        businessHours: [],
-      } as any);
-
-      // createMany for business hours
-      prismaMock.businessHours.createMany.mockResolvedValue({ count: 7 });
-
-      // Second findUnique returns settings with business hours
-      prismaMock.tenantSettings.findUnique.mockResolvedValue({
-        ...mockTenantSettings,
-        businessHours: mockBusinessHours,
-      } as any);
+      prismaMock.tenantSettings.findUnique.mockResolvedValue(null);
 
       const response = await GET();
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(prismaMock.tenantSettings.create).toHaveBeenCalled();
+      expect(data.data.defaultStartTime).toBe('08:00');
+      expect(data.data.defaultSlotDuration).toBe(15);
+      expect(data.data.businessHours).toHaveLength(7);
+      expect(prismaMock.tenantSettings.create).not.toHaveBeenCalled();
+      expect(prismaMock.businessHours.createMany).not.toHaveBeenCalled();
     });
 
-    it('should create default business hours when settings exist but hours are empty', async () => {
+    it('returns a default week from the tenant defaults without writing when no rows exist', async () => {
       mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
-
-      // First call returns settings without business hours
-      prismaMock.tenantSettings.findUnique.mockResolvedValueOnce({
-        ...mockTenantSettings,
-        businessHours: [],
-      } as any);
-
-      // createMany for business hours
-      prismaMock.businessHours.createMany.mockResolvedValue({ count: 7 });
-
-      // Second findUnique returns settings with business hours
       prismaMock.tenantSettings.findUnique.mockResolvedValue({
         ...mockTenantSettings,
-        businessHours: mockBusinessHours,
+        defaultStartTime: '09:00',
+        businessHours: [],
       } as any);
 
       const response = await GET();
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(prismaMock.businessHours.createMany).toHaveBeenCalled();
+      expect(data.data.businessHours).toHaveLength(7);
+      expect(data.data.businessHours[1]).toEqual(expect.objectContaining({
+        dayOfWeek: 1,
+        isWorkingDay: true,
+        startTime: '09:00',
+      }));
+      expect(data.data.businessHours[0].isWorkingDay).toBe(false);
+      // Concurrent GETs (StrictMode double fetch) used to seed 14 rows.
+      expect(prismaMock.businessHours.createMany).not.toHaveBeenCalled();
+      expect(prismaMock.businessHours.create).not.toHaveBeenCalled();
+    });
+
+    it('collapses duplicate rows to one per day', async () => {
+      mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
+      prismaMock.tenantSettings.findUnique.mockResolvedValue({
+        ...mockTenantSettings,
+        businessHours: [...mockBusinessHours, ...mockBusinessHours.map(h => ({ ...h, id: `dup-${h.dayOfWeek}` }))]
+          .sort((a, b) => a.dayOfWeek - b.dayOfWeek),
+      } as any);
+
+      const data = await (await GET()).json();
+
+      expect(data.data.businessHours.map((h: any) => h.dayOfWeek)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    });
+
+    it('reads only tenant-level rows', async () => {
+      mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
+      prismaMock.tenantSettings.findUnique.mockResolvedValue({
+        ...mockTenantSettings,
+        businessHours: mockBusinessHours,
+      } as any);
+
+      await GET();
+
+      expect(prismaMock.tenantSettings.findUnique).toHaveBeenCalledWith(expect.objectContaining({
+        include: { businessHours: expect.objectContaining({ where: { locationId: null } }) },
+      }));
     });
 
     it('should return 500 for unauthenticated request', async () => {
@@ -224,6 +240,115 @@ describe('Business Hours API', () => {
       });
     });
 
+    describe('Schedule consistency', () => {
+      const payload = (day: Record<string, unknown>, defaults: Record<string, unknown> = {}) => ({
+        defaultStartTime: '08:00',
+        defaultEndTime: '18:00',
+        defaultLunchStart: '13:00',
+        defaultLunchEnd: '14:00',
+        defaultSlotDuration: 15,
+        ...defaults,
+        businessHours: [{
+          dayOfWeek: 1,
+          isWorkingDay: true,
+          startTime: '08:00',
+          endTime: '18:00',
+          lunchStart: '13:00',
+          lunchEnd: '14:00',
+          slotDuration: 15,
+          ...day,
+        }],
+      });
+
+      beforeEach(() => {
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
+        prismaMock.tenantSettings.findUnique.mockResolvedValue({
+          ...mockTenantSettings,
+          businessHours: mockBusinessHours,
+        } as any);
+      });
+
+      it.each([
+        ['closing before opening', { startTime: '18:00', endTime: '09:00' }, 'endTime', 'La hora de cierre debe ser posterior a la de apertura'],
+        ['lunch start without end', { lunchEnd: null }, 'lunchEnd', 'Indica el fin de la comida'],
+        ['lunch end before start', { lunchStart: '14:00', lunchEnd: '13:00' }, 'lunchEnd', 'El fin de la comida debe ser posterior al inicio'],
+        ['lunch outside open hours', { lunchStart: '19:00', lunchEnd: '20:00' }, 'lunchStart', 'La comida debe quedar dentro del horario de atención'],
+      ])('rejects a working day with %s', async (_label, day, field, message) => {
+        const response = await PUT(createMockPutRequest(payload(day)));
+        const data = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(data.details).toContainEqual(expect.objectContaining({
+          path: ['businessHours', 0, field],
+          message,
+        }));
+        expect(prismaMock.$transaction).not.toHaveBeenCalled();
+      });
+
+      it('rejects inconsistent defaults', async () => {
+        const response = await PUT(createMockPutRequest(payload({}, { defaultStartTime: '18:00', defaultEndTime: '08:00' })));
+        const data = await response.json();
+
+        expect(response.status).toBe(400);
+        expect(data.details).toContainEqual(expect.objectContaining({
+          path: ['defaultEndTime'],
+          message: 'La hora de cierre debe ser posterior a la de apertura',
+        }));
+      });
+
+      it('does not validate times on a closed day', async () => {
+        const response = await PUT(createMockPutRequest(payload({ isWorkingDay: false, startTime: '18:00', endTime: '08:00' })));
+
+        expect(response.status).toBe(200);
+      });
+    });
+
+    describe('Clearing lunch ("Sin comida")', () => {
+      beforeEach(() => {
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
+        prismaMock.tenantSettings.findUnique.mockResolvedValue({
+          ...mockTenantSettings,
+          businessHours: mockBusinessHours,
+        } as any);
+      });
+
+      it('writes null when a day omits its lunch fields', async () => {
+        // Older clients serialized "Sin comida" as undefined, which JSON drops.
+        await PUT(createMockPutRequest({
+          defaultStartTime: '08:00',
+          defaultEndTime: '18:00',
+          defaultLunchStart: '13:00',
+          defaultLunchEnd: '14:00',
+          defaultSlotDuration: 15,
+          businessHours: [{
+            dayOfWeek: 1,
+            isWorkingDay: true,
+            startTime: '08:00',
+            endTime: '18:00',
+            slotDuration: 15,
+          }],
+        }));
+
+        expect(prismaMock.businessHours.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+          data: expect.objectContaining({ lunchStart: null, lunchEnd: null }),
+        }));
+      });
+
+      it('writes null for omitted default lunch fields', async () => {
+        await PUT(createMockPutRequest({
+          defaultStartTime: '08:00',
+          defaultEndTime: '18:00',
+          defaultSlotDuration: 15,
+        }));
+
+        expect(prismaMock.tenantSettings.upsert).toHaveBeenCalledWith(expect.objectContaining({
+          update: expect.objectContaining({ defaultLunchStart: null, defaultLunchEnd: null }),
+        }));
+      });
+    });
+
     describe('Null value handling (VETIF-160 fix)', () => {
       it('should accept null for optional time fields (lunchStart, lunchEnd)', async () => {
         mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
@@ -285,8 +410,8 @@ describe('Business Hours API', () => {
         prismaMock.tenantSettings.findUnique.mockResolvedValue({
           ...mockTenantSettings,
           id: 'settings-1',
+          businessHours: mockBusinessHours,
         } as any);
-        prismaMock.businessHours.update.mockResolvedValue(mockBusinessHours[1] as any);
 
         const request = createMockPutRequest({
           defaultStartTime: '08:00',
@@ -360,164 +485,77 @@ describe('Business Hours API', () => {
       });
     });
 
-    describe('Update by ID (VETIF-160 fix)', () => {
-      it('should update business hours by ID when id is provided', async () => {
-        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
+    describe('Tenant-scoped writes (IDOR)', () => {
+      const mondayPayload = (extra: Record<string, unknown> = {}) => ({
+        defaultStartTime: '08:00',
+        defaultEndTime: '18:00',
+        defaultSlotDuration: 15,
+        businessHours: [{
+          dayOfWeek: 1,
+          isWorkingDay: true,
+          startTime: '10:00',
+          endTime: '18:00',
+          lunchStart: '13:00',
+          lunchEnd: '14:00',
+          slotDuration: 15,
+          ...extra,
+        }],
+      });
 
+      beforeEach(() => {
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
         prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
         prismaMock.tenantSettings.findUnique.mockResolvedValue({
           ...mockTenantSettings,
-          id: 'settings-1',
           businessHours: mockBusinessHours,
         } as any);
-        prismaMock.businessHours.update.mockResolvedValue({
-          ...mockBusinessHours[1],
-          startTime: '10:00',
-        } as any);
-
-        const request = createMockPutRequest({
-          defaultStartTime: '08:00',
-          defaultEndTime: '18:00',
-          defaultSlotDuration: 15,
-          businessHours: [{
-            id: 'hours-1', // Existing record ID
-            dayOfWeek: 1,
-            isWorkingDay: true,
-            startTime: '10:00', // Updated value
-            endTime: '18:00',
-            lunchStart: '13:00',
-            lunchEnd: '14:00',
-            slotDuration: 15,
-          }],
-        });
-
-        const response = await PUT(request);
-        const data = await response.json();
-
-        expect(response.status).toBe(200);
-        expect(data.success).toBe(true);
-
-        // Should use update with the provided ID
-        expect(prismaMock.businessHours.update).toHaveBeenCalledWith({
-          where: { id: 'hours-1' },
-          data: expect.objectContaining({
-            startTime: '10:00',
-          }),
-        });
       });
 
-      it('should find and update by composite key when id is not provided', async () => {
-        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
-
-        prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
-        prismaMock.tenantSettings.findUnique.mockResolvedValue({
-          ...mockTenantSettings,
-          id: 'settings-1',
-        } as any);
-
-        // findFirst returns existing record
-        prismaMock.businessHours.findFirst.mockResolvedValue({
-          ...mockBusinessHours[1],
-          id: 'found-hours-id',
-        } as any);
-
-        prismaMock.businessHours.update.mockResolvedValue({
-          ...mockBusinessHours[1],
-          startTime: '10:00',
-        } as any);
-
-        const request = createMockPutRequest({
-          defaultStartTime: '08:00',
-          defaultEndTime: '18:00',
-          defaultSlotDuration: 15,
-          businessHours: [{
-            // No id provided
-            dayOfWeek: 1,
-            isWorkingDay: true,
-            startTime: '10:00',
-            endTime: '18:00',
-            lunchStart: '13:00',
-            lunchEnd: '14:00',
-            slotDuration: 15,
-          }],
-        });
-
-        const response = await PUT(request);
-        const data = await response.json();
+      it('ignores a body id and never updates a row by id alone', async () => {
+        // A row id that belongs to another tenant must not be writable.
+        const response = await PUT(createMockPutRequest(mondayPayload({ id: 'other-tenant-row' })));
 
         expect(response.status).toBe(200);
-        expect(data.success).toBe(true);
-
-        // Should search by composite key
-        expect(prismaMock.businessHours.findFirst).toHaveBeenCalledWith({
-          where: {
-            tenantId: mockTenant.id,
-            locationId: null,
-            dayOfWeek: 1,
-          },
-        });
-
-        // Then update using the found ID
-        expect(prismaMock.businessHours.update).toHaveBeenCalledWith({
-          where: { id: 'found-hours-id' },
-          data: expect.anything(),
-        });
+        expect(prismaMock.businessHours.update).not.toHaveBeenCalled();
+        for (const [args] of prismaMock.businessHours.updateMany.mock.calls) {
+          expect(args?.where).toEqual(expect.objectContaining({ tenantId: mockTenant.id }));
+          expect(args?.where).not.toHaveProperty('id');
+        }
       });
 
-      it('should create new business hours when none exist for day', async () => {
-        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
-
-        prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
-        prismaMock.tenantSettings.findUnique.mockResolvedValue({
-          ...mockTenantSettings,
-          id: 'settings-1',
-          businessHours: [],
-        } as any);
-
-        // findFirst returns null (no existing record)
-        prismaMock.businessHours.findFirst.mockResolvedValue(null);
-
-        prismaMock.businessHours.create.mockResolvedValue({
-          ...mockBusinessHours[1],
-          id: 'new-hours-id',
-        } as any);
-
-        const request = createMockPutRequest({
-          defaultStartTime: '08:00',
-          defaultEndTime: '18:00',
-          defaultSlotDuration: 15,
-          businessHours: [{
-            // No id provided
-            dayOfWeek: 1,
-            isWorkingDay: true,
-            startTime: '09:00',
-            endTime: '17:00',
-            lunchStart: '12:00',
-            lunchEnd: '13:00',
-            slotDuration: 30,
-          }],
-        });
-
-        const response = await PUT(request);
-        const data = await response.json();
+      it('updates the day by tenant, tenant-level location and dayOfWeek', async () => {
+        const response = await PUT(createMockPutRequest(mondayPayload()));
 
         expect(response.status).toBe(200);
-        expect(data.success).toBe(true);
+        expect(prismaMock.businessHours.updateMany).toHaveBeenCalledWith({
+          where: { tenantId: mockTenant.id, locationId: null, dayOfWeek: 1 },
+          data: expect.objectContaining({ startTime: '10:00' }),
+        });
+        expect(prismaMock.businessHours.create).not.toHaveBeenCalled();
+      });
 
-        // Should create new record
+      it('creates the day for the caller tenant when no row exists', async () => {
+        prismaMock.businessHours.updateMany.mockResolvedValue({ count: 0 });
+
+        const response = await PUT(createMockPutRequest(mondayPayload({ tenantId: 'other-tenant' })));
+
+        expect(response.status).toBe(200);
         expect(prismaMock.businessHours.create).toHaveBeenCalledWith({
           data: expect.objectContaining({
             tenantId: mockTenant.id,
             tenantSettingsId: 'settings-1',
             dayOfWeek: 1,
-            isWorkingDay: true,
-            startTime: '09:00',
-            endTime: '17:00',
+            startTime: '10:00',
           }),
         });
       });
-    });
 
+      it('runs every write inside one transaction', async () => {
+        await PUT(createMockPutRequest(mondayPayload()));
+
+        expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+      });
+    });
     describe('Update without businessHours array', () => {
       it('should update only default settings when businessHours array is not provided', async () => {
         mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });

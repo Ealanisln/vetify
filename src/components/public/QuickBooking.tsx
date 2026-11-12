@@ -4,13 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { Button } from '../ui/button';
 import { CheckCircle, AlertCircle, User, ArrowRight, Users, Clock, Heart, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import type { PublicTenant, PublicService } from '../../lib/tenant';
+import type { PublicTenant } from '../../lib/tenant';
+import { buildBookingServiceOptions, type BookingCatalogService } from '@/lib/public-booking-services';
 import { getTheme, getThemeClasses } from '../../lib/themes';
 import { formatDate } from '../../lib/utils/date-format';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
 import { getSessionId, trackConversion } from '@/lib/analytics/landing-tracker';
 import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
+import { DEFAULT_CLINIC_TIME_ZONE, clinicToday } from '@/lib/clinic-timezone';
 
 interface Pet {
   id: string;
@@ -53,6 +55,8 @@ interface SimilarCustomer extends Customer {
 
 interface QuickBookingProps {
   tenant: PublicTenant;
+  /** Active services from the clinic's catalog (Service table). */
+  services?: BookingCatalogService[];
 }
 
 interface TimeSlot {
@@ -92,14 +96,7 @@ interface SubmissionResult {
   error?: string;
 }
 
-// Default services fallback if tenant has no services configured
-const DEFAULT_SERVICES: PublicService[] = [
-  { title: 'Consulta General', description: 'Revisión general de salud' },
-  { title: 'Vacunación', description: 'Aplicación de vacunas' },
-  { title: 'Emergencia', description: 'Atención de emergencia' },
-];
-
-export function QuickBooking({ tenant }: QuickBookingProps) {
+export function QuickBooking({ tenant, services: catalogServices }: QuickBookingProps) {
   const theme = getTheme(tenant.publicTheme);
   const themeColor = tenant.publicThemeColor || theme.colors.primary;
   const themeClasses = getThemeClasses(theme);
@@ -125,10 +122,12 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
     border: theme.colors.border,
   };
 
-  // Get services from tenant config or use defaults
-  const services: PublicService[] = tenant.publicServices && tenant.publicServices.length > 0
-    ? tenant.publicServices
-    : DEFAULT_SERVICES;
+  // Catalog services first; legacy publicServices JSON / defaults only as fallback
+  const services = buildBookingServiceOptions({
+    catalog: catalogServices,
+    legacy: tenant.publicServices,
+    currencyCode: tenant.currencyCode,
+  });
 
   const [formData, setFormData] = useState({
     customerName: '',
@@ -699,7 +698,7 @@ export function QuickBooking({ tenant }: QuickBookingProps) {
                   type="date"
                   value={formData.preferredDate}
                   onChange={(e) => setFormData({...formData, preferredDate: e.target.value, preferredTime: ''})}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={clinicToday(tenant.timeZone ?? DEFAULT_CLINIC_TIME_ZONE)}
                   className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"
                 />
               </div>

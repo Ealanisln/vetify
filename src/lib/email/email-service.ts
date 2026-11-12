@@ -118,6 +118,12 @@ export async function sendEmail(
     const resend = getResendClient();
     const response = await resend.emails.send(payload);
 
+    // Resend resolves (does not throw) on API errors such as an unverified
+    // domain, so surface its error instead of a generic message.
+    if (response.error) {
+      throw new Error(`Resend error (${response.error.name}): ${response.error.message}`);
+    }
+
     if (!response.data?.id) {
       throw new Error('Failed to send email: No message ID returned');
     }
@@ -440,6 +446,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
       return await render(
         StaffInvitationEmail({
           staffName: d.staffName,
+          email: d.email,
           clinicName: d.clinicName,
           position: d.position,
           inviteUrl: d.inviteUrl,

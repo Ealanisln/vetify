@@ -21,6 +21,7 @@ import type { PublicTenant, FeaturedService } from '../../lib/tenant';
 import { getTheme, getThemeClasses } from '../../lib/themes';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
+import { formatMoney } from '@/lib/currency';
 import {
   fadeInUp,
   staggerContainerFast,
@@ -55,10 +56,6 @@ function getIconComponent(iconName: string | null): LucideIcon {
   return iconMap[iconName.toLowerCase()] || Stethoscope;
 }
 
-function formatPrice(price: number): string {
-  return `$${price.toLocaleString('es-MX', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
-}
-
 export function ClinicServices({ tenant, featuredServices }: ClinicServicesProps) {
   const theme = getTheme(tenant.publicTheme);
   const themeColor = tenant.publicThemeColor || theme.colors.primary;
@@ -90,7 +87,7 @@ export function ClinicServices({ tenant, featuredServices }: ClinicServicesProps
     icon: getIconComponent(service.publicIcon),
     title: service.name,
     description: service.description || '',
-    price: service.publicPriceLabel || formatPrice(service.price)
+    price: service.publicPriceLabel || formatMoney(service.price, tenant.currencyCode)
   })) || [];
 
   // Si no hay servicios destacados, mostrar mensaje de "Próximamente"

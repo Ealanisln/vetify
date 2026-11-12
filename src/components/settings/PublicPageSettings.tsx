@@ -548,7 +548,7 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
               </Button>
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
-              <strong>Tip:</strong> Puedes marcar hasta 10 servicios como destacados. El orden en que aparecen se puede ajustar desde el campo &quot;Orden de visualización&quot; en cada servicio.
+              <strong>Tip:</strong> Tu página principal muestra hasta 6 servicios destacados. La página de Servicios y el formulario para agendar citas muestran todos tus servicios activos.
             </div>
           </CardContent>
         </Card>

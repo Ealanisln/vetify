@@ -285,6 +285,7 @@ export interface StaffInvitationData extends BaseEmailData {
   template: 'staff-invitation';
   data: {
     staffName: string;
+    email?: string;
     clinicName: string;
     position: string;
     inviteUrl: string;

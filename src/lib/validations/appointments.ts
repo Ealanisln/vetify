@@ -128,36 +128,6 @@ export type AppointmentReminderData = z.infer<typeof appointmentReminderSchema>;
 export type BusinessHoursData = z.infer<typeof businessHoursSchema>;
 export type AppointmentStatus = typeof appointmentStatus[number];
 
-// Utilidades para validación
-export const validateAppointmentTime = (dateTime: Date) => {
-  const now = new Date();
-  const appointmentTime = new Date(dateTime);
-  
-  if (appointmentTime <= now) {
-    throw new Error('La cita debe ser en el futuro');
-  }
-  
-  const hour = appointmentTime.getHours();
-  const dayOfWeek = appointmentTime.getDay();
-  
-  // Verificar día laborable (lunes a sábado)
-  if (dayOfWeek === 0) {
-    throw new Error('No se pueden agendar citas los domingos');
-  }
-  
-  // Verificar horario laboral
-  if (hour < 8 || hour >= 18) {
-    throw new Error('Las citas deben ser entre 8:00 AM y 6:00 PM');
-  }
-  
-  // Verificar hora de comida
-  if (hour >= 13 && hour < 14) {
-    throw new Error('No se pueden agendar citas durante la hora de comida (1:00 PM - 2:00 PM)');
-  }
-  
-  return true;
-};
-
 export const getAppointmentStatusColor = (status: AppointmentStatus) => {
   const colors = {
     SCHEDULED: 'blue',

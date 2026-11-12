@@ -1,25 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '../../../../lib/auth';
 import { prisma } from '../../../../lib/prisma';
-import { ServiceCategory } from '@prisma/client';
 import { z } from 'zod';
-
-// Esquema de validación para actualizar servicios
-const updateServiceSchema = z.object({
-  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100),
-  description: z.string().optional(),
-  category: z.nativeEnum(ServiceCategory),
-  price: z.number().min(0).max(99999),
-  duration: z.number().min(1).max(480).optional(),
-  isActive: z.boolean(),
-  tenantId: z.string(),
-  locationId: z.string().nullable().optional(), // null = global (todas las ubicaciones)
-  // Public page display fields
-  isFeatured: z.boolean().optional(),
-  publicDisplayOrder: z.number().int().min(1).max(10).nullable().optional(),
-  publicIcon: z.string().max(50).nullable().optional(),
-  publicPriceLabel: z.string().max(100).nullable().optional()
-});
+import { buildServiceApiSchema } from '../../../../lib/validations/service';
+import { getTenantCurrencyCode } from '../../../../lib/tenant-currency';
 
 export async function PUT(
   request: NextRequest,
@@ -29,9 +13,10 @@ export async function PUT(
     const { tenant } = await requireAuth();
     const body = await request.json();
     const { id } = await params;
-    
-    // Validar datos
-    const validatedData = updateServiceSchema.parse(body);
+
+    // Validate against the tenant's currency limits
+    const currencyCode = await getTenantCurrencyCode(tenant.id);
+    const validatedData = buildServiceApiSchema(currencyCode).parse(body);
     
     // Verificar acceso al tenant
     if (validatedData.tenantId !== tenant.id) {
@@ -61,7 +46,7 @@ export async function PUT(
       const duplicateService = await prisma.service.findFirst({
         where: {
           tenantId: tenant.id,
-          name: validatedData.name,
+          name: { equals: validatedData.name, mode: 'insensitive' },
           id: { not: id }
         }
       });

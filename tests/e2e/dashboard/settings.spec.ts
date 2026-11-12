@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 /**
  * E2E Tests for Settings Management
@@ -115,74 +115,154 @@ test.describe('Settings Management', () => {
   });
 
   test.describe('Business Hours', () => {
-    test.beforeEach(async ({ page }) => {
+    // These tests save to the test tenant, so run them one at a time and
+    // restore what they change.
+    test.describe.configure({ mode: 'serial' });
+
+    const openBusinessHours = async (page: Page) => {
       await page.click('button:has-text("Horarios")');
+      await expect(page.locator('[data-testid="business-hours-settings"]')).toBeVisible();
+    };
+
+    const saveAndWait = async (page: Page) => {
+      const saved = page.waitForResponse(
+        (response) => response.url().includes('/api/settings/business-hours') && response.request().method() === 'PUT'
+      );
+      await page.locator('[data-testid="save-business-hours"]').click();
+      expect((await saved).ok()).toBe(true);
+      await expect(page.locator('text=Horarios de atención guardados exitosamente')).toBeVisible();
+    };
+
+    const reloadBusinessHours = async (page: Page) => {
+      await page.reload();
       await page.waitForLoadState('networkidle');
+      await openBusinessHours(page);
+    };
+
+    // Opens Monday if needed; returns whether it had to (unsaved change).
+    const ensureMondayOpen = async (page: Page) => {
+      const mondayToggle = page.locator('[data-testid="day-toggle-monday"]');
+      if ((await mondayToggle.textContent())?.trim() === 'Abrir') {
+        await mondayToggle.click();
+        return true;
+      }
+      return false;
+    };
+
+    test.beforeEach(async ({ page }) => {
+      await openBusinessHours(page);
     });
 
     test('should display all days of the week', async ({ page }) => {
       const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 
       for (const day of days) {
-        await expect(page.locator(`text=${day}`)).toBeVisible();
+        await expect(page.getByRole('heading', { name: day, exact: true })).toBeVisible();
       }
     });
 
     test('should have open/closed toggle for each day', async ({ page }) => {
-      const dayToggles = page.locator('[data-testid^="day-toggle-"]');
-      const count = await dayToggles.count();
-
-      expect(count).toBe(7); // 7 days
+      await expect(page.locator('[data-testid^="day-toggle-"]')).toHaveCount(7);
     });
 
-    test('should have time inputs for each day', async ({ page }) => {
-      const openTimeInputs = page.locator('[data-testid^="open-time-"]');
-      const closeTimeInputs = page.locator('[data-testid^="close-time-"]');
+    test('should have time inputs for each open day', async ({ page }) => {
+      const openDays = await page.locator('[data-testid^="day-toggle-"]', { hasText: 'Cerrar' }).count();
 
-      expect(await openTimeInputs.count()).toBeGreaterThan(0);
-      expect(await closeTimeInputs.count()).toBeGreaterThan(0);
+      expect(openDays).toBeGreaterThan(0);
+      await expect(page.locator('[data-testid^="open-time-"]')).toHaveCount(openDays);
+      await expect(page.locator('[data-testid^="close-time-"]')).toHaveCount(openDays);
     });
 
     test('should toggle day open/closed', async ({ page }) => {
       const mondayToggle = page.locator('[data-testid="day-toggle-monday"]');
+      const initialLabel = (await mondayToggle.textContent())?.trim();
 
-      if (await mondayToggle.isVisible()) {
-        const initialState = await mondayToggle.isChecked();
-        await mondayToggle.click();
+      await mondayToggle.click();
 
-        // State should change
-        const newState = await mondayToggle.isChecked();
-        expect(newState).not.toBe(initialState);
-      }
+      await expect(mondayToggle).toHaveText(initialLabel === 'Cerrar' ? 'Abrir' : 'Cerrar');
+      // Unsaved change: discard it so later tests start clean
+      await page.locator('[data-testid="reset-hours-button"]').click();
     });
 
-    test('should update opening time', async ({ page }) => {
-      const openTimeInput = page.locator('[data-testid="open-time-monday"]');
+    test('should update and persist opening time', async ({ page }) => {
+      const reopened = await ensureMondayOpen(page);
 
-      if (await openTimeInput.isVisible()) {
-        await openTimeInput.fill('09:00');
-        await expect(openTimeInput).toHaveValue('09:00');
-      }
+      const openTime = page.locator('[data-testid="open-time-monday"]');
+      const original = await openTime.inputValue();
+      const updated = original === '09:00' ? '09:30' : '09:00';
+
+      await openTime.selectOption(updated);
+      await expect(openTime).toHaveValue(updated);
+      await saveAndWait(page);
+
+      await reloadBusinessHours(page);
+      await expect(page.locator('[data-testid="open-time-monday"]')).toHaveValue(updated);
+
+      // Restore
+      await page.locator('[data-testid="open-time-monday"]').selectOption(original);
+      if (reopened) await page.locator('[data-testid="day-toggle-monday"]').click();
+      await saveAndWait(page);
     });
 
-    test('should save business hours changes', async ({ page }) => {
-      const saveButton = page.locator('[data-testid="save-business-hours"]');
+    test('should persist "Sin comida" after reload', async ({ page }) => {
+      const reopened = await ensureMondayOpen(page);
+      const lunchStart = page.locator('[data-testid="lunch-start-monday"]');
+      const lunchEnd = page.locator('[data-testid="lunch-end-monday"]');
+      const originalStart = await lunchStart.inputValue();
+      const originalEnd = await lunchEnd.inputValue();
 
-      if (await saveButton.isVisible()) {
-        await saveButton.click();
-        await expect(page.locator('text=/guardado|actualizado/i')).toBeVisible();
+      // Start from a day that has lunch, so clearing it is a real change
+      if (!originalStart) {
+        await lunchStart.selectOption('13:00');
+        await lunchEnd.selectOption('14:00');
+        await saveAndWait(page);
       }
+
+      await page.locator('[data-testid="lunch-start-monday"]').selectOption('');
+      await saveAndWait(page);
+
+      await reloadBusinessHours(page);
+      await expect(page.locator('[data-testid="lunch-start-monday"]')).toHaveValue('');
+      await expect(page.locator('[data-testid="lunch-end-monday"]')).toHaveValue('');
+
+      // Restore
+      if (originalStart && originalEnd) {
+        await page.locator('[data-testid="lunch-start-monday"]').selectOption(originalStart);
+        await page.locator('[data-testid="lunch-end-monday"]').selectOption(originalEnd);
+      }
+      if (reopened) await page.locator('[data-testid="day-toggle-monday"]').click();
+      if (originalStart || reopened) await saveAndWait(page);
+    });
+
+    test('should block saving when closing is before opening', async ({ page }) => {
+      await ensureMondayOpen(page);
+      await page.locator('[data-testid="open-time-monday"]').selectOption('10:00');
+      await page.locator('[data-testid="close-time-monday"]').selectOption('09:00');
+
+      await expect(page.locator('text=La hora de cierre debe ser posterior a la de apertura').first()).toBeVisible();
+      await page.locator('[data-testid="save-business-hours"]').click();
+      await expect(page.locator('text=Revisa los horarios marcados antes de guardar')).toBeVisible();
+
+      await page.locator('[data-testid="reset-hours-button"]').click();
     });
   });
-
   test.describe('Services Management', () => {
+    // Edit/delete/toggle only touch services this spec created, never real catalog data.
+    const E2E_PREFIX = 'Test Service E2E';
+    const e2eServiceCard = (page: Page) =>
+      page.locator('[data-testid="service-card"]', { hasText: E2E_PREFIX }).first();
+
     test.beforeEach(async ({ page }) => {
       await page.click('button:has-text("Servicios")');
       await page.waitForLoadState('networkidle');
     });
 
     test('should display services list', async ({ page }) => {
-      await expect(page.locator('[data-testid="services-list"]')).toBeVisible();
+      await expect(page.locator('[data-testid="services-settings"]')).toBeVisible();
+      // A tenant with no services shows the empty state instead of the grid
+      await expect(
+        page.locator('[data-testid="services-list"]').or(page.locator('[data-testid="services-empty-state"]'))
+      ).toBeVisible();
     });
 
     test('should have add service button', async ({ page }) => {
@@ -207,49 +287,64 @@ test.describe('Settings Management', () => {
       await page.click('[data-testid="add-service-button"]');
 
       const timestamp = Date.now();
-      await page.fill('[data-testid="service-name-input"]', `Test Service E2E ${timestamp}`);
+      await page.fill('[data-testid="service-name-input"]', `${E2E_PREFIX} ${timestamp}`);
       await page.fill('[data-testid="service-price-input"]', '150');
       await page.fill('[data-testid="service-duration-input"]', '30');
 
       await page.click('[data-testid="submit-service-button"]');
 
-      await expect(page.locator('text=/servicio.*creado/i')).toBeVisible();
+      await expect(page.locator('text=/servicio creado/i')).toBeVisible();
+      await expect(page.locator('[data-testid="service-card"]', { hasText: `${E2E_PREFIX} ${timestamp}` })).toBeVisible();
+    });
+
+    test('should create a service without duration', async ({ page }) => {
+      await page.click('[data-testid="add-service-button"]');
+
+      await page.fill('[data-testid="service-name-input"]', `${E2E_PREFIX} sin duración ${Date.now()}`);
+      await page.fill('[data-testid="service-price-input"]', '200');
+      await page.fill('[data-testid="service-duration-input"]', '');
+
+      await page.click('[data-testid="submit-service-button"]');
+
+      await expect(page.locator('text=/servicio creado/i')).toBeVisible();
     });
 
     test('should edit existing service', async ({ page }) => {
-      const serviceRow = page.locator('[data-testid="service-row"]').first();
+      const serviceCard = e2eServiceCard(page);
 
-      if (await serviceRow.isVisible()) {
-        await serviceRow.locator('[data-testid="edit-service-button"]').click();
+      if (await serviceCard.isVisible()) {
+        await serviceCard.locator('[data-testid="edit-service-button"]').click();
 
         await page.fill('[data-testid="service-price-input"]', '200');
         await page.click('[data-testid="submit-service-button"]');
 
-        await expect(page.locator('text=/servicio.*actualizado/i')).toBeVisible();
-      }
-    });
-
-    test('should delete service', async ({ page }) => {
-      const serviceRow = page.locator('[data-testid="service-row"]').first();
-
-      if (await serviceRow.isVisible()) {
-        await serviceRow.locator('[data-testid="delete-service-button"]').click();
-        await page.click('[data-testid="confirm-delete-button"]');
-
-        await expect(page.locator('text=/servicio.*eliminado/i')).toBeVisible();
+        await expect(page.locator('text=/servicio actualizado/i')).toBeVisible();
       }
     });
 
     test('should toggle service active status', async ({ page }) => {
-      const serviceRow = page.locator('[data-testid="service-row"]').first();
+      const serviceCard = e2eServiceCard(page);
 
-      if (await serviceRow.isVisible()) {
-        const toggleButton = serviceRow.locator('[data-testid="toggle-service-active"]');
+      if (await serviceCard.isVisible()) {
+        await serviceCard.locator('[data-testid="edit-service-button"]').click();
+        await page.locator('[data-testid="service-active-checkbox"]').uncheck();
+        await page.click('[data-testid="submit-service-button"]');
 
-        if (await toggleButton.isVisible()) {
-          await toggleButton.click();
-          await expect(page.locator('text=/servicio.*activado|desactivado/i')).toBeVisible();
-        }
+        await expect(page.locator('text=/servicio actualizado/i')).toBeVisible();
+        await expect(serviceCard.locator('text=Inactivo')).toBeVisible();
+      }
+    });
+
+    test('should delete service', async ({ page }) => {
+      const serviceCard = e2eServiceCard(page);
+
+      if (await serviceCard.isVisible()) {
+        // Deletion is confirmed with a native confirm() dialog
+        page.once('dialog', (dialog) => dialog.accept());
+        await serviceCard.locator('[data-testid="delete-service-button"]').click();
+
+        // Without sales it is deleted; with sales the API deactivates it instead
+        await expect(page.locator('text=/servicio eliminado|se ha desactivado/i')).toBeVisible();
       }
     });
   });
