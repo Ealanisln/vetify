@@ -15,6 +15,7 @@ import {
   getClinicTimeZone,
   parseClinicDate,
 } from '../../../../lib/clinic-timezone';
+import { defaultDayHours } from '../../../../lib/business-hours';
 
 const availabilitySchema = z.object({
   tenantSlug: z.string().min(1),
@@ -36,7 +37,8 @@ async function getBusinessHours(tenantId: string, dayOfWeek: number): Promise<Bu
       }
     });
 
-    const dayBusinessHours = tenantSettings?.businessHours?.[0];
+    // No row yet (tenant predates signup seeding): use the default week
+    const dayBusinessHours = tenantSettings?.businessHours?.[0] ?? defaultDayHours(dayOfWeek, tenantSettings);
 
     if (!dayBusinessHours?.isWorkingDay) {
       return null;

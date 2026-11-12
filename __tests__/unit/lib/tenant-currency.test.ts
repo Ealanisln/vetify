@@ -11,7 +11,8 @@ jest.mock('@/lib/prisma', () => {
   const tx = {
     tenant: { create: jest.fn().mockResolvedValue({ id: 'tenant-1' }) },
     tenantSubscription: { create: jest.fn().mockResolvedValue({}) },
-    tenantSettings: { create: jest.fn().mockResolvedValue({}) },
+    tenantSettings: { create: jest.fn().mockResolvedValue({ id: 'settings-1' }) },
+    businessHours: { createMany: jest.fn().mockResolvedValue({ count: 7 }) },
     tenantUsageStats: { create: jest.fn().mockResolvedValue({}) },
     role: { create: jest.fn().mockResolvedValue({ id: 'role-1' }) },
     user: {
