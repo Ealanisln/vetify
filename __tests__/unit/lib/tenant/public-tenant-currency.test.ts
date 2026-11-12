@@ -38,7 +38,9 @@ describe('getTenantBySlug currency', () => {
     expect(tenant).not.toHaveProperty('tenantSettings');
     expect(findUnique).toHaveBeenCalledWith(
       expect.objectContaining({
-        select: expect.objectContaining({ tenantSettings: { select: { currencyCode: true } } }),
+        select: expect.objectContaining({
+          tenantSettings: { select: expect.objectContaining({ currencyCode: true }) },
+        }),
       })
     );
   });
