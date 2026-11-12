@@ -85,4 +85,34 @@ describe('admin notifications', () => {
       'https://www.vetify.pro/admin/tenants?search=a%26b'
     );
   });
+
+  it('never logs the user email address', async () => {
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      await notifyNewUserRegistration({
+        userName: 'Ana',
+        userEmail: 'ana@example.com',
+        tenantId: 'tenant_1',
+        tenantName: 'Clínica Norte',
+        tenantSlug: 'clinica-norte',
+        planType: 'TRIAL',
+      });
+      await notifyNewSubscriptionPayment({
+        userName: 'Ana',
+        userEmail: 'ana@example.com',
+        tenantId: 'tenant_1',
+        tenantName: 'Clínica Norte',
+        tenantSlug: 'clinica-norte',
+        planName: 'Profesional',
+        planAmount: 59900,
+        currency: 'mxn',
+        billingInterval: 'month',
+      });
+
+      expect(logSpy).toHaveBeenCalled();
+      expect(JSON.stringify(logSpy.mock.calls)).not.toContain('ana@example.com');
+    } finally {
+      logSpy.mockRestore();
+    }
+  });
 });
