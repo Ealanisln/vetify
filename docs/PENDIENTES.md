@@ -37,6 +37,42 @@ Lista viva de lo que falta. Lo más importante va arriba. Cuando algo se cierre,
 
     **Tests:** los de integración de servicios e invitaciones solo prueban `prismaMock` y no llaman las routes reales. Los E2E de settings buscan test IDs que no existen en el código.
 
+## Prioridad 0-B: auditoría de flujos indispensables (12/Nov)
+
+El detalle completo está en `docs/AUDITORIA-FLUJOS-2026-11.md`. Aquí solo va lo que más le duele a una clínica real.
+
+**Se puede arreglar ya (sin decisiones de cobro ni de esquema):**
+- [ ] El onboarding no muestra el error cuando falla el alta.
+- [ ] El formulario combinado dice "éxito" aunque la mascota falle, y las unidades de peso no coinciden (`g`/`lb` contra `kg`/`lbs`).
+- [ ] `AddPetForm` vuelve a crear el cliente en cada reintento, y el selector de dueño solo muestra 10 clientes.
+- [ ] El calendario y la lista de hoy ven como máximo 10 citas.
+- [ ] Los correos de cita y la tarjeta de "Próximas citas" muestran la hora en UTC.
+- [ ] Recordatorios de cita: el cron solo busca citas entre 24 y 25 horas adelante.
+- [ ] Los recordatorios de vacunas y tratamientos nunca se crean.
+- [ ] Las alertas de inventario consultan relaciones que no existen.
+- [ ] El cron esconde sus fallas.
+- [ ] `/dashboard/medical-history/new` está roto y el detalle de una historia dice "no encontrada".
+- [ ] La vacuna no se guarda si "Etapa" queda vacía, y los chips de medicamento no llenan el campo.
+- [ ] Arrastrar una cita se revierte, editar obliga a reprogramar y las citas después de las 18:00 no se ven.
+- [ ] La reserva pública expone datos de otros clientes y no tiene límite de peticiones.
+- [ ] El plan anual se cobra como mensual (es un mapeo de `annual` a `yearly`).
+
+**Requiere decisión (💳 cobro/permisos, 🗄 esquema):**
+- [ ] 💳 Cambiar de plan cancela la suscripción antes de cobrar la nueva.
+- [ ] 💳 Los eventos de una suscripción vieja pisan a la actual.
+- [ ] 💳 "Suscribirse Ahora" siempre cobra Profesional.
+- [ ] 💳 No hay periodo de gracia para PAST_DUE.
+- [ ] 💳 Promociones aplicadas dos veces, y 30 días extra al volver a suscribirse.
+- [ ] 💳 El acceso solo se valida en algunas rutas, las API keys siguen después de vencer y no hay permisos por rol en las rutas clínicas.
+- [ ] 🗄 `Staff.email` es único entre clínicas, y eso impide el alta de algunas personas.
+- [ ] Reserva pública: hacer la bandeja de solicitudes o apagarla mientras tanto.
+- [ ] El correo de "trial vencido" llega 6 días tarde (una columna nueva o leer el EmailLog).
+
+**La red de pruebas:**
+- [ ] Crear la ruta de sesión de prueba (`/api/test-auth`, solo en el entorno de test) y prender `TEST_AUTH_ENABLED` en CI.
+- [ ] Alinear los `data-testid` de los specs con el código y quitar los `if (isVisible)`.
+- [ ] Reemplazar los tests de integración que solo prueban mocks por tests que llamen las rutas reales.
+
 ## Prioridad 1
 
 - [x] **Correos que se pierden en Vercel.** Varios envíos salían sin `await` y Vercel congelaba la función antes de que terminaran. Se movieron a `after()` con el helper `src/lib/after-response.ts`. Ya está hecho en la rama `fix/after-background-emails` (worktree `vetify-worktrees/after-background-emails`), pero falta el commit, el PR a `development` y el release. _Resuelto en el PR de P0 (12/Nov)._
