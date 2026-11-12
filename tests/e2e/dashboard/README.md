@@ -89,13 +89,13 @@ Para que los tests funcionen correctamente, los componentes deben tener los sigu
 #### Configuración (settings) - ⏳ Pendiente
 - [ ] `settings-tabs` - Contenedor de tabs
 - [ ] `public-page-settings` - Settings de página pública
-- [ ] `business-hours-settings` - Settings de horarios
+- [x] `business-hours-settings` - Settings de horarios
 - [ ] `services-settings` - Settings de servicios
 - [ ] `subscription-settings` - Settings de suscripción
 - [ ] `notification-settings` - Settings de notificaciones
 - [ ] `staff-settings` - Settings de personal
-- [ ] `day-toggle-*` - Toggles de días (monday, tuesday, etc.)
-- [ ] `open-time-*`, `close-time-*` - Inputs de horario
+- [x] `day-toggle-*` - Toggles de días (monday, tuesday, etc.)
+- [x] `open-time-*`, `close-time-*` - Inputs de horario
 - [ ] `add-service-button` - Botón agregar servicio
 - [ ] `service-modal` - Modal de servicio
 - [ ] `service-row` - Fila de servicio
