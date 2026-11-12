@@ -252,17 +252,32 @@ export default function StaffList({ initialStaff, pagination: initialPagination,
       );
     }
 
-    // Has pending invitation
-    if (invitation?.status === 'PENDING') {
+    // Has an invitation that was sent but not accepted. A PENDING row whose
+    // expiresAt passed is expired too (the status is only updated lazily).
+    const isExpired =
+      invitation?.status === 'EXPIRED' ||
+      (invitation?.status === 'PENDING' && new Date(invitation.expiresAt).getTime() <= Date.now());
+
+    if (invitation?.status === 'PENDING' || isExpired) {
       return (
         <div className="flex items-center gap-2">
-          <Badge
-            variant="secondary"
-            className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700 flex items-center gap-1"
-          >
-            <ClockIcon className="h-3 w-3" />
-            Invitación pendiente
-          </Badge>
+          {isExpired ? (
+            <Badge
+              variant="secondary"
+              className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 dark:border-red-700 flex items-center gap-1"
+            >
+              <ClockIcon className="h-3 w-3" />
+              Invitación expirada
+            </Badge>
+          ) : (
+            <Badge
+              variant="secondary"
+              className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-700 flex items-center gap-1"
+            >
+              <ClockIcon className="h-3 w-3" />
+              Invitación pendiente
+            </Badge>
+          )}
           {canWrite && (
             <Button
               variant="ghost"
