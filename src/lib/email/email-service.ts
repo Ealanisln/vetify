@@ -30,6 +30,7 @@ import type {
   DataRetentionWarningData,
 } from './types';
 import { logEmailSend } from '../notifications/notification-logger';
+import { resolveDefaultReplyTo } from './clinic-reply-to';
 import {
   AppointmentConfirmationEmail,
   AppointmentReminderEmail,
@@ -105,12 +106,18 @@ export async function sendEmail(
       ? `${emailData.from.name} <${emailData.from.email}>`
       : `${DEFAULT_CONFIG.fromName} <${DEFAULT_CONFIG.fromEmail}>`;
 
+    // Customer emails reply to the clinic; everything else to Vetify
+    const replyTo =
+      emailData.replyTo ||
+      (await resolveDefaultReplyTo(emailData)) ||
+      DEFAULT_CONFIG.replyToEmail;
+
     const payload = {
       from,
       to: emailData.to.email,
       subject: emailData.subject,
       html: htmlContent,
-      replyTo: emailData.replyTo || DEFAULT_CONFIG.replyToEmail,
+      replyTo,
       cc: emailData.cc?.map((r) => r.email),
       bcc: emailData.bcc?.map((r) => r.email),
     };
