@@ -96,7 +96,9 @@ export async function POST(request: NextRequest) {
     // Accept the invitation
     const result = await acceptInvitation(token, user.id);
 
-    if (!result.success) {
+    // `in` check: boolean-discriminant narrowing needs strictNullChecks,
+    // which this repo has off.
+    if ('error' in result) {
       // Conflicts with an existing account link are 409 so the page can
       // offer to switch accounts instead of retrying.
       return NextResponse.json(
