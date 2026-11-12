@@ -10,9 +10,12 @@ import {
   GlobeAltIcon,
   BuildingStorefrontIcon
 } from '@heroicons/react/24/outline';
-import { ServiceCategory } from '@prisma/client';
+import type { ServiceCategory } from '@prisma/client';
+import { toast } from 'sonner';
 import { ServiceModal } from './ServiceModal';
 import { ServiceWithCategory } from '@/types';
+import { useFormatMoney } from '@/components/providers/CurrencyProvider';
+import { SERVICE_CATEGORIES, getServiceCategoryLabel } from '@/lib/service-categories';
 
 interface ServiceManagementProps {
   tenantId: string;
@@ -25,6 +28,7 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
   const [editingService, setEditingService] = useState<ServiceWithCategory | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<ServiceCategory | 'ALL'>('ALL');
+  const formatMoney = useFormatMoney();
 
   // Cargar servicios
   const loadServices = useCallback(async () => {
@@ -76,14 +80,25 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
         method: 'DELETE',
       });
 
-      if (response.ok) {
-        setServices(services.filter(s => s.id !== serviceId));
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        toast.error(data.error || 'Error al eliminar el servicio');
+        return;
+      }
+
+      if (data.service) {
+        // Services with sales are deactivated, not deleted: keep the card and
+        // reflect its new state (the response omits the location relation).
+        setServices(prev => prev.map(s => s.id === serviceId ? { ...s, ...data.service, location: s.location } : s));
+        toast.info(data.message || 'El servicio se desactivó');
       } else {
-        alert('Error al eliminar el servicio');
+        setServices(prev => prev.filter(s => s.id !== serviceId));
+        toast.success(data.message || 'Servicio eliminado correctamente');
       }
     } catch (error) {
       console.error('Error deleting service:', error);
-      alert('Error al eliminar el servicio');
+      toast.error('Error al eliminar el servicio');
     }
   };
 
@@ -92,37 +107,21 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
     if (editingService) {
       // Actualizar servicio existente
       setServices(services.map(s => s.id === service.id ? service : s));
+      toast.success('Servicio actualizado');
     } else {
       // Agregar nuevo servicio
       setServices([...services, service]);
+      toast.success('Servicio creado');
     }
     setIsModalOpen(false);
     setEditingService(null);
   };
 
-  // Categorías de servicios
+  // Categorías de servicios (filtro)
   const serviceCategories = [
     { value: 'ALL', label: 'Todos los servicios' },
-    { value: 'CONSULTATION', label: 'Consultas' },
-    { value: 'SURGERY', label: 'Cirugías' },
-    { value: 'VACCINATION', label: 'Vacunación' },
-    { value: 'DEWORMING', label: 'Desparasitación' },
-    { value: 'PREVENTATIVE_CARE', label: 'Medicina Preventiva' },
-    { value: 'GROOMING', label: 'Estética' },
-    { value: 'BOARDING', label: 'Hospitalización' },
-    { value: 'DENTAL_CARE', label: 'Cuidado Dental' },
-    { value: 'LABORATORY_TEST', label: 'Análisis de Laboratorio' },
-    { value: 'IMAGING_RADIOLOGY', label: 'Radiografías/Imágenes' },
-    { value: 'HOSPITALIZATION', label: 'Hospitalización' },
-    { value: 'EMERGENCY_CARE', label: 'Atención de Emergencia' },
-    { value: 'EUTHANASIA', label: 'Eutanasia' },
-    { value: 'OTHER', label: 'Otros' }
+    ...SERVICE_CATEGORIES.map(category => ({ value: category, label: getServiceCategoryLabel(category) })),
   ];
-
-  // Obtener etiqueta de categoría
-  const getCategoryLabel = (category: ServiceCategory) => {
-    return serviceCategories.find(c => c.value === category)?.label || category;
-  };
 
   // Obtener color de categoría
   const getCategoryColor = (category: ServiceCategory) => {
@@ -156,7 +155,7 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6" data-testid="services-settings">
       {/* Header con búsqueda y filtros */}
       <div className="space-y-3 mb-6">
         {/* Búsqueda */}
@@ -201,87 +200,89 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
       </div>
 
       {/* Lista de servicios */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredServices.map((service) => (
-          <div
-            key={service.id}
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
-            data-testid="service-card"
-          >
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex-1">
-                <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
-                  {service.name}
-                </h3>
-                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(service.category)}`}>
-                  {getCategoryLabel(service.category)}
-                </span>
+      {filteredServices.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="services-list">
+          {filteredServices.map((service) => (
+            <div
+              key={service.id}
+              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow"
+              data-testid="service-card"
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex-1">
+                  <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                    {service.name}
+                  </h3>
+                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getCategoryColor(service.category)}`}>
+                    {getServiceCategoryLabel(service.category)}
+                  </span>
+                </div>
+                
+                <div className="flex space-x-1 ml-2">
+                  <button
+                    onClick={() => handleEditService(service)}
+                    className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    title="Editar"
+                    data-testid="edit-service-button"
+                  >
+                    <PencilIcon className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteService(service.id)}
+                    className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                    title="Eliminar"
+                    data-testid="delete-service-button"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
               
-              <div className="flex space-x-1 ml-2">
-                <button
-                  onClick={() => handleEditService(service)}
-                  className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-                  title="Editar"
-                  data-testid="edit-service-button"
-                >
-                  <PencilIcon className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleDeleteService(service.id)}
-                  className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-                  title="Eliminar"
-                  data-testid="delete-service-button"
-                >
-                  <TrashIcon className="h-4 w-4" />
-                </button>
+              {service.description && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                  {service.description}
+                </p>
+              )}
+              
+              <div className="flex justify-between items-center text-sm">
+                <span className="font-medium text-gray-900 dark:text-gray-100">
+                  {formatMoney(Number(service.price))}
+                </span>
+                {service.duration && (
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {service.duration} min
+                  </span>
+                )}
+              </div>
+              
+              <div className="mt-2 flex flex-wrap gap-2 items-center">
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  service.isActive
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                    : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                }`}>
+                  {service.isActive ? 'Activo' : 'Inactivo'}
+                </span>
+                {/* Badge de ubicación */}
+                {service.locationId ? (
+                  <span className="inline-flex items-center text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                    <BuildingStorefrontIcon className="h-3 w-3 mr-1" />
+                    {service.location?.name || 'Ubicación'}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
+                    <GlobeAltIcon className="h-3 w-3 mr-1" />
+                    Global
+                  </span>
+                )}
               </div>
             </div>
-            
-            {service.description && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
-                {service.description}
-              </p>
-            )}
-            
-            <div className="flex justify-between items-center text-sm">
-              <span className="font-medium text-gray-900 dark:text-gray-100">
-                ${typeof service.price === 'number' ? service.price : Number(service.price)}
-              </span>
-              {service.duration && (
-                <span className="text-gray-500 dark:text-gray-400">
-                  {service.duration} min
-                </span>
-              )}
-            </div>
-            
-            <div className="mt-2 flex flex-wrap gap-2 items-center">
-              <span className={`text-xs px-2 py-1 rounded-full ${
-                service.isActive
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-                  : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-              }`}>
-                {service.isActive ? 'Activo' : 'Inactivo'}
-              </span>
-              {/* Badge de ubicación */}
-              {service.locationId ? (
-                <span className="inline-flex items-center text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
-                  <BuildingStorefrontIcon className="h-3 w-3 mr-1" />
-                  {service.location?.name || 'Ubicación'}
-                </span>
-              ) : (
-                <span className="inline-flex items-center text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">
-                  <GlobeAltIcon className="h-3 w-3 mr-1" />
-                  Global
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {filteredServices.length === 0 && (
-        <div className="text-center py-12">
+        <div className="text-center py-12" data-testid="services-empty-state">
           <div className="text-gray-400 text-lg mb-2">🏥</div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
             No hay servicios
