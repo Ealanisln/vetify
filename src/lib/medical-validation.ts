@@ -42,7 +42,11 @@ export const vaccinationSchema = z.object({
   ),
   veterinarian_id: z.string().min(1, "Selecciona un veterinario"),
   side_effects: z.string().optional(),
-  vaccine_stage: z.nativeEnum(VaccinationStage).optional(),
+  // The form's "Selecciona una etapa..." option sends '', which means not provided
+  vaccine_stage: z.preprocess(
+    (value) => (value === '' || value === null ? undefined : value),
+    z.nativeEnum(VaccinationStage, { errorMap: () => ({ message: 'Selecciona una etapa válida' }) }).optional()
+  ),
   manufacturer: z.string().optional(),
   notes: z.string().optional(),
 });
