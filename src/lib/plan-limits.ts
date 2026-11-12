@@ -477,7 +477,8 @@ export async function validatePlanAction(
   switch (action) {
     case 'addPet': {
       const petCheck = await checkPetLimit(tenantId);
-      if (!petCheck.canAdd || petCheck.remaining < quantity) {
+      // remaining is -1 for unlimited plans
+      if (!petCheck.canAdd || (petCheck.remaining !== -1 && petCheck.remaining < quantity)) {
         throw new PlanLimitError(
           'pets',
           petCheck.current,

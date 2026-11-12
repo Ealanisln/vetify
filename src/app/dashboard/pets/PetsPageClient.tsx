@@ -9,7 +9,8 @@ import { PetWithOwner } from '@/types';
 import type { SortOrder } from '@/components/ui/ResponsiveTable';
 
 interface PetsPageClientProps {
-  maxPets: number;
+  /** From checkPetLimit: living pets vs. the plan limit (-1 = unlimited). */
+  petLimit: { canAdd: boolean; current: number; limit: number };
 }
 
 interface PaginationState {
@@ -21,7 +22,7 @@ interface PaginationState {
 
 const ITEMS_PER_PAGE = 10;
 
-export function PetsPageClient({ maxPets }: PetsPageClientProps) {
+export function PetsPageClient({ petLimit }: PetsPageClientProps) {
   const [pets, setPets] = useState<PetWithOwner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,8 +115,9 @@ export function PetsPageClient({ maxPets }: PetsPageClientProps) {
     // fetchPets will be called automatically due to useEffect dependency
   };
 
-  // Use total from pagination for accurate count
-  const canAddPet = pagination.total < maxPets;
+  // The server already counted living pets for the whole clinic
+  const canAddPet = petLimit.canAdd;
+  const maxPets = petLimit.limit;
 
   if (isLoading && pets.length === 0) {
     return (
@@ -184,7 +186,7 @@ export function PetsPageClient({ maxPets }: PetsPageClientProps) {
           <div className="text-sm text-gray-500 dark:text-gray-400" data-testid="pets-limit-reached">
             Límite alcanzado -{' '}
             <Link
-              href="/dashboard/settings/billing"
+              href="/dashboard/settings?tab=subscription"
               className="text-vetify-green-600 hover:text-vetify-green-700 dark:text-vetify-green-400 dark:hover:text-vetify-green-300"
             >
               Mejorar Plan

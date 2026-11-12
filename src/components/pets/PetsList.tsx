@@ -161,8 +161,13 @@ export function PetsList({
             </>
           ) : (
             <>
-              <span className="font-semibold text-gray-900 dark:text-gray-100">{actualTotalPets}</span> de{' '}
-              <span className="font-semibold text-gray-900 dark:text-gray-100">{maxPets}</span> mascotas registradas
+              <span className="font-semibold text-gray-900 dark:text-gray-100">{actualTotalPets}</span>
+              {maxPets >= 0 && (
+                <>
+                  {' '}de <span className="font-semibold text-gray-900 dark:text-gray-100">{maxPets}</span>
+                </>
+              )}{' '}
+              mascotas registradas
             </>
           )}
         </p>

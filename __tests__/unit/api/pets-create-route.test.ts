@@ -105,4 +105,66 @@ describe('POST /api/pets', () => {
     expect(res.status).toBe(200);
     expect(prismaMock.pet.create).toHaveBeenCalledTimes(1);
   });
+
+  describe('plan limits', () => {
+    const paidTenant = (maxPets: number) => ({
+      id: 'tenant-1',
+      subscriptionStatus: 'ACTIVE',
+      isTrialPeriod: false,
+      trialEndsAt: null,
+      subscriptionEndsAt: new Date(Date.now() + 20 * DAY),
+      tenantSubscription: { plan: { maxPets, maxUsers: 10, storageGB: 5, maxCashRegisters: 1, features: {} } },
+    });
+
+    // Living pets for the limit; the tenant also has deceased ones
+    const countPets = (alive: number, deceased: number) =>
+      prismaMock.pet.count.mockImplementation((async (args?: { where?: { isDeceased?: boolean } }) =>
+        args?.where?.isDeceased === false ? alive : alive + deceased) as never);
+
+    beforeEach(() => {
+      prismaMock.user.count.mockResolvedValue(1);
+      prismaMock.automationLog.count.mockResolvedValue(0);
+      prismaMock.tenantUsageStats.findUnique.mockResolvedValue(null);
+    });
+
+    it('lets an unlimited plan (-1) add pets', async () => {
+      prismaMock.tenant.findUnique.mockResolvedValue(paidTenant(-1) as never);
+      countPets(500, 0);
+
+      const res = await POST(postRequest(validBody));
+
+      expect(res.status).toBe(200);
+      expect(prismaMock.pet.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('gives a trial without subscription the default limit, not 50', async () => {
+      countPets(60, 0);
+
+      const res = await POST(postRequest(validBody));
+
+      expect(res.status).toBe(200);
+    });
+
+    it('does not count deceased pets toward the limit', async () => {
+      prismaMock.tenant.findUnique.mockResolvedValue(paidTenant(500) as never);
+      countPets(499, 30);
+
+      const res = await POST(postRequest(validBody));
+
+      expect(res.status).toBe(200);
+    });
+
+    it('blocks the pet in Spanish once the living pets reach the limit', async () => {
+      prismaMock.tenant.findUnique.mockResolvedValue(paidTenant(500) as never);
+      countPets(500, 0);
+
+      const res = await POST(postRequest(validBody));
+      const body = await res.json();
+
+      expect(res.status).toBe(403);
+      expect(body.error).toBe('plan_limit_exceeded');
+      expect(body.message).toMatch(/límite de 500 mascotas/);
+      expect(prismaMock.pet.create).not.toHaveBeenCalled();
+    });
+  });
 });

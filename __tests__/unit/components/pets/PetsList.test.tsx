@@ -41,3 +41,15 @@ describe('PetsList row subtitle', () => {
     expect(subtitleFor(makePet({ species: 'cat', breed: '  ' }))).toBe('Gato • Macho');
   });
 });
+
+describe('PetsList limit counter', () => {
+  it('shows the plan limit', () => {
+    render(<PetsList pets={[makePet()]} maxPets={500} totalPets={12} />);
+    expect(screen.getByTestId('pets-limit-indicator')).toHaveTextContent('12 de 500 mascotas registradas');
+  });
+
+  it('does not print -1 for an unlimited plan', () => {
+    render(<PetsList pets={[makePet()]} maxPets={-1} totalPets={12} />);
+    expect(screen.getByTestId('pets-limit-indicator')).toHaveTextContent(/^12 mascotas registradas$/);
+  });
+});

@@ -44,23 +44,15 @@ export const createPetSchema = z.object({
 
 export type CreatePetInput = z.infer<typeof createPetSchema>;
 
+/**
+ * Creates a pet for a customer of the tenant. The plan's pet limit is not
+ * checked here: callers run validatePlanAction(tenantId, 'addPet') first,
+ * which uses checkPetLimit, the single source of truth for that limit.
+ */
 export async function createPet(
-  tenantId: string, 
+  tenantId: string,
   data: CreatePetInput
 ) {
-  // Check plan limits
-  const petCount = await prisma.pet.count({ where: { tenantId } });
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-    include: { tenantSubscription: { include: { plan: true } } }
-  });
-  
-  const maxPets = tenant?.tenantSubscription?.plan?.maxPets || 50;
-  
-  if (petCount >= maxPets) {
-    throw new Error('Plan limit reached. Upgrade to add more pets.');
-  }
-
   // Verify customer exists and belongs to tenant
   const customer = await prisma.customer.findFirst({
     where: { id: data.customerId, tenantId }
