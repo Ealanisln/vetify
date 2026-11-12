@@ -196,55 +196,6 @@ describe('Public Availability API', () => {
       expect(slotAt10).toBeUndefined();
     });
 
-    it('should exclude slots with confirmed appointment requests', async () => {
-      const futureDate = new Date();
-      futureDate.setDate(futureDate.getDate() + 7);
-      futureDate.setHours(0, 0, 0, 0); // Reset to start of day in local time
-
-      // Use local date components to create the date string (avoid UTC conversion issues)
-      const year = futureDate.getFullYear();
-      const month = String(futureDate.getMonth() + 1).padStart(2, '0');
-      const day = String(futureDate.getDate()).padStart(2, '0');
-      const dateString = `${year}-${month}-${day}`;
-      const dayOfWeek = futureDate.getDay();
-
-      // Create a confirmed request at 11:00 using the same date
-      const requestDate = new Date(year, futureDate.getMonth(), futureDate.getDate(), 0, 0, 0, 0);
-
-      prismaMock.tenant.findUnique.mockResolvedValue(mockTenant as any);
-      prismaMock.tenantSettings.findUnique.mockResolvedValue(
-        createMockTenantSettings(mockTenant.id, [
-          createMockBusinessHours(mockTenant.id, dayOfWeek),
-        ]) as any
-      );
-      prismaMock.appointment.findMany.mockResolvedValue([]);
-      prismaMock.appointmentRequest.findMany.mockResolvedValue([
-        {
-          id: 'req-1',
-          preferredDate: requestDate,
-          preferredTime: '11:00',
-          status: 'CONFIRMED',
-        },
-      ] as any);
-
-      const request = createMockRequest({
-        tenantSlug: 'test-clinic',
-        date: dateString,
-      });
-
-      const response = await GET(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-
-      // 11:00 slot should not be in available slots
-      const slotAt11 = data.data.availableSlots.find(
-        (slot: { time: string }) => slot.time === '11:00'
-      );
-      expect(slotAt11).toBeUndefined();
-    });
-
     it('should accept custom duration parameter', async () => {
       const futureDate = new Date();
       futureDate.setDate(futureDate.getDate() + 7);
@@ -618,25 +569,15 @@ describe('Public Availability API', () => {
       expect(where.dateTime.lte.toISOString()).toBe('2026-11-17T05:59:59.999Z');
     });
 
-    it('blocks a confirmed request at 11:00 clinic time, stored as a date-only preferredDate', async () => {
-      prismaMock.appointmentRequest.findMany.mockResolvedValue([
-        {
-          id: 'req-1',
-          preferredDate: new Date(`${MONDAY}T00:00:00.000Z`),
-          preferredTime: '11:00',
-        },
-      ] as any);
-
+    it('does not read appointment requests: only real appointments hold a slot', async () => {
+      // Requests are created PENDING and nothing ever confirms them; once
+      // accepted they become Appointments, which the query above covers.
       const response = await GET(createMockRequest({ tenantSlug: 'test-clinic', date: MONDAY }));
       const data = await response.json();
       const times = data.data.availableSlots.map((s: { time: string }) => s.time);
 
-      expect(times).not.toContain('11:00');
-      expect(times).toContain('10:30');
-      expect(times).toContain('11:30');
-      // preferredDate is a calendar date stored at UTC midnight
-      const where = prismaMock.appointmentRequest.findMany.mock.calls[0][0]!.where as any;
-      expect(where.preferredDate.gte.toISOString()).toBe('2026-11-16T00:00:00.000Z');
+      expect(times).toContain('11:00');
+      expect(prismaMock.appointmentRequest.findMany).not.toHaveBeenCalled();
     });
 
     it('only hides slots that are past in clinic time for today', async () => {

@@ -10,6 +10,7 @@ import { parsePaginationParams, createPaginatedResponse } from '@/lib/pagination
 import { appointmentSchema } from '@/lib/validations/appointments-api';
 import { getClinicTimeZone } from '@/lib/clinic-timezone';
 import { formatTime } from '@/lib/utils/date-format';
+import { conflictMessage, findConflictingAppointment } from '@/lib/appointments/conflicts';
 
 // The month view asks for ~3 months; anything longer is not a calendar query.
 const MAX_CALENDAR_RANGE_MS = 100 * 24 * 60 * 60 * 1000;
@@ -177,46 +178,24 @@ export async function POST(request: Request) {
       }
     }
     
-    // Verificar disponibilidad (no permitir citas superpuestas para el mismo veterinario)
+    // Verificar disponibilidad: sin choques con el mismo veterinario o, si no
+    // hay veterinario asignado, con ninguna otra cita de la clínica
     const appointmentDateTime = new Date(validatedData.dateTime);
-    const endDateTime = new Date(appointmentDateTime.getTime() + validatedData.duration * 60000);
+    const conflictingAppointment = await findConflictingAppointment({
+      tenantId: tenant.id,
+      start: appointmentDateTime,
+      durationMinutes: validatedData.duration,
+      staffId: validatedData.staffId,
+      locationId: validatedData.locationId,
+    });
 
-    // Solo verificar conflictos si hay un staff asignado
-    if (validatedData.staffId) {
-      const conflictingAppointment = await prisma.appointment.findFirst({
-        where: {
-          tenantId: tenant.id,
-          staffId: validatedData.staffId, // Solo conflictos con el mismo veterinario
-          status: {
-            notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']
-          },
-          AND: [
-            {
-              dateTime: {
-                lt: endDateTime
-              }
-            },
-            {
-              dateTime: {
-                gte: new Date(appointmentDateTime.getTime() - (validatedData.duration * 60000))
-              }
-            }
-          ]
-        },
-        include: {
-          staff: { select: { name: true } }
-        }
-      });
-
-      if (conflictingAppointment) {
-        const staffName = conflictingAppointment.staff?.name || 'este veterinario';
-        return NextResponse.json(
-          { success: false, error: `${staffName} ya tiene una cita en este horario` },
-          { status: 409 }
-        );
-      }
+    if (conflictingAppointment) {
+      return NextResponse.json(
+        { success: false, error: conflictMessage(validatedData.staffId, conflictingAppointment) },
+        { status: 409 }
+      );
     }
-    
+
     // Crear la cita
     const appointment = await prisma.appointment.create({
       data: {

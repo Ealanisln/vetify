@@ -87,6 +87,8 @@ jest.mock('@/lib/prisma', () => ({
     },
     appointment: {
       findFirst: jest.fn(),
+      // The overlap check: no conflicts
+      findMany: jest.fn(async () => []),
       create: jest.fn(),
       update: jest.fn(),
     },
@@ -115,10 +117,7 @@ const params = { params: Promise.resolve({ id: 'apt-1' }) };
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockAppointment.findFirst.mockImplementation(async (args: { where: { staffId?: string } }) =>
-    // The overlap check also uses findFirst (with staffId): no conflicts
-    args.where.staffId ? null : appointmentRow(EIGHT_PM_SANTIAGO, {})
-  );
+  mockAppointment.findFirst.mockImplementation(async () => appointmentRow(EIGHT_PM_SANTIAGO, {}));
   mockAppointment.create.mockImplementation(async (args) => appointmentRow(TEN_AM_SANTIAGO, args));
   jest.spyOn(console, 'error').mockImplementation(() => {});
 });

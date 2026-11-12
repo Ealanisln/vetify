@@ -264,7 +264,7 @@ describe('API v1 Appointments', () => {
 
       (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
       (mockPrisma.pet.findFirst as jest.Mock).mockResolvedValue(mockPet);
-      (mockPrisma.appointment.findFirst as jest.Mock).mockResolvedValue(null); // No conflicts
+      (mockPrisma.appointment.findMany as jest.Mock).mockResolvedValue([]); // No conflicts
       (mockPrisma.appointment.create as jest.Mock).mockResolvedValue(newAppointment);
 
       const request = createMockRequest('https://api.vetify.com/api/v1/appointments', {
@@ -339,7 +339,7 @@ describe('API v1 Appointments', () => {
       (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
       (mockPrisma.pet.findFirst as jest.Mock).mockResolvedValue(mockPet);
       (mockPrisma.staff.findFirst as jest.Mock).mockResolvedValue(mockStaff);
-      (mockPrisma.appointment.findFirst as jest.Mock).mockResolvedValue(existingAppointment);
+      (mockPrisma.appointment.findMany as jest.Mock).mockResolvedValue([existingAppointment]);
 
       const request = createMockRequest('https://api.vetify.com/api/v1/appointments', {
         headers: { authorization: `Bearer ${validKey}` },
@@ -356,6 +356,77 @@ describe('API v1 Appointments', () => {
 
       expect(response.status).toBe(409);
       expect(body.code).toBe('CONFLICT');
+    });
+
+    it('should detect a conflict with a long appointment that started earlier', async () => {
+      const mockApiKey = createMockApiKey();
+      const mockPet = {
+        id: TEST_PET_ID,
+        tenantId: TEST_TENANT_ID,
+        locationId: null,
+        isDeceased: false,
+        customer: { id: TEST_CUSTOMER_ID },
+      };
+      // 09:00 for 120 min still runs at 10:00
+      const longAppointment = createMockAppointment({
+        staffId: TEST_STAFF_ID,
+        dateTime: new Date('2024-06-15T09:00:00Z'),
+        duration: 120,
+      });
+
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
+      (mockPrisma.pet.findFirst as jest.Mock).mockResolvedValue(mockPet);
+      (mockPrisma.staff.findFirst as jest.Mock).mockResolvedValue({ id: TEST_STAFF_ID });
+      (mockPrisma.appointment.findMany as jest.Mock).mockResolvedValue([longAppointment]);
+      (mockPrisma.appointment.create as jest.Mock).mockReset();
+
+      const request = createMockRequest('https://api.vetify.com/api/v1/appointments', {
+        headers: { authorization: `Bearer ${validKey}` },
+        body: {
+          dateTime: '2024-06-15T10:00:00Z',
+          reason: 'Checkup',
+          petId: TEST_PET_ID,
+          staffId: TEST_STAFF_ID,
+        },
+      });
+
+      const response = await createAppointment(request);
+
+      expect(response.status).toBe(409);
+      expect(mockPrisma.appointment.create).not.toHaveBeenCalled();
+    });
+
+    it('should detect conflicts for appointments without staff', async () => {
+      const mockApiKey = createMockApiKey();
+      const mockPet = {
+        id: TEST_PET_ID,
+        tenantId: TEST_TENANT_ID,
+        locationId: null,
+        isDeceased: false,
+        customer: { id: TEST_CUSTOMER_ID },
+      };
+      const overlapping = createMockAppointment({ dateTime: new Date('2024-06-15T10:00:00Z') });
+
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
+      (mockPrisma.pet.findFirst as jest.Mock).mockResolvedValue(mockPet);
+      (mockPrisma.appointment.findMany as jest.Mock).mockResolvedValue([overlapping]);
+      (mockPrisma.appointment.create as jest.Mock).mockReset();
+
+      const request = createMockRequest('https://api.vetify.com/api/v1/appointments', {
+        headers: { authorization: `Bearer ${validKey}` },
+        body: {
+          dateTime: '2024-06-15T10:00:00Z',
+          reason: 'Checkup',
+          petId: TEST_PET_ID,
+        },
+      });
+
+      const response = await createAppointment(request);
+      const body = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(body.code).toBe('CONFLICT');
+      expect(mockPrisma.appointment.create).not.toHaveBeenCalled();
     });
   });
 
@@ -447,6 +518,90 @@ describe('API v1 Appointments', () => {
       expect(response.status).toBe(409);
       expect(body.code).toBe('CONFLICT');
     });
+
+    it.each([
+      ['COMPLETED', 'CANCELLED_CLINIC'],
+      ['CANCELLED_CLINIC', 'SCHEDULED'],
+      ['IN_PROGRESS', 'SCHEDULED'],
+    ])('should reject the invalid status transition %s -> %s', async (from, to) => {
+      const mockApiKey = createMockApiKey();
+
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
+      (mockPrisma.appointment.findFirst as jest.Mock).mockReset();
+      (mockPrisma.appointment.findFirst as jest.Mock).mockResolvedValue(createMockAppointment({ status: from }));
+      (mockPrisma.appointment.update as jest.Mock).mockReset();
+
+      const request = createMockRequest(`https://api.vetify.com/api/v1/appointments/${TEST_APPOINTMENT_ID}`, {
+        headers: { authorization: `Bearer ${validKey}` },
+        body: { status: to },
+      });
+
+      const response = await updateAppointment(request, {
+        params: Promise.resolve({ id: TEST_APPOINTMENT_ID }),
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(body.code).toBe('CONFLICT');
+      expect(mockPrisma.appointment.update).not.toHaveBeenCalled();
+    });
+
+    it('should keep the stored status when re-cancelling a cancelled appointment', async () => {
+      const mockApiKey = createMockApiKey();
+
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
+      (mockPrisma.appointment.findFirst as jest.Mock).mockReset();
+      (mockPrisma.appointment.findFirst as jest.Mock).mockResolvedValue(
+        createMockAppointment({ status: 'CANCELLED_CLIENT' })
+      );
+      (mockPrisma.appointment.update as jest.Mock).mockReset();
+      (mockPrisma.appointment.update as jest.Mock).mockResolvedValue(
+        createMockAppointmentWithRelations({ status: 'CANCELLED_CLIENT' })
+      );
+
+      const request = createMockRequest(`https://api.vetify.com/api/v1/appointments/${TEST_APPOINTMENT_ID}`, {
+        headers: { authorization: `Bearer ${validKey}` },
+        body: { status: 'CANCELLED_CLINIC' },
+      });
+
+      const response = await updateAppointment(request, {
+        params: Promise.resolve({ id: TEST_APPOINTMENT_ID }),
+      });
+
+      expect(response.status).toBe(200);
+      const updateArgs = (mockPrisma.appointment.update as jest.Mock).mock.calls[0][0];
+      expect(updateArgs.data.status).toBeUndefined();
+    });
+
+    it('should guard a status change on the status it read', async () => {
+      const mockApiKey = createMockApiKey();
+
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
+      (mockPrisma.appointment.findFirst as jest.Mock).mockReset();
+      (mockPrisma.appointment.findFirst as jest.Mock).mockResolvedValue(createMockAppointment());
+      (mockPrisma.appointment.update as jest.Mock).mockReset();
+      (mockPrisma.appointment.update as jest.Mock).mockRejectedValue(
+        Object.assign(new Error('No record was found for an update.'), { code: 'P2025' })
+      );
+
+      const request = createMockRequest(`https://api.vetify.com/api/v1/appointments/${TEST_APPOINTMENT_ID}`, {
+        headers: { authorization: `Bearer ${validKey}` },
+        body: { status: 'CONFIRMED' },
+      });
+
+      const response = await updateAppointment(request, {
+        params: Promise.resolve({ id: TEST_APPOINTMENT_ID }),
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(body.code).toBe('CONFLICT');
+      expect(mockPrisma.appointment.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: TEST_APPOINTMENT_ID, tenantId: TEST_TENANT_ID, status: 'SCHEDULED' },
+        })
+      );
+    });
   });
 
   describe('DELETE /api/v1/appointments/:id', () => {
@@ -474,7 +629,7 @@ describe('API v1 Appointments', () => {
       expect(response.status).toBe(204);
       expect(mockPrisma.appointment.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: TEST_APPOINTMENT_ID },
+          where: { id: TEST_APPOINTMENT_ID, tenantId: TEST_TENANT_ID, status: 'SCHEDULED' },
           data: { status: 'CANCELLED_CLINIC' },
         })
       );

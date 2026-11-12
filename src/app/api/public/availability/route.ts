@@ -8,7 +8,6 @@ import {
   type BusinessHours,
 } from '../../../../lib/appointments/availability';
 import {
-  clinicDateTime,
   clinicDayRange,
   clinicToday,
   dayOfWeekForDate,
@@ -190,37 +189,13 @@ export async function GET(request: Request) {
       }
     });
 
-    // Confirmed appointment requests for the day (to avoid double booking).
-    // preferredDate is a calendar date stored at UTC midnight and
-    // preferredTime is a clinic wall-clock label, so match the UTC calendar day.
-    const confirmedRequests = await prisma.appointmentRequest.findMany({
-      where: {
-        tenantId: tenant.id,
-        status: 'CONFIRMED',
-        preferredDate: {
-          gte: new Date(`${clinicDate}T00:00:00.000Z`),
-          lte: new Date(`${clinicDate}T23:59:59.999Z`)
-        }
-      },
-      select: {
-        id: true,
-        preferredDate: true,
-        preferredTime: true
-      }
-    });
-
-    const busy = [
-      ...existingAppointments.map((appointment) => ({
-        start: new Date(appointment.dateTime),
-        durationMinutes: appointment.duration,
-      })),
-      ...confirmedRequests
-        .filter((request) => request.preferredDate && request.preferredTime)
-        .map((request) => ({
-          start: clinicDateTime(clinicDate, request.preferredTime!, timeZone),
-          durationMinutes: validatedData.duration,
-        })),
-    ];
+    // Only real appointments hold a slot. AppointmentRequests are created
+    // PENDING and no flow confirms them; an accepted request becomes an
+    // Appointment, which this query already covers.
+    const busy = existingAppointments.map((appointment) => ({
+      start: new Date(appointment.dateTime),
+      durationMinutes: appointment.duration,
+    }));
 
     // Past slots (in clinic time) are never bookable publicly
     const availableSlots = filterAvailableSlots(slots, {

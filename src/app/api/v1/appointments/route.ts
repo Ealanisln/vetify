@@ -27,6 +27,7 @@ import {
   apiError,
 } from '@/lib/api/api-key-auth';
 import { serializeAppointmentWithRelations } from '../_shared/serializers';
+import { findConflictingAppointment, v1ConflictMessage } from '@/lib/appointments/conflicts';
 import { triggerWebhookEvent } from '@/lib/webhooks';
 
 // Valid appointment statuses
@@ -239,31 +240,17 @@ export const POST = withApiAuth(
       }
     }
 
-    // Check for conflicting appointments if staff is assigned
-    if (data.staffId) {
-      const endDateTime = new Date(appointmentDateTime.getTime() + data.duration * 60000);
+    // Check for conflicting appointments (same staff, or the whole clinic if unassigned)
+    const conflictingAppointment = await findConflictingAppointment({
+      tenantId: apiKey.tenantId,
+      start: appointmentDateTime,
+      durationMinutes: data.duration,
+      staffId: data.staffId,
+      locationId: effectiveLocationId,
+    });
 
-      const conflictingAppointment = await prisma.appointment.findFirst({
-        where: {
-          tenantId: apiKey.tenantId,
-          staffId: data.staffId,
-          status: {
-            notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW'],
-          },
-          AND: [
-            { dateTime: { lt: endDateTime } },
-            { dateTime: { gte: new Date(appointmentDateTime.getTime() - data.duration * 60000) } },
-          ],
-        },
-      });
-
-      if (conflictingAppointment) {
-        return apiError(
-          'Staff member has a conflicting appointment at this time',
-          'CONFLICT',
-          409
-        );
-      }
+    if (conflictingAppointment) {
+      return apiError(v1ConflictMessage(data.staffId), 'CONFLICT', 409);
     }
 
     // Create the appointment
