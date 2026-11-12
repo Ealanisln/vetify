@@ -145,7 +145,8 @@ export function AddPetForm({ initialCustomerId }: AddPetFormProps = {}) {
         const customerResponse = await fetch('/api/customers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newCustomerData),
+          // The new owner belongs to the location chosen for the pet
+          body: JSON.stringify({ ...newCustomerData, locationId: formData.locationId || null }),
         });
 
         if (!customerResponse.ok) {

@@ -36,6 +36,7 @@ export const createCustomerSchema = z.object({
     })
     .default('phone'),
   notes: z.string().optional(),
+  locationId: z.string().min(1).nullable().optional(),
 });
 
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
@@ -49,7 +50,7 @@ export async function createCustomer(
     const existingCustomer = await prisma.customer.findFirst({
       where: {
         tenantId,
-        email: data.email,
+        email: { equals: data.email, mode: 'insensitive' },
         isActive: true,
       },
       include: {
@@ -67,6 +68,17 @@ export async function createCustomer(
     }
   }
 
+  if (data.locationId) {
+    const location = await prisma.location.findFirst({
+      where: { id: data.locationId, tenantId },
+      select: { id: true },
+    });
+
+    if (!location) {
+      throw new Error('Ubicación no encontrada o no pertenece a esta clínica');
+    }
+  }
+
   const customer = await prisma.customer.create({
     data: {
       name: data.name,
@@ -78,6 +90,7 @@ export async function createCustomer(
       preferredContactMethod: data.preferredContactMethod,
       notes: data.notes,
       tenantId,
+      locationId: data.locationId || null,
     },
   });
 
