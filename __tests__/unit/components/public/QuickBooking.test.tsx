@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QuickBooking } from '@/components/public/QuickBooking';
-import { createMockPublicTenant, createMockFeaturedService } from '../../../utils/public-test-factories';
+import { createMockPublicTenant, createMockPublicService } from '../../../utils/public-test-factories';
 
 // Mock next/link
 jest.mock('next/link', () => ({
@@ -77,8 +77,8 @@ describe('QuickBooking', () => {
   const defaultTenant = createMockPublicTenant({
     slug: 'test-clinic',
     publicServices: [
-      createMockFeaturedService({ title: 'Consulta General', description: 'General consultation', price: '$500' }),
-      createMockFeaturedService({ title: 'Vacunación', description: 'Pet vaccinations', price: '$300' }),
+      createMockPublicService({ title: 'Consulta General', description: 'General consultation', price: '$500' }),
+      createMockPublicService({ title: 'Vacunación', description: 'Pet vaccinations', price: '$300' }),
     ],
   });
 

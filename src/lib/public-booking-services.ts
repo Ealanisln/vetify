@@ -1,4 +1,5 @@
 import { formatMoney } from './currency';
+import type { LegacyPublicService } from './tenant';
 
 /** One entry of the public booking form's "Tipo de servicio" select. */
 export interface BookingServiceOption {
@@ -11,12 +12,6 @@ export interface BookingCatalogService {
   name: string;
   price: number;
   publicPriceLabel: string | null;
-}
-
-/** Legacy `Tenant.publicServices` JSON entry (its editor no longer exists). */
-interface LegacyPublicService {
-  title: string;
-  price?: string;
 }
 
 /** Shown only when the clinic has neither catalog services nor legacy config. */

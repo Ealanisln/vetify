@@ -49,7 +49,8 @@ export interface PublicSocialMedia {
   whatsapp?: string;
 }
 
-export interface PublicService {
+/** Entry of the legacy `Tenant.publicServices` JSON (pre-catalog; no editor remains). */
+export interface LegacyPublicService {
   icon?: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   title: string;
   description: string;
@@ -69,7 +70,7 @@ export interface PublicTenant {
   publicEmail: string | null;
   publicAddress: string | null;
   publicHours: PublicHours | null;
-  publicServices: PublicService[] | null;
+  publicServices: LegacyPublicService[] | null;
   publicImages: PublicImages | null;
   publicSocialMedia: PublicSocialMedia | null;
   publicThemeColor: string | null;
@@ -122,7 +123,7 @@ function transformTenantForPublic(tenant: {
     ...publicFields,
     currencyCode: tenantSettings?.currencyCode ?? DEFAULT_CURRENCY,
     publicHours: tenant.publicHours as PublicHours | null,
-    publicServices: tenant.publicServices as PublicService[] | null,
+    publicServices: tenant.publicServices as LegacyPublicService[] | null,
     publicImages: tenant.publicImages as PublicImages | null,
     publicSocialMedia: tenant.publicSocialMedia as PublicSocialMedia | null,
     publicTheme: tenant.publicTheme as ThemeId | null,

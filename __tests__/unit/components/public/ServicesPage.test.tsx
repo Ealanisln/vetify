@@ -134,18 +134,17 @@ jest.mock('@/lib/color-utils', () => ({
   }),
 }));
 
-const catalogService = (overrides: Partial<PublicService> = {}): PublicService =>
-  ({
-    id: 'service-1',
-    name: 'Consulta General',
-    description: null,
-    category: 'CONSULTATION',
-    price: 1500,
-    duration: 30,
-    publicIcon: null,
-    publicPriceLabel: null,
-    ...overrides,
-  }) as PublicService;
+const catalogService = (overrides: Partial<PublicService> = {}): PublicService => ({
+  id: 'service-1',
+  name: 'Consulta General',
+  description: null,
+  category: 'CONSULTATION',
+  price: 1500,
+  duration: 30,
+  publicIcon: null,
+  publicPriceLabel: null,
+  ...overrides,
+});
 
 describe('ServicesPage', () => {
   it('formats prices with the canonical MXN formatter by default', () => {
