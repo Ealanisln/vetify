@@ -229,6 +229,51 @@ describe('Business Hours API', () => {
       });
     });
 
+    describe('Clearing lunch ("Sin comida")', () => {
+      beforeEach(() => {
+        mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
+        prismaMock.tenantSettings.upsert.mockResolvedValue(mockTenantSettings as any);
+        prismaMock.tenantSettings.findUnique.mockResolvedValue({
+          ...mockTenantSettings,
+          businessHours: mockBusinessHours,
+        } as any);
+      });
+
+      it('writes null when a day omits its lunch fields', async () => {
+        // Older clients serialized "Sin comida" as undefined, which JSON drops.
+        await PUT(createMockPutRequest({
+          defaultStartTime: '08:00',
+          defaultEndTime: '18:00',
+          defaultLunchStart: '13:00',
+          defaultLunchEnd: '14:00',
+          defaultSlotDuration: 15,
+          businessHours: [{
+            dayOfWeek: 1,
+            isWorkingDay: true,
+            startTime: '08:00',
+            endTime: '18:00',
+            slotDuration: 15,
+          }],
+        }));
+
+        expect(prismaMock.businessHours.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+          data: expect.objectContaining({ lunchStart: null, lunchEnd: null }),
+        }));
+      });
+
+      it('writes null for omitted default lunch fields', async () => {
+        await PUT(createMockPutRequest({
+          defaultStartTime: '08:00',
+          defaultEndTime: '18:00',
+          defaultSlotDuration: 15,
+        }));
+
+        expect(prismaMock.tenantSettings.upsert).toHaveBeenCalledWith(expect.objectContaining({
+          update: expect.objectContaining({ defaultLunchStart: null, defaultLunchEnd: null }),
+        }));
+      });
+    });
+
     describe('Null value handling (VETIF-160 fix)', () => {
       it('should accept null for optional time fields (lunchStart, lunchEnd)', async () => {
         mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });

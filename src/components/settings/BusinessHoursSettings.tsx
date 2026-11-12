@@ -12,17 +12,17 @@ interface BusinessHour {
   isWorkingDay: boolean;
   startTime: string;
   endTime: string;
-  lunchStart?: string;
-  lunchEnd?: string;
-  slotDuration?: number;
+  lunchStart: string | null;
+  lunchEnd: string | null;
+  slotDuration: number | null;
 }
 
 interface BusinessHoursData {
   id: string;
   defaultStartTime: string;
   defaultEndTime: string;
-  defaultLunchStart?: string;
-  defaultLunchEnd?: string;
+  defaultLunchStart: string | null;
+  defaultLunchEnd: string | null;
   defaultSlotDuration: number;
   businessHours: BusinessHour[];
 }
@@ -40,6 +40,9 @@ const dayNames = [
   'Viernes',
   'Sábado'
 ];
+
+// Stable English slugs for test selectors (e.g. open-time-monday)
+const daySlugs = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
 
 const timeSlots = [
   '06:00', '06:30', '07:00', '07:30', '08:00', '08:30', '09:00', '09:30',
@@ -89,10 +92,11 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
   const handleDefaultTimeChange = (field: keyof BusinessHoursData, value: string | number) => {
     if (!businessHours) return;
 
-    setBusinessHours({
-      ...businessHours,
-      [field]: value === '' ? undefined : value
-    });
+    // null (not undefined) so "Sin comida" survives JSON.stringify
+    const next = { ...businessHours, [field]: value === '' ? null : value };
+    // Lunch end cannot exist without a start
+    if (field === 'defaultLunchStart' && value === '') next.defaultLunchEnd = null;
+    setBusinessHours(next);
     setHasChanges(true);
   };
 
@@ -115,11 +119,14 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
   const handleDayTimeChange = (dayOfWeek: number, field: keyof BusinessHour, value: string | number) => {
     if (!businessHours) return;
 
-    const updatedBusinessHours = businessHours.businessHours.map(day => 
-      day.dayOfWeek === dayOfWeek 
-        ? { ...day, [field]: value === '' ? undefined : value }
-        : day
-    );
+    const updatedBusinessHours = businessHours.businessHours.map(day => {
+      if (day.dayOfWeek !== dayOfWeek) return day;
+      // null (not undefined) so "Sin comida" survives JSON.stringify
+      const next = { ...day, [field]: value === '' ? null : value };
+      // Lunch end cannot exist without a start
+      if (field === 'lunchStart' && value === '') next.lunchEnd = null;
+      return next;
+    });
 
     setBusinessHours({
       ...businessHours,
@@ -202,7 +209,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="business-hours-settings">
       {/* Default Settings */}
       <Card>
         <CardHeader>
@@ -223,6 +230,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
               <select
                 value={businessHours.defaultStartTime}
                 onChange={(e) => handleDefaultTimeChange('defaultStartTime', e.target.value)}
+                data-testid="default-open-time"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {timeSlots.map(time => (
@@ -238,6 +246,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
               <select
                 value={businessHours.defaultEndTime}
                 onChange={(e) => handleDefaultTimeChange('defaultEndTime', e.target.value)}
+                data-testid="default-close-time"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {timeSlots.map(time => (
@@ -253,6 +262,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
               <select
                 value={businessHours.defaultSlotDuration}
                 onChange={(e) => handleDefaultTimeChange('defaultSlotDuration', parseInt(e.target.value))}
+                data-testid="default-slot-duration"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {slotDurations.map(duration => (
@@ -270,6 +280,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
               <select
                 value={businessHours.defaultLunchStart || ''}
                 onChange={(e) => handleDefaultTimeChange('defaultLunchStart', e.target.value || '')}
+                data-testid="default-lunch-start"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Sin comida</option>
@@ -286,6 +297,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
               <select
                 value={businessHours.defaultLunchEnd || ''}
                 onChange={(e) => handleDefaultTimeChange('defaultLunchEnd', e.target.value || '')}
+                data-testid="default-lunch-end"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 dark:disabled:bg-gray-700"
                 disabled={!businessHours.defaultLunchStart}
               >
@@ -338,7 +350,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                     onClick={() => handleDayToggle(day.dayOfWeek)}
                     variant={day.isWorkingDay ? 'destructive' : 'default'}
                     size="sm"
-                    data-testid={`day-toggle-${day.dayOfWeek}`}
+                    data-testid={`day-toggle-${daySlugs[day.dayOfWeek]}`}
                   >
                     {day.isWorkingDay ? 'Cerrar' : 'Abrir'}
                   </Button>
@@ -353,6 +365,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                       <select
                         value={day.startTime}
                         onChange={(e) => handleDayTimeChange(day.dayOfWeek, 'startTime', e.target.value)}
+                        data-testid={`open-time-${daySlugs[day.dayOfWeek]}`}
                         className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         {timeSlots.map(time => (
@@ -368,6 +381,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                       <select
                         value={day.endTime}
                         onChange={(e) => handleDayTimeChange(day.dayOfWeek, 'endTime', e.target.value)}
+                        data-testid={`close-time-${daySlugs[day.dayOfWeek]}`}
                         className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         {timeSlots.map(time => (
@@ -383,6 +397,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                       <select
                         value={day.lunchStart || ''}
                         onChange={(e) => handleDayTimeChange(day.dayOfWeek, 'lunchStart', e.target.value || '')}
+                        data-testid={`lunch-start-${daySlugs[day.dayOfWeek]}`}
                         className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       >
                         <option value="">Sin comida</option>
@@ -399,6 +414,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
                       <select
                         value={day.lunchEnd || ''}
                         onChange={(e) => handleDayTimeChange(day.dayOfWeek, 'lunchEnd', e.target.value || '')}
+                        data-testid={`lunch-end-${daySlugs[day.dayOfWeek]}`}
                         className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 dark:disabled:bg-gray-700"
                         disabled={!day.lunchStart}
                       >
@@ -440,7 +456,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
               onClick={handleSave}
               size="sm"
               disabled={saving}
-              data-testid="save-hours-button"
+              data-testid="save-business-hours"
             >
               {saving ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

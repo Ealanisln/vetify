@@ -120,6 +120,9 @@ export async function PUT(request: Request) {
     const body = await request.json();
 
     const validatedData = businessHoursSchema.parse(body);
+    // The form sends the whole schedule; an absent lunch means "Sin comida".
+    const defaultLunchStart = validatedData.defaultLunchStart ?? null;
+    const defaultLunchEnd = validatedData.defaultLunchEnd ?? null;
 
     const updatedSettings = await prisma.$transaction(async (tx) => {
       const tenantSettings = await tx.tenantSettings.upsert({
@@ -127,16 +130,16 @@ export async function PUT(request: Request) {
         update: {
           defaultStartTime: validatedData.defaultStartTime,
           defaultEndTime: validatedData.defaultEndTime,
-          defaultLunchStart: validatedData.defaultLunchStart,
-          defaultLunchEnd: validatedData.defaultLunchEnd,
+          defaultLunchStart,
+          defaultLunchEnd,
           defaultSlotDuration: validatedData.defaultSlotDuration,
         },
         create: {
           tenantId: tenant.id,
           defaultStartTime: validatedData.defaultStartTime,
           defaultEndTime: validatedData.defaultEndTime,
-          defaultLunchStart: validatedData.defaultLunchStart,
-          defaultLunchEnd: validatedData.defaultLunchEnd,
+          defaultLunchStart,
+          defaultLunchEnd,
           defaultSlotDuration: validatedData.defaultSlotDuration,
         }
       });
@@ -148,8 +151,8 @@ export async function PUT(request: Request) {
           isWorkingDay: businessHour.isWorkingDay,
           startTime: businessHour.startTime,
           endTime: businessHour.endTime,
-          lunchStart: businessHour.lunchStart,
-          lunchEnd: businessHour.lunchEnd,
+          lunchStart: businessHour.lunchStart ?? null,
+          lunchEnd: businessHour.lunchEnd ?? null,
           slotDuration: businessHour.slotDuration || validatedData.defaultSlotDuration,
         };
 
