@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     if (!tenant || !tenant.publicPageEnabled) {
       return NextResponse.json(
-        { error: 'Clinic not found or public page disabled' },
+        { error: 'Clínica no disponible' },
         { status: 404 }
       );
     }
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   } catch (error) {
     console.error('Error fetching public testimonials:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Error interno del servidor' },
       { status: 500 }
     );
   }
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (!tenant || !tenant.publicPageEnabled) {
       return NextResponse.json(
-        { error: 'Clinic not found or public page disabled' },
+        { error: 'Clínica no disponible' },
         { status: 404 }
       );
     }
