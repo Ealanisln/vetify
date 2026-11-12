@@ -208,6 +208,8 @@ describe('POST /api/v1/appointments', () => {
       reason: 'Vaccination',
       dateTime: new Date('2026-06-20T14:00:00Z'),
     };
+    // No overlapping appointments
+    (prismaMock.appointment.findMany as jest.Mock).mockResolvedValue([]);
     (prismaMock.appointment.create as jest.Mock).mockResolvedValue(created);
 
     const req = makeRequest('http://localhost:3000/api/v1/appointments', {
@@ -247,11 +249,13 @@ describe('POST /api/v1/appointments', () => {
       isActive: true,
     });
     // Return an existing conflicting appointment
-    (prismaMock.appointment.findFirst as jest.Mock).mockResolvedValue({
-      id: 'appt-existing',
-      dateTime: new Date('2026-06-20T14:00:00Z'),
-      duration: 30,
-    });
+    (prismaMock.appointment.findMany as jest.Mock).mockResolvedValue([
+      {
+        id: 'appt-existing',
+        dateTime: new Date('2026-06-20T14:00:00Z'),
+        duration: 30,
+      },
+    ]);
 
     const req = makeRequest('http://localhost:3000/api/v1/appointments', {
       method: 'POST',

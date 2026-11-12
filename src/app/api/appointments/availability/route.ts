@@ -18,6 +18,7 @@ import {
   getClinicTimeZone,
   parseClinicDate,
 } from '../../../../lib/clinic-timezone';
+import { findConflictingAppointment } from '../../../../lib/appointments/conflicts';
 
 const availabilitySchema = z.object({
   date: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -274,36 +275,13 @@ export async function POST(request: Request) {
       });
     }
 
-    // Verificar conflictos con citas existentes
-    const conflictingAppointment = await prisma.appointment.findFirst({
-      where: {
-        tenantId: tenant.id,
-        status: {
-          notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']
-        },
-        ...(excludeAppointmentId && {
-          id: { not: excludeAppointmentId }
-        }),
-        ...(staffId && {
-          staffId: staffId
-        }),
-        AND: [
-          {
-            dateTime: {
-              lt: endDateTime
-            }
-          },
-          {
-            dateTime: {
-              gte: new Date(targetDateTime.getTime() - (slotDuration * 60000))
-            }
-          }
-        ]
-      },
-      include: {
-        customer: { select: { name: true } },
-        pet: { select: { name: true } }
-      }
+    // Verificar conflictos con citas existentes (con su duración real)
+    const conflictingAppointment = await findConflictingAppointment({
+      tenantId: tenant.id,
+      start: targetDateTime,
+      durationMinutes: slotDuration,
+      staffId,
+      excludeAppointmentId,
     });
 
     if (conflictingAppointment) {
@@ -314,7 +292,7 @@ export async function POST(request: Request) {
         conflict: {
           appointmentId: conflictingAppointment.id,
           dateTime: conflictingAppointment.dateTime,
-          customer: conflictingAppointment.customer.name,
+          customer: conflictingAppointment.customer?.name,
           pet: conflictingAppointment.pet.name,
           duration: conflictingAppointment.duration
         }

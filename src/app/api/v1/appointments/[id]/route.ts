@@ -13,6 +13,7 @@ import { withApiAuth, apiError } from '@/lib/api/api-key-auth';
 import { serializeAppointmentWithRelations } from '../../_shared/serializers';
 import { triggerWebhookEvent } from '@/lib/webhooks';
 import { evaluateStatusChange, isCancelledStatus } from '@/lib/appointments/status-transitions';
+import { findConflictingAppointment, v1ConflictMessage } from '@/lib/appointments/conflicts';
 
 /** Prisma raises P2025 when a guarded update matches no row */
 const isRecordNotFound = (error: unknown): boolean =>
@@ -210,35 +211,20 @@ export const PUT = withApiAuth(
       }
     }
 
-    // Check for conflicts if time or staff is changing
-    const newDateTime = data.dateTime ? new Date(data.dateTime) : existing.dateTime;
-    const newDuration = data.duration ?? existing.duration;
-    const newStaffId = data.staffId !== undefined ? data.staffId : existing.staffId;
-
-    if (newStaffId && (data.dateTime || data.duration || data.staffId)) {
-      const endDateTime = new Date(newDateTime.getTime() + newDuration * 60000);
-
-      const conflictingAppointment = await prisma.appointment.findFirst({
-        where: {
-          tenantId: apiKey.tenantId,
-          staffId: newStaffId,
-          id: { not: id },
-          status: {
-            notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW'],
-          },
-          AND: [
-            { dateTime: { lt: endDateTime } },
-            { dateTime: { gte: new Date(newDateTime.getTime() - newDuration * 60000) } },
-          ],
-        },
+    // Check for conflicts if time, duration or staff is changing
+    if (data.dateTime || data.duration || data.staffId !== undefined) {
+      const newStaffId = data.staffId !== undefined ? data.staffId : existing.staffId;
+      const conflictingAppointment = await findConflictingAppointment({
+        tenantId: apiKey.tenantId,
+        start: data.dateTime ? new Date(data.dateTime) : existing.dateTime,
+        durationMinutes: data.duration ?? existing.duration,
+        staffId: newStaffId,
+        locationId: data.locationId !== undefined ? data.locationId : existing.locationId,
+        excludeAppointmentId: id,
       });
 
       if (conflictingAppointment) {
-        return apiError(
-          'Staff member has a conflicting appointment at this time',
-          'CONFLICT',
-          409
-        );
+        return apiError(v1ConflictMessage(newStaffId), 'CONFLICT', 409);
       }
     }
 
