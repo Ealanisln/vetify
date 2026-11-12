@@ -19,6 +19,8 @@ interface ClinicInfoProps {
     address?: string;
   }) => void;
   isSubmitting: boolean;
+  /** Spanish message shown when creating the clinic failed; the form stays filled for a retry. */
+  submitError?: string | null;
   /** ISO alpha-2 country pre-detected server-side (x-vercel-ip-country). */
   detectedCountry?: string;
   initialData?: {
@@ -32,7 +34,7 @@ interface ClinicInfoProps {
 const isOfferedCountry = (code?: string) =>
   !!code && ONBOARDING_COUNTRIES.some(c => c.code === code.toUpperCase());
 
-export function ClinicInfo({ onSubmit, isSubmitting, detectedCountry, initialData }: ClinicInfoProps) {
+export function ClinicInfo({ onSubmit, isSubmitting, submitError, detectedCountry, initialData }: ClinicInfoProps) {
   const [clinicName, setClinicName] = useState(initialData?.clinicName || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [countryCode, setCountryCode] = useState(
@@ -78,13 +80,15 @@ export function ClinicInfo({ onSubmit, isSubmitting, detectedCountry, initialDat
     }
   };
 
+  const trimmedClinicName = clinicName.trim();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!clinicName || !slug || isCheckingSlug || isSubmitting) return;
+    if (!trimmedClinicName || !slug || isCheckingSlug || isSubmitting) return;
     // Si la URL elegida está ocupada, usamos la sugerencia libre.
     const finalSlug = slugAvailable === false && slugSuggestion ? slugSuggestion : slug;
     onSubmit({
-      clinicName,
+      clinicName: trimmedClinicName,
       slug: finalSlug,
       countryCode,
       phone: phone || undefined,
@@ -115,6 +119,7 @@ export function ClinicInfo({ onSubmit, isSubmitting, detectedCountry, initialDat
             onChange={(e) => setClinicName(e.target.value)}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#75a99c] focus:ring-[#75a99c] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
             placeholder="Ej: Clínica Veterinaria San Martín"
+            maxLength={100}
             required
           />
         </div>
@@ -206,9 +211,18 @@ export function ClinicInfo({ onSubmit, isSubmitting, detectedCountry, initialDat
           />
         </div>
 
+        {submitError && (
+          <div
+            role="alert"
+            className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-300"
+          >
+            {submitError}
+          </div>
+        )}
+
         <button
           type="submit"
-          disabled={!clinicName || !slug || isCheckingSlug || isSubmitting}
+          disabled={!trimmedClinicName || !slug || isCheckingSlug || isSubmitting}
           className="w-full py-3 px-4 bg-[#75a99c] hover:bg-[#5b9788] disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-all"
         >
           {isSubmitting ? (

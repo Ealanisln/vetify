@@ -63,4 +63,32 @@ describe('ClinicInfo — country selector', () => {
       );
     });
   });
+
+  it('does not submit a clinic name made only of spaces', () => {
+    const onSubmit = jest.fn();
+    render(<ClinicInfo user={user} onSubmit={onSubmit} isSubmitting={false} />);
+
+    fireEvent.change(screen.getByLabelText(/nombre de la clínica/i), {
+      target: { value: '    ' },
+    });
+
+    const button = screen.getByRole('button', { name: /empezar gratis/i });
+    expect(button).toBeDisabled();
+    fireEvent.submit(button.closest('form')!);
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('sends the trimmed clinic name', async () => {
+    const onSubmit = jest.fn();
+    render(<ClinicInfo user={user} onSubmit={onSubmit} isSubmitting={false} />);
+
+    fireEvent.change(screen.getByLabelText(/nombre de la clínica/i), {
+      target: { value: '  Vet Andes  ' },
+    });
+    await waitFor(() => expect(screen.getByText(/URL disponible/i)).toBeInTheDocument());
+
+    fireEvent.submit(screen.getByRole('button', { name: /empezar gratis/i }).closest('form')!);
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ clinicName: 'Vet Andes' }));
+  });
 });
