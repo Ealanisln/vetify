@@ -113,6 +113,7 @@ export async function sendStaffInvitationEmail(
       template: 'staff-invitation',
       data: {
         staffName: staff.name,
+        email: staff.email,
         clinicName: tenant.name,
         position: staff.position,
         inviteUrl,

@@ -13,9 +13,12 @@ import {
 } from '@react-email/components';
 import * as React from 'react';
 import { BaseLayout, BRAND_COLOR } from './base-layout';
+import { POSITION_LABELS_ES, type StaffPositionType } from '../../staff-positions';
 
 interface StaffInvitationEmailProps {
   staffName: string;
+  /** Email the invitee must sign up / sign in with */
+  email?: string;
   clinicName: string;
   position: string;
   inviteUrl: string;
@@ -24,22 +27,14 @@ interface StaffInvitationEmailProps {
 
 export function StaffInvitationEmail({
   staffName,
+  email,
   clinicName,
   position,
   inviteUrl,
   expirationDays = 7,
 }: StaffInvitationEmailProps) {
-  const positionLabels: Record<string, string> = {
-    MANAGER: 'Administrador',
-    VETERINARIAN: 'Veterinario',
-    VETERINARY_TECHNICIAN: 'Técnico Veterinario',
-    ASSISTANT: 'Asistente',
-    RECEPTIONIST: 'Recepcionista',
-    GROOMER: 'Groomer',
-    OTHER: 'Personal',
-  };
-
-  const positionLabel = positionLabels[position] || position;
+  // Same labels the app shows in the staff UI
+  const positionLabel = POSITION_LABELS_ES[position as StaffPositionType] || position;
 
   return (
     <BaseLayout
@@ -80,10 +75,12 @@ export function StaffInvitationEmail({
       <Text style={listItem}>
         • Esta invitación expira en {expirationDays} días
       </Text>
-      <Text style={listItem}>
-        • Deberás crear una cuenta o iniciar sesión con el email:{' '}
-        <strong>{staffName}</strong>
-      </Text>
+      {email && (
+        <Text style={listItem}>
+          • Deberás crear una cuenta o iniciar sesión con el email:{' '}
+          <strong>{email}</strong>
+        </Text>
+      )}
       <Text style={listItem}>
         • Una vez aceptada, tendrás acceso inmediato al sistema
       </Text>

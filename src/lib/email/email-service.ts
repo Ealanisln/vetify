@@ -440,6 +440,7 @@ async function renderTemplate(emailData: EmailData): Promise<string> {
       return await render(
         StaffInvitationEmail({
           staffName: d.staffName,
+          email: d.email,
           clinicName: d.clinicName,
           position: d.position,
           inviteUrl: d.inviteUrl,

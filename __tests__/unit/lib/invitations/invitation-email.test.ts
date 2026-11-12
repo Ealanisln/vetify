@@ -63,4 +63,11 @@ describe('sendStaffInvitationEmail', () => {
     expect(result.error).not.toMatch(/connection/i);
     expect(result.error).toMatch(/invitación/i);
   });
+
+  it('passes the invitee email to the template', async () => {
+    await sendStaffInvitationEmail({ staffId: 'staff-1', tenantId: 'tenant-1' });
+
+    const emailData = mockSendEmail.mock.calls[0][0];
+    expect(emailData.data.email).toBe('ana@example.com');
+  });
 });
