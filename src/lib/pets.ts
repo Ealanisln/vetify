@@ -90,8 +90,10 @@ export async function getPetsByTenant(
   tenantId: string,
   locationId?: string,
   pagination?: PaginationParams,
-  sort?: SortParams
+  sort?: SortParams,
+  search?: string
 ) {
+  const term = search?.trim();
   const where = {
     tenantId,
     // Include pets with the specified location OR pets without any location assigned
@@ -100,6 +102,15 @@ export async function getPetsByTenant(
         { locationId },
         { locationId: null }
       ]
+    }),
+    // Optional search by pet or owner name
+    ...(term && {
+      AND: [{
+        OR: [
+          { name: { contains: term, mode: 'insensitive' as const } },
+          { customer: { name: { contains: term, mode: 'insensitive' as const } } }
+        ]
+      }]
     }),
   };
 

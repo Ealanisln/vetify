@@ -21,6 +21,10 @@ jest.mock('@/lib/prisma', () => ({
     prescription: {
       create: jest.fn(),
     },
+    inventoryItem: {
+      // Prescribed products must belong to the clinic inventory
+      findMany: jest.fn().mockResolvedValue([{ id: 'product-1', name: 'Amoxicilina' }]),
+    },
     $transaction: jest.fn(),
   },
 }));

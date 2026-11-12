@@ -131,7 +131,8 @@ export async function GET(request: NextRequest) {
       tenant.id as string,
       locationId,
       paginationParams,
-      sortParams
+      sortParams,
+      searchParams.get('search') || undefined
     );
 
     // Handle paginated response

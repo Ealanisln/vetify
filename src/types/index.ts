@@ -137,7 +137,9 @@ export type MedicalHistoryFormData = {
   treatment?: string;
   notes?: string;
   prescriptions?: {
-    productId: string;
+    /** Inventory product; free-text prescriptions omit it and use productName */
+    productId?: string;
+    productName?: string;
     quantity: number;
     dosage?: string;
     frequency?: string;
