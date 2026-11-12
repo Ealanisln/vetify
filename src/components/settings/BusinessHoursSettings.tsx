@@ -6,7 +6,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Loader2, Clock, Save, RotateCcw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { getScheduleErrors, type ScheduleError, type ScheduleField } from '../../lib/business-hours';
+import {
+  applyDefaultChange,
+  getScheduleErrors,
+  type DefaultField,
+  type ScheduleError,
+  type ScheduleField,
+} from '../../lib/business-hours';
 
 interface BusinessHour {
   dayOfWeek: number;
@@ -132,14 +138,12 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
     fetchBusinessHours();
   }, []);
 
-  const handleDefaultTimeChange = (field: keyof BusinessHoursData, value: string | number) => {
+  const handleDefaultTimeChange = (field: DefaultField, value: string | number) => {
     if (!businessHours) return;
 
-    // null (not undefined) so "Sin comida" survives JSON.stringify
-    const next = { ...businessHours, [field]: value === '' ? null : value };
-    // Lunch end cannot exist without a start
-    if (field === 'defaultLunchStart' && value === '') next.defaultLunchEnd = null;
-    setBusinessHours(next);
+    // null (not undefined) so "Sin comida" survives JSON.stringify. Days that
+    // still follow the old default move with it; customized days stay as set.
+    setBusinessHours(applyDefaultChange(businessHours, field, value === '' ? null : value));
     setHasChanges(true);
   };
 
@@ -276,7 +280,7 @@ export function BusinessHoursSettings({ }: BusinessHoursSettingsProps) {
             Configuración por Defecto
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Estos valores se aplicarán como predeterminados para todos los días
+            Los cambios aquí se aplican a todos los días que no hayas personalizado. Usa &quot;Aplicar a Todos los Días&quot; para sobrescribir también los personalizados.
           </p>
         </CardHeader>
         <CardContent>

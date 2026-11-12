@@ -119,3 +119,56 @@ export function completeWeek<T extends { dayOfWeek: number }>(
   return Array.from({ length: 7 }, (_, dayOfWeek) =>
     rows.find(row => row.dayOfWeek === dayOfWeek) ?? defaultDayHours(dayOfWeek, defaults));
 }
+
+const DEFAULT_TO_DAY_FIELD = {
+  defaultStartTime: 'startTime',
+  defaultEndTime: 'endTime',
+  defaultLunchStart: 'lunchStart',
+  defaultLunchEnd: 'lunchEnd',
+  defaultSlotDuration: 'slotDuration',
+} as const;
+
+export type DefaultField = keyof typeof DEFAULT_TO_DAY_FIELD;
+
+interface EditableDay {
+  startTime: string;
+  endTime: string;
+  lunchStart: string | null;
+  lunchEnd: string | null;
+  slotDuration: number | null;
+}
+
+/**
+ * Changes a tenant default and carries it to every day that still follows it.
+ *
+ * A day "follows" a default when its value equals the previous default (or,
+ * for slot duration, is missing); a day whose value differs was customized and
+ * is left alone, including a day set to "Sin comida". This
+ * makes saving the defaults do what an owner expects without a schema change:
+ * the defaults drive every non-customized day, and "Aplicar a Todos los Días"
+ * remains the way to override customized days too. Clearing the default lunch
+ * start also clears the default lunch end, since an end needs a start.
+ */
+export function applyDefaultChange<D extends EditableDay, T extends ScheduleDefaults & { businessHours: D[] }>(
+  data: T,
+  field: DefaultField,
+  value: string | number | null,
+): T {
+  const changes: [DefaultField, string | number | null][] = [[field, value]];
+  if (field === 'defaultLunchStart' && value === null) changes.push(['defaultLunchEnd', null]);
+
+  let next: T = { ...data };
+  for (const [defaultField, newValue] of changes) {
+    const dayField = DEFAULT_TO_DAY_FIELD[defaultField];
+    const previous = next[defaultField] ?? null;
+    next = {
+      ...next,
+      [defaultField]: newValue,
+      businessHours: next.businessHours.map(day =>
+        (day[dayField] ?? null) === previous || (dayField === 'slotDuration' && day.slotDuration == null)
+          ? { ...day, [dayField]: newValue }
+          : day),
+    };
+  }
+  return next;
+}

@@ -86,6 +86,32 @@ describe('BusinessHoursSettings', () => {
     });
   });
 
+  describe('defaults', () => {
+    it('saving a new default duration updates every day that was not customized', async () => {
+      mockGetThenPut(settings({
+        businessHours: Array.from({ length: 7 }, (_, i) => day(i, i === 5 ? { slotDuration: 60 } : {})),
+      }));
+      await renderLoaded();
+
+      fireEvent.change(screen.getByTestId('default-slot-duration'), { target: { value: '30' } });
+      fireEvent.click(screen.getByTestId('save-business-hours'));
+
+      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+      const durations = putBody().businessHours.map((d: { slotDuration: number }) => d.slotDuration);
+      expect(putBody().defaultSlotDuration).toBe(30);
+      expect(durations).toEqual([30, 30, 30, 30, 30, 60, 30]);
+    });
+
+    it('shows the new default opening time on days that follow the default', async () => {
+      mockGetThenPut();
+      await renderLoaded();
+
+      fireEvent.change(screen.getByTestId('default-open-time'), { target: { value: '09:00' } });
+
+      expect(screen.getByTestId('open-time-monday')).toHaveValue('09:00');
+    });
+  });
+
   describe('validation', () => {
     it('shows an inline message and blocks saving when closing is before opening', async () => {
       mockGetThenPut();
