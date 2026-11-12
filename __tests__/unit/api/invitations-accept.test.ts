@@ -87,6 +87,21 @@ describe('POST /api/invitations/accept', () => {
     expect(body).toMatchObject({ success: true, staffId: 'staff-1', tenantName: 'Clínica Norte' });
   });
 
+  it('returns 403 with the invited email when logged in with a different account', async () => {
+    mockGetUser.mockResolvedValue({ id: 'user-1', email: 'otro@example.com', tenantId: null });
+
+    const res = await POST(request({ token: 'tok-1' }));
+    const body = await res.json();
+
+    expect(res.status).toBe(403);
+    expect(body).toMatchObject({
+      success: false,
+      code: 'EMAIL_MISMATCH',
+      invitationEmail: 'ana@example.com',
+    });
+    expect(prismaMock.$transaction).not.toHaveBeenCalled();
+  });
+
   it('accepts the token from the link instead of auto-accepting another invitation', async () => {
     mockGetUser.mockResolvedValue({ id: 'user-1', email: 'ana@example.com', tenantId: null });
     prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1', tenantId: null } as any);

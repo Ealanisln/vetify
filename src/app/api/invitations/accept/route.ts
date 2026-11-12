@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
+          code: 'EMAIL_MISMATCH',
+          invitationEmail: invitation.email,
           error: `Esta invitación es para ${invitation.email}. Debes iniciar sesión con ese email.`,
         },
         { status: 403 }
