@@ -44,6 +44,7 @@ jest.mock('@/hooks/appointments/useAppointmentsData', () => ({
     inProgress: 0,
   })),
   useCalendarEvents: jest.fn(() => []),
+  getStatsDateRange: jest.requireActual('@/hooks/appointments/useAppointmentsData').getStatsDateRange,
 }));
 
 jest.mock('@/hooks/appointments/useAppointmentMutations', () => ({

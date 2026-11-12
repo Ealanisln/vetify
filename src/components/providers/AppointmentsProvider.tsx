@@ -26,6 +26,7 @@ import {
   useTodayAppointments,
   useAppointmentStatsFromData,
   useCalendarEvents,
+  getStatsDateRange,
   AppointmentStats,
 } from '@/hooks/appointments/useAppointmentsData';
 import { useAppointmentMutations } from '@/hooks/appointments/useAppointmentMutations';
@@ -36,6 +37,8 @@ import {
   endOfMonth,
   startOfWeek,
   endOfWeek,
+  startOfDay,
+  endOfDay,
   addMonths,
   subMonths,
 } from 'date-fns';
@@ -135,9 +138,10 @@ function getDefaultDateRange(view: CalendarView, date: Date): DateRange {
         end: endOfWeek(date, { weekStartsOn: 1 }),
       };
     case 'timeGridDay':
+      // Never mutate `date`: it is the provider's currentDate state.
       return {
-        start: new Date(date.setHours(0, 0, 0, 0)),
-        end: new Date(date.setHours(23, 59, 59, 999)),
+        start: startOfDay(date),
+        end: endOfDay(date),
       };
     default:
       return {
@@ -192,8 +196,7 @@ export function AppointmentsProvider({
     isLoading,
     isValidating,
     error,
-    refresh,
-    mutate,
+    refresh: refreshCalendar,
   } = useAppointmentsData({
     startDate: dateRange.start,
     endDate: dateRange.end,
@@ -201,9 +204,26 @@ export function AppointmentsProvider({
     keepPreviousData: true,
   });
 
-  // Derived data - calculated client-side, no extra API calls
-  const todayAppointments = useTodayAppointments(appointments);
-  const stats = useAppointmentStatsFromData(appointments);
+  // Today's list and stats come from their own range (this week + this
+  // month), so they don't change when the calendar navigates elsewhere.
+  const [statsRange] = useState(() => getStatsDateRange(new Date()));
+  const {
+    appointments: statsAppointments,
+    refresh: refreshStats,
+  } = useAppointmentsData({
+    startDate: statsRange.start,
+    endDate: statsRange.end,
+    revalidateOnFocus: false,
+    keepPreviousData: true,
+  });
+
+  const refresh = useCallback(async () => {
+    await Promise.all([refreshCalendar(), refreshStats()]);
+  }, [refreshCalendar, refreshStats]);
+
+  // Derived data - calculated client-side
+  const todayAppointments = useTodayAppointments(statsAppointments);
+  const stats = useAppointmentStatsFromData(statsAppointments);
   const calendarEvents = useCalendarEvents(appointments);
 
   // Mutations
