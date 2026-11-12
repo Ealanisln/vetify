@@ -4,6 +4,7 @@ import { serializePet, serializePets } from './serializers';
 import type { PaginationParams, SortParams } from './pagination';
 import { PET_FIELD_MESSAGES, PET_WEIGHT_UNITS } from './utils/pet-form-validation';
 import type { FieldLabel } from './validations/spanish-errors';
+import { matchesSearch } from './utils/search-text';
 
 // Allowed sort fields for pets (whitelist for security)
 export const PETS_ALLOWED_SORT_FIELDS = ['name', 'species', 'breed', 'createdAt'] as const;
@@ -99,11 +100,19 @@ export async function createPet(
   return serializePet(pet);
 }
 
+const PET_LIST_INCLUDE = {
+  customer: true,
+  appointments: true,
+  medicalHistories: true,
+  location: true,
+} as const;
+
 export async function getPetsByTenant(
   tenantId: string,
   locationId?: string,
   pagination?: PaginationParams,
-  sort?: SortParams
+  sort?: SortParams,
+  search?: string
 ) {
   const where = {
     tenantId,
@@ -120,6 +129,40 @@ export async function getPetsByTenant(
   const orderBy = sort?.sortBy
     ? { [sort.sortBy]: sort.sortOrder || 'desc' }
     : { createdAt: 'desc' as const };
+
+  // Search runs in JS over the tenant's rows so it can ignore accents and
+  // phone formatting (the database may lack the unaccent extension). Only the
+  // matching page is then loaded with its relations.
+  const term = search?.trim();
+  if (term && pagination) {
+    const candidates = await prisma.pet.findMany({
+      where,
+      select: {
+        id: true,
+        name: true,
+        breed: true,
+        microchipNumber: true,
+        customer: { select: { name: true, email: true, phone: true } },
+      },
+      orderBy,
+    });
+    const matchingIds = candidates
+      .filter((p) =>
+        matchesSearch(term, {
+          text: [p.name, p.breed, p.microchipNumber, p.customer?.name, p.customer?.email],
+          phones: [p.customer?.phone],
+        })
+      )
+      .map((p) => p.id);
+    const pageIds = matchingIds.slice(pagination.skip, pagination.skip + pagination.limit);
+    const rows = pageIds.length
+      ? await prisma.pet.findMany({ where: { id: { in: pageIds }, tenantId }, include: PET_LIST_INCLUDE })
+      : [];
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    const pets = pageIds.flatMap((id) => byId.get(id) ?? []);
+
+    return { pets: serializePets(pets), total: matchingIds.length };
+  }
 
   // If pagination is provided, return paginated results with total count
   if (pagination) {

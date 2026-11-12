@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { PetsList } from '@/components/pets/PetsList';
 import { PaginationControls } from '@/components/ui/PaginationControls';
 import Link from 'next/link';
@@ -21,11 +21,16 @@ interface PaginationState {
 }
 
 const ITEMS_PER_PAGE = 10;
+const SEARCH_DEBOUNCE_MS = 300;
 
 export function PetsPageClient({ petLimit }: PetsPageClientProps) {
   const [pets, setPets] = useState<PetWithOwner[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const requestIdRef = useRef(0);
 
   // Pagination state
   const [pagination, setPagination] = useState<PaginationState>({
@@ -41,7 +46,13 @@ export function PetsPageClient({ petLimit }: PetsPageClientProps) {
 
   const { currentLocation, isAllLocations } = useLocation();
 
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchQuery.trim()), SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const fetchPets = useCallback(async (page: number = 1) => {
+    const requestId = ++requestIdRef.current;
     setIsLoading(true);
     setError(null);
 
@@ -59,6 +70,10 @@ export function PetsPageClient({ petLimit }: PetsPageClientProps) {
       params.set('sortBy', sortBy);
       params.set('sortOrder', sortOrder);
 
+      if (debouncedSearch) {
+        params.set('search', debouncedSearch);
+      }
+
       const url = `/api/pets?${params.toString()}`;
       const response = await fetch(url);
 
@@ -67,6 +82,9 @@ export function PetsPageClient({ petLimit }: PetsPageClientProps) {
       }
 
       const data = await response.json();
+
+      // A newer request (e.g. the next keystroke) superseded this one
+      if (requestId !== requestIdRef.current) return;
 
       // Handle paginated response
       if (data.success && data.data && data.pagination) {
@@ -90,15 +108,20 @@ export function PetsPageClient({ petLimit }: PetsPageClientProps) {
       }
     } catch (err) {
       console.error('Error fetching pets:', err);
-      setError(err instanceof Error ? err.message : 'Error desconocido');
+      if (requestId === requestIdRef.current) {
+        setError(err instanceof Error ? err.message : 'Error desconocido');
+      }
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) {
+        setIsLoading(false);
+        setHasLoaded(true);
+      }
     }
-  }, [currentLocation?.id, isAllLocations, sortBy, sortOrder]);
+  }, [currentLocation?.id, isAllLocations, sortBy, sortOrder, debouncedSearch]);
 
   useEffect(() => {
     fetchPets(1); // Reset to page 1 when filters change
-  }, [currentLocation?.id, isAllLocations, sortBy, sortOrder]);
+  }, [currentLocation?.id, isAllLocations, sortBy, sortOrder, debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Separate effect for initial load
   useEffect(() => {
@@ -119,7 +142,8 @@ export function PetsPageClient({ petLimit }: PetsPageClientProps) {
   const canAddPet = petLimit.canAdd;
   const maxPets = petLimit.limit;
 
-  if (isLoading && pets.length === 0) {
+  // Full-page spinner only on the first load, so the search box keeps focus
+  if (isLoading && !hasLoaded) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -204,7 +228,7 @@ export function PetsPageClient({ petLimit }: PetsPageClientProps) {
       )}
 
       {/* Pets list with search functionality */}
-      {pets.length === 0 && pagination.total === 0 ? (
+      {pets.length === 0 && pagination.total === 0 && !searchQuery ? (
         <div className="text-center py-12" data-testid="empty-pets-state">
           <span className="text-6xl">🐕</span>
           <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -227,6 +251,8 @@ export function PetsPageClient({ petLimit }: PetsPageClientProps) {
         <>
           <PetsList
             pets={pets}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
             maxPets={maxPets}
             totalPets={pagination.total}
             sortBy={sortBy}

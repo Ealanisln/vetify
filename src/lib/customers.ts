@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { serializeCustomer, serializeCustomers } from './serializers';
 import type { PaginationParams, SortParams } from './pagination';
 import type { FieldLabel } from './validations/spanish-errors';
+import { matchesSearch } from './utils/search-text';
 
 // Allowed sort fields for customers (whitelist for security)
 export const CUSTOMERS_ALLOWED_SORT_FIELDS = ['name', 'email', 'createdAt'] as const;
@@ -101,7 +102,8 @@ export async function getCustomersByTenant(
   tenantId: string,
   locationId?: string,
   pagination?: PaginationParams,
-  sort?: SortParams
+  sort?: SortParams,
+  search?: string
 ) {
   const where = {
     tenantId,
@@ -135,6 +137,31 @@ export async function getCustomersByTenant(
       }
     }
   };
+
+  // Search runs in JS over the tenant's rows so it can ignore accents and
+  // phone formatting (the database may lack the unaccent extension). Only the
+  // matching page is then loaded with its relations.
+  const term = search?.trim();
+  if (term && pagination) {
+    const candidates = await prisma.customer.findMany({
+      where,
+      select: { id: true, name: true, firstName: true, lastName: true, email: true, phone: true },
+      orderBy,
+    });
+    const matchingIds = candidates
+      .filter((c) =>
+        matchesSearch(term, { text: [c.name, c.firstName, c.lastName, c.email], phones: [c.phone] })
+      )
+      .map((c) => c.id);
+    const pageIds = matchingIds.slice(pagination.skip, pagination.skip + pagination.limit);
+    const rows = pageIds.length
+      ? await prisma.customer.findMany({ where: { id: { in: pageIds }, tenantId }, include })
+      : [];
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    const customers = pageIds.flatMap((id) => byId.get(id) ?? []);
+
+    return { customers: serializeCustomers(customers), total: matchingIds.length };
+  }
 
   // If pagination is provided, return paginated results with total count
   if (pagination) {

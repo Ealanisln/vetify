@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useMemo } from 'react';
 import { PetWithOwner } from '@/types';
 import Link from 'next/link';
 import { MagnifyingGlassIcon, MapPinIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
@@ -9,6 +8,9 @@ import { mapSpeciesToSpanish, mapGenderToSpanish } from '@/lib/utils/pet-enum-ma
 
 interface PetsListProps {
   pets: PetWithOwner[];
+  /** Search term; the parent sends it to the API, which searches every row. */
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
   maxPets: number;
   totalPets?: number; // Total from pagination for accurate count
   sortBy?: string;
@@ -25,11 +27,14 @@ const SORT_OPTIONS = [
 ] as const;
 
 /**
- * Client component that displays a searchable list of pets
- * Implements real-time filtering by pet name, breed, and owner name
+ * Client component that displays a list of pets with a search box. The
+ * search itself runs on the server (pet name, breed, microchip, owner name,
+ * email and phone), so `pets` already holds the matching page.
  */
 export function PetsList({
   pets,
+  searchQuery,
+  onSearchChange,
   maxPets,
   totalPets,
   sortBy = 'createdAt',
@@ -37,34 +42,10 @@ export function PetsList({
   onSort,
   isLoading = false,
 }: PetsListProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-
   // Use provided total or fallback to pets array length
   const actualTotalPets = totalPets ?? pets.length;
 
-  // Filter pets based on search query
-  // Searches across pet name, breed, and owner information
-  const filteredPets = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return pets;
-    }
-
-    const query = searchQuery.toLowerCase().trim();
-
-    return pets.filter((pet) => {
-      const petName = pet.name.toLowerCase();
-      const breed = pet.breed?.toLowerCase() || '';
-      const ownerName = pet.customer?.name?.toLowerCase() || '';
-      const ownerEmail = pet.customer?.email?.toLowerCase() || '';
-
-      return (
-        petName.includes(query) ||
-        breed.includes(query) ||
-        ownerName.includes(query) ||
-        ownerEmail.includes(query)
-      );
-    });
-  }, [pets, searchQuery]);
+  const filteredPets = pets;
 
   const handleSortChange = (newSortBy: string) => {
     if (!onSort) return;
@@ -76,7 +57,7 @@ export function PetsList({
   };
 
   // Show empty state when there are no pets at all
-  if (pets.length === 0 && actualTotalPets === 0) {
+  if (pets.length === 0 && actualTotalPets === 0 && !searchQuery) {
     return (
       <div className="text-center py-12">
         <span className="text-6xl">🐕</span>
@@ -108,9 +89,9 @@ export function PetsList({
           </div>
           <input
             type="text"
-            placeholder="Buscar en esta página..."
+            placeholder="Buscar por mascota, raza, dueño o teléfono"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
             className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg
                        leading-5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
                        placeholder-gray-500 dark:placeholder-gray-400
@@ -156,8 +137,8 @@ export function PetsList({
         <p className="text-gray-500 dark:text-gray-400" data-testid="pets-limit-indicator">
           {searchQuery ? (
             <>
-              Mostrando <span className="font-semibold text-gray-900 dark:text-gray-100">{filteredPets.length}</span> de{' '}
-              <span className="font-semibold text-gray-900 dark:text-gray-100">{pets.length}</span> en esta página
+              <span className="font-semibold text-gray-900 dark:text-gray-100">{actualTotalPets}</span>{' '}
+              {actualTotalPets === 1 ? 'resultado' : 'resultados'}
             </>
           ) : (
             <>
@@ -173,7 +154,7 @@ export function PetsList({
         </p>
         {searchQuery && (
           <button
-            onClick={() => setSearchQuery('')}
+            onClick={() => onSearchChange('')}
             className="text-vetify-green-600 hover:text-vetify-green-700 dark:text-vetify-green-400
                        dark:hover:text-vetify-green-300 font-medium transition-colors"
             aria-label="Limpiar búsqueda"

@@ -134,11 +134,14 @@ export async function GET(request: NextRequest) {
     const paginationParams = parsePaginationParams(searchParams);
     const sortParams = parseSortParams(searchParams, PETS_ALLOWED_SORT_FIELDS);
 
+    const search = searchParams.get('search')?.trim().slice(0, 100) || undefined;
+
     const result = await getPetsByTenant(
       tenant.id as string,
       locationId,
       paginationParams,
-      sortParams
+      sortParams,
+      search
     );
 
     // Handle paginated response
