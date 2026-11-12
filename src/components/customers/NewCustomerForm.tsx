@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '../ui/button';
 import { PlusIcon, TrashIcon, CheckCircleIcon, CalendarIcon, UserGroupIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { getThemeClasses } from '../../utils/theme-colors';
@@ -10,11 +11,7 @@ import { type PetCreationResponse, type CustomerCreationResponse } from '@/types
 import LocationSelector from '@/components/locations/LocationSelector';
 import { toast } from 'sonner';
 import { getMaxDateForInput } from '@/lib/utils/date-validation';
-import {
-  PET_WEIGHT_UNITS,
-  validatePetFormFields,
-  type PetFormFieldErrors,
-} from '@/lib/utils/pet-form-validation';
+import { PET_WEIGHT_UNITS, validatePetFormFields } from '@/lib/utils/pet-form-validation';
 import { fieldErrorsByName } from '@/lib/validations/spanish-errors';
 
 function FieldError({ testId, message }: { testId: string; message?: string }) {
@@ -42,6 +39,13 @@ interface PetFormData {
   isNeutered: boolean;
 }
 
+type FieldErrors = Record<string, string | undefined>;
+
+interface FailedPet {
+  name: string;
+  message: string;
+}
+
 interface CustomerFormData {
   name: string;
   firstName?: string;
@@ -62,7 +66,10 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
   const [createdCustomerId, setCreatedCustomerId] = useState<string | null>(null);
   const [createdPets, setCreatedPets] = useState<Array<{ id: string; name: string }>>([]);
   const [locationId, setLocationId] = useState<string>('');
-  const [petFieldErrors, setPetFieldErrors] = useState<Record<number, PetFormFieldErrors>>({});
+  const [petFieldErrors, setPetFieldErrors] = useState<Record<number, FieldErrors>>({});
+  // Pets that could not be saved after the customer was created; their data
+  // stays in formData.pets so a retry only posts them, never the customer.
+  const [failedPets, setFailedPets] = useState<FailedPet[]>([]);
   const [customerFieldErrors, setCustomerFieldErrors] = useState<Record<string, string>>({});
   const maxBirthDate = getMaxDateForInput();
   const [formData, setFormData] = useState<CustomerFormData>({
@@ -127,7 +134,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
 
     // Validate pet fields before creating anything, so a bad weight or date
     // never leaves a customer saved without its pets
-    const fieldErrors: Record<number, PetFormFieldErrors> = {};
+    const fieldErrors: Record<number, FieldErrors> = {};
     formData.pets.forEach((pet, index) => {
       const errors = validatePetFormFields(pet, maxBirthDate);
       if (Object.keys(errors).length > 0) fieldErrors[index] = errors;
@@ -142,61 +149,62 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
     setCustomerFieldErrors({});
 
     try {
-      // Create customer
-      const customerResponse = await fetch('/api/customers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          pets: undefined, // Remove pets from customer data
-          tenantId,
-          locationId: locationId || null
-        })
-      });
+      // Create the customer only once: a retry after a pet failure reuses it
+      let customerId = createdCustomerId;
+      if (!customerId) {
+        const customerResponse = await fetch('/api/customers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...formData,
+            pets: undefined, // Remove pets from customer data
+            tenantId,
+            locationId: locationId || null
+          })
+        });
 
-      if (!customerResponse.ok) {
-        const errorData = await customerResponse.json();
-        setCustomerFieldErrors(fieldErrorsByName(errorData.errors));
-        throw new Error(errorData.message || 'Error al crear cliente');
+        if (!customerResponse.ok) {
+          const errorData = await customerResponse.json();
+          setCustomerFieldErrors(fieldErrorsByName(errorData.errors));
+          throw new Error(errorData.message || 'Error al crear cliente');
+        }
+
+        const customer: CustomerCreationResponse = await customerResponse.json();
+        customerId = customer.id;
+        setCreatedCustomerId(customer.id);
       }
 
-      const customer: CustomerCreationResponse = await customerResponse.json();
-      setCreatedCustomerId(customer.id);
-
-      // Create pets if any
       const petsCreated: Array<{ id: string; name: string }> = [];
-      if (formData.pets.length > 0) {
-        for (const pet of formData.pets) {
-          const petResponse = await fetch('/api/pets', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              ...pet,
-              species: mapSpeciesToEnglish(pet.species),
-              gender: mapGenderToEnglish(pet.gender),
-              customerId: customer.id,
-              tenantId,
-              locationId: locationId || null,
-              weight: pet.weight ? parseFloat(pet.weight) : undefined,
-              dateOfBirth: pet.dateOfBirth // Send as YYYY-MM-DD string directly
-            })
-          });
+      const petsStillPending: PetFormData[] = [];
+      const failures: FailedPet[] = [];
+      const pendingFieldErrors: Record<number, FieldErrors> = {};
 
-          if (petResponse.ok) {
-            const petCreationResponse: PetCreationResponse = await petResponse.json();
-            petsCreated.push({
-              id: petCreationResponse.pet.id,
-              name: petCreationResponse.pet.name
-            });
-          } else {
-            // Log pet creation failure but continue with customer creation
-            console.error(`Failed to create pet: ${pet.name}`, await petResponse.text());
-          }
+      for (const pet of formData.pets) {
+        const result = await createPetForCustomer(pet, customerId);
+        if (result.ok) {
+          petsCreated.push(result.pet);
+        } else {
+          pendingFieldErrors[petsStillPending.length] = result.fieldErrors;
+          petsStillPending.push(pet);
+          failures.push({ name: pet.name, message: result.message });
         }
       }
 
-      setCreatedPets(petsCreated);
-      setShowSuccessDialog(true);
+      const allCreatedPets = [...createdPets, ...petsCreated];
+      setCreatedPets(allCreatedPets);
+      setFormData(prev => ({ ...prev, pets: petsStillPending }));
+      setPetFieldErrors(pendingFieldErrors);
+      setFailedPets(failures);
+
+      if (failures.length === 0) {
+        setShowSuccessDialog(true);
+      } else {
+        toast.error(
+          failures.length === 1
+            ? `No se pudo guardar la mascota ${failures[0].name}.`
+            : `No se pudieron guardar ${failures.length} mascotas.`
+        );
+      }
     } catch (error) {
       console.error('Error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Error al crear el cliente. Inténtalo de nuevo.';
@@ -204,6 +212,49 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
     } finally {
       setIsLoading(false);
       isSubmittingRef.current = false;
+    }
+  };
+
+  const createPetForCustomer = async (
+    pet: PetFormData,
+    customerId: string
+  ): Promise<
+    | { ok: true; pet: { id: string; name: string } }
+    | { ok: false; message: string; fieldErrors: FieldErrors }
+  > => {
+    try {
+      const petResponse = await fetch('/api/pets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...pet,
+          species: mapSpeciesToEnglish(pet.species),
+          gender: mapGenderToEnglish(pet.gender),
+          customerId,
+          tenantId,
+          locationId: locationId || null,
+          weight: pet.weight ? parseFloat(pet.weight) : undefined,
+          dateOfBirth: pet.dateOfBirth // Send as YYYY-MM-DD string directly
+        })
+      });
+
+      if (petResponse.ok) {
+        const petCreationResponse: PetCreationResponse = await petResponse.json();
+        return { ok: true, pet: { id: petCreationResponse.pet.id, name: petCreationResponse.pet.name } };
+      }
+
+      const errorData = await petResponse.json().catch(() => ({}));
+      return {
+        ok: false,
+        message: errorData.message || 'Error al registrar la mascota',
+        fieldErrors: fieldErrorsByName(errorData.errors),
+      };
+    } catch {
+      return {
+        ok: false,
+        message: 'No se pudo conectar con el servidor. Inténtalo de nuevo.',
+        fieldErrors: {},
+      };
     }
   };
 
@@ -221,8 +272,51 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 md:space-y-8">
+      {/* Failed pets after the customer was saved */}
+      {createdCustomerId && failedPets.length > 0 && (
+        <div
+          role="alert"
+          data-testid="pets-failed-panel"
+          className="rounded-md border border-red-200 dark:border-red-700 bg-red-50 dark:bg-red-900/20 p-4 text-sm text-red-800 dark:text-red-200"
+        >
+          <p className="font-medium">
+            El cliente {formData.name} se guardó, pero{' '}
+            {failedPets.length === 1
+              ? 'una mascota no se pudo guardar:'
+              : `${failedPets.length} mascotas no se pudieron guardar:`}
+          </p>
+          <ul className="mt-2 list-disc pl-5 space-y-1">
+            {failedPets.map((failed, i) => (
+              <li key={i}>
+                <strong>{failed.name || `Mascota #${i + 1}`}</strong>: {failed.message}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2">
+            Corrige los datos abajo y usa &quot;Reintentar mascotas&quot;; el cliente no se vuelve a crear.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            <Link
+              href={`/dashboard/pets/new?customerId=${createdCustomerId}`}
+              className="font-medium underline text-red-800 dark:text-red-200"
+            >
+              Agregar mascota desde el formulario de mascotas
+            </Link>
+            <Link
+              href={`/dashboard/customers/${createdCustomerId}`}
+              className="font-medium underline text-red-800 dark:text-red-200"
+            >
+              Ver cliente
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Customer Information */}
-      <div className={`card p-4 md:p-6 ${getThemeClasses('background.card', 'border.card')}`}>
+      <fieldset
+        disabled={!!createdCustomerId}
+        className={`card min-w-0 p-4 md:p-6${getThemeClasses('background.card', 'border.card')}`}
+      >
         <h3 className={`text-base md:text-lg font-medium ${getThemeClasses('text.primary')} mb-4`}>
           Información del Cliente
         </h3>
@@ -318,7 +412,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
             />
           </div>
         </div>
-      </div>
+      </fieldset>
 
       {/* Pets Section */}
       <div className={`card p-4 md:p-6 ${getThemeClasses('background.card', 'border.card')}`}>
@@ -518,7 +612,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
           className="order-1 sm:order-2"
           data-testid="submit-customer-button"
         >
-          {isLoading ? 'Guardando...' : 'Crear Cliente'}
+          {isLoading ? 'Guardando...' : createdCustomerId ? 'Reintentar mascotas' : 'Crear Cliente'}
         </Button>
       </div>
 
