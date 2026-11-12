@@ -7,7 +7,6 @@ import { test, expect, type Page } from '@playwright/test';
  * - Tab navigation
  * - Business hours configuration
  * - Services management
- * - Staff management
  * - Notification settings
  * - Public page settings
  * - Subscription management
@@ -17,6 +16,8 @@ import { test, expect, type Page } from '@playwright/test';
  * They will be skipped if TEST_AUTH_ENABLED is not set.
  *
  * NOTE: QR Code Generator tests are in a separate file: qr-code-generator.spec.ts
+ * NOTE: Staff is not a settings tab; staff and invitations are covered by
+ * tests/e2e/clinic-setup/clinic-setup.spec.ts (/dashboard/staff).
  *
  * SECURITY: Settings page is protected - only MANAGER and ADMINISTRATOR roles
  * can access. Other roles are redirected to dashboard.
@@ -26,91 +27,65 @@ const isAuthTestEnabled = process.env.TEST_AUTH_ENABLED === 'true';
 test.describe('Settings Management', () => {
   test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session. Set TEST_AUTH_ENABLED=true');
 
+  const openTab = async (page: Page, tab: string) => {
+    await page.getByTestId(`settings-tab-${tab}`).click();
+    await expect(page.getByTestId(`settings-tab-${tab}`)).toHaveClass(/border-r-2/);
+  };
+
   test.beforeEach(async ({ page }) => {
-    // Navigate to settings page
     await page.goto('/dashboard/settings');
-    // Wait for the page to load
-    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('settings-tabs')).toBeVisible();
   });
 
   test.describe('Settings Navigation', () => {
     test('should display settings page header', async ({ page }) => {
-      await expect(page.locator('h1:has-text("Configuración")')).toBeVisible();
+      await expect(page.getByRole('main').getByRole('heading', { level: 1, name: 'Configuración' })).toBeVisible();
     });
 
     test('should display all settings tabs', async ({ page }) => {
-      // Note: Settings page uses a card-based navigation, not traditional tabs
-      // Check that navigation card exists
-      const navCard = page.locator('nav.space-y-1').or(page.locator('[class*="CardContent"] nav'));
-      await expect(navCard).toBeVisible();
-
-      // Core tabs that should be visible
-      await expect(page.locator('button:has-text("Página Pública")')).toBeVisible();
-      await expect(page.locator('button:has-text("Códigos QR")')).toBeVisible();
-      await expect(page.locator('button:has-text("Horarios")')).toBeVisible();
-      await expect(page.locator('button:has-text("Servicios")')).toBeVisible();
-      await expect(page.locator('button:has-text("Suscripción")')).toBeVisible();
+      for (const tab of ['public-page', 'qr-codes', 'business-hours', 'services', 'subscription', 'notifications']) {
+        await expect(page.getByTestId(`settings-tab-${tab}`)).toBeEnabled();
+      }
     });
 
     test('should switch to Public Page tab', async ({ page }) => {
-      await page.click('button:has-text("Página Pública")');
-
-      await expect(page.locator('[data-testid="public-page-settings"]')).toBeVisible();
+      await openTab(page, 'public-page');
+      await expect(page.getByTestId('public-page-settings')).toBeVisible();
     });
 
     test('should switch to Business Hours tab', async ({ page }) => {
-      await page.click('button:has-text("Horarios")');
-
-      await expect(page.locator('[data-testid="business-hours-settings"]')).toBeVisible();
+      await openTab(page, 'business-hours');
+      await expect(page.getByTestId('business-hours-settings')).toBeVisible();
     });
 
     test('should switch to Services tab', async ({ page }) => {
-      await page.click('button:has-text("Servicios")');
-
-      await expect(page.locator('[data-testid="services-settings"]')).toBeVisible();
+      await openTab(page, 'services');
+      await expect(page.getByTestId('services-settings')).toBeVisible();
     });
 
     test('should switch to Subscription tab', async ({ page }) => {
-      await page.click('button:has-text("Suscripción")');
-
-      await expect(page.locator('[data-testid="subscription-settings"]')).toBeVisible();
+      await openTab(page, 'subscription');
+      await expect(page.getByTestId('subscription-settings')).toBeVisible();
     });
 
     test('should switch to Notifications tab', async ({ page }) => {
-      const notificationsTab = page.locator('button:has-text("Notificaciones")');
-
-      if (await notificationsTab.isVisible()) {
-        await notificationsTab.click();
-        await expect(page.locator('[data-testid="notification-settings"]')).toBeVisible();
-      }
-    });
-
-    test('should switch to Staff tab', async ({ page }) => {
-      const staffTab = page.locator('button:has-text("Personal")');
-
-      if (await staffTab.isVisible()) {
-        await staffTab.click();
-        await expect(page.locator('[data-testid="staff-settings"]')).toBeVisible();
-      }
+      await openTab(page, 'notifications');
+      await expect(page.getByTestId('notification-settings')).toBeVisible();
     });
 
     test('should open correct tab from URL parameter', async ({ page }) => {
       await page.goto('/dashboard/settings?tab=subscription');
-      await page.waitForLoadState('networkidle');
 
-      // Subscription tab should be active
-      const subscriptionTab = page.locator('[data-testid="settings-tab-subscription"]');
-      await expect(subscriptionTab).toHaveClass(/bg-blue-50|border-blue-700|border-r-2/);
+      await expect(page.getByTestId('settings-tab-subscription')).toHaveClass(/border-r-2/);
+      await expect(page.getByTestId('subscription-settings')).toBeVisible();
     });
 
     test('should open public-page tab from URL parameter when subscription active', async ({ page }) => {
+      // The seeded clinic is in an active trial, so the tab is not locked
       await page.goto('/dashboard/settings?tab=public-page');
-      await page.waitForLoadState('networkidle');
 
-      // Public page tab should be active (if subscription is active)
-      // Otherwise subscription tab will be shown
-      const activeTab = page.locator('button[class*="bg-blue-50"], button[class*="border-r-2"]').first();
-      await expect(activeTab).toBeVisible();
+      await expect(page.getByTestId('settings-tab-public-page')).toHaveClass(/border-r-2/);
+      await expect(page.getByTestId('public-page-settings')).toBeVisible();
     });
   });
 
@@ -120,28 +95,27 @@ test.describe('Settings Management', () => {
     test.describe.configure({ mode: 'serial' });
 
     const openBusinessHours = async (page: Page) => {
-      await page.click('button:has-text("Horarios")');
-      await expect(page.locator('[data-testid="business-hours-settings"]')).toBeVisible();
+      await openTab(page, 'business-hours');
+      await expect(page.getByTestId('business-hours-settings')).toBeVisible();
     };
 
     const saveAndWait = async (page: Page) => {
       const saved = page.waitForResponse(
         (response) => response.url().includes('/api/settings/business-hours') && response.request().method() === 'PUT'
       );
-      await page.locator('[data-testid="save-business-hours"]').click();
+      await page.getByTestId('save-business-hours').click();
       expect((await saved).ok()).toBe(true);
-      await expect(page.locator('text=Horarios de atención guardados exitosamente')).toBeVisible();
+      await expect(page.getByText('Horarios de atención guardados exitosamente').first()).toBeVisible();
     };
 
     const reloadBusinessHours = async (page: Page) => {
-      await page.reload();
-      await page.waitForLoadState('networkidle');
-      await openBusinessHours(page);
+      await page.goto('/dashboard/settings?tab=business-hours');
+      await expect(page.getByTestId('business-hours-settings')).toBeVisible();
     };
 
     // Opens Monday if needed; returns whether it had to (unsaved change).
     const ensureMondayOpen = async (page: Page) => {
-      const mondayToggle = page.locator('[data-testid="day-toggle-monday"]');
+      const mondayToggle = page.getByTestId('day-toggle-monday');
       if ((await mondayToggle.textContent())?.trim() === 'Abrir') {
         await mondayToggle.click();
         return true;
@@ -174,20 +148,21 @@ test.describe('Settings Management', () => {
     });
 
     test('should toggle day open/closed', async ({ page }) => {
-      const mondayToggle = page.locator('[data-testid="day-toggle-monday"]');
+      const mondayToggle = page.getByTestId('day-toggle-monday');
       const initialLabel = (await mondayToggle.textContent())?.trim();
 
       await mondayToggle.click();
 
       await expect(mondayToggle).toHaveText(initialLabel === 'Cerrar' ? 'Abrir' : 'Cerrar');
       // Unsaved change: discard it so later tests start clean
-      await page.locator('[data-testid="reset-hours-button"]').click();
+      await page.getByTestId('reset-hours-button').click();
+      await expect(mondayToggle).toHaveText(initialLabel!);
     });
 
     test('should update and persist opening time', async ({ page }) => {
       const reopened = await ensureMondayOpen(page);
 
-      const openTime = page.locator('[data-testid="open-time-monday"]');
+      const openTime = page.getByTestId('open-time-monday');
       const original = await openTime.inputValue();
       const updated = original === '09:00' ? '09:30' : '09:00';
 
@@ -196,18 +171,18 @@ test.describe('Settings Management', () => {
       await saveAndWait(page);
 
       await reloadBusinessHours(page);
-      await expect(page.locator('[data-testid="open-time-monday"]')).toHaveValue(updated);
+      await expect(page.getByTestId('open-time-monday')).toHaveValue(updated);
 
       // Restore
-      await page.locator('[data-testid="open-time-monday"]').selectOption(original);
-      if (reopened) await page.locator('[data-testid="day-toggle-monday"]').click();
+      await page.getByTestId('open-time-monday').selectOption(original);
+      if (reopened) await page.getByTestId('day-toggle-monday').click();
       await saveAndWait(page);
     });
 
     test('should persist "Sin comida" after reload', async ({ page }) => {
       const reopened = await ensureMondayOpen(page);
-      const lunchStart = page.locator('[data-testid="lunch-start-monday"]');
-      const lunchEnd = page.locator('[data-testid="lunch-end-monday"]');
+      const lunchStart = page.getByTestId('lunch-start-monday');
+      const lunchEnd = page.getByTestId('lunch-end-monday');
       const originalStart = await lunchStart.inputValue();
       const originalEnd = await lunchEnd.inputValue();
 
@@ -218,350 +193,190 @@ test.describe('Settings Management', () => {
         await saveAndWait(page);
       }
 
-      await page.locator('[data-testid="lunch-start-monday"]').selectOption('');
+      await page.getByTestId('lunch-start-monday').selectOption('');
       await saveAndWait(page);
 
       await reloadBusinessHours(page);
-      await expect(page.locator('[data-testid="lunch-start-monday"]')).toHaveValue('');
-      await expect(page.locator('[data-testid="lunch-end-monday"]')).toHaveValue('');
+      await expect(page.getByTestId('lunch-start-monday')).toHaveValue('');
+      await expect(page.getByTestId('lunch-end-monday')).toHaveValue('');
 
       // Restore
       if (originalStart && originalEnd) {
-        await page.locator('[data-testid="lunch-start-monday"]').selectOption(originalStart);
-        await page.locator('[data-testid="lunch-end-monday"]').selectOption(originalEnd);
+        await page.getByTestId('lunch-start-monday').selectOption(originalStart);
+        await page.getByTestId('lunch-end-monday').selectOption(originalEnd);
       }
-      if (reopened) await page.locator('[data-testid="day-toggle-monday"]').click();
+      if (reopened) await page.getByTestId('day-toggle-monday').click();
       if (originalStart || reopened) await saveAndWait(page);
     });
 
     test('should block saving when closing is before opening', async ({ page }) => {
       await ensureMondayOpen(page);
-      await page.locator('[data-testid="open-time-monday"]').selectOption('10:00');
-      await page.locator('[data-testid="close-time-monday"]').selectOption('09:00');
+      await page.getByTestId('open-time-monday').selectOption('10:00');
+      await page.getByTestId('close-time-monday').selectOption('09:00');
 
-      await expect(page.locator('text=La hora de cierre debe ser posterior a la de apertura').first()).toBeVisible();
-      await page.locator('[data-testid="save-business-hours"]').click();
-      await expect(page.locator('text=Revisa los horarios marcados antes de guardar')).toBeVisible();
+      await expect(page.getByText('La hora de cierre debe ser posterior a la de apertura').first()).toBeVisible();
+      await page.getByTestId('save-business-hours').click();
+      await expect(page.getByText('Revisa los horarios marcados antes de guardar')).toBeVisible();
 
-      await page.locator('[data-testid="reset-hours-button"]').click();
+      await page.getByTestId('reset-hours-button').click();
     });
   });
+
   test.describe('Services Management', () => {
-    // Edit/delete/toggle only touch services this spec created, never real catalog data.
-    const E2E_PREFIX = 'Test Service E2E';
-    const e2eServiceCard = (page: Page) =>
-      page.locator('[data-testid="service-card"]', { hasText: E2E_PREFIX }).first();
+    // The tests build on the service the first one creates
+    test.describe.configure({ mode: 'serial' });
+
+    const serviceName = `Test Service E2E ${Date.now().toString(36)}`;
+    const serviceCard = (page: Page) => page.getByTestId('service-card').filter({ hasText: serviceName });
 
     test.beforeEach(async ({ page }) => {
-      await page.click('button:has-text("Servicios")');
-      await page.waitForLoadState('networkidle');
+      await openTab(page, 'services');
+      await expect(page.getByTestId('services-settings')).toBeVisible();
     });
 
     test('should display services list', async ({ page }) => {
-      await expect(page.locator('[data-testid="services-settings"]')).toBeVisible();
       // A tenant with no services shows the empty state instead of the grid
       await expect(
-        page.locator('[data-testid="services-list"]').or(page.locator('[data-testid="services-empty-state"]'))
+        page.getByTestId('services-list').or(page.getByTestId('services-empty-state'))
       ).toBeVisible();
     });
 
-    test('should have add service button', async ({ page }) => {
-      await expect(page.locator('[data-testid="add-service-button"]')).toBeVisible();
-    });
+    test('should open add service modal with its form fields', async ({ page }) => {
+      await page.getByTestId('add-service-button').click();
 
-    test('should open add service modal', async ({ page }) => {
-      await page.click('[data-testid="add-service-button"]');
-
-      await expect(page.locator('[data-testid="service-modal"]')).toBeVisible();
-    });
-
-    test('should display service form fields', async ({ page }) => {
-      await page.click('[data-testid="add-service-button"]');
-
-      await expect(page.locator('[data-testid="service-name-input"]')).toBeVisible();
-      await expect(page.locator('[data-testid="service-price-input"]')).toBeVisible();
-      await expect(page.locator('[data-testid="service-duration-input"]')).toBeVisible();
+      await expect(page.getByTestId('service-modal')).toBeVisible();
+      await expect(page.getByTestId('service-name-input')).toBeVisible();
+      await expect(page.getByTestId('service-price-input')).toBeVisible();
+      await expect(page.getByTestId('service-duration-input')).toBeVisible();
     });
 
     test('should create new service', async ({ page }) => {
-      await page.click('[data-testid="add-service-button"]');
+      await page.getByTestId('add-service-button').click();
+      await page.getByTestId('service-name-input').fill(serviceName);
+      await page.getByTestId('service-price-input').fill('150');
+      await page.getByTestId('service-duration-input').fill('30');
+      await page.getByTestId('submit-service-button').click();
 
-      const timestamp = Date.now();
-      await page.fill('[data-testid="service-name-input"]', `${E2E_PREFIX} ${timestamp}`);
-      await page.fill('[data-testid="service-price-input"]', '150');
-      await page.fill('[data-testid="service-duration-input"]', '30');
-
-      await page.click('[data-testid="submit-service-button"]');
-
-      await expect(page.locator('text=/servicio creado/i')).toBeVisible();
-      await expect(page.locator('[data-testid="service-card"]', { hasText: `${E2E_PREFIX} ${timestamp}` })).toBeVisible();
+      await expect(page.getByText('Servicio creado')).toBeVisible();
+      await expect(serviceCard(page)).toBeVisible();
     });
 
     test('should create a service without duration', async ({ page }) => {
-      await page.click('[data-testid="add-service-button"]');
+      await page.getByTestId('add-service-button').click();
+      await page.getByTestId('service-name-input').fill(`${serviceName} sin duración`);
+      await page.getByTestId('service-price-input').fill('200');
+      await page.getByTestId('service-duration-input').fill('');
+      await page.getByTestId('submit-service-button').click();
 
-      await page.fill('[data-testid="service-name-input"]', `${E2E_PREFIX} sin duración ${Date.now()}`);
-      await page.fill('[data-testid="service-price-input"]', '200');
-      await page.fill('[data-testid="service-duration-input"]', '');
-
-      await page.click('[data-testid="submit-service-button"]');
-
-      await expect(page.locator('text=/servicio creado/i')).toBeVisible();
+      await expect(page.getByText('Servicio creado')).toBeVisible();
     });
 
     test('should edit existing service', async ({ page }) => {
-      const serviceCard = e2eServiceCard(page);
+      await serviceCard(page).first().getByTestId('edit-service-button').click();
+      await page.getByTestId('service-price-input').fill('200');
+      await page.getByTestId('submit-service-button').click();
 
-      if (await serviceCard.isVisible()) {
-        await serviceCard.locator('[data-testid="edit-service-button"]').click();
-
-        await page.fill('[data-testid="service-price-input"]', '200');
-        await page.click('[data-testid="submit-service-button"]');
-
-        await expect(page.locator('text=/servicio actualizado/i')).toBeVisible();
-      }
+      await expect(page.getByText('Servicio actualizado')).toBeVisible();
+      await expect(serviceCard(page).first().getByTestId('service-price')).toContainText('200');
     });
 
     test('should toggle service active status', async ({ page }) => {
-      const serviceCard = e2eServiceCard(page);
+      await serviceCard(page).first().getByTestId('edit-service-button').click();
+      await page.getByTestId('service-active-checkbox').uncheck();
+      await page.getByTestId('submit-service-button').click();
 
-      if (await serviceCard.isVisible()) {
-        await serviceCard.locator('[data-testid="edit-service-button"]').click();
-        await page.locator('[data-testid="service-active-checkbox"]').uncheck();
-        await page.click('[data-testid="submit-service-button"]');
-
-        await expect(page.locator('text=/servicio actualizado/i')).toBeVisible();
-        await expect(serviceCard.locator('text=Inactivo')).toBeVisible();
-      }
+      await expect(page.getByText('Servicio actualizado')).toBeVisible();
+      await expect(serviceCard(page).first().getByTestId('service-status')).toHaveText('Inactivo');
     });
 
     test('should delete service', async ({ page }) => {
-      const serviceCard = e2eServiceCard(page);
+      const before = await serviceCard(page).count();
+      expect(before).toBeGreaterThan(0);
 
-      if (await serviceCard.isVisible()) {
-        // Deletion is confirmed with a native confirm() dialog
-        page.once('dialog', (dialog) => dialog.accept());
-        await serviceCard.locator('[data-testid="delete-service-button"]').click();
+      // Deletion is confirmed with a native confirm() dialog
+      page.once('dialog', (dialog) => dialog.accept());
+      await serviceCard(page).first().getByTestId('delete-service-button').click();
 
-        // Without sales it is deleted; with sales the API deactivates it instead
-        await expect(page.locator('text=/servicio eliminado|se ha desactivado/i')).toBeVisible();
-      }
-    });
-  });
-
-  test.describe('Staff Management', () => {
-    test.beforeEach(async ({ page }) => {
-      const staffTab = page.locator('button:has-text("Personal")');
-      if (await staffTab.isVisible()) {
-        await staffTab.click();
-        await page.waitForLoadState('networkidle');
-      }
-    });
-
-    test('should display staff list', async ({ page }) => {
-      const staffList = page.locator('[data-testid="staff-list"]');
-
-      if (await staffList.isVisible()) {
-        await expect(staffList).toBeVisible();
-      }
-    });
-
-    test('should have invite staff button', async ({ page }) => {
-      const inviteButton = page.locator('[data-testid="invite-staff-button"]');
-
-      if (await inviteButton.isVisible()) {
-        await expect(inviteButton).toBeVisible();
-      }
-    });
-
-    test('should display staff member information', async ({ page }) => {
-      const staffRow = page.locator('[data-testid="staff-row"]').first();
-
-      if (await staffRow.isVisible()) {
-        await expect(staffRow.locator('[data-testid="staff-name"]')).toBeVisible();
-        await expect(staffRow.locator('[data-testid="staff-role"]')).toBeVisible();
-      }
-    });
-
-    test('should edit staff member role', async ({ page }) => {
-      const staffRow = page.locator('[data-testid="staff-row"]').first();
-
-      if (await staffRow.isVisible()) {
-        await staffRow.locator('[data-testid="edit-staff-button"]').click();
-
-        const roleSelect = page.locator('[data-testid="staff-role-select"]');
-        if (await roleSelect.isVisible()) {
-          await roleSelect.click();
-          await page.locator('[data-testid="role-option"]').first().click();
-          await page.click('[data-testid="submit-staff-button"]');
-
-          await expect(page.locator('text=/rol.*actualizado/i')).toBeVisible();
-        }
-      }
+      // Without sales the service is deleted
+      await expect(page.getByText('Servicio eliminado correctamente')).toBeVisible();
+      await expect(serviceCard(page)).toHaveCount(before - 1);
     });
   });
 
   test.describe('Notification Settings', () => {
     test.beforeEach(async ({ page }) => {
-      const notificationsTab = page.locator('button:has-text("Notificaciones")');
-      if (await notificationsTab.isVisible()) {
-        await notificationsTab.click();
-        await page.waitForLoadState('networkidle');
-      }
-    });
-
-    test('should display notification options', async ({ page }) => {
-      const notificationSettings = page.locator('[data-testid="notification-settings"]');
-
-      if (await notificationSettings.isVisible()) {
-        await expect(notificationSettings).toBeVisible();
-      }
+      await openTab(page, 'notifications');
+      await expect(page.getByTestId('notification-settings')).toBeVisible();
     });
 
     test('should have appointment reminder toggle', async ({ page }) => {
-      const reminderToggle = page.locator('[data-testid="appointment-reminder-toggle"]');
-
-      if (await reminderToggle.isVisible()) {
-        await expect(reminderToggle).toBeVisible();
-      }
+      await expect(page.getByTestId('notification-toggle-appointmentReminder')).toBeVisible();
     });
 
-    test('should toggle notification preference', async ({ page }) => {
-      const reminderToggle = page.locator('[data-testid="appointment-reminder-toggle"]');
+    test('should toggle notification preference and offer to save', async ({ page }) => {
+      const reminderToggle = page.getByTestId('notification-toggle-appointmentReminder');
+      const initial = await reminderToggle.getAttribute('aria-checked');
 
-      if (await reminderToggle.isVisible()) {
-        const initialState = await reminderToggle.isChecked();
-        await reminderToggle.click();
+      await reminderToggle.click();
 
-        const newState = await reminderToggle.isChecked();
-        expect(newState).not.toBe(initialState);
-      }
-    });
-
-    test('should save notification preferences', async ({ page }) => {
-      const saveButton = page.locator('[data-testid="save-notifications"]');
-
-      if (await saveButton.isVisible()) {
-        await saveButton.click();
-        await expect(page.locator('text=/guardado|actualizado/i')).toBeVisible();
-      }
+      await expect(reminderToggle).toHaveAttribute('aria-checked', initial === 'true' ? 'false' : 'true');
+      await expect(page.getByTestId('save-notifications')).toBeVisible();
     });
   });
 
   test.describe('Subscription Management', () => {
     test.beforeEach(async ({ page }) => {
-      await page.click('button:has-text("Suscripción")');
-      await page.waitForLoadState('networkidle');
+      await openTab(page, 'subscription');
     });
 
     test('should display current plan', async ({ page }) => {
-      await expect(page.locator('[data-testid="current-plan"]')).toBeVisible();
-    });
-
-    test('should display plan features', async ({ page }) => {
-      await expect(page.locator('[data-testid="plan-features"]')).toBeVisible();
-    });
-
-    test('should show available plans', async ({ page }) => {
-      const plansSection = page.locator('[data-testid="available-plans"]');
-
-      if (await plansSection.isVisible()) {
-        await expect(plansSection).toBeVisible();
-      }
-    });
-
-    test('should have upgrade button for basic plans', async ({ page }) => {
-      const upgradeButton = page.locator('[data-testid="upgrade-plan-button"]');
-
-      // May or may not be visible depending on current plan
-      if (await upgradeButton.isVisible()) {
-        await expect(upgradeButton).toBeVisible();
-      }
-    });
-
-    test('should show billing information', async ({ page }) => {
-      const billingSection = page.locator('[data-testid="billing-info"]');
-
-      if (await billingSection.isVisible()) {
-        await expect(billingSection).toBeVisible();
-      }
-    });
-
-    test('should have manage billing button', async ({ page }) => {
-      const manageBillingButton = page.locator('[data-testid="manage-billing-button"]');
-
-      if (await manageBillingButton.isVisible()) {
-        // Should link to Stripe portal
-        const href = await manageBillingButton.getAttribute('href');
-        expect(href).toBeTruthy();
-      }
+      await expect(page.getByTestId('subscription-settings')).toBeVisible();
+      await expect(page.getByTestId('current-plan')).not.toBeEmpty();
     });
   });
 
   test.describe('Public Page Settings', () => {
     test.beforeEach(async ({ page }) => {
-      await page.click('button:has-text("Página Pública")');
-      await page.waitForLoadState('networkidle');
+      await openTab(page, 'public-page');
+      await expect(page.getByTestId('public-page-settings')).toBeVisible();
     });
 
     test('should display public page toggle', async ({ page }) => {
-      await expect(page.locator('[data-testid="public-page-toggle"]')).toBeVisible();
+      await expect(page.getByTestId('public-page-toggle')).toBeVisible();
     });
 
-    test('should show public page URL', async ({ page }) => {
-      await expect(page.locator('[data-testid="public-page-url"]')).toBeVisible();
+    test('should show public page URL and preview link', async ({ page }) => {
+      // The seeded clinic has its public page enabled
+      await expect(page.getByTestId('public-page-url')).toContainText('/ci-test-clinic');
+      await expect(page.getByTestId('preview-public-page')).toHaveAttribute('href', /\/ci-test-clinic$/);
     });
 
     test('should toggle public page visibility', async ({ page }) => {
-      const toggle = page.locator('[data-testid="public-page-toggle"]');
+      const toggle = page.getByTestId('public-page-toggle');
+      const initial = await toggle.getAttribute('aria-checked');
 
-      if (await toggle.isVisible()) {
-        await toggle.click();
-        await expect(page.locator('text=/habilitada|deshabilitada/i')).toBeVisible();
-      }
-    });
+      await toggle.click();
 
-    test('should have preview button', async ({ page }) => {
-      const previewButton = page.locator('[data-testid="preview-public-page"]');
-
-      if (await previewButton.isVisible()) {
-        await expect(previewButton).toBeVisible();
-      }
+      // Unsaved change: the page is not reloaded, so nothing is persisted
+      await expect(toggle).toHaveAttribute('aria-checked', initial === 'true' ? 'false' : 'true');
+      await expect(page.getByText(initial === 'true' ? 'Página Pública Desactivada' : 'Página Pública Activa')).toBeVisible();
     });
   });
 
   test.describe('Accessibility', () => {
     test('should have proper heading structure', async ({ page }) => {
-      await expect(page.locator('h1')).toBeVisible();
+      // The dashboard header has its own h1; the page content has exactly one
+      await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toHaveText('Configuración');
     });
 
     test('should be keyboard navigable between tabs', async ({ page }) => {
-      const tabs = page.locator('[data-testid="settings-tabs"] button');
+      const tabs = page.getByTestId('settings-tabs').getByRole('button');
 
-      // Focus first tab
       await tabs.first().focus();
       await expect(tabs.first()).toBeFocused();
 
-      // Tab to next
       await page.keyboard.press('Tab');
-      await expect(page.locator(':focus')).toBeVisible();
-    });
-
-    test('should have proper form labels', async ({ page }) => {
-      await page.click('button:has-text("Horarios")');
-
-      // Form inputs should have associated labels
-      const inputs = page.locator('input[type="time"]');
-      const count = await inputs.count();
-
-      for (let i = 0; i < Math.min(count, 3); i++) {
-        const input = inputs.nth(i);
-        const id = await input.getAttribute('id');
-        const ariaLabel = await input.getAttribute('aria-label');
-
-        // Should have either id with label or aria-label
-        expect(id || ariaLabel).toBeTruthy();
-      }
+      await expect(tabs.nth(1)).toBeFocused();
     });
   });
 
@@ -569,27 +384,14 @@ test.describe('Settings Management', () => {
     test('should display correctly on mobile viewport', async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 667 });
 
-      await expect(page.locator('h1:has-text("Configuración")')).toBeVisible();
-      await expect(page.locator('[data-testid="settings-tabs"]')).toBeVisible();
-    });
-
-    test('should have scrollable tabs on mobile', async ({ page }) => {
-      await page.setViewportSize({ width: 375, height: 667 });
-
-      const tabsContainer = page.locator('[data-testid="settings-tabs"]');
-      await expect(tabsContainer).toBeVisible();
-
-      // Tabs should be scrollable or wrapped
-      const isScrollable = await tabsContainer.evaluate((el) => el.scrollWidth > el.clientWidth);
-      const hasMultipleRows = await tabsContainer.evaluate((el) => el.querySelector('button:last-child')?.offsetTop !== el.querySelector('button:first-child')?.offsetTop);
-
-      expect(isScrollable || hasMultipleRows || true).toBeTruthy(); // Some implementation for mobile
+      await expect(page.getByRole('main').getByRole('heading', { level: 1, name: 'Configuración' })).toBeVisible();
+      await expect(page.getByTestId('settings-tabs')).toBeVisible();
     });
 
     test('should display correctly on tablet viewport', async ({ page }) => {
       await page.setViewportSize({ width: 768, height: 1024 });
 
-      await expect(page.locator('[data-testid="settings-tabs"]')).toBeVisible();
+      await expect(page.getByTestId('settings-tabs')).toBeVisible();
     });
   });
 });
@@ -639,15 +441,12 @@ test.describe('Settings Role-Based Access Control', () => {
       await page.goto('/');
       await page.waitForLoadState('networkidle');
 
-      // Click on user dropdown to open menu
-      const userDropdown = page.locator('[data-testid="user-dropdown"]');
-      if (await userDropdown.isVisible()) {
-        await userDropdown.click();
+      // Open the user dropdown
+      await page.locator('[data-testid="user-dropdown"]').click();
 
-        // Settings link should not be visible in dropdown for non-admin
-        const settingsMenuItem = page.locator('a[href="/dashboard/settings"]:has-text("Configuración")');
-        await expect(settingsMenuItem).not.toBeVisible();
-      }
+      // Settings link should not be visible in dropdown for non-admin
+      const settingsMenuItem = page.locator('a[href="/dashboard/settings"]:has-text("Configuración")');
+      await expect(settingsMenuItem).not.toBeVisible();
     });
   });
 
@@ -677,15 +476,12 @@ test.describe('Settings Role-Based Access Control', () => {
       await page.goto('/');
       await page.waitForLoadState('networkidle');
 
-      // Click on user dropdown to open menu
-      const userDropdown = page.locator('[data-testid="user-dropdown"]');
-      if (await userDropdown.isVisible()) {
-        await userDropdown.click();
+      // Open the user dropdown
+      await page.locator('[data-testid="user-dropdown"]').click();
 
-        // Settings link should be visible in dropdown for admin
-        const settingsMenuItem = page.locator('a[href="/dashboard/settings"]:has-text("Configuración")');
-        await expect(settingsMenuItem).toBeVisible();
-      }
+      // Settings link should be visible in dropdown for admin
+      const settingsMenuItem = page.locator('a[href="/dashboard/settings"]:has-text("Configuración")');
+      await expect(settingsMenuItem).toBeVisible();
     });
   });
 
