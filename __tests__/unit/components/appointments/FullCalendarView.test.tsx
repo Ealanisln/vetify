@@ -6,7 +6,7 @@
  * through the props FullCalendar receives.
  */
 import React from 'react';
-import { render, waitFor } from '@testing-library/react';
+import { render, waitFor, act } from '@testing-library/react';
 
 type CalendarProps = Record<string, unknown>;
 let calendarProps: CalendarProps = {};
@@ -28,10 +28,11 @@ jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 
 const mockUpdateAppointment = jest.fn();
 const mockRefresh = jest.fn().mockResolvedValue(undefined);
+let mockCalendarEvents: unknown[] = [];
 
 jest.mock('@/components/providers/AppointmentsProvider', () => ({
   useSafeAppointmentsContext: () => ({
-    calendarEvents: [],
+    calendarEvents: mockCalendarEvents,
     isLoading: false,
     error: null,
     currentDate: new Date('2026-11-16T12:00:00Z'),
@@ -78,6 +79,8 @@ describe('FullCalendarView drag and resize', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     calendarProps = {};
+    // Business hours are not under test here; the calendar uses the defaults
+    global.fetch = jest.fn(async () => ({ ok: false, json: async () => ({}) }) as Response) as typeof fetch;
   });
 
   it('persists a drop on an editable appointment', async () => {
@@ -141,5 +144,65 @@ describe('FullCalendarView drag and resize', () => {
 
     expect(info.revert).toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith('Dra. López ya tiene una cita en este horario');
+  });
+});
+
+describe('FullCalendarView visible hours', () => {
+  const originalFetch = global.fetch;
+
+  beforeEach(() => {
+    calendarProps = {};
+    mockCalendarEvents = [];
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  function mockHoursEndpoint(days: unknown[]) {
+    global.fetch = jest.fn(async (url: RequestInfo | URL) => {
+      if (String(url) === '/api/appointments/business-hours') {
+        return { ok: true, json: async () => ({ success: true, data: { timeZone: 'America/Mexico_City', days } }) } as Response;
+      }
+      throw new Error(`unexpected fetch ${String(url)}`);
+    }) as typeof fetch;
+  }
+
+  it("uses the clinic's saved hours for the time grid", async () => {
+    mockHoursEndpoint(
+      Array.from({ length: 7 }, (_, dayOfWeek) => ({
+        dayOfWeek,
+        isWorkingDay: dayOfWeek !== 0,
+        startTime: '07:00',
+        endTime: '21:00',
+      }))
+    );
+
+    await act(async () => {
+      render(<FullCalendarView />);
+    });
+
+    await waitFor(() => expect(calendarProps.slotMaxTime).toBe('21:00:00'));
+    expect(calendarProps.slotMinTime).toBe('07:00:00');
+    expect(global.fetch).toHaveBeenCalledWith('/api/appointments/business-hours');
+  });
+
+  it('shows an appointment after closing time instead of hiding it', async () => {
+    global.fetch = jest.fn(async () => ({ ok: false, json: async () => ({}) }) as Response) as typeof fetch;
+    mockCalendarEvents = [
+      {
+        id: 'appt-late-SCHEDULED',
+        title: 'Firulais - Ana',
+        start: '2026-11-16T19:00:00',
+        end: '2026-11-16T19:30:00',
+        extendedProps: { appointment, canEdit: true, canCancel: true, priority: 'medium' },
+      },
+    ];
+
+    await act(async () => {
+      render(<FullCalendarView />);
+    });
+
+    expect(calendarProps.slotMaxTime).toBe('20:00:00');
   });
 });

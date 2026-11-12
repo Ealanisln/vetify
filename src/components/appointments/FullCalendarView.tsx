@@ -8,7 +8,8 @@ import interactionPlugin from '@fullcalendar/interaction';
 import listPlugin from '@fullcalendar/list';
 import { DateSelectArg, EventClickArg, EventDropArg, EventContentArg, EventApi } from '@fullcalendar/core';
 import esLocale from '@fullcalendar/core/locales/es';
-import { useCalendar, useCalendarConfig, CalendarView } from '../../hooks/useCalendar';
+import { useCalendar, useCalendarConfig, useClinicCalendarHours, CalendarView } from '../../hooks/useCalendar';
+import { buildCalendarHours } from '@/lib/appointments/calendar-hours';
 import { useAppointments, AppointmentWithDetails } from '../../hooks/useAppointments';
 import { useSafeAppointmentsContext } from '../providers/AppointmentsProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
@@ -120,6 +121,12 @@ export function FullCalendarView({
   }, [isMobile, defaultView, setCurrentView]);
 
   const calendarConfig = useCalendarConfig();
+  const clinicHours = useClinicCalendarHours();
+  // Saved clinic hours, widened so no appointment falls outside the grid
+  const calendarHours = useMemo(
+    () => buildCalendarHours(clinicHours, events),
+    [clinicHours, events]
+  );
 
   const handleEventClick = useCallback((clickInfo: EventClickArg) => {
     const appointment = clickInfo.event.extendedProps.appointment;
@@ -400,10 +407,10 @@ export function FullCalendarView({
             select={handleDateSelect}
             eventDrop={handleEventDrop}
             eventResize={handleEventResize}
-            businessHours={calendarConfig.businessHours}
+            businessHours={calendarHours.businessHours}
             slotDuration={calendarConfig.slotDuration}
-            slotMinTime={calendarConfig.slotMinTime}
-            slotMaxTime={calendarConfig.slotMaxTime}
+            slotMinTime={calendarHours.slotMinTime}
+            slotMaxTime={calendarHours.slotMaxTime}
             eventTimeFormat={calendarConfig.eventTimeFormat}
             slotLabelFormat={calendarConfig.slotLabelFormat}
             timeZone="local"

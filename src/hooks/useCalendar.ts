@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AppointmentWithDetails } from './useAppointments';
+import type { CalendarDayHours } from '@/lib/appointments/calendar-hours';
 
 export interface CalendarEvent {
   id: string;
@@ -336,21 +337,41 @@ function getPriority(reason: string): 'low' | 'medium' | 'high' | 'emergency' {
   return 'medium';
 }
 
-// TODO: business hours below are hardcoded (Mon-Sat 08-18) and only shade the
-// calendar grid; slot availability reads the saved hours server-side. Reading
-// the saved hours here needs a staff-readable endpoint: GET
-// /api/settings/business-hours requires settings:read and creates defaults.
+/**
+ * The clinic's saved weekly hours, read from the staff-readable
+ * /api/appointments/business-hours endpoint. Null until loaded (or if the
+ * request fails), in which case callers fall back to the default week.
+ */
+export const useClinicCalendarHours = (): CalendarDayHours[] | null => {
+  const [days, setDays] = useState<CalendarDayHours[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/appointments/business-hours')
+      .then(async (response) => {
+        if (!response.ok) return;
+        const result = await response.json();
+        if (!cancelled && Array.isArray(result?.data?.days)) {
+          setDays(result.data.days);
+        }
+      })
+      .catch(() => {
+        // Keep the default week; the grid still widens to fit appointments
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return days;
+};
+
+// Grid window and shaded business hours come from buildCalendarHours (saved
+// clinic hours, widened to fit every appointment); see FullCalendarView.
 export const useCalendarConfig = () => {
   return {
     locale: 'es',
-    businessHours: {
-      daysOfWeek: [1, 2, 3, 4, 5, 6],
-      startTime: '08:00',
-      endTime: '18:00'
-    },
     slotDuration: '00:15:00',
-    slotMinTime: '08:00:00',
-    slotMaxTime: '18:00:00',
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
