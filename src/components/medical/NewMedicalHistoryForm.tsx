@@ -14,6 +14,7 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline';
 import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
+import { PrescriptionProductInput, type InventoryProductOption } from './PrescriptionProductInput';
 
 interface NewMedicalHistoryFormProps {
   tenantId: string;
@@ -40,7 +41,8 @@ interface MedicalHistoryFormData {
   treatment: string;
   notes: string;
   prescriptions: Array<{
-    // Free-text medication: no inventory productId is sent
+    // Set only when picked from the inventory; free text sends no productId
+    productId?: string;
     productName: string;
     quantity: number;
     dosage: string;
@@ -126,6 +128,25 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
       ...prev,
       prescriptions: prev.prescriptions.map((prescription, i) => 
         i === index ? { ...prescription, [field]: value } : prescription
+      )
+    }));
+  };
+
+  // Typing a name unlinks any inventory product picked before
+  const setPrescriptionName = (index: number, productName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      prescriptions: prev.prescriptions.map((prescription, i) =>
+        i === index ? { ...prescription, productName, productId: undefined } : prescription
+      )
+    }));
+  };
+
+  const linkPrescriptionProduct = (index: number, product: InventoryProductOption) => {
+    setFormData(prev => ({
+      ...prev,
+      prescriptions: prev.prescriptions.map((prescription, i) =>
+        i === index ? { ...prescription, productName: product.name, productId: product.id } : prescription
       )
     }));
   };
@@ -376,12 +397,11 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Nombre del Medicamento
                           </label>
-                          <input
-                            type="text"
-                            placeholder="Nombre del medicamento"
+                          <PrescriptionProductInput
                             value={prescription.productName}
-                            onChange={(e) => updatePrescription(index, 'productName', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            productId={prescription.productId}
+                            onChange={(name) => setPrescriptionName(index, name)}
+                            onSelectProduct={(product) => linkPrescriptionProduct(index, product)}
                           />
                         </div>
                         <div>
