@@ -28,6 +28,25 @@ jest.mock('@/lib/email/reminder-alerts', () => ({
   processTreatmentReminders: jest.fn(),
 }));
 
+// The remaining daily tasks hit the database; stub them so the orchestrator
+// tests only see the failures they set up.
+jest.mock('@/lib/email/trial-lifecycle', () => ({
+  processTrialLifecycleEmails: jest.fn(),
+}));
+
+jest.mock('@/lib/retention/notify', () => ({
+  sendRetentionWarnings: jest.fn(),
+}));
+
+jest.mock('@/lib/retention/purge', () => ({
+  purgeExpiredTenants: jest.fn(),
+}));
+
+jest.mock('@sentry/nextjs', () => ({
+  captureMessage: jest.fn(),
+  captureException: jest.fn(),
+}));
+
 // Import route handlers after mocks are set up
 import { GET as dailyTasksHandler } from '@/app/api/cron/daily-tasks/route';
 import { GET as appointmentRemindersHandler } from '@/app/api/cron/appointment-reminders/route';
@@ -40,6 +59,10 @@ import {
   processAppointmentReminders,
   processTreatmentReminders,
 } from '@/lib/email/reminder-alerts';
+import { processTrialLifecycleEmails } from '@/lib/email/trial-lifecycle';
+import { sendRetentionWarnings } from '@/lib/retention/notify';
+import { purgeExpiredTenants } from '@/lib/retention/purge';
+import * as Sentry from '@sentry/nextjs';
 
 const VALID_CRON_SECRET = 'test-cron-secret-12345';
 
@@ -60,6 +83,29 @@ describe('Cron Jobs API Integration Tests', () => {
     (processTreatmentReminders as jest.Mock).mockResolvedValue(
       createMockTreatmentReminderResult()
     );
+    (processTrialLifecycleEmails as jest.Mock).mockResolvedValue({
+      success: true,
+      tenantsChecked: 2,
+      expiringEmailsSent: 0,
+      expiredEmailsSent: 0,
+      welcomeEmailsSent: 0,
+      activationNudgesSent: 0,
+      checkinEmailsSent: 0,
+    });
+    (sendRetentionWarnings as jest.Mock).mockResolvedValue({
+      scanned: 0,
+      sent: [],
+      skippedNoAdmin: [],
+      failed: [],
+      remaining: false,
+    });
+    (purgeExpiredTenants as jest.Mock).mockResolvedValue({
+      scanned: 0,
+      purged: [],
+      skippedReactivated: [],
+      failed: [],
+      remaining: false,
+    });
   });
 
   afterAll(() => {
@@ -148,7 +194,7 @@ describe('Cron Jobs API Integration Tests', () => {
       expect(data.errors).toBeUndefined();
     });
 
-    it('should return 207 Multi-Status on partial failure', async () => {
+    it('should return 500 on partial failure', async () => {
       // Make appointments fail
       (processAppointmentReminders as jest.Mock).mockRejectedValue(
         new Error('SMTP connection failed')
@@ -160,7 +206,7 @@ describe('Cron Jobs API Integration Tests', () => {
       const response = await dailyTasksHandler(request);
       const data = await response.json();
 
-      expect(response.status).toBe(207);
+      expect(response.status).toBe(500);
       expect(data.success).toBe(false);
       expect(data.errors).toBeDefined();
       expect(data.errors).toContain('appointments: SMTP connection failed');
@@ -184,7 +230,7 @@ describe('Cron Jobs API Integration Tests', () => {
       const response = await dailyTasksHandler(request);
       const data = await response.json();
 
-      expect(response.status).toBe(207);
+      expect(response.status).toBe(500);
       expect(data.errors).toHaveLength(2);
       expect(data.errors).toContain('inventory: Database timeout');
       expect(data.errors).toContain('treatments: Email service unavailable');
@@ -192,7 +238,7 @@ describe('Cron Jobs API Integration Tests', () => {
       expect(data.results.appointments.success).toBe(true);
     });
 
-    it('should return 207 when all tasks fail', async () => {
+    it('should return 500 when all tasks fail', async () => {
       (checkAllTenantsInventory as jest.Mock).mockRejectedValue(
         new Error('Inventory error')
       );
@@ -209,12 +255,105 @@ describe('Cron Jobs API Integration Tests', () => {
       const response = await dailyTasksHandler(request);
       const data = await response.json();
 
-      expect(response.status).toBe(207);
+      expect(response.status).toBe(500);
       expect(data.success).toBe(false);
       expect(data.errors).toHaveLength(3);
       expect(data.results.inventory.success).toBe(false);
       expect(data.results.appointments.success).toBe(false);
       expect(data.results.treatments.success).toBe(false);
+    });
+
+    it('treats a processor that returns success: false as a failure', async () => {
+      // Processors catch their own errors and resolve; they rarely throw
+      (processAppointmentReminders as jest.Mock).mockResolvedValue(
+        createMockAppointmentReminderResult({
+          success: false,
+          emailsSent: 0,
+          errors: ['Failed to send reminder for appointment apt-1: Resend down'],
+        })
+      );
+
+      const request = createMockCronRequest(
+        `Bearer ${VALID_CRON_SECRET}`
+      ) as NextRequest;
+      const response = await dailyTasksHandler(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.success).toBe(false);
+      expect(data.errors).toEqual([
+        'appointments: Failed to send reminder for appointment apt-1: Resend down',
+      ]);
+      expect(data.results.appointments.errors).toEqual([
+        'Failed to send reminder for appointment apt-1: Resend down',
+      ]);
+      expect(Sentry.captureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('Daily cron'),
+        expect.objectContaining({ level: 'error' })
+      );
+      // The other tasks still ran
+      expect(processTreatmentReminders).toHaveBeenCalled();
+      expect(processTrialLifecycleEmails).toHaveBeenCalled();
+      expect(purgeExpiredTenants).toHaveBeenCalled();
+    });
+
+    it('treats per-tenant inventory errors and trial success: false as failures', async () => {
+      (checkAllTenantsInventory as jest.Mock).mockResolvedValue(
+        createMockInventoryResult({
+          success: false,
+          errors: { 'tenant-1': ['Invalid prisma.tenant.findUnique() invocation'] },
+        })
+      );
+      (processTrialLifecycleEmails as jest.Mock).mockResolvedValue({
+        success: false,
+        tenantsChecked: 0,
+        expiringEmailsSent: 0,
+        expiredEmailsSent: 0,
+        welcomeEmailsSent: 0,
+        activationNudgesSent: 0,
+        checkinEmailsSent: 0,
+      });
+
+      const request = createMockCronRequest(
+        `Bearer ${VALID_CRON_SECRET}`
+      ) as NextRequest;
+      const response = await dailyTasksHandler(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.errors).toHaveLength(2);
+      expect(data.errors[0]).toBe(
+        'inventory: tenant-1: Invalid prisma.tenant.findUnique() invocation'
+      );
+      expect(data.errors[1]).toMatch(/^trialLifecycle: /);
+    });
+
+    it('treats retention per-tenant failures as failures', async () => {
+      (sendRetentionWarnings as jest.Mock).mockResolvedValue({
+        scanned: 1,
+        sent: [],
+        skippedNoAdmin: [],
+        failed: [{ tenantId: 'tenant-9', error: 'Resend down' }],
+        remaining: false,
+      });
+
+      const request = createMockCronRequest(
+        `Bearer ${VALID_CRON_SECRET}`
+      ) as NextRequest;
+      const response = await dailyTasksHandler(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(data.errors).toEqual(['retentionWarnings: tenant-9: Resend down']);
+    });
+
+    it('does not report to Sentry when every task succeeds', async () => {
+      const request = createMockCronRequest(
+        `Bearer ${VALID_CRON_SECRET}`
+      ) as NextRequest;
+      await dailyTasksHandler(request);
+
+      expect(Sentry.captureMessage).not.toHaveBeenCalled();
     });
 
     it('should include correct result structure with all expected keys', async () => {

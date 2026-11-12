@@ -38,6 +38,33 @@ function verifyCronSecret(request: NextRequest): boolean {
   return authHeader === `Bearer ${cronSecret}`;
 }
 
+/**
+ * Processors catch their own errors and resolve with `success: false` and/or
+ * an error list instead of throwing, so a resolved task can still have
+ * failed. Records it in `errors` and returns the details for the response.
+ */
+function recordSoftFailure(
+  errors: string[],
+  task: string,
+  success: boolean,
+  details: string[]
+): string[] | undefined {
+  if (success && details.length === 0) return undefined;
+  const summary = details.length > 0 ? details : ['reported success: false'];
+  for (const detail of summary) errors.push(`${task}: ${detail}`);
+  return summary;
+}
+
+function flattenTenantErrors(errors: Record<string, string[]>): string[] {
+  return Object.entries(errors).flatMap(([tenantId, messages]) =>
+    messages.map((message) => `${tenantId}: ${message}`)
+  );
+}
+
+function describeTenantFailures(failed: { tenantId: string; error: string }[]): string[] {
+  return failed.map(({ tenantId, error }) => `${tenantId}: ${error}`);
+}
+
 export async function GET(request: NextRequest) {
   // Verify cron secret
   if (!verifyCronSecret(request)) {
@@ -57,6 +84,12 @@ export async function GET(request: NextRequest) {
       success: inventoryResult.success,
       tenantsChecked: inventoryResult.tenantsChecked,
       alertsSent: inventoryResult.totalAlertsSent,
+      errors: recordSoftFailure(
+        errors,
+        'inventory',
+        inventoryResult.success,
+        flattenTenantErrors(inventoryResult.errors)
+      ),
     };
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -73,6 +106,12 @@ export async function GET(request: NextRequest) {
       success: appointmentResult.success,
       appointmentsChecked: appointmentResult.appointmentsChecked,
       emailsSent: appointmentResult.emailsSent,
+      errors: recordSoftFailure(
+        errors,
+        'appointments',
+        appointmentResult.success,
+        appointmentResult.errors
+      ),
     };
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -89,6 +128,12 @@ export async function GET(request: NextRequest) {
       success: treatmentResult.success,
       remindersProcessed: treatmentResult.remindersProcessed,
       emailsSent: treatmentResult.emailsSent,
+      errors: recordSoftFailure(
+        errors,
+        'treatments',
+        treatmentResult.success,
+        treatmentResult.errors
+      ),
     };
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -109,6 +154,7 @@ export async function GET(request: NextRequest) {
       welcomeEmailsSent: trialResult.welcomeEmailsSent,
       activationNudgesSent: trialResult.activationNudgesSent,
       checkinEmailsSent: trialResult.checkinEmailsSent,
+      errors: recordSoftFailure(errors, 'trialLifecycle', trialResult.success, []),
     };
   } catch (error) {
     const msg = error instanceof Error ? error.message : 'Unknown error';
@@ -128,6 +174,12 @@ export async function GET(request: NextRequest) {
       skippedNoAdmin: notifyResult.skippedNoAdmin.length,
       failed: notifyResult.failed.length,
       remaining: notifyResult.remaining,
+      errors: recordSoftFailure(
+        errors,
+        'retentionWarnings',
+        notifyResult.failed.length === 0,
+        describeTenantFailures(notifyResult.failed)
+      ),
     };
     if (notifyResult.remaining) {
       console.warn('[CRON] Retention warnings: more candidates remain, will resume next run');
@@ -150,6 +202,12 @@ export async function GET(request: NextRequest) {
       skippedReactivated: purgeResult.skippedReactivated.length,
       failed: purgeResult.failed.length,
       remaining: purgeResult.remaining,
+      errors: recordSoftFailure(
+        errors,
+        'retentionPurge',
+        purgeResult.failed.length === 0,
+        describeTenantFailures(purgeResult.failed)
+      ),
     };
     if (purgeResult.purged.length > 0) {
       console.warn('[CRON] Retention purge: deleted tenants', purgeResult.purged);
@@ -172,12 +230,15 @@ export async function GET(request: NextRequest) {
   }
 
   const allSuccess = errors.length === 0;
+  // Every error starts with its task name ("inventory: ...")
+  const failedTasks = new Set(errors.map((error) => error.split(':')[0])).size;
+  const totalTasks = Object.keys(results).length;
   console.log(`[CRON] Daily tasks complete. Success: ${allSuccess}, Errors: ${errors.length}`);
 
-  if (errors.length > 0) {
-    Sentry.captureMessage(`Daily cron: ${errors.length}/6 tasks failed`, {
-      level: errors.length >= 3 ? 'fatal' : 'error',
-      tags: { category: 'cron', failedTasks: errors.length },
+  if (!allSuccess) {
+    Sentry.captureMessage(`Daily cron: ${failedTasks}/${totalTasks} tasks failed`, {
+      level: failedTasks >= 3 ? 'fatal' : 'error',
+      tags: { category: 'cron', failedTasks },
       contexts: {
         cron: {
           errors,
@@ -187,10 +248,13 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  // 500, not 207: Vercel's cron history and uptime checks count every 2xx
+  // (207 included) as a successful run, which is how failures stayed hidden.
+  // The body still carries per-task results, and every task ran regardless.
   return NextResponse.json({
     success: allSuccess,
     results,
-    errors: errors.length > 0 ? errors : undefined,
+    errors: allSuccess ? undefined : errors,
     timestamp: new Date().toISOString(),
-  }, { status: allSuccess ? 200 : 207 }); // 207 Multi-Status if partial success
+  }, { status: allSuccess ? 200 : 500 });
 }
