@@ -54,21 +54,6 @@ export interface AvailabilityData {
 
 export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek';
 
-/**
- * Formats a Date object as local time string for FullCalendar.
- * FullCalendar with timeZone='local' needs dates without Z indicator
- * to interpret them correctly in the local timezone.
- */
-function formatLocalDateTime(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
-}
 
 interface UseCalendarReturn {
   events: CalendarEvent[];
@@ -149,9 +134,9 @@ export const useCalendar = (initialView: CalendarView = 'timeGridWeek', enabled:
     return {
       id: appointment.id,
       title: `${appointment.pet.name} - ${appointment.customer.name}`,
-      // Usar formato local sin Z para que FullCalendar interprete correctamente
-      start: formatLocalDateTime(startTime),
-      end: formatLocalDateTime(endTime),
+      // Absolute instants: the calendar shows them in the clinic's timezone
+      start: startTime.toISOString(),
+      end: endTime.toISOString(),
       backgroundColor: colors.bg,
       borderColor: colors.border,
       textColor: colors.text,
@@ -337,33 +322,45 @@ function getPriority(reason: string): 'low' | 'medium' | 'high' | 'emergency' {
   return 'medium';
 }
 
+export interface ClinicCalendarSettings {
+  /** Saved weekly hours; null until loaded or if the request fails */
+  days: CalendarDayHours[] | null;
+  /** Clinic IANA timezone (resolved server-side by getClinicTimeZone); null until loaded */
+  timeZone: string | null;
+}
+
 /**
- * The clinic's saved weekly hours, read from the staff-readable
- * /api/appointments/business-hours endpoint. Null until loaded (or if the
- * request fails), in which case callers fall back to the default week.
+ * The clinic's saved weekly hours and timezone, read from the staff-readable
+ * /api/appointments/business-hours endpoint. Fields stay null until loaded
+ * (or if the request fails); callers fall back to the default week and to
+ * DEFAULT_CLINIC_TIME_ZONE. Pass enabled=false when a parent already loaded them.
  */
-export const useClinicCalendarHours = (): CalendarDayHours[] | null => {
-  const [days, setDays] = useState<CalendarDayHours[] | null>(null);
+export const useClinicCalendarSettings = (enabled: boolean = true): ClinicCalendarSettings => {
+  const [settings, setSettings] = useState<ClinicCalendarSettings>({ days: null, timeZone: null });
 
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
-    fetch('/api/appointments/business-hours')
+    Promise.resolve()
+      .then(() => fetch('/api/appointments/business-hours'))
       .then(async (response) => {
-        if (!response.ok) return;
+        if (!response?.ok) return;
         const result = await response.json();
-        if (!cancelled && Array.isArray(result?.data?.days)) {
-          setDays(result.data.days);
-        }
+        if (cancelled) return;
+        setSettings({
+          days: Array.isArray(result?.data?.days) ? result.data.days : null,
+          timeZone: typeof result?.data?.timeZone === 'string' ? result.data.timeZone : null,
+        });
       })
       .catch(() => {
-        // Keep the default week; the grid still widens to fit appointments
+        // Keep the defaults; the grid still widens to fit appointments
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enabled]);
 
-  return days;
+  return settings;
 };
 
 // Grid window and shaded business hours come from buildCalendarHours (saved

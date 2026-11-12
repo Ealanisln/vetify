@@ -22,6 +22,7 @@ jest.mock('@fullcalendar/daygrid', () => ({ __esModule: true, default: {} }));
 jest.mock('@fullcalendar/timegrid', () => ({ __esModule: true, default: {} }));
 jest.mock('@fullcalendar/interaction', () => ({ __esModule: true, default: {} }));
 jest.mock('@fullcalendar/list', () => ({ __esModule: true, default: {} }));
+jest.mock('@fullcalendar/luxon3', () => ({ __esModule: true, default: {} }));
 jest.mock('@fullcalendar/core/locales/es', () => ({ __esModule: true, default: {} }));
 
 jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }));
