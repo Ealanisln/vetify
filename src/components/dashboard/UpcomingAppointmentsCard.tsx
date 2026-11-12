@@ -1,46 +1,31 @@
 import Link from 'next/link';
 import { AppointmentWithDetails } from '@/types';
-import { formatCalendarDateTime } from '@/lib/utils/date-format';
+import { getAppointmentStatusLabel, type AppointmentStatus } from '@/lib/validations/appointments';
 
 interface UpcomingAppointmentsCardProps {
   appointments: AppointmentWithDetails[];
+  /** Clinic timezone; times are rendered on the server, which runs in UTC */
+  timeZone: string;
 }
 
-export function UpcomingAppointmentsCard({ appointments }: UpcomingAppointmentsCardProps) {
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'SCHEDULED':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
-      case 'CONFIRMED':
-        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
-      case 'IN_PROGRESS':
-        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
-      case 'COMPLETED':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-      case 'CANCELLED':
-        return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
-    }
-  };
+const STATUS_COLORS: Record<string, string> = {
+  SCHEDULED: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+  CONFIRMED: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+  CHECKED_IN: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+  IN_PROGRESS: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+  COMPLETED: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
+};
+const DEFAULT_STATUS_COLOR = 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
 
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'SCHEDULED':
-        return 'Programada';
-      case 'CONFIRMED':
-        return 'Confirmada';
-      case 'IN_PROGRESS':
-        return 'En progreso';
-      case 'COMPLETED':
-        return 'Completada';
-      case 'CANCELLED':
-        return 'Cancelada';
-      default:
-        return status;
-    }
-  };
+/** "lun 16 nov, 10:00" in the clinic's timezone. */
+function formatInClinicTime(date: Date | string, timeZone: string): string {
+  const d = new Date(date);
+  const day = d.toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', timeZone });
+  const time = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone });
+  return `${day}, ${time}`;
+}
 
+export function UpcomingAppointmentsCard({ appointments, timeZone }: UpcomingAppointmentsCardProps) {
   return (
     <div className="bg-white dark:bg-gray-800 shadow-card rounded-lg border border-[#d5e3df] dark:border-gray-700">
       <div className="px-4 py-5 sm:p-6">
@@ -87,12 +72,12 @@ export function UpcomingAppointmentsCard({ appointments }: UpcomingAppointmentsC
                         {appointment.reason}
                       </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500">
-                        {formatCalendarDateTime(appointment.dateTime)} • {appointment.pet.customer.firstName || appointment.pet.customer.name}
+                        {formatInClinicTime(appointment.dateTime, timeZone)} • {appointment.pet.customer.firstName || appointment.pet.customer.name}
                       </p>
                     </div>
                     <div className="flex-shrink-0 flex flex-col items-end gap-2">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(appointment.status)}`}>
-                        {getStatusText(appointment.status)}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[appointment.status] ?? DEFAULT_STATUS_COLOR}`}>
+                        {getAppointmentStatusLabel(appointment.status as AppointmentStatus)}
                       </span>
                       <Link
                         href={`/dashboard/appointments/${appointment.id}`}

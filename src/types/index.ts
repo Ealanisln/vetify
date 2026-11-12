@@ -49,6 +49,8 @@ export type DashboardStats = {
   totalAppointments: number;
   recentPets: PetWithOwner[];
   upcomingAppointments: AppointmentWithDetails[];
+  /** IANA timezone the clinic's appointment times are shown in */
+  timeZone: string;
   planLimits: {
     maxPets: number;
     maxUsers: number;
