@@ -30,6 +30,12 @@ const treatmentTypeEmoji: Record<TreatmentType, string> = {
   OTHER: '📋',
 };
 
+function daysLeftText(days: number): string {
+  if (days <= 0) return 'Es hoy';
+  if (days === 1) return 'Falta 1 día';
+  return `Faltan ${days} días`;
+}
+
 export function TreatmentReminderEmail({
   ownerName,
   petName,
@@ -62,7 +68,7 @@ export function TreatmentReminderEmail({
       {/* Days Until Due Alert */}
       <Section style={alertBox}>
         <Text style={alertText}>
-          <strong>📅 Faltan {daysUntilDue} d&iacute;as</strong>
+          <strong>📅 {daysLeftText(daysUntilDue)}</strong>
         </Text>
       </Section>
 

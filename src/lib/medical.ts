@@ -1,5 +1,7 @@
 import { prisma } from './prisma';
 import { TreatmentType } from '@prisma/client';
+import { clinicDateAtNoon, clinicDaysBetween, getTenantTimeZone } from './clinical-dates';
+import { buildTreatmentReminderData } from './treatment-reminder-content';
 // NOTE: n8nService import removed - integration temporarily disabled for future implementation
 import type {
   ConsultationFormData,
@@ -141,43 +143,71 @@ export async function createVaccination(
   data: VaccinationFormData
 ) {
   try {
-    const vaccination = await prisma.treatmentRecord.create({
-      data: {
-        petId,
-        tenantId,
-        treatmentType: TreatmentType.VACCINATION,
-        productName: data.vaccine_brand,
-        administrationDate: data.administered_date,
-        batchNumber: data.batch_number,
-        manufacturer: data.manufacturer,
-        staffId: data.veterinarian_id,
-        notes: data.side_effects ? `Efectos secundarios: ${data.side_effects}\n${data.notes || ''}` : data.notes,
-        vaccineStage: data.vaccine_stage,
-      },
-      include: {
-        pet: {
-          include: {
-            customer: true,
-          },
-        },
-        staff: true,
-      },
-    });
+    const timeZone = await getTenantTimeZone(tenantId);
 
-    // Schedule next vaccination if provided
-    if (data.next_due_date) {
-      await prisma.treatmentSchedule.create({
+    const vaccination = await prisma.$transaction(async (tx) => {
+      const record = await tx.treatmentRecord.create({
         data: {
           petId,
           tenantId,
           treatmentType: TreatmentType.VACCINATION,
           productName: data.vaccine_brand,
-          scheduledDate: data.next_due_date,
-          status: 'SCHEDULED',
+          administrationDate: clinicDateAtNoon(data.administered_date, timeZone),
+          batchNumber: data.batch_number,
+          manufacturer: data.manufacturer,
+          staffId: data.veterinarian_id,
+          notes: data.side_effects ? `Efectos secundarios: ${data.side_effects}\n${data.notes || ''}` : data.notes,
           vaccineStage: data.vaccine_stage,
         },
+        include: {
+          pet: {
+            include: {
+              customer: true,
+            },
+          },
+          staff: true,
+        },
       });
-    }
+
+      // Schedule the next dose and its owner reminder together
+      if (data.next_due_date) {
+        const dueDate = clinicDateAtNoon(data.next_due_date, timeZone);
+        await tx.treatmentSchedule.create({
+          data: {
+            petId,
+            tenantId,
+            treatmentType: TreatmentType.VACCINATION,
+            productName: data.vaccine_brand,
+            scheduledDate: dueDate,
+            status: 'SCHEDULED',
+            vaccineStage: data.vaccine_stage,
+          },
+        });
+
+        if (clinicDaysBetween(new Date(), dueDate, timeZone) >= 0) {
+          const pet = await tx.pet.findFirst({
+            where: { id: petId, tenantId },
+            select: { name: true, customerId: true },
+          });
+          if (pet) {
+            await tx.reminder.create({
+              data: buildTreatmentReminderData({
+                tenantId,
+                petId,
+                petName: pet.name,
+                customerId: pet.customerId,
+                treatmentType: TreatmentType.VACCINATION,
+                productName: data.vaccine_brand,
+                dueDate,
+                timeZone,
+              }),
+            });
+          }
+        }
+      }
+
+      return record;
+    });
 
     // NOTE: N8N integration temporarily disabled - will be enabled later
     /*
