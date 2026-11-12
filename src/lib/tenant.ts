@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { tenantCurrencyDefaults } from './onboarding-defaults';
+import { getClinicTimeZone, timeZoneForCountry } from './clinic-timezone';
 import type { SubscriptionStatus } from '@prisma/client';
 import type { ThemeId } from './themes';
 
@@ -75,6 +76,8 @@ export interface PublicTenant {
   publicTheme: ThemeId | null;
   publicBookingEnabled: boolean;
   createdAt: Date;
+  /** IANA timezone the clinic's schedule lives in (see getClinicTimeZone) */
+  timeZone: string;
   tenantSubscription: {
     id: string;
     plan: {
@@ -105,6 +108,8 @@ function transformTenantForPublic(tenant: {
   publicTheme: string | null;
   publicBookingEnabled: boolean;
   createdAt: Date;
+  countryCode: string | null;
+  tenantSettings: { timezone: string } | null;
   tenantSubscription: {
     id: string;
     plan: {
@@ -113,8 +118,11 @@ function transformTenantForPublic(tenant: {
     };
   } | null;
 }): PublicTenant {
+  // countryCode and tenantSettings only feed the timezone; keep them off the public object
+  const { countryCode, tenantSettings, ...publicFields } = tenant;
   return {
-    ...tenant,
+    ...publicFields,
+    timeZone: getClinicTimeZone({ countryCode, tenantSettings }),
     publicHours: tenant.publicHours as PublicHours | null,
     publicServices: tenant.publicServices as PublicService[] | null,
     publicImages: tenant.publicImages as PublicImages | null,
@@ -179,7 +187,8 @@ export async function createTenantWithDefaults(data: {
     await tx.tenantSettings.create({
       data: {
         tenantId: tenant.id,
-        timezone: 'UTC',
+        // Store a real zone: 'UTC' made every clinic schedule run on UTC
+        timezone: timeZoneForCountry(currencyDefaults.countryCode),
         dateFormat: 'DD/MM/YYYY',
         enableEmailReminders: true,
         enableSmsReminders: false,
@@ -437,6 +446,8 @@ export async function getTenantBySlug(slug: string): Promise<PublicTenant | null
       publicTheme: true,
       publicBookingEnabled: true,
       createdAt: true,
+      countryCode: true,
+      tenantSettings: { select: { timezone: true } },
       tenantSubscription: {
         select: {
           id: true,

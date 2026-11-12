@@ -169,8 +169,9 @@ describe('Public Appointments API', () => {
       futureDate.setDate(futureDate.getDate() + 7);
       const dateString = futureDate.toISOString().split('T')[0];
 
-      // Create conflict: existing appointment at 10:00
-      const conflictDateTime = new Date(`${dateString}T10:00:00.000Z`);
+      // Create conflict: existing appointment at 10:00 clinic time
+      // (America/Mexico_City is UTC-6, the default clinic timezone)
+      const conflictDateTime = new Date(`${dateString}T16:00:00.000Z`);
 
       prismaMock.appointment.findMany.mockResolvedValue([
         {
@@ -607,6 +608,105 @@ describe('Public Appointments API', () => {
           }),
         })
       );
+    });
+  });
+
+  /**
+   * preferredDate + preferredTime are clinic-local labels. Production runs in
+   * UTC, so they must be resolved in the clinic timezone before comparing
+   * against stored instants. 2026-11-16 is a Monday; Mexico City is UTC-6.
+   */
+  describe('clinic timezone', () => {
+    const MONDAY = '2026-11-16';
+
+    function useClock(iso: string) {
+      jest.useFakeTimers({
+        now: new Date(iso),
+        doNotFake: [
+          'nextTick',
+          'setImmediate',
+          'clearImmediate',
+          'setTimeout',
+          'clearTimeout',
+          'setInterval',
+          'clearInterval',
+          'queueMicrotask',
+        ],
+      });
+    }
+
+    function bookingRequest(preferredTime: string) {
+      return createMockRequest({
+        tenantSlug: 'test-clinic',
+        customerName: 'Juan García',
+        customerPhone: '+52 55 1234 5678',
+        petName: 'Firulais',
+        preferredDate: MONDAY,
+        preferredTime,
+      });
+    }
+
+    beforeEach(() => {
+      useClock('2026-11-10T18:00:00.000Z');
+      mockGetTenantBySlug.mockResolvedValue({ ...mockTenant, timeZone: 'America/Mexico_City' });
+      prismaMock.appointment.findMany.mockResolvedValue([]);
+      prismaMock.appointmentRequest.findFirst.mockResolvedValue(null);
+      mockFindOrCreateCustomer.mockResolvedValue({
+        customer: mockCustomer,
+        status: 'existing',
+        existingPets: [],
+        hasUserAccount: false,
+        confidence: 'high',
+      });
+      mockCreatePublicAppointmentRequest.mockResolvedValue({
+        id: 'appt-req-tz',
+        petName: 'Firulais',
+        service: 'Consulta',
+        preferredDate: new Date(MONDAY),
+        status: 'PENDING',
+      });
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('rejects 09:00 clinic time when an appointment exists at 15:00Z', async () => {
+      prismaMock.appointment.findMany.mockResolvedValue([
+        { id: 'appt-1', dateTime: new Date('2026-11-16T15:00:00.000Z'), duration: 30 },
+      ] as any);
+
+      const response = await POST(bookingRequest('09:00'));
+      const data = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(data.conflictType).toBe('appointment');
+    });
+
+    it('looks for conflicts over the clinic day', async () => {
+      await POST(bookingRequest('09:00'));
+
+      const where = prismaMock.appointment.findMany.mock.calls[0][0]!.where as any;
+      expect(where.dateTime.gte.toISOString()).toBe('2026-11-16T06:00:00.000Z');
+      expect(where.dateTime.lte.toISOString()).toBe('2026-11-17T05:59:59.999Z');
+    });
+
+    it('accepts 09:00 clinic time at 08:00 clinic time (14:00Z) as not in the past', async () => {
+      useClock('2026-11-16T14:00:00.000Z');
+
+      const response = await POST(bookingRequest('09:00'));
+
+      expect(response.status).toBe(200);
+    });
+
+    it('rejects 09:00 clinic time at 09:30 clinic time (15:30Z) as in the past', async () => {
+      useClock('2026-11-16T15:30:00.000Z');
+
+      const response = await POST(bookingRequest('09:00'));
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toBe('No se pueden agendar citas en el pasado');
     });
   });
 });

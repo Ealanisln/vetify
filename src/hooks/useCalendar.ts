@@ -19,7 +19,9 @@ export interface CalendarEvent {
 }
 
 export interface AvailableSlot {
+  /** Absolute instant (ISO-8601 with Z). Send it back unchanged when booking. */
   dateTime: string;
+  /** Clinic wall-clock label, HH:mm */
   time: string;
   displayTime: string;
   period: 'morning' | 'afternoon';
@@ -28,6 +30,8 @@ export interface AvailableSlot {
 export interface AvailabilityData {
   date: string;
   duration: number;
+  /** IANA timezone of the clinic; slot labels are in this zone */
+  timeZone?: string;
   availableSlots: AvailableSlot[];
   totalSlots: number;
   availableCount: number;
@@ -332,6 +336,10 @@ function getPriority(reason: string): 'low' | 'medium' | 'high' | 'emergency' {
   return 'medium';
 }
 
+// TODO: business hours below are hardcoded (Mon-Sat 08-18) and only shade the
+// calendar grid; slot availability reads the saved hours server-side. Reading
+// the saved hours here needs a staff-readable endpoint: GET
+// /api/settings/business-hours requires settings:read and creates defaults.
 export const useCalendarConfig = () => {
   return {
     locale: 'es',

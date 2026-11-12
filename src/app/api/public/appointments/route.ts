@@ -4,6 +4,12 @@ import { findOrCreateCustomer, createPublicAppointmentRequest } from '../../../.
 import { prisma } from '../../../../lib/prisma';
 import { z } from 'zod';
 import { addMinutes } from 'date-fns';
+import {
+  DEFAULT_CLINIC_TIME_ZONE,
+  clinicDateTime,
+  clinicDayRange,
+  parseClinicDate,
+} from '../../../../lib/clinic-timezone';
 import type { AnalyticsEventType } from '@prisma/client';
 
 const appointmentRequestSchema = z.object({
@@ -38,11 +44,18 @@ export async function POST(request: NextRequest) {
     if (validatedData.preferredDate && validatedData.preferredTime) {
       const appointmentDuration = 30; // Default duration in minutes
 
-      // Parse the date and time as UTC to match how PostgreSQL stores timestamps
-      // La BD almacena timestamps sin timezone, y Prisma los interpreta como UTC
-      // Por lo tanto, debemos crear la fecha del request como UTC también
-      const dateTimeString = `${validatedData.preferredDate}T${validatedData.preferredTime}:00.000Z`;
-      const requestedDateTime = new Date(dateTimeString);
+      // preferredDate + preferredTime are clinic wall-clock labels; resolve
+      // them in the clinic timezone (the server runs in UTC).
+      const timeZone = tenant.timeZone ?? DEFAULT_CLINIC_TIME_ZONE;
+      const clinicDate = parseClinicDate(validatedData.preferredDate, timeZone);
+      const validTime = /^([01]\d|2[0-3]):[0-5]\d$/.test(validatedData.preferredTime);
+      if (!clinicDate || !validTime) {
+        return NextResponse.json({
+          success: false,
+          error: 'Fecha u hora inválida'
+        }, { status: 400 });
+      }
+      const requestedDateTime = clinicDateTime(clinicDate, validatedData.preferredTime, timeZone);
       const requestedEndTime = addMinutes(requestedDateTime, appointmentDuration);
 
       // Check if the date is in the past
@@ -60,7 +73,8 @@ export async function POST(request: NextRequest) {
       // - La cita existente termina después de que empiece la nueva
       // Esto detecta cualquier solapamiento
 
-      // Find appointments that could potentially conflict (on the same day)
+      // Find appointments that could potentially conflict (on the same clinic day)
+      const { start: dayStart, end: dayEnd } = clinicDayRange(clinicDate, timeZone);
       const potentialConflicts = await prisma.appointment.findMany({
         where: {
           tenantId: tenant.id,
@@ -68,8 +82,8 @@ export async function POST(request: NextRequest) {
             notIn: ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW']
           },
           dateTime: {
-            gte: new Date(`${validatedData.preferredDate}T00:00:00.000Z`),
-            lt: new Date(`${validatedData.preferredDate}T23:59:59.999Z`)
+            gte: dayStart,
+            lte: dayEnd
           }
         },
         select: {
@@ -100,10 +114,10 @@ export async function POST(request: NextRequest) {
         }, { status: 409 });
       }
 
-      // Check for conflicts with confirmed appointment requests
-      // Use UTC dates to match PostgreSQL storage
-      const startOfDay = new Date(`${validatedData.preferredDate}T00:00:00.000Z`);
-      const endOfDay = new Date(`${validatedData.preferredDate}T23:59:59.999Z`);
+      // Check for conflicts with confirmed appointment requests. preferredDate
+      // is a calendar date stored at UTC midnight, so match the UTC calendar day.
+      const startOfDay = new Date(`${clinicDate}T00:00:00.000Z`);
+      const endOfDay = new Date(`${clinicDate}T23:59:59.999Z`);
 
       const conflictingRequest = await prisma.appointmentRequest.findFirst({
         where: {
