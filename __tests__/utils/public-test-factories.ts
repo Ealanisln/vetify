@@ -24,6 +24,7 @@ export function createMockPublicTenant(overrides: Partial<PublicTenant> = {}): P
     publicThemeColor: '#75a99c',
     publicTheme: 'modern' as ThemeId,
     publicBookingEnabled: true,
+    currencyCode: 'MXN',
     createdAt: new Date('2024-01-01'),
     tenantSubscription: {
       id: 'sub-1',
@@ -59,6 +60,7 @@ export function createMinimalPublicTenant(overrides: Partial<PublicTenant> = {})
     publicThemeColor: null,
     publicTheme: null,
     publicBookingEnabled: false,
+    currencyCode: 'MXN',
     createdAt: new Date('2024-01-01'),
     tenantSubscription: null,
     ...overrides,

@@ -1,5 +1,6 @@
 import { prisma } from './prisma';
 import { tenantCurrencyDefaults } from './onboarding-defaults';
+import { DEFAULT_CURRENCY } from './currency';
 import type { SubscriptionStatus } from '@prisma/client';
 import type { ThemeId } from './themes';
 
@@ -74,6 +75,8 @@ export interface PublicTenant {
   publicThemeColor: string | null;
   publicTheme: ThemeId | null;
   publicBookingEnabled: boolean;
+  /** TenantSettings.currencyCode, so public prices use the clinic's currency. */
+  currencyCode: string;
   createdAt: Date;
   tenantSubscription: {
     id: string;
@@ -112,9 +115,12 @@ function transformTenantForPublic(tenant: {
       name: string;
     };
   } | null;
+  tenantSettings?: { currencyCode: string } | null;
 }): PublicTenant {
+  const { tenantSettings, ...publicFields } = tenant;
   return {
-    ...tenant,
+    ...publicFields,
+    currencyCode: tenantSettings?.currencyCode ?? DEFAULT_CURRENCY,
     publicHours: tenant.publicHours as PublicHours | null,
     publicServices: tenant.publicServices as PublicService[] | null,
     publicImages: tenant.publicImages as PublicImages | null,
@@ -437,6 +443,9 @@ export async function getTenantBySlug(slug: string): Promise<PublicTenant | null
       publicTheme: true,
       publicBookingEnabled: true,
       createdAt: true,
+      tenantSettings: {
+        select: { currencyCode: true }
+      },
       tenantSubscription: {
         select: {
           id: true,
