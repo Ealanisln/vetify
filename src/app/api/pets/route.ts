@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ZodError } from 'zod';
 import { requireActiveSubscriptionApi } from '../../../lib/auth';
 import {
   SubscriptionRequiredError,
   subscriptionRequiredResponse,
 } from '../../../lib/subscription/subscription-required-error';
-import { createPet, createPetSchema, getPetsByTenant, PETS_ALLOWED_SORT_FIELDS } from '../../../lib/pets';
+import { createPet, createPetSchema, getPetsByTenant, PETS_ALLOWED_SORT_FIELDS, PET_FIELD_LABELS } from '../../../lib/pets';
+import { spanishValidationError } from '@/lib/validations/spanish-errors';
 import { validatePlanAction, PlanLimitError } from '../../../lib/plan-limits';
 import { validateDateOfBirth } from '../../../lib/utils/date-validation';
 import { parsePaginationParams, parseSortParams, createPaginatedResponse } from '../../../lib/pagination';
@@ -23,8 +25,9 @@ export async function POST(request: NextRequest) {
       try {
         body.dateOfBirth = validateDateOfBirth(body.dateOfBirth);
       } catch (error) {
+        const message = error instanceof Error ? error.message : PET_FIELD_LABELS.dateOfBirth.invalid;
         return NextResponse.json(
-          { message: error instanceof Error ? error.message : 'Invalid date of birth.' },
+          { message, errors: [{ field: 'dateOfBirth', message }] },
           { status: 400 }
         );
       }
@@ -82,6 +85,10 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(spanishValidationError(error, PET_FIELD_LABELS), { status: 400 });
+    }
+
     console.error('Error creating pet:', error);
 
     if (error instanceof SubscriptionRequiredError) {

@@ -13,10 +13,10 @@ export const PET_FIELD_MESSAGES = {
   futureBirthDate: 'La fecha de nacimiento no puede ser una fecha futura',
 } as const;
 
-export interface PetFormFieldErrors {
+export type PetFormFieldErrors = {
   weight?: string;
   dateOfBirth?: string;
-}
+};
 
 /**
  * Client-side checks the browser does not enforce on its own (a typed "0" in

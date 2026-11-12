@@ -15,6 +15,16 @@ import {
   validatePetFormFields,
   type PetFormFieldErrors,
 } from '@/lib/utils/pet-form-validation';
+import { fieldErrorsByName } from '@/lib/validations/spanish-errors';
+
+function FieldError({ testId, message }: { testId: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p className="mt-1 text-sm text-red-600 dark:text-red-400" data-testid={testId}>
+      {message}
+    </p>
+  );
+}
 
 interface NewCustomerFormProps {
   tenantId: string;
@@ -53,6 +63,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
   const [createdPets, setCreatedPets] = useState<Array<{ id: string; name: string }>>([]);
   const [locationId, setLocationId] = useState<string>('');
   const [petFieldErrors, setPetFieldErrors] = useState<Record<number, PetFormFieldErrors>>({});
+  const [customerFieldErrors, setCustomerFieldErrors] = useState<Record<string, string>>({});
   const maxBirthDate = getMaxDateForInput();
   const [formData, setFormData] = useState<CustomerFormData>({
     name: '',
@@ -128,6 +139,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
     }
     isSubmittingRef.current = true;
     setIsLoading(true);
+    setCustomerFieldErrors({});
 
     try {
       // Create customer
@@ -144,6 +156,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
 
       if (!customerResponse.ok) {
         const errorData = await customerResponse.json();
+        setCustomerFieldErrors(fieldErrorsByName(errorData.errors));
         throw new Error(errorData.message || 'Error al crear cliente');
       }
 
@@ -227,6 +240,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
               className="form-input mt-1"
               data-testid="customer-name-input"
             />
+            <FieldError testId="customer-error-name" message={customerFieldErrors.name} />
           </div>
 
           <div>
@@ -240,6 +254,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
               className="form-input mt-1"
               data-testid="customer-email-input"
             />
+            <FieldError testId="customer-error-email" message={customerFieldErrors.email} />
           </div>
 
           <div>
@@ -253,6 +268,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
               className="form-input mt-1"
               data-testid="customer-phone-input"
             />
+            <FieldError testId="customer-error-phone" message={customerFieldErrors.phone} />
           </div>
 
           <div>
@@ -406,11 +422,10 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
                       onChange={(e) => updatePet(index, { dateOfBirth: e.target.value })}
                       className="form-input mt-1"
                     />
-                    {petFieldErrors[index]?.dateOfBirth && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                        {petFieldErrors[index].dateOfBirth}
-                      </p>
-                    )}
+                    <FieldError
+                      testId={`pet-${index}-error-dateOfBirth`}
+                      message={petFieldErrors[index]?.dateOfBirth}
+                    />
                   </div>
 
                   <div>
@@ -452,11 +467,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
                         ))}
                       </select>
                     </div>
-                    {petFieldErrors[index]?.weight && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                        {petFieldErrors[index].weight}
-                      </p>
-                    )}
+                    <FieldError testId={`pet-${index}-error-weight`} message={petFieldErrors[index]?.weight} />
                   </div>
 
                   <div className="sm:col-span-2 lg:col-span-1">

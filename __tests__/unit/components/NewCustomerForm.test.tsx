@@ -825,4 +825,23 @@ describe('NewCustomerForm', () => {
       expect(mockFetch).not.toHaveBeenCalled();
     });
   });
+
+  describe('Server validation errors', () => {
+    it('shows the Spanish per-field messages next to the customer fields', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({
+          message: 'El email no es válido',
+          errors: [{ field: 'email', message: 'El email no es válido' }],
+        }),
+      } as Response);
+
+      render(<NewCustomerForm {...defaultProps} />);
+      fireEvent.change(document.querySelectorAll('input[type="text"]')[0], { target: { value: 'Juan' } });
+      fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+
+      expect(await screen.findByTestId('customer-error-email')).toHaveTextContent('El email no es válido');
+      expect(mockedToast.error).toHaveBeenCalledWith('El email no es válido');
+    });
+  });
 });

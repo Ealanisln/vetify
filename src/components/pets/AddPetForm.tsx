@@ -5,11 +5,19 @@ import { useRouter } from 'next/navigation';
 import { getThemeClasses } from '../../utils/theme-colors';
 import LocationSelector from '@/components/locations/LocationSelector';
 import { getMaxDateForInput } from '@/lib/utils/date-validation';
-import {
-  PET_WEIGHT_UNITS,
-  validatePetFormFields,
-  type PetFormFieldErrors,
-} from '@/lib/utils/pet-form-validation';
+import { PET_WEIGHT_UNITS, validatePetFormFields } from '@/lib/utils/pet-form-validation';
+import { fieldErrorsByName } from '@/lib/validations/spanish-errors';
+
+type FieldErrors = Record<string, string | undefined>;
+
+function FieldError({ testId, message }: { testId: string; message?: string }) {
+  if (!message) return null;
+  return (
+    <p className="mt-1 text-sm text-red-600 dark:text-red-400" data-testid={testId}>
+      {message}
+    </p>
+  );
+}
 
 interface Customer {
   id: string;
@@ -25,7 +33,8 @@ export function AddPetForm() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingCustomers, setLoadingCustomers] = useState(true);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<PetFormFieldErrors>({});
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [customerFieldErrors, setCustomerFieldErrors] = useState<FieldErrors>({});
   const maxBirthDate = getMaxDateForInput();
   const [formData, setFormData] = useState({
     name: '',
@@ -84,6 +93,7 @@ export function AddPetForm() {
 
     const petErrors = validatePetFormFields(formData, maxBirthDate);
     setFieldErrors(petErrors);
+    setCustomerFieldErrors({});
     if (Object.keys(petErrors).length > 0) {
       return;
     }
@@ -103,7 +113,8 @@ export function AddPetForm() {
 
         if (!customerResponse.ok) {
           const errorData = await customerResponse.json();
-          throw new Error(errorData.message || 'Error creating customer');
+          setCustomerFieldErrors(fieldErrorsByName(errorData.errors));
+          throw new Error(errorData.message || 'Error al crear el cliente');
         }
 
         const newCustomer = await customerResponse.json();
@@ -128,7 +139,8 @@ export function AddPetForm() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Error creating pet');
+        setFieldErrors(fieldErrorsByName(errorData.errors));
+        throw new Error(errorData.message || 'Error al registrar la mascota');
       }
 
       await response.json();
@@ -139,7 +151,7 @@ export function AddPetForm() {
       router.refresh();
     } catch (error) {
       console.error('Error creating pet:', error);
-      setSubmitError(error instanceof Error ? error.message : 'Error creating pet');
+      setSubmitError(error instanceof Error ? error.message : 'Error al registrar la mascota');
     } finally {
       setIsSubmitting(false);
     }
@@ -258,6 +270,7 @@ export function AddPetForm() {
                   className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   placeholder="Ej: Juan Pérez"
                 />
+                <FieldError testId="customer-error-name" message={customerFieldErrors.name} />
               </div>
 
               <div>
@@ -272,6 +285,7 @@ export function AddPetForm() {
                   className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   placeholder="Ej: +52 55 1234 5678"
                 />
+                <FieldError testId="customer-error-phone" message={customerFieldErrors.phone} />
               </div>
 
               <div>
@@ -286,6 +300,7 @@ export function AddPetForm() {
                   className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   placeholder="Ej: juan@email.com"
                 />
+                <FieldError testId="customer-error-email" message={customerFieldErrors.email} />
               </div>
 
               <div>
@@ -343,6 +358,7 @@ export function AddPetForm() {
               placeholder="Ej: Firulais"
               data-testid="pet-name-input"
             />
+            <FieldError testId="pet-error-name" message={fieldErrors.name} />
           </div>
 
           <div>
@@ -362,6 +378,7 @@ export function AddPetForm() {
               <option value="rabbit">Conejo</option>
               <option value="other">Otro</option>
             </select>
+            <FieldError testId="pet-error-species" message={fieldErrors.species} />
           </div>
 
           <div>
@@ -391,6 +408,7 @@ export function AddPetForm() {
               <option value="male">Macho</option>
               <option value="female">Hembra</option>
             </select>
+            <FieldError testId="pet-error-gender" message={fieldErrors.gender} />
           </div>
 
           <div>
@@ -406,9 +424,7 @@ export function AddPetForm() {
               onChange={handleChange}
               className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm focus:border-green-500 focus:ring-green-500"
             />
-            {fieldErrors.dateOfBirth && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.dateOfBirth}</p>
-            )}
+            <FieldError testId="pet-error-dateOfBirth" message={fieldErrors.dateOfBirth} />
           </div>
 
           <div>
@@ -437,9 +453,7 @@ export function AddPetForm() {
                 ))}
               </select>
             </div>
-            {fieldErrors.weight && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldErrors.weight}</p>
-            )}
+            <FieldError testId="pet-error-weight" message={fieldErrors.weight ?? fieldErrors.weightUnit} />
           </div>
 
           <div className="sm:col-span-2">

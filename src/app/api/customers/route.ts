@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ZodError } from 'zod';
 import { requireAuth } from '../../../lib/auth';
-import { createCustomer, createCustomerSchema, getCustomersByTenant, CUSTOMERS_ALLOWED_SORT_FIELDS } from '../../../lib/customers';
+import {
+  createCustomer,
+  createCustomerSchema,
+  getCustomersByTenant,
+  CUSTOMERS_ALLOWED_SORT_FIELDS,
+  CUSTOMER_FIELD_LABELS,
+} from '../../../lib/customers';
+import { spanishValidationError } from '@/lib/validations/spanish-errors';
 import { parsePaginationParams, parseSortParams, createPaginatedResponse } from '@/lib/pagination';
 
 export async function POST(request: NextRequest) {
@@ -14,8 +22,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(customer, { status: 201 });
 
   } catch (error) {
+    if (error instanceof ZodError) {
+      return NextResponse.json(spanishValidationError(error, CUSTOMER_FIELD_LABELS), { status: 400 });
+    }
+
     console.error('Error creating customer:', error);
-    
+
     if (error instanceof Error) {
       return NextResponse.json(
         { message: error.message },

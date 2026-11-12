@@ -723,4 +723,55 @@ describe('AddPetForm', () => {
       expect(mockFetch).not.toHaveBeenCalledWith('/api/pets', expect.anything());
     });
   });
+
+  describe('Server validation errors', () => {
+    it('shows the Spanish per-field messages next to the pet fields', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => mockCustomers } as Response)
+        .mockResolvedValueOnce({
+          ok: false,
+          json: async () => ({
+            message: 'La especie no es válida. El peso debe ser mayor a 0',
+            errors: [
+              { field: 'species', message: 'La especie no es válida' },
+              { field: 'weight', message: 'El peso debe ser mayor a 0' },
+            ],
+          }),
+        } as Response);
+
+      render(<AddPetForm />);
+      await waitFor(() => {
+        expect(screen.getByText('Juan Pérez (+52 55 1234 5678)')).toBeInTheDocument();
+      });
+      fireEvent.change(screen.getByTestId('pet-owner-select'), { target: { value: 'customer-1' } });
+      fireEvent.change(screen.getByPlaceholderText('Ej: Firulais'), { target: { value: 'Max' } });
+      fireEvent.change(document.querySelector('input[type="date"]')!, { target: { value: '2020-01-01' } });
+
+      fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+
+      expect(await screen.findByTestId('pet-error-species')).toHaveTextContent('La especie no es válida');
+      expect(screen.getByTestId('pet-error-weight')).toHaveTextContent('El peso debe ser mayor a 0');
+    });
+
+    it('shows the Spanish per-field messages next to the new customer fields', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => [] } as Response)
+        .mockResolvedValueOnce({
+          ok: false,
+          json: async () => ({
+            message: 'El email no es válido',
+            errors: [{ field: 'email', message: 'El email no es válido' }],
+          }),
+        } as Response);
+
+      render(<AddPetForm />);
+      fireEvent.change(await screen.findByPlaceholderText('Ej: Juan Pérez'), { target: { value: 'Ana' } });
+      fireEvent.change(screen.getByPlaceholderText('Ej: Firulais'), { target: { value: 'Max' } });
+      fireEvent.change(document.querySelector('input[type="date"]')!, { target: { value: '2020-01-01' } });
+
+      fireEvent.submit(document.querySelector('form') as HTMLFormElement);
+
+      expect(await screen.findByTestId('customer-error-email')).toHaveTextContent('El email no es válido');
+    });
+  });
 });

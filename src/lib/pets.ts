@@ -3,24 +3,42 @@ import { z } from 'zod';
 import { serializePet, serializePets } from './serializers';
 import type { PaginationParams, SortParams } from './pagination';
 import { PET_FIELD_MESSAGES, PET_WEIGHT_UNITS } from './utils/pet-form-validation';
+import type { FieldLabel } from './validations/spanish-errors';
 
 // Allowed sort fields for pets (whitelist for security)
 export const PETS_ALLOWED_SORT_FIELDS = ['name', 'species', 'breed', 'createdAt'] as const;
 export type PetsSortField = typeof PETS_ALLOWED_SORT_FIELDS[number];
 
+export const PET_FIELD_LABELS: Record<string, FieldLabel> = {
+  name: { required: 'El nombre es requerido', invalid: 'El nombre no es válido' },
+  species: { required: 'La especie es requerida', invalid: 'La especie no es válida' },
+  breed: { required: 'La raza es requerida', invalid: 'La raza no es válida' },
+  dateOfBirth: {
+    required: 'La fecha de nacimiento es requerida',
+    invalid: 'La fecha de nacimiento no es válida',
+  },
+  gender: { required: 'El sexo es requerido', invalid: 'El sexo no es válido' },
+  weight: { required: 'El peso es requerido', invalid: 'El peso debe ser un número' },
+  weightUnit: { required: 'La unidad de peso es requerida', invalid: PET_FIELD_MESSAGES.weightUnit },
+  microchipNumber: { required: 'El microchip es requerido', invalid: 'El microchip no es válido' },
+  isNeutered: { required: 'Indica si está esterilizado', invalid: 'Indica si está esterilizado' },
+  customerId: { required: 'El cliente es requerido', invalid: 'El cliente no es válido' },
+  locationId: { required: 'La ubicación es requerida', invalid: 'La ubicación no es válida' },
+};
+
+const enumMessage = (message: string) => ({ errorMap: () => ({ message }) });
+
 export const createPetSchema = z.object({
-  name: z.string().min(1, 'Nombre es requerido'),
-  species: z.enum(['dog', 'cat', 'bird', 'rabbit', 'other']),
+  name: z.string().min(1, PET_FIELD_LABELS.name.required),
+  species: z.enum(['dog', 'cat', 'bird', 'rabbit', 'other'], enumMessage(PET_FIELD_LABELS.species.invalid)),
   breed: z.string().optional(),
   dateOfBirth: z.date(),
-  gender: z.enum(['male', 'female']),
+  gender: z.enum(['male', 'female'], enumMessage(PET_FIELD_LABELS.gender.invalid)),
   weight: z.number().positive(PET_FIELD_MESSAGES.weightPositive).optional(),
-  weightUnit: z
-    .enum(PET_WEIGHT_UNITS, { errorMap: () => ({ message: PET_FIELD_MESSAGES.weightUnit }) })
-    .default('kg'),
+  weightUnit: z.enum(PET_WEIGHT_UNITS, enumMessage(PET_FIELD_MESSAGES.weightUnit)).default('kg'),
   microchipNumber: z.string().optional(),
   isNeutered: z.boolean().default(false),
-  customerId: z.string().min(1, 'Cliente es requerido'),
+  customerId: z.string().min(1, PET_FIELD_LABELS.customerId.required),
   locationId: z.string().min(1).nullable().optional(),
 });
 
