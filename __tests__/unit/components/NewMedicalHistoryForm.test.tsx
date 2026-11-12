@@ -62,4 +62,39 @@ describe('NewMedicalHistoryForm', () => {
     expect(body.prescriptions[0].productName).toBe('Amoxicilina');
     expect(body.prescriptions[0]).not.toHaveProperty('productId');
   });
+
+  describe('visit date', () => {
+    function postedBody() {
+      const post = mockFetch.mock.calls.find(([url]) => url === '/api/medical-history');
+      return JSON.parse((post?.[1] as RequestInit).body as string);
+    }
+
+    it('is optional and empty by default, so the server uses the current clinic time', async () => {
+      render(<NewMedicalHistoryForm tenantId="tenant-1" />);
+      await selectPet();
+
+      const visitDate = screen.getByLabelText(/Fecha y hora de consulta/i) as HTMLInputElement;
+      expect(visitDate).not.toBeRequired();
+      expect(visitDate.value).toBe('');
+      expect(screen.getByText(/Si la dejas vacía se usa la fecha y hora actual/)).toBeInTheDocument();
+
+      fireEvent.change(screen.getByPlaceholderText(/Control rutinario/), { target: { value: 'Revisión anual' } });
+      fireEvent.click(screen.getByRole('button', { name: /Guardar Consulta/ }));
+
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(postedBody()).not.toHaveProperty('visitDate');
+    });
+
+    it('sends the date and time the user picked', async () => {
+      render(<NewMedicalHistoryForm tenantId="tenant-1" />);
+      await selectPet();
+
+      fireEvent.change(screen.getByLabelText(/Fecha y hora de consulta/i), { target: { value: '2026-11-10T10:30' } });
+      fireEvent.change(screen.getByPlaceholderText(/Control rutinario/), { target: { value: 'Revisión anual' } });
+      fireEvent.click(screen.getByRole('button', { name: /Guardar Consulta/ }));
+
+      await waitFor(() => expect(push).toHaveBeenCalled());
+      expect(postedBody().visitDate).toBe('2026-11-10T10:30');
+    });
+  });
 });

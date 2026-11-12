@@ -78,6 +78,26 @@ describe('POST /api/medical-history', () => {
     expect(data.visitDate.toISOString()).toBe('2026-11-10T15:30:00.000Z');
   });
 
+  it.each([undefined, ''])('defaults a missing visit date (%p) to now', async (visitDate) => {
+    const now = new Date('2026-11-12T19:45:00Z');
+    jest.useFakeTimers({ now, doNotFake: ['nextTick', 'setImmediate'] });
+    try {
+      const res = await POST(request({ ...base, visitDate, prescriptions: [] }));
+
+      expect(res.status).toBe(201);
+      const data = prismaMock.medicalHistory.create.mock.calls[0][0].data as any;
+      expect(data.visitDate.toISOString()).toBe(now.toISOString());
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('still requires the pet and the reason for visit', async () => {
+    const res = await POST(request({ ...base, reasonForVisit: '', visitDate: undefined, prescriptions: [] }));
+    expect(res.status).toBe(400);
+    expect(prismaMock.medicalHistory.create).not.toHaveBeenCalled();
+  });
+
   it('rejects an invalid visit date', async () => {
     const res = await POST(request({ ...base, visitDate: 'ayer', prescriptions: [] }));
     expect(res.status).toBe(400);

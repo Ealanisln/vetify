@@ -13,7 +13,6 @@ import {
   PlusIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
-import { format } from 'date-fns';
 import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
 
 interface NewMedicalHistoryFormProps {
@@ -61,7 +60,8 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
   
   const [formData, setFormData] = useState<MedicalHistoryFormData>({
     petId: '',
-    visitDate: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm'),
+    // Empty means "now": the server stamps it in the clinic timezone
+    visitDate: '',
     reasonForVisit: '',
     diagnosis: '',
     treatment: '',
@@ -141,7 +141,10 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          visitDate: formData.visitDate || undefined,
+        }),
       });
 
       if (response.ok) {
@@ -257,16 +260,20 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                    Fecha y Hora de Consulta *
+                  <label htmlFor="visitDate" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Fecha y Hora de Consulta
                   </label>
                   <input
+                    id="visitDate"
                     type="datetime-local"
-                    required
+                    aria-describedby="visitDate-help"
                     value={formData.visitDate}
                     onChange={(e) => setFormData(prev => ({ ...prev, visitDate: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   />
+                  <p id="visitDate-help" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Si la dejas vacía se usa la fecha y hora actual.
+                  </p>
                 </div>
               </div>
 

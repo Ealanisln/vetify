@@ -134,7 +134,8 @@ export type MedicalHistoryWithDetails = NonNullable<Awaited<ReturnType<typeof pr
 
 export type MedicalHistoryFormData = {
   petId: string;
-  visitDate: string;
+  /** Clinic wall-clock datetime; when omitted the visit is "now" */
+  visitDate?: string;
   reasonForVisit: string;
   diagnosis?: string;
   treatment?: string;
