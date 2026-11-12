@@ -31,6 +31,8 @@ interface ClinicInfoProps {
   };
 }
 
+const SLUG_CHECK_DEBOUNCE_MS = 300;
+
 const isOfferedCountry = (code?: string) =>
   !!code && ONBOARDING_COUNTRIES.some(c => c.code === code.toUpperCase());
 
@@ -54,31 +56,43 @@ export function ClinicInfo({ onSubmit, isSubmitting, submitError, detectedCountr
     }
   }, [clinicName, initialData?.slug]);
 
-  // Check slug availability
+  // Check slug availability, debounced. Each new slug aborts the previous
+  // check so a late response can never apply a suggestion for an old prefix.
   useEffect(() => {
-    if (slug && slug.length >= 3) {
-      setIsCheckingSlug(true);
-      checkSlugAvailability(slug);
-    } else {
+    if (!slug || slug.length < 3) {
+      setIsCheckingSlug(false);
       setSlugAvailable(null);
       setSlugSuggestion(null);
+      return;
     }
-  }, [slug]);
 
-  const checkSlugAvailability = async (slugToCheck: string) => {
-    try {
-      const response = await fetch(`/api/onboarding/check-slug?slug=${slugToCheck}`);
-      const data = await response.json();
-      setSlugAvailable(data.available);
-      setSlugSuggestion(data.available ? null : (data.suggestion ?? null));
-    } catch (error) {
-      console.error('Error checking slug:', error);
-      setSlugAvailable(false);
-      setSlugSuggestion(null);
-    } finally {
-      setIsCheckingSlug(false);
-    }
-  };
+    setIsCheckingSlug(true);
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/onboarding/check-slug?slug=${encodeURIComponent(slug)}`,
+          { signal: controller.signal }
+        );
+        const data = await response.json();
+        if (controller.signal.aborted) return;
+        setSlugAvailable(data.available);
+        setSlugSuggestion(data.available ? null : (data.suggestion ?? null));
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        console.error('Error checking slug:', error);
+        setSlugAvailable(false);
+        setSlugSuggestion(null);
+      } finally {
+        if (!controller.signal.aborted) setIsCheckingSlug(false);
+      }
+    }, SLUG_CHECK_DEBOUNCE_MS);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [slug]);
 
   const trimmedClinicName = clinicName.trim();
 

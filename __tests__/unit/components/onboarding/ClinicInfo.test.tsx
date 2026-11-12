@@ -1,7 +1,7 @@
 /**
  * @jest-environment jsdom
  */
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { ClinicInfo } from '@/app/onboarding/steps/ClinicInfo';
 
 const user = { id: 'user-1', email: 'vet@example.com', name: 'Vet' };
@@ -90,5 +90,67 @@ describe('ClinicInfo — country selector', () => {
     fireEvent.submit(screen.getByRole('button', { name: /empezar gratis/i }).closest('form')!);
 
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ clinicName: 'Vet Andes' }));
+  });
+});
+
+describe('ClinicInfo — slug availability check', () => {
+  const originalFetch = global.fetch;
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  const slugChecks = (mockFetch: jest.Mock) =>
+    mockFetch.mock.calls
+      .map(([url]) => String(url))
+      .filter((url) => url.includes('/api/onboarding/check-slug'));
+
+  it('debounces the check while the user is typing', async () => {
+    const mockFetch = jest.fn().mockResolvedValue({
+      json: () => Promise.resolve({ available: true }),
+    });
+    global.fetch = mockFetch as unknown as typeof fetch;
+    render(<ClinicInfo user={user} onSubmit={jest.fn()} isSubmitting={false} />);
+
+    const slugInput = screen.getByLabelText(/url de tu clínica/i);
+    for (const value of ['vet', 'vet-', 'vet-n', 'vet-no', 'vet-norte']) {
+      fireEvent.change(slugInput, { target: { value } });
+    }
+
+    await waitFor(() => expect(screen.getByText(/URL disponible/i)).toBeInTheDocument());
+    expect(slugChecks(mockFetch)).toEqual(['/api/onboarding/check-slug?slug=vet-norte']);
+  });
+
+  it('ignores a late response for a slug the user already changed', async () => {
+    let resolveOld: (value: unknown) => void = () => {};
+    const mockFetch = jest.fn((url: string) => {
+      if (url.endsWith('slug=vet')) {
+        // Slow response for the old prefix: says taken and suggests vet-1.
+        return new Promise((resolve) => {
+          resolveOld = resolve;
+        });
+      }
+      return Promise.resolve({ json: () => Promise.resolve({ available: true }) });
+    });
+    global.fetch = mockFetch as unknown as typeof fetch;
+    const onSubmit = jest.fn();
+    render(<ClinicInfo user={user} onSubmit={onSubmit} isSubmitting={false} />);
+
+    fireEvent.change(screen.getByLabelText(/nombre de la clínica/i), { target: { value: 'Vet' } });
+    await waitFor(() => expect(slugChecks(mockFetch)).toContain('/api/onboarding/check-slug?slug=vet'));
+
+    fireEvent.change(screen.getByLabelText(/nombre de la clínica/i), { target: { value: 'Vet Norte' } });
+    await waitFor(() => expect(screen.getByText(/URL disponible/i)).toBeInTheDocument());
+
+    // The stale response arrives last.
+    await act(async () => {
+      resolveOld({ json: () => Promise.resolve({ available: false, suggestion: 'vet-1' }) });
+    });
+
+    expect(screen.getByText(/URL disponible/i)).toBeInTheDocument();
+    expect(screen.queryByText(/vet-1/)).not.toBeInTheDocument();
+
+    fireEvent.submit(screen.getByRole('button', { name: /empezar gratis/i }).closest('form')!);
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ slug: 'vet-norte' }));
   });
 });
