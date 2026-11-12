@@ -25,6 +25,14 @@ export const treatmentSchema = z.object({
     typeof val === 'string' ? new Date(val) : val
   ),
   treatment_type: z.nativeEnum(TreatmentType),
+  // "Próxima aplicación": schedules the next dose and its owner reminder.
+  // An empty date input arrives as null or ''; both mean not provided.
+  next_due_date: z.preprocess(
+    (value) => (value === '' || value === null ? undefined : value),
+    z.union([z.date(), z.string().datetime()]).transform((val) =>
+      typeof val === 'string' ? new Date(val) : val
+    ).optional()
+  ),
   consultation_id: z.string().optional(),
   veterinarian_id: z.string().optional(),
 });

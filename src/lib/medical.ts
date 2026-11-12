@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { TreatmentType } from '@prisma/client';
+import { TreatmentType, type VaccinationStage } from '@prisma/client';
 import { clinicDateAtNoon, clinicDaysBetween, getTenantTimeZone } from './clinical-dates';
 import { buildTreatmentReminderData } from './treatment-reminder-content';
 import { VITAL_SIGNS_REASON } from './treatment-labels';
@@ -10,6 +10,59 @@ import type {
   VaccinationFormData,
   VitalSignsFormData
 } from './medical-validation';
+
+type TransactionClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
+
+interface NextDoseInput {
+  petId: string;
+  tenantId: string;
+  treatmentType: TreatmentType;
+  productName: string;
+  /** Date picked in the form ("Próxima aplicación" / next vaccine dose). */
+  nextDueDate: Date;
+  timeZone: string;
+  vaccineStage?: VaccinationStage;
+}
+
+/**
+ * Schedules the next dose of a treatment and, when it is not already past,
+ * the owner's TREATMENT reminder for it (same transaction).
+ */
+async function scheduleNextDose(tx: TransactionClient, input: NextDoseInput) {
+  const dueDate = clinicDateAtNoon(input.nextDueDate, input.timeZone);
+  await tx.treatmentSchedule.create({
+    data: {
+      petId: input.petId,
+      tenantId: input.tenantId,
+      treatmentType: input.treatmentType,
+      productName: input.productName,
+      scheduledDate: dueDate,
+      status: 'SCHEDULED',
+      vaccineStage: input.vaccineStage,
+    },
+  });
+
+  if (clinicDaysBetween(new Date(), dueDate, input.timeZone) < 0) return;
+
+  const pet = await tx.pet.findFirst({
+    where: { id: input.petId, tenantId: input.tenantId },
+    select: { name: true, customerId: true },
+  });
+  if (!pet) return;
+
+  await tx.reminder.create({
+    data: buildTreatmentReminderData({
+      tenantId: input.tenantId,
+      petId: input.petId,
+      petName: pet.name,
+      customerId: pet.customerId,
+      treatmentType: input.treatmentType,
+      productName: input.productName,
+      dueDate,
+      timeZone: input.timeZone,
+    }),
+  });
+}
 
 // Create a new consultation (medical history entry)
 export async function createConsultation(
@@ -80,39 +133,57 @@ export async function createTreatment(
   veterinarianId?: string
 ) {
   try {
-    const treatment = await prisma.treatmentRecord.create({
-      data: {
-        petId,
-        tenantId,
-        treatmentType: data.treatment_type,
-        productName: data.medication_name,
-        administrationDate: data.start_date,
-        staffId: data.veterinarian_id || veterinarianId,
-        notes: `Dosis: ${data.dosage}\nFrecuencia: ${data.frequency}\nDuración: ${data.duration_days} días\nInstrucciones: ${data.instructions}`,
-      },
-      include: {
-        pet: {
-          include: {
-            customer: true,
-          },
-        },
-        staff: true,
-      },
-    });
+    const timeZone = data.next_due_date ? await getTenantTimeZone(tenantId) : null;
 
-    // Create treatment schedule for follow-ups if needed
-    if (data.duration_days > 1) {
-      await prisma.treatmentSchedule.create({
+    const treatment = await prisma.$transaction(async (tx) => {
+      const record = await tx.treatmentRecord.create({
         data: {
           petId,
           tenantId,
           treatmentType: data.treatment_type,
           productName: data.medication_name,
-          scheduledDate: new Date(data.start_date.getTime() + data.duration_days * 24 * 60 * 60 * 1000),
-          status: 'SCHEDULED',
+          administrationDate: data.start_date,
+          staffId: data.veterinarian_id || veterinarianId,
+          notes: `Dosis: ${data.dosage}\nFrecuencia: ${data.frequency}\nDuración: ${data.duration_days} días\nInstrucciones: ${data.instructions}`,
+        },
+        include: {
+          pet: {
+            include: {
+              customer: true,
+            },
+          },
+          staff: true,
         },
       });
-    }
+
+      // Create treatment schedule for follow-ups if needed
+      if (data.duration_days > 1) {
+        await tx.treatmentSchedule.create({
+          data: {
+            petId,
+            tenantId,
+            treatmentType: data.treatment_type,
+            productName: data.medication_name,
+            scheduledDate: new Date(data.start_date.getTime() + data.duration_days * 24 * 60 * 60 * 1000),
+            status: 'SCHEDULED',
+          },
+        });
+      }
+
+      // "Próxima aplicación" (deworming, flea/tick): next dose + owner reminder
+      if (data.next_due_date && timeZone) {
+        await scheduleNextDose(tx, {
+          petId,
+          tenantId,
+          treatmentType: data.treatment_type,
+          productName: data.medication_name,
+          nextDueDate: data.next_due_date,
+          timeZone,
+        });
+      }
+
+      return record;
+    });
 
     // NOTE: N8N integration temporarily disabled - will be enabled later
     /*
@@ -172,39 +243,15 @@ export async function createVaccination(
 
       // Schedule the next dose and its owner reminder together
       if (data.next_due_date) {
-        const dueDate = clinicDateAtNoon(data.next_due_date, timeZone);
-        await tx.treatmentSchedule.create({
-          data: {
-            petId,
-            tenantId,
-            treatmentType: TreatmentType.VACCINATION,
-            productName: data.vaccine_brand,
-            scheduledDate: dueDate,
-            status: 'SCHEDULED',
-            vaccineStage: data.vaccine_stage,
-          },
+        await scheduleNextDose(tx, {
+          petId,
+          tenantId,
+          treatmentType: TreatmentType.VACCINATION,
+          productName: data.vaccine_brand,
+          nextDueDate: data.next_due_date,
+          timeZone,
+          vaccineStage: data.vaccine_stage,
         });
-
-        if (clinicDaysBetween(new Date(), dueDate, timeZone) >= 0) {
-          const pet = await tx.pet.findFirst({
-            where: { id: petId, tenantId },
-            select: { name: true, customerId: true },
-          });
-          if (pet) {
-            await tx.reminder.create({
-              data: buildTreatmentReminderData({
-                tenantId,
-                petId,
-                petName: pet.name,
-                customerId: pet.customerId,
-                treatmentType: TreatmentType.VACCINATION,
-                productName: data.vaccine_brand,
-                dueDate,
-                timeZone,
-              }),
-            });
-          }
-        }
       }
 
       return record;

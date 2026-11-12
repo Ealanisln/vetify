@@ -9,6 +9,9 @@ import { getThemeClasses } from '../../utils/theme-colors';
 import { InlineVeterinarianCreator } from './InlineVeterinarianCreator';
 import { POSITION_LABELS_ES, StaffPositionType } from '@/lib/staff-positions';
 
+// Treatments that repeat on a schedule and get a "Próxima aplicación" reminder
+const NEXT_DOSE_TYPES: TreatmentType[] = [TreatmentType.DEWORMING, TreatmentType.FLEA_TICK];
+
 interface TreatmentFormProps {
   petId: string;
   tenantId: string;
@@ -34,6 +37,7 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
     handleSubmit,
     formState: { errors },
     setValue,
+    watch,
   } = useForm<TreatmentFormData>({
     resolver: zodResolver(treatmentSchema),
     defaultValues: {
@@ -43,6 +47,8 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
       duration_days: 1,
     },
   });
+
+  const hasNextDose = NEXT_DOSE_TYPES.includes(watch('treatment_type'));
 
   // Load staff members
   useEffect(() => {
@@ -78,6 +84,8 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
         },
         body: JSON.stringify({
           ...data,
+          // A date typed before switching to a type without next dose is not sent
+          next_due_date: NEXT_DOSE_TYPES.includes(data.treatment_type) ? data.next_due_date : undefined,
           petId: petId,
           tenantId: tenantId,
         }),
@@ -313,6 +321,27 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
             <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.start_date.message}</p>
           )}
         </div>
+
+        {/* Next application (deworming, flea/tick) */}
+        {hasNextDose && (
+          <div>
+            <label htmlFor="next_due_date" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+              Próxima aplicación
+            </label>
+            <input
+              type="date"
+              id="next_due_date"
+              {...register('next_due_date', { setValueAs: (value) => (value ? new Date(value) : undefined) })}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-green-500 dark:focus:ring-green-400 focus:border-green-500"
+            />
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Opcional. Le enviaremos un recordatorio al dueño antes de esta fecha.
+            </p>
+            {errors.next_due_date && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.next_due_date.message}</p>
+            )}
+          </div>
+        )}
 
         {/* Form Actions */}
         <div className="flex gap-4 pt-6">

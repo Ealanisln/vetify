@@ -188,6 +188,60 @@ describe('TreatmentForm', () => {
     });
   });
 
+  describe('Próxima aplicación', () => {
+    async function fillRequired() {
+      await waitFor(() => expect(screen.getByLabelText(/Nombre del medicamento/)).toBeInTheDocument());
+      fireEvent.change(screen.getByLabelText(/Nombre del medicamento/), { target: { value: 'Drontal Plus' } });
+      fireEvent.change(screen.getByLabelText(/Dosis/), { target: { value: '1 tableta' } });
+      fireEvent.change(screen.getByLabelText(/Frecuencia/), { target: { value: 'Dosis única' } });
+      fireEvent.change(screen.getByLabelText(/Instrucciones/), { target: { value: 'Administrar con alimento' } });
+    }
+
+    it('is hidden for treatments other than deworming and flea/tick', async () => {
+      render(<TreatmentForm {...defaultProps} />);
+      await waitFor(() => expect(screen.getByLabelText(/Tipo de Tratamiento/)).toBeInTheDocument());
+
+      expect(screen.queryByLabelText(/Próxima aplicación/)).not.toBeInTheDocument();
+    });
+
+    it.each(['DEWORMING', 'FLEA_TICK'])('is shown for %s and sends next_due_date', async (type) => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => mockStaff } as Response)
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) } as Response);
+      const onSuccess = jest.fn();
+      render(<TreatmentForm {...defaultProps} onSuccess={onSuccess} />);
+      await fillRequired();
+
+      fireEvent.change(screen.getByLabelText(/Tipo de Tratamiento/), { target: { value: type } });
+      fireEvent.change(await screen.findByLabelText(/Próxima aplicación/), { target: { value: '2027-02-12' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar Tratamiento' }));
+
+      await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+      const submit = mockFetch.mock.calls.find(([url]) => url === '/api/medical/treatments');
+      const body = JSON.parse((submit?.[1] as RequestInit).body as string);
+      expect(body.treatment_type).toBe(type);
+      expect(body.next_due_date).toBe('2027-02-12T00:00:00.000Z');
+    });
+
+    it('does not send a next application left empty, nor one typed before switching to another type', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => mockStaff } as Response)
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) } as Response);
+      const onSuccess = jest.fn();
+      render(<TreatmentForm {...defaultProps} onSuccess={onSuccess} />);
+      await fillRequired();
+
+      fireEvent.change(screen.getByLabelText(/Tipo de Tratamiento/), { target: { value: 'DEWORMING' } });
+      fireEvent.change(await screen.findByLabelText(/Próxima aplicación/), { target: { value: '2027-02-12' } });
+      fireEvent.change(screen.getByLabelText(/Tipo de Tratamiento/), { target: { value: 'OTHER_PREVENTATIVE' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar Tratamiento' }));
+
+      await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+      const submit = mockFetch.mock.calls.find(([url]) => url === '/api/medical/treatments');
+      expect(JSON.parse((submit?.[1] as RequestInit).body as string).next_due_date).toBeUndefined();
+    });
+  });
+
   describe('Inline Veterinarian Creator', () => {
     it('should show add veterinarian button', async () => {
       render(<TreatmentForm {...defaultProps} />);
