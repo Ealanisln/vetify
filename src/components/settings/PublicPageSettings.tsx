@@ -210,7 +210,7 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
   const publicUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/${data.slug}`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="public-page-settings">
       {/* Status and Preview */}
       <Card>
         <CardContent className="pt-6">
@@ -220,6 +220,7 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
                 <Switch
                   checked={data.publicPageEnabled}
                   onCheckedChange={(checked) => handleChange('publicPageEnabled', checked)}
+                  data-testid="public-page-toggle"
                 />
                 <Label className="font-medium">
                   {data.publicPageEnabled ? 'Página Pública Activa' : 'Página Pública Desactivada'}
@@ -240,6 +241,7 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
+                data-testid="preview-public-page"
               >
                 <Eye className="h-4 w-4" />
                 Ver página pública
@@ -251,7 +253,7 @@ export function PublicPageSettings({ }: PublicPageSettingsProps) {
           {data.publicPageEnabled && (
             <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                URL de tu página: <code className="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded text-xs">{publicUrl}</code>
+                URL de tu página: <code className="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded text-xs" data-testid="public-page-url">{publicUrl}</code>
               </p>
             </div>
           )}
