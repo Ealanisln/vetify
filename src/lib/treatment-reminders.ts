@@ -2,6 +2,8 @@ import { prisma } from './prisma';
 import { n8nService } from './n8n';
 import { z } from 'zod';
 import { formatDate } from './utils/date-format';
+import { clinicDateAtNoon, clinicDaysBetween, getTenantTimeZone } from './clinical-dates';
+import { TREATMENT_REMINDER_LEAD_DAYS, buildTreatmentReminderData } from './treatment-reminder-content';
 
 // Validation schemas
 export const createTreatmentScheduleSchema = z.object({
@@ -20,38 +22,43 @@ export type UpdateTreatmentScheduleData = z.infer<typeof updateTreatmentSchedule
 
 // Treatment schedule service functions
 export async function createTreatmentSchedule(tenantId: string, data: CreateTreatmentScheduleData) {
-  const schedule = await prisma.treatmentSchedule.create({
-    data: {
-      ...data,
-      tenantId,
-    },
-    include: {
-      pet: {
-        include: {
-          customer: true
+  const timeZone = await getTenantTimeZone(tenantId);
+  const scheduledDate = clinicDateAtNoon(data.scheduledDate, timeZone);
+
+  return prisma.$transaction(async (tx) => {
+    const schedule = await tx.treatmentSchedule.create({
+      data: {
+        ...data,
+        scheduledDate,
+        tenantId,
+      },
+      include: {
+        pet: {
+          include: {
+            customer: true
+          }
         }
       }
+    });
+
+    // The cron emails it TREATMENT_REMINDER_LEAD_DAYS before scheduledDate
+    if (clinicDaysBetween(new Date(), scheduledDate, timeZone) >= 0) {
+      await tx.reminder.create({
+        data: buildTreatmentReminderData({
+          tenantId,
+          petId: data.petId,
+          petName: schedule.pet.name,
+          customerId: schedule.pet.customerId,
+          treatmentType: data.treatmentType,
+          productName: data.productName,
+          dueDate: scheduledDate,
+          timeZone,
+        }),
+      });
     }
+
+    return schedule;
   });
-
-  // Create reminder 7 days before treatment
-  const reminderDate = new Date(data.scheduledDate);
-  reminderDate.setDate(reminderDate.getDate() - 7);
-
-  await prisma.reminder.create({
-    data: {
-      tenantId,
-      petId: data.petId,
-      customerId: schedule.pet.customerId,
-      type: 'TREATMENT',
-      title: `Recordatorio de ${data.treatmentType.toLowerCase()}`,
-      message: `Tu mascota ${schedule.pet.name} tiene programado un ${data.treatmentType.toLowerCase()} el ${formatDate(data.scheduledDate)}`,
-      dueDate: reminderDate,
-      status: 'PENDING'
-    }
-  });
-
-  return schedule;
 }
 
 export async function getTreatmentSchedulesByTenant(tenantId: string, filters: {
@@ -180,13 +187,14 @@ export async function markTreatmentAsCompleted(tenantId: string, scheduleId: str
 
 // Reminder processing functions
 export async function processPendingReminders(tenantId: string) {
-  const now = new Date();
+  // TREATMENT reminders store the treatment date; send within the lead window
+  const windowEnd = new Date(Date.now() + TREATMENT_REMINDER_LEAD_DAYS * 24 * 60 * 60 * 1000);
   const pendingReminders = await prisma.reminder.findMany({
     where: {
       tenantId,
       status: 'PENDING',
       dueDate: {
-        lte: now
+        lte: windowEnd
       }
     },
     include: {

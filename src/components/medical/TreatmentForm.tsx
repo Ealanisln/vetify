@@ -142,7 +142,7 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
             <option value={TreatmentType.OTHER_PREVENTATIVE}>Otro Preventivo</option>
           </select>
           {errors.treatment_type && (
-            <p className="mt-1 text-sm text-red-600">{errors.treatment_type.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.treatment_type.message}</p>
           )}
         </div>
 
@@ -159,7 +159,7 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
             placeholder="Ej: Amoxicilina"
           />
           {errors.medication_name && (
-            <p className="mt-1 text-sm text-red-600">{errors.medication_name.message}</p>
+            <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.medication_name.message}</p>
           )}
           
           {/* Common medications suggestions */}
@@ -170,10 +170,7 @@ export function TreatmentForm({ petId, tenantId, consultationId, onSuccess, onCa
                 <button
                   key={med}
                   type="button"
-                  onClick={() => {
-                    const medicationInput = document.getElementById('medication_name') as HTMLInputElement;
-                    if (medicationInput) medicationInput.value = med;
-                  }}
+                  onClick={() => setValue('medication_name', med, { shouldValidate: true, shouldDirty: true })}
                   className={`text-xs px-2 py-1 rounded transition-colors ${getThemeClasses('background.muted', 'text.secondary')} ${getThemeClasses('hover.muted')}`}
                 >
                   {med}

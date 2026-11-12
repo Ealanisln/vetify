@@ -6,8 +6,18 @@
 import { TreatmentType, VaccinationStage } from '@prisma/client';
 
 // Mock Prisma before imports
-jest.mock('@/lib/prisma', () => ({
-  prisma: {
+jest.mock('@/lib/prisma', () => {
+  const client: Record<string, unknown> = {
+    tenant: {
+      findUnique: jest.fn().mockResolvedValue({ countryCode: 'MX', tenantSettings: null }),
+    },
+    pet: {
+      findFirst: jest.fn().mockResolvedValue({ name: 'Max', customerId: 'customer-1' }),
+      updateMany: jest.fn(),
+    },
+    reminder: {
+      create: jest.fn(),
+    },
     medicalHistory: {
       create: jest.fn(),
       findMany: jest.fn(),
@@ -23,8 +33,10 @@ jest.mock('@/lib/prisma', () => ({
       findMany: jest.fn(),
       create: jest.fn(),
     },
-  },
-}));
+  };
+  client.$transaction = jest.fn((fn: (tx: unknown) => unknown) => fn(client));
+  return { prisma: client };
+});
 
 import { prisma } from '@/lib/prisma';
 import {
@@ -44,6 +56,8 @@ describe('medical.ts', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(prisma.tenant.findUnique).mockResolvedValue({ countryCode: 'MX', tenantSettings: null } as never);
+    jest.mocked(prisma.pet.findFirst).mockResolvedValue({ name: 'Max', customerId: 'customer-1' } as never);
   });
 
   describe('createConsultation', () => {
@@ -326,7 +340,8 @@ describe('medical.ts', () => {
           tenantId: testTenantId,
           treatmentType: TreatmentType.VACCINATION,
           productName: validVaccinationData.vaccine_brand,
-          scheduledDate: validVaccinationData.next_due_date,
+          // Date-only picker value, stored at noon in the clinic timezone
+          scheduledDate: new Date('2025-02-10T18:00:00Z'),
           status: 'SCHEDULED',
           vaccineStage: validVaccinationData.vaccine_stage,
         }),
@@ -390,8 +405,9 @@ describe('medical.ts', () => {
           tenantId: testTenantId,
           visitDate: validVitalSignsData.recorded_date,
           reasonForVisit: 'Registro de Signos Vitales',
-          diagnosis: 'N/A',
-          treatment: 'N/A',
+          // No fake diagnosis/treatment: keeps vitals out of diagnosis stats
+          diagnosis: null,
+          treatment: null,
         }),
         include: {
           pet: { include: { customer: true } },

@@ -1,14 +1,68 @@
 import { prisma } from './prisma';
 import { MedicalHistoryFormData, MedicalHistoryWithDetails } from '@/types';
+import { VITAL_SIGNS_REASON } from './treatment-labels';
+
+/** Invalid input detected while creating a history entry (answer 400). */
+export class MedicalHistoryInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'MedicalHistoryInputError';
+  }
+}
+
+type PrescriptionInput = NonNullable<MedicalHistoryFormData['prescriptions']>[number];
+
+function prescriptionLine(prescription: PrescriptionInput, name: string): string | null {
+  const details = [prescription.dosage, prescription.frequency, prescription.duration]
+    .map((value) => value?.trim())
+    .filter(Boolean)
+    .join(', ');
+  const instructions = prescription.instructions?.trim();
+  if (!name && !details && !instructions) return null;
+  const quantity = prescription.quantity ? ` (cantidad: ${prescription.quantity})` : '';
+  return `- ${name || 'Medicamento'}${quantity}${details ? `: ${details}` : ''}${instructions ? `. ${instructions}` : ''}`;
+}
 
 /**
- * Crear nueva entrada en la historia clínica
+ * Crear nueva entrada en la historia clínica.
+ *
+ * Prescription rows need an inventory product and a responsible staff member
+ * (both required foreign keys). Prescriptions typed as free text, or written
+ * by a user without a staff record, are kept in the notes instead.
  */
 export async function createMedicalHistory(
   tenantId: string,
-  staffId: string,
+  staffId: string | null,
   data: MedicalHistoryFormData
 ): Promise<MedicalHistoryWithDetails> {
+  const prescriptions = data.prescriptions ?? [];
+  const productIds = [...new Set(prescriptions.map((p) => p.productId?.trim()).filter((id): id is string => !!id))];
+
+  const productNames = new Map<string, string>();
+  if (productIds.length > 0) {
+    const products = await prisma.inventoryItem.findMany({
+      where: { id: { in: productIds }, tenantId },
+      select: { id: true, name: true },
+    });
+    if (products.length !== productIds.length) {
+      throw new MedicalHistoryInputError('Uno de los productos recetados no existe en el inventario de la clínica');
+    }
+    products.forEach((product) => productNames.set(product.id, product.name));
+  }
+
+  const ordered = staffId
+    ? prescriptions.flatMap((p) => (p.productId?.trim() ? [{ ...p, productId: p.productId.trim() }] : []))
+    : [];
+  const asText = staffId ? prescriptions.filter((p) => !p.productId?.trim()) : prescriptions;
+  const textLines = asText
+    .map((p) => prescriptionLine(p, p.productName?.trim() || productNames.get(p.productId?.trim() ?? '') || ''))
+    .filter((line): line is string => !!line);
+  const notes = textLines.length > 0
+    ? [data.notes?.trim(), `RECETA:\n${textLines.join('\n')}`].filter(Boolean).join('\n\n')
+    : data.notes;
+
+  const visitDate = new Date(data.visitDate);
+
   const medicalHistory = await prisma.$transaction(async (tx) => {
     // Crear la entrada de historia clínica
     const newHistory = await tx.medicalHistory.create({
@@ -16,31 +70,31 @@ export async function createMedicalHistory(
         tenantId,
         petId: data.petId,
         staffId,
-        visitDate: new Date(data.visitDate),
+        visitDate,
         reasonForVisit: data.reasonForVisit,
         diagnosis: data.diagnosis,
         treatment: data.treatment,
-        notes: data.notes
+        notes
       }
     });
 
-    // Si hay prescripciones, crear la orden médica
-    if (data.prescriptions && data.prescriptions.length > 0) {
+    // Si hay prescripciones de inventario, crear la orden médica
+    if (staffId && ordered.length > 0) {
       const medicalOrder = await tx.medicalOrder.create({
         data: {
           tenantId,
           petId: data.petId,
           staffId,
-          visitDate: new Date(data.visitDate),
+          visitDate,
           diagnosis: data.diagnosis,
           treatment: data.treatment,
-          notes: data.notes,
+          notes,
           status: 'PENDING'
         }
       });
 
       // Crear las prescripciones
-      for (const prescription of data.prescriptions) {
+      for (const prescription of ordered) {
         await tx.prescription.create({
           data: {
             orderId: medicalOrder.id,
@@ -79,6 +133,7 @@ export async function getMedicalHistoryById(
   const history = await prisma.medicalHistory.findUniqueOrThrow({
     where: { id: historyId, tenantId },
     include: {
+      staff: { select: { id: true, name: true } },
       pet: {
         include: {
           customer: true
@@ -314,24 +369,28 @@ export async function getMedicalHistoryStats(tenantId: string) {
 
   const nextMonth = new Date(thisMonth.getFullYear(), thisMonth.getMonth() + 1, 1);
 
+  // Vital-signs entries are not consultations
+  const notVitals = { reasonForVisit: { not: VITAL_SIGNS_REASON } };
+
   const [monthConsultations, totalConsultations, uniquePetsGroups, commonDiagnosesRaw] = await Promise.all([
     // Consultas del mes
     prisma.medicalHistory.count({
       where: {
         tenantId,
+        ...notVitals,
         visitDate: { gte: thisMonth, lt: nextMonth }
       }
     }),
 
     // Total de consultas
     prisma.medicalHistory.count({
-      where: { tenantId }
+      where: { tenantId, ...notVitals }
     }),
 
     // Mascotas únicas con historial médico (optimized with groupBy)
     prisma.medicalHistory.groupBy({
       by: ['petId'],
-      where: { tenantId }
+      where: { tenantId, ...notVitals }
     }),
 
     // Diagnósticos más comunes
@@ -339,6 +398,7 @@ export async function getMedicalHistoryStats(tenantId: string) {
       by: ['diagnosis'],
       where: {
         tenantId,
+        ...notVitals,
         diagnosis: { not: null }
       },
       _count: {

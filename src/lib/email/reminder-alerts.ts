@@ -5,6 +5,11 @@
  */
 
 import { prisma } from '../prisma';
+import { clinicDaysBetween, getClinicTimeZoneFor } from '../clinical-dates';
+import {
+  TREATMENT_REMINDER_LEAD_DAYS,
+  emailTreatmentTypeFromTitle,
+} from '../treatment-reminder-content';
 import {
   sendTreatmentReminder,
   sendAppointmentReminder,
@@ -33,13 +38,17 @@ export async function processTreatmentReminders(): Promise<{
   try {
     const now = new Date();
 
-    // Get pending reminders that are due
+    // Reminder.dueDate is the treatment date (see treatment-reminder-content.ts).
+    // Fetch one extra day so clinic-day rounding never skips the first send day.
+    const windowEnd = new Date(
+      now.getTime() + (TREATMENT_REMINDER_LEAD_DAYS + 1) * 24 * 60 * 60 * 1000
+    );
     const pendingReminders = await prisma.reminder.findMany({
       where: {
         status: 'PENDING',
         type: 'TREATMENT',
         dueDate: {
-          lte: now,
+          lte: windowEnd,
         },
       },
       include: {
@@ -54,6 +63,8 @@ export async function processTreatmentReminders(): Promise<{
             id: true,
             name: true,
             publicPhone: true,
+            countryCode: true,
+            tenantSettings: { select: { timezone: true } },
           },
         },
       },
@@ -65,30 +76,31 @@ export async function processTreatmentReminders(): Promise<{
 
     for (const reminder of pendingReminders) {
       try {
-        // Skip if customer has no email
-        if (!reminder.customer.email) {
+        const treatmentDate = reminder.dueDate;
+        const timeZone = getClinicTimeZoneFor(reminder.tenant);
+        const daysUntil = clinicDaysBetween(now, treatmentDate, timeZone);
+
+        // Not yet within the reminder window
+        if (daysUntil > TREATMENT_REMINDER_LEAD_DAYS) continue;
+
+        // The treatment date already passed: an email would be useless
+        if (daysUntil < 0) {
+          await prisma.reminder.update({
+            where: { id: reminder.id },
+            data: { status: 'DISMISSED' },
+          });
+          continue;
+        }
+
+        // Skip if there is no owner email or the pet was removed
+        if (!reminder.customer?.email || !reminder.pet) {
           console.warn(
-            `[TREATMENT_REMINDERS] No email for customer ${reminder.customer.id}`
+            `[TREATMENT_REMINDERS] No customer email or pet for reminder ${reminder.id}`
           );
           continue;
         }
 
-        // Calculate days until treatment
-        const treatmentDate = reminder.dueDate;
-        const daysUntil = Math.ceil(
-          (treatmentDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
-        );
-
-        // Get treatment type from reminder title
-        let treatmentType: 'VACCINATION' | 'MEDICATION' | 'CHECKUP' | 'OTHER' =
-          'OTHER';
-        if (reminder.title.toLowerCase().includes('vacun')) {
-          treatmentType = 'VACCINATION';
-        } else if (reminder.title.toLowerCase().includes('desparasit')) {
-          treatmentType = 'MEDICATION';
-        } else if (reminder.title.toLowerCase().includes('revision')) {
-          treatmentType = 'CHECKUP';
-        }
+        const treatmentType = emailTreatmentTypeFromTitle(reminder.title);
 
         const emailData: TreatmentReminderData = {
           template: 'treatment-reminder',
@@ -108,7 +120,7 @@ export async function processTreatmentReminders(): Promise<{
             clinicName: reminder.tenant.name,
             clinicPhone: reminder.tenant.publicPhone || undefined,
             notes: reminder.message || undefined,
-            daysUntilDue: Math.max(0, daysUntil),
+            daysUntilDue: daysUntil,
           },
         };
 

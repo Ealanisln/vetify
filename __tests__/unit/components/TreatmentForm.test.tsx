@@ -152,6 +152,30 @@ describe('TreatmentForm', () => {
       });
     });
 
+    it('fills the form value (not only the DOM) when a medication chip is clicked', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: true, json: async () => mockStaff } as Response)
+        .mockResolvedValueOnce({ ok: true, json: async () => ({ success: true }) } as Response);
+      const onSuccess = jest.fn();
+
+      render(<TreatmentForm {...defaultProps} onSuccess={onSuccess} />);
+      await waitFor(() => expect(screen.getByText('Medicamentos comunes:')).toBeInTheDocument());
+
+      fireEvent.click(screen.getByRole('button', { name: 'Amoxicilina' }));
+      expect((screen.getByLabelText(/Nombre del medicamento/) as HTMLInputElement).value).toBe('Amoxicilina');
+
+      fireEvent.change(screen.getByLabelText(/Dosis/), { target: { value: '250mg' } });
+      fireEvent.change(screen.getByLabelText(/Frecuencia/), { target: { value: 'Cada 12 horas' } });
+      fireEvent.change(screen.getByLabelText(/Instrucciones/), {
+        target: { value: 'Administrar con alimento por 7 días' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Guardar Tratamiento' }));
+
+      await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+      const submit = mockFetch.mock.calls.find(([url]) => url === '/api/medical/treatments');
+      expect(JSON.parse((submit?.[1] as RequestInit).body as string).medication_name).toBe('Amoxicilina');
+    });
+
     it('should show at least 5 medication suggestion buttons', async () => {
       render(<TreatmentForm {...defaultProps} />);
 

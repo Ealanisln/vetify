@@ -9,79 +9,40 @@ import {
   DocumentTextIcon as PrescriptionIcon,
   ArrowLeftIcon
 } from '@heroicons/react/24/outline';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import Link from 'next/link';
 import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
+import { getMedicalHistoryById } from '@/lib/medical-history';
+import { formatClinicDate, getTenantTimeZone } from '@/lib/clinical-dates';
+import type { MedicalHistoryWithDetails } from '@/types';
 
 interface MedicalHistoryDetailProps {
   tenantId: string;
   historyId: string;
 }
 
-interface MedicalHistoryDetailData {
-  id: string;
-  visitDate: Date;
-  reasonForVisit: string;
-  diagnosis?: string;
-  treatment?: string;
-  notes?: string;
-  pet: {
-    id: string;
-    name: string;
-    species: string;
-    breed?: string;
-    age?: number;
-    weight?: number;
-    customer: {
-      id: string;
-      name: string;
-      phone?: string;
-      email?: string;
-    };
-  };
-  medicalOrder?: {
-    id: string;
-    status: string;
-    prescriptions: Array<{
-      id: string;
-      productName: string;
-      quantity: number;
-      dosage: string;
-      frequency: string;
-      duration: string;
-      instructions: string;
-    }>;
-  };
-}
-
-async function fetchMedicalHistoryDetail(tenantId: string, historyId: string): Promise<MedicalHistoryDetailData | null> {
+async function loadMedicalHistory(tenantId: string, historyId: string): Promise<MedicalHistoryWithDetails | null> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/medical-history/${historyId}`, {
-      headers: {
-        'x-tenant-id': tenantId,
-      },
-    });
-    
-    if (response.ok) {
-      return await response.json();
-    }
+    // Server component: read the data directly (tenant-scoped) instead of
+    // fetching our own API, which arrives without the user's session cookies
+    return await getMedicalHistoryById(tenantId, historyId);
   } catch (error) {
     console.error('Error fetching medical history detail:', error);
+    return null;
   }
-  
-  return null;
 }
 
 export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHistoryDetailProps) {
-  const history = await fetchMedicalHistoryDetail(tenantId, historyId);
+  const [history, timeZone] = await Promise.all([
+    loadMedicalHistory(tenantId, historyId),
+    getTenantTimeZone(tenantId),
+  ]);
 
   if (!history) {
     return (
       <Card>
         <CardContent className="text-center py-12">
-          <ClipboardDocumentListIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 mb-4">Historia clínica no encontrada</p>
+          <ClipboardDocumentListIcon className="h-12 w-12 text-gray-300 dark:text-gray-600 dark:text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-500 dark:text-gray-400 mb-4">Historia clínica no encontrada</p>
           <Link href="/dashboard/medical-history">
             <Button>
               <ArrowLeftIcon className="h-4 w-4 mr-2" />
@@ -93,7 +54,9 @@ export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHisto
     );
   }
 
-  const getDiagnosisColor = (diagnosis?: string) => {
+  const petWeight = history.pet.weight === null ? null : Number(history.pet.weight);
+
+  const getDiagnosisColor = (diagnosis?: string | null) => {
     if (!diagnosis) return 'secondary';
     const lower = diagnosis.toLowerCase();
     if (lower.includes('emergencia') || lower.includes('urgente')) return 'destructive';
@@ -104,12 +67,12 @@ export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHisto
   return (
     <div className="space-y-6">
       {/* Navegación */}
-      <div className="flex items-center gap-2 text-sm text-gray-600">
-        <Link href="/dashboard/medical-history" className="hover:text-blue-600">
+      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <Link href="/dashboard/medical-history" className="hover:text-blue-600 dark:hover:text-blue-400">
           Historia Clínica
         </Link>
         <span>/</span>
-        <span className="text-gray-900">Consulta del {format(new Date(history.visitDate), 'dd/MM/yyyy', { locale: es })}</span>
+        <span className="text-gray-900 dark:text-gray-100">Consulta del {formatClinicDate(history.visitDate, timeZone, 'dd/MM/yyyy')}</span>
       </div>
 
       {/* Información de la mascota */}
@@ -123,54 +86,48 @@ export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHisto
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                 {history.pet.name}
               </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Especie:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Especie:</span>
                   <span className="font-medium">{mapSpeciesToSpanish(history.pet.species)}</span>
                 </div>
                 {history.pet.breed && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Raza:</span>
+                    <span className="text-gray-600 dark:text-gray-400">Raza:</span>
                     <span className="font-medium">{history.pet.breed}</span>
                   </div>
                 )}
-                {history.pet.age && (
+                {petWeight !== null && !isNaN(petWeight) && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Edad:</span>
-                    <span className="font-medium">{history.pet.age} años</span>
-                  </div>
-                )}
-                {history.pet.weight && !isNaN(Number(history.pet.weight)) && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Peso:</span>
-                    <span className="font-medium">{Number(history.pet.weight).toFixed(1)} {history.pet.weightUnit || 'kg'}</span>
+                    <span className="text-gray-600 dark:text-gray-400">Peso:</span>
+                    <span className="font-medium">{petWeight} {history.pet.weightUnit || 'kg'}</span>
                   </div>
                 )}
               </div>
             </div>
             
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
                 <UserIcon className="h-4 w-4" />
                 Propietario
               </h3>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Nombre:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Nombre:</span>
                   <span className="font-medium">{history.pet.customer.name}</span>
                 </div>
                 {history.pet.customer.phone && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Teléfono:</span>
+                    <span className="text-gray-600 dark:text-gray-400">Teléfono:</span>
                     <span className="font-medium">{history.pet.customer.phone}</span>
                   </div>
                 )}
                 {history.pet.customer.email && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Email:</span>
+                    <span className="text-gray-600 dark:text-gray-400">Email:</span>
                     <span className="font-medium">{history.pet.customer.email}</span>
                   </div>
                 )}
@@ -178,7 +135,7 @@ export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHisto
             </div>
           </div>
           
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <div className="flex gap-3">
               <Link href={`/dashboard/pets/${history.pet.id}`}>
                 <Button variant="outline" size="sm">
@@ -206,27 +163,35 @@ export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHisto
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                 Fecha y Hora
               </label>
-              <p className="text-sm text-gray-900">
-                {format(new Date(history.visitDate), 'dd/MM/yyyy HH:mm', { locale: es })}
+              <p className="text-sm text-gray-900 dark:text-gray-100">
+                {formatClinicDate(history.visitDate, timeZone, 'dd/MM/yyyy HH:mm')}
               </p>
             </div>
+            {history.staff && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  Atendido por
+                </label>
+                <p className="text-sm text-gray-900 dark:text-gray-100">{history.staff.name}</p>
+              </div>
+            )}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
               Motivo de Consulta
             </label>
-            <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md">
+            <p className="text-sm text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900 p-3 rounded-md">
               {history.reasonForVisit}
             </p>
           </div>
 
           {history.diagnosis && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                 Diagnóstico
               </label>
               <div className="flex items-center gap-2">
@@ -239,10 +204,10 @@ export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHisto
 
           {history.treatment && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                 Tratamiento
               </label>
-              <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md whitespace-pre-wrap">
+              <p className="text-sm text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900 p-3 rounded-md whitespace-pre-line">
                 {history.treatment}
               </p>
             </div>
@@ -250,10 +215,10 @@ export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHisto
 
           {history.notes && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                 Notas Adicionales
               </label>
-              <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded-md whitespace-pre-wrap">
+              <p className="text-sm text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900 p-3 rounded-md whitespace-pre-line">
                 {history.notes}
               </p>
             </div>
@@ -272,39 +237,39 @@ export async function MedicalHistoryDetail({ tenantId, historyId }: MedicalHisto
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-                             {history.medicalOrder.prescriptions.map((prescription) => (
-                <div key={prescription.id} className="border border-gray-200 rounded-lg p-4">
+              {history.medicalOrder.prescriptions.map((prescription) => (
+                <div key={prescription.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-medium text-gray-900">
-                      {prescription.productName}
+                    <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                      {prescription.product?.name}
                     </h4>
                     <Badge variant="outline">
-                      Cantidad: {prescription.quantity}
+                      Cantidad: {Number(prescription.quantity)}
                     </Badge>
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
                     {prescription.dosage && (
                       <div>
-                        <span className="text-gray-600">Dosis:</span>
+                        <span className="text-gray-600 dark:text-gray-400">Dosis:</span>
                         <p className="font-medium">{prescription.dosage}</p>
                       </div>
                     )}
                     {prescription.frequency && (
                       <div>
-                        <span className="text-gray-600">Frecuencia:</span>
+                        <span className="text-gray-600 dark:text-gray-400">Frecuencia:</span>
                         <p className="font-medium">{prescription.frequency}</p>
                       </div>
                     )}
                     {prescription.duration && (
                       <div>
-                        <span className="text-gray-600">Duración:</span>
+                        <span className="text-gray-600 dark:text-gray-400">Duración:</span>
                         <p className="font-medium">{prescription.duration}</p>
                       </div>
                     )}
                     {prescription.instructions && (
                       <div>
-                        <span className="text-gray-600">Instrucciones:</span>
+                        <span className="text-gray-600 dark:text-gray-400">Instrucciones:</span>
                         <p className="font-medium">{prescription.instructions}</p>
                       </div>
                     )}

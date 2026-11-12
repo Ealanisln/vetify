@@ -207,13 +207,15 @@ export async function getPetById(petId: string, tenantId: string) {
       customer: true,
       location: true,
       medicalHistories: {
-        orderBy: { visitDate: 'desc' }
+        orderBy: { visitDate: 'desc' },
+        include: { staff: { select: { id: true, name: true } } }
       },
       appointments: {
         orderBy: { dateTime: 'desc' }
       },
       treatmentRecords: {
-        orderBy: { administrationDate: 'desc' }
+        orderBy: { administrationDate: 'desc' },
+        include: { staff: { select: { id: true, name: true } } }
       }
     }
   });
