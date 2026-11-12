@@ -98,6 +98,8 @@ jobs:
         run: pnpm build
         env:
           SKIP_ENV_VALIDATION: true
+          # next build outgrew Node's default ~2GB heap (OOM on PR #248)
+          NODE_OPTIONS: --max-old-space-size=6144
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
           DIRECT_URL: postgresql://postgres:postgres@localhost:5432/vetify_test
 
