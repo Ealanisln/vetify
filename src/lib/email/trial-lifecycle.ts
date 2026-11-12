@@ -17,6 +17,7 @@ import { calculateTrialDaysRemaining } from '@/lib/trial/utils';
 import { TRIAL_WARNING_DAYS } from '@/lib/constants';
 import { sendEmail } from './email-service';
 import { getClinicTimeZone } from '@/lib/clinic-timezone';
+import { getAppUrl } from '@/lib/app-url';
 import type {
   EmailSendResult,
   TrialExpiringData,
@@ -364,10 +365,6 @@ async function sendCheckinEmail(tenant: LifecycleTenant, now: Date): Promise<boo
     data: { trialCheckinSentAt: now },
   });
   return true;
-}
-
-function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || 'https://vetify.pro';
 }
 
 function getDashboardUrl(): string {

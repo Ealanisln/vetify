@@ -2,6 +2,7 @@ import { prisma } from '../prisma';
 import { sendEmail } from '../email/email-service';
 import type { DataRetentionWarningData } from '../email/types';
 import { getClinicTimeZone } from '../clinic-timezone';
+import { getAppUrl } from '../app-url';
 import {
   RETENTION_TRIGGER_STATUSES,
   RETENTION_WARNING_BATCH_LIMIT,
@@ -93,7 +94,7 @@ export async function sendRetentionWarnings(
 
       const deletionDate = tenant.dataRetentionEndsAt!;
       const daysRemaining = Math.max(0, daysBetween(deletionDate, now));
-      const reactivateUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://vetify.pro'}/dashboard/settings?tab=subscription`;
+      const reactivateUrl = `${getAppUrl()}/dashboard/settings?tab=subscription`;
 
       const emailData: DataRetentionWarningData = {
         template: 'data-retention-warning',
