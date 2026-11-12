@@ -307,7 +307,7 @@ export async function POST(request: NextRequest) {
                 const currency = invoice.currency;
                 const billingInterval = planItem.price.recurring?.interval === 'year' ? 'year' : 'month';
 
-                const paymentNotification = {
+                const paymentNotification: Parameters<typeof notifyNewSubscriptionPayment>[0] = {
                   userName: tenant.staff[0].name || 'Usuario',
                   userEmail: tenant.staff[0].email,
                   tenantId: tenant.id,
