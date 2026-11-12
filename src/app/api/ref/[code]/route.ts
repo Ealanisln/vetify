@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runAfterResponse } from '@/lib/after-response';
 import { resolveReferralCode, incrementClickCount } from '@/lib/referrals/queries';
+import { getAppUrl } from '@/lib/app-url';
 
 /**
  * Public referral redirect endpoint.
@@ -12,7 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ code: string }> }
 ) {
   const { code } = await params;
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://vetify.pro';
+  const baseUrl = getAppUrl();
 
   // Validate and resolve code
   const referral = await resolveReferralCode(code);

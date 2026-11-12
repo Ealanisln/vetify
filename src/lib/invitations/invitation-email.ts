@@ -8,12 +8,12 @@ import { sendEmail } from '@/lib/email/email-service';
 import type { StaffInvitationData } from '@/lib/email/types';
 import { generateStaffInvitation } from './invitation-token';
 import { prisma } from '@/lib/prisma';
+import { getAppUrl } from '@/lib/app-url';
 
 // =============================================================================
 // CONSTANTS
 // =============================================================================
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 const DEFAULT_EXPIRATION_DAYS = 7;
 
 // =============================================================================
@@ -100,7 +100,7 @@ export async function sendStaffInvitationEmail(
     );
 
     // Build invite URL
-    const inviteUrl = `${APP_URL}/invite?token=${invitation.token}`;
+    const inviteUrl = `${getAppUrl()}/invite?token=${invitation.token}`;
 
     // Prepare email data
     const emailData: StaffInvitationData = {

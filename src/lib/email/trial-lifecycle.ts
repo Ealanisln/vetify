@@ -16,6 +16,8 @@ import { prisma } from '@/lib/prisma';
 import { calculateTrialDaysRemaining } from '@/lib/trial/utils';
 import { TRIAL_WARNING_DAYS } from '@/lib/constants';
 import { sendEmail } from './email-service';
+import { getClinicTimeZone } from '@/lib/clinic-timezone';
+import { getAppUrl } from '@/lib/app-url';
 import type {
   EmailSendResult,
   TrialExpiringData,
@@ -71,6 +73,8 @@ interface LifecycleTenant {
   welcomeEmailSentAt: Date | null;
   activationNudgeSentAt: Date | null;
   trialCheckinSentAt: Date | null;
+  countryCode: string | null;
+  tenantSettings: { timezone: string | null } | null;
 }
 
 const lifecycleTenantSelect = {
@@ -83,6 +87,9 @@ const lifecycleTenantSelect = {
   welcomeEmailSentAt: true,
   activationNudgeSentAt: true,
   trialCheckinSentAt: true,
+  // Dates in the emails are shown in the clinic's timezone
+  countryCode: true,
+  tenantSettings: { select: { timezone: true } },
 } as const;
 
 type ActivationEmail = 'welcome' | 'nudge' | 'checkin';
@@ -140,6 +147,7 @@ export async function processTrialLifecycleEmails(): Promise<TrialLifecycleResul
           const emailData: TrialExpiringData = {
             template: 'trial-expiring',
             to: { email: adminEmail.email, name: adminEmail.name },
+            timeZone: getClinicTimeZone(tenant),
             subject: `⚠️ Tu prueba de Vetify termina en ${daysRemaining} día${daysRemaining !== 1 ? 's' : ''}`,
             tenantId: tenant.id,
             data: {
@@ -176,6 +184,7 @@ export async function processTrialLifecycleEmails(): Promise<TrialLifecycleResul
             template: 'trial-expired',
             to: { email: adminEmail.email, name: adminEmail.name },
             subject: '🔒 Tu prueba gratuita de Vetify ha expirado',
+            timeZone: getClinicTimeZone(tenant),
             tenantId: tenant.id,
             data: {
               clinicName: tenant.name,
@@ -285,6 +294,7 @@ async function sendWelcomeEmail(tenant: LifecycleTenant, now: Date): Promise<boo
     to: { email: adminEmail.email, name: adminEmail.name },
     subject: `🐾 ${tenant.name} ya está lista en Vetify`,
     tenantId: tenant.id,
+    timeZone: getClinicTimeZone(tenant),
     data: {
       clinicName: tenant.name,
       ownerName: adminEmail.name,
@@ -355,10 +365,6 @@ async function sendCheckinEmail(tenant: LifecycleTenant, now: Date): Promise<boo
     data: { trialCheckinSentAt: now },
   });
   return true;
-}
-
-function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || 'https://vetify.pro';
 }
 
 function getDashboardUrl(): string {

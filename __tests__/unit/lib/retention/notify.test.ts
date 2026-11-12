@@ -156,3 +156,33 @@ describe('sendRetentionWarnings', () => {
     expect(callArg.data.daysRemaining).toBeLessThanOrEqual(1);
   });
 });
+
+describe('sendRetentionWarnings – clinic timezone', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('formats the deletion date in the clinic timezone, ignoring the legacy UTC setting', async () => {
+    const row = {
+      ...makeTenant(),
+      countryCode: 'CO',
+      tenantSettings: { timezone: 'UTC' },
+    };
+    // Honor `select` like Prisma does, so the query must ask for the fields
+    findMany.mockImplementation(async (args: { select?: Record<string, unknown> }) => {
+      const picked: Record<string, unknown> = {};
+      for (const key of Object.keys(args.select ?? row)) {
+        if (key in row) picked[key] = row[key as keyof typeof row];
+      }
+      return [picked];
+    });
+    findStaff.mockResolvedValue({ email: 'a@b.c', name: 'A' });
+    sendEmailMock.mockResolvedValue({ success: true, messageId: 'm' });
+
+    await sendRetentionWarnings(50, NOW);
+
+    expect(sendEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({ template: 'data-retention-warning', timeZone: 'America/Bogota' })
+    );
+  });
+});

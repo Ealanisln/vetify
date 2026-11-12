@@ -98,7 +98,8 @@ describe('Referral Redirect API Integration Tests', () => {
     jest.clearAllMocks();
     capturedRedirectUrl = null;
     capturedCookies = [];
-    process.env.NEXT_PUBLIC_BASE_URL = 'https://vetify.pro';
+    process.env.NEXT_PUBLIC_APP_URL = 'https://www.vetify.pro';
+    delete process.env.NEXT_PUBLIC_BASE_URL;
     jest.spyOn(console, 'log').mockImplementation();
     jest.spyOn(console, 'error').mockImplementation();
   });
@@ -130,8 +131,24 @@ describe('Referral Redirect API Integration Tests', () => {
       const request = new NextRequest('http://localhost:3000/api/ref/INVALID');
       await GET(request, createParams('INVALID'));
 
-      expect(capturedRedirectUrl).toBe('https://vetify.pro/precios');
+      expect(capturedRedirectUrl).toBe('https://www.vetify.pro/precios');
       expect(mockIncrementClickCount).not.toHaveBeenCalled();
+    });
+
+    it('falls back to the www host, not the apex, when no base URL is configured', async () => {
+      const env = process.env as Record<string, string | undefined>;
+      const previousNodeEnv = env.NODE_ENV;
+      delete env.NEXT_PUBLIC_APP_URL;
+      env.NODE_ENV = 'production';
+      mockResolveReferralCode.mockResolvedValue(null);
+
+      try {
+        await GET(new NextRequest('http://localhost:3000/api/ref/INVALID'), createParams('INVALID'));
+      } finally {
+        env.NODE_ENV = previousNodeEnv;
+      }
+
+      expect(capturedRedirectUrl).toBe('https://www.vetify.pro/precios');
     });
 
     it('should increment click count for valid code', async () => {

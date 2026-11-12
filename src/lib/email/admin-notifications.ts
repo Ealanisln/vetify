@@ -5,7 +5,7 @@
  */
 
 import { sendEmail } from './email-service';
-import { getBaseUrl } from '../seo/config';
+import { getAppUrl } from '../app-url';
 import type {
   NewUserRegistrationData,
   NewSubscriptionPaymentData,
@@ -21,7 +21,7 @@ const ADMIN_NAME = 'Emmanuel Alanis';
  * admin page; the list searches by name and slug).
  */
 function getAdminTenantUrl(tenantSlug: string): string {
-  return `${getBaseUrl()}/admin/tenants?search=${encodeURIComponent(tenantSlug)}`;
+  return `${getAppUrl()}/admin/tenants?search=${encodeURIComponent(tenantSlug)}`;
 }
 
 /**

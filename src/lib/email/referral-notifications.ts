@@ -6,6 +6,7 @@
  */
 
 import { Resend } from 'resend';
+import { getAppUrl } from '../app-url';
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'emmanuel@vetify.pro';
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'Vetify <notificaciones@vetify.pro>';
@@ -59,7 +60,7 @@ export async function notifyReferralConversion(data: {
             <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Monto Suscripción</td><td style="padding: 8px; border-bottom: 1px solid #eee;">$${data.subscriptionAmount.toFixed(2)} MXN</td></tr>
             <tr><td style="padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;">Comisión (${data.commissionPercent}%)</td><td style="padding: 8px; border-bottom: 1px solid #eee; color: #75a99c; font-weight: bold;">$${data.commissionAmount.toFixed(2)} MXN</td></tr>
           </table>
-          <p style="color: #666; font-size: 14px;">Revisa los detalles en el <a href="${process.env.NEXT_PUBLIC_BASE_URL}/admin/referrals">panel de referidos</a>.</p>
+          <p style="color: #666; font-size: 14px;">Revisa los detalles en el <a href="${getAppUrl()}/admin/referrals">panel de referidos</a>.</p>
         </div>
       `,
     });

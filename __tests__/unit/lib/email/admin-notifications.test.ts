@@ -17,7 +17,7 @@ import {
   notifyPaymentFailed,
 } from '@/lib/email/admin-notifications';
 
-const ORIGINAL_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
+const ORIGINAL_APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 const expectedUrl = 'https://www.vetify.pro/admin/tenants?search=clinica-norte';
 
 function sentData() {
@@ -28,11 +28,12 @@ describe('admin notifications', () => {
   beforeEach(() => {
     mockSendEmail.mockReset();
     mockSendEmail.mockResolvedValue({ success: true, messageId: 'msg_1' });
-    process.env.NEXT_PUBLIC_BASE_URL = 'https://www.vetify.pro';
+    process.env.NEXT_PUBLIC_APP_URL = 'https://www.vetify.pro';
   });
 
   afterAll(() => {
-    process.env.NEXT_PUBLIC_BASE_URL = ORIGINAL_BASE_URL;
+    if (ORIGINAL_APP_URL === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+    else process.env.NEXT_PUBLIC_APP_URL = ORIGINAL_APP_URL;
   });
 
   it('new user registration passes the admin tenant URL', async () => {
