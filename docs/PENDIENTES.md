@@ -2,7 +2,7 @@
 
 Lista viva de lo que falta. Lo más importante va arriba. Cuando algo se cierre, se marca con `[x]`, se anota la fecha y el PR, y se mueve a "Cerrados".
 
-Última actualización: 12/Nov/2026 (PR de P0 abierto)
+Última actualización: 12/Nov/2026 (#247 y #248 mergeados a `development`; tanda 3 en los PRs #249 a #255, abiertos)
 
 ## Prioridad 0: no negociable
 
@@ -12,6 +12,7 @@ Lista viva de lo que falta. Lo más importante va arriba. Cuando algo se cierre,
   - **Servicios:** `src/components/settings/ServiceManagement.tsx` y `ServiceModal.tsx`. Crear, editar, desactivar y borrar servicios, con precios en la moneda del tenant, y verificar que aparezcan al agendar.
   - **Equipo:** `src/app/dashboard/staff/new`, `src/app/dashboard/staff/[id]` y `src/app/api/invitations/{send,validate,accept}`. Revisar que el correo de invitación llegue, que el invitado pueda aceptar (con o sin cuenta de Kinde), que quede ligado al tenant correcto con su rol y que respete los límites del plan.
   - **Hecho cuando:** existe un E2E de Playwright que cubre los tres flujos y pasa en CI, y el flujo completo se probó a mano en producción con un tenant de prueba antes de la llamada.
+  - **Avance (12/Nov):** el E2E existe y pasa en CI (`tests/e2e/clinic-setup/clinic-setup.spec.ts`, PR #255). Falta: mergear #255, hacer el release a `main` y la prueba manual en prod con un tenant de prueba.
   - **Estado en prod (12/Nov):** Animal Medical Centre tiene 0 servicios, 0 horarios guardados y 0 sucursales; en la llamada todo se configura desde cero. En toda la vida de prod solo hay 2 invitaciones de equipo.
   - **Auditoría de código (12/Nov).** Los marcados con ✔ los verifiqué contra el código; el resto viene de la auditoría y está trazado, pero falta confirmarlo con tests.
 
@@ -21,7 +22,7 @@ Lista viva de lo que falta. Lo más importante va arriba. Cuando algo se cierre,
     - [x] **Los tenants nuevos no tienen filas de horario** hasta que el dueño abre la pestaña Horarios. Mientras tanto, la agenda y la reserva pública muestran todos los días como "no laborable". _Resuelto en el PR de P0 (12/Nov)._
     - [x] **La "Duración de cita" por defecto no hace nada** si no se da "Aplicar a todos los días". _Resuelto en el PR de P0 (12/Nov)._
     - [x] **Seguridad (IDOR):** el PUT de horarios actualiza por `id` sin filtrar por `tenantId`. _Resuelto en el PR de P0 (12/Nov)._
-    - [ ] Menores: comida sin hora de fin, cierres a la media hora, duración de 45 min, citas que se pasan del cierre, sin validación de rangos, el calendario ignora los horarios guardados. _En el PR de P0: validación de rangos, comida sin fin y cierres a la media hora. Sigue pendiente: que el calendario lea los horarios guardados (necesita un endpoint que el staff pueda leer)._
+    - [x] Menores: comida sin hora de fin, cierres a la media hora, duración de 45 min, citas que se pasan del cierre, sin validación de rangos, el calendario ignora los horarios guardados. _Validación de rangos, comida sin fin y cierres a la media hora en #247; el calendario lee los horarios guardados desde #248._
 
     **Servicios**
     - [x] **La reserva pública ignora el catálogo.** `QuickBooking.tsx` lee el JSON viejo `publicServices` y no la tabla `Service`. _Resuelto en el PR de P0 (12/Nov)._
@@ -35,7 +36,7 @@ Lista viva de lo que falta. Lo más importante va arriba. Cuando algo se cierre,
     - [ ] Menores: no se aplica el límite de staff del plan, desactivar a alguien no le quita el acceso, no se puede cancelar una invitación, las invitaciones expiradas siguen como "pendientes" y los nombres de rol en el correo no coinciden con la app. _En el PR de P0: las invitaciones expiradas ya se marcan como expiradas y los roles del correo coinciden con la app. El resto queda en "Decisiones pendientes"._
     - ✔ Héctor sí ve "Agregar Personal": su staff es "Administrador", activo y ligado.
 
-    **Tests:** los de integración de servicios e invitaciones solo prueban `prismaMock` y no llaman las routes reales. Los E2E de settings buscan test IDs que no existen en el código.
+    **Tests:** ~~los de integración de servicios e invitaciones solo prueban `prismaMock`~~ ahora llaman las rutas reales (#252). ~~Los E2E de settings buscan test IDs que no existen~~ ya están alineados (#255).
 
 ## Prioridad 0-B: auditoría de flujos indispensables (12/Nov)
 
@@ -50,18 +51,25 @@ El detalle completo está en `docs/AUDITORIA-FLUJOS-2026-11.md`. Aquí solo va l
 - Historia clínica: recordatorios de vacunas, el formulario de historia nueva, el detalle, "Etapa" vacía, chips, línea de tiempo y signos vitales.
 - Reserva pública: sin exposición de datos, búsqueda segura, sin cambios a clientes existentes y límite de peticiones.
 
+**Tanda 3 (no requería decisión):** resuelta en PRs abiertos el 12/Nov, pendientes de mergear.
+- [x] Citas: transiciones de estado inválidas y cancelación doble. _PR #251._
+- [x] Citas: choques con la duración real; sin staff, choca con cualquier cita que se empalme en la clínica. _PR #251._
+- [x] Calendario en la zona de la clínica (`@fullcalendar/luxon3`). _PR #254._
+- [x] `updateCustomer` parcial y `locationId`. _PR #249._
+- [x] `validatePlanAction` con `-1` (ilimitado). También arregla que el trial dejaba WhatsApp en `-1` crudo y no se podía mandar. _PR #249._
+- [x] `/api/v1/pets` acepta `lb` como alias y guarda `lbs`. _PR #249._
+- [x] Mascotas de clientes archivados fuera de las listas. _PR #249._
+- [x] Fechas con zona en correos de trial, cobro y retención. _PR #253._
+- [x] URL base única (`src/lib/app-url.ts`, cae a `www`) y reply-to de la clínica en correos a clientes. _PR #253._
+- [x] Historia clínica: próxima aplicación, "Agendar seguimiento", fecha opcional y selector de inventario. _PR #250._
+- [x] Consulta muerta de `CONFIRMED` en `api/public/availability`. _PR #251._
+
 **Siguiente tanda (no requiere decisión):**
-- [ ] Citas: bloquear en el server las transiciones de estado inválidas y la cancelación doble. Hoy se puede cancelar una cita completada y la doble cancelación manda dos correos.
-- [ ] Citas: la validación de choques usa la duración equivocada y no valida nada si la cita no tiene staff.
-- [ ] Calendario: mostrar las horas en la zona de la clínica (FullCalendar usa la del navegador; necesita un plugin).
-- [ ] `updateCustomer` pone el email en null si un update parcial no lo incluye. Hoy la UI manda todo, pero el API lo permite. También ignora `locationId`.
-- [ ] `validatePlanAction` trata `-1` (ilimitado) como agotado para WhatsApp y cajas.
-- [ ] `/api/v1/pets` usa `lb` en vez de `lbs`.
-- [ ] Las mascotas de clientes archivados siguen apareciendo en las listas.
-- [ ] Los correos de trial, cobro y retención aún muestran fechas sin zona horaria.
-- [ ] Las URLs base caen a `localhost` o a la apex, y el reply-to de los correos a clientes debería ser el de la clínica.
-- [ ] Historia clínica: un campo "Próxima aplicación" para desparasitación y pulgas, un botón de "Agendar seguimiento", fecha de visita opcional y un selector de productos de inventario.
-- [ ] Hay una consulta muerta de citas en estado `CONFIRMED` en `api/public/availability`.
+- [ ] La lista de "hoy" y las estadísticas del dashboard siguen en la zona del navegador (salió de #254).
+- [ ] La búsqueda pública de clientes todavía encuentra clientes archivados (salió de #249).
+- [ ] `robots.ts` solo permite el rastreo si la URL base es exactamente la apex. Si `NEXT_PUBLIC_BASE_URL` cambia a `www`, Google deja de indexar todo el sitio. Hoy prod está bien (verificado el 12/Nov). Hacer que acepte las dos (salió de #253).
+- [ ] E2E: fixture de usuario sin rol de admin (8 tests de acceso por rol están en skip) y fixture de plan CORPORATIVO para `api-keys.spec.ts` y `webhooks.spec.ts`, que aún tienen los `if (isVisible)` (salió de #255).
+- [ ] Los tests de Stripe fallan en local sin `STRIPE_SECRET_KEY`, y eso rompe el pre-commit hook en worktrees. Que usen una llave falsa como en CI.
 
 **Requiere decisión (💳 cobro/permisos, 🗄 esquema):**
 - [ ] 💳 Cambiar de plan cancela la suscripción antes de cobrar la nueva.
@@ -76,9 +84,18 @@ El detalle completo está en `docs/AUDITORIA-FLUJOS-2026-11.md`. Aquí solo va l
 - [ ] El correo de "trial vencido" llega 6 días tarde (una columna nueva o leer el EmailLog).
 
 **La red de pruebas:**
-- [ ] Crear la ruta de sesión de prueba (`/api/test-auth`, solo en el entorno de test) y prender `TEST_AUTH_ENABLED` en CI.
-- [ ] Alinear los `data-testid` de los specs con el código y quitar los `if (isVisible)`.
-- [ ] Reemplazar los tests de integración que solo prueban mocks por tests que llamen las rutas reales.
+- [x] Sesión de prueba para E2E. En lugar de `/api/test-auth`, el job de E2E apunta `KINDE_ISSUER_URL` a un issuer falso en `127.0.0.1` que firma los tokens; el código de auth de la app no cambia. Guardas: `TEST_AUTH_ENABLED`, sin `VERCEL`/`VERCEL_ENV` y un secreto aleatorio por corrida. _PR #255._
+- [x] `data-testid` alineados en los specs de settings y sin los `if (isVisible)`. _PR #255._
+- [x] Tests de integración de servicios, invitaciones y horarios contra las rutas reales. Encontró y arregló que `POST`/`PUT /api/services` aceptaban un `locationId` de otra clínica. _PR #252._
+
+**Decisiones que salieron de la tanda 3:**
+- [ ] Dos citas sin veterinario asignado ya no se pueden empalmar (#251). Bien para clínicas de un vet; una clínica con varios tendría que asignar uno para agendar a la misma hora.
+- [ ] El API v1 responde 409 al borrar una cita ya cancelada, en vez de 204 (#251). Se dejó así para no cambiar el contrato.
+- [ ] El API v1 ahora responde `lbs` donde antes respondía `lb` (#249). ¿Hacer un backfill de `lb` a `lbs` en los datos? Requiere migración.
+- [ ] Reply-to de correos a clientes: primero `publicEmail` y luego el administrador más antiguo (#253).
+- [ ] Las alertas de cobro (le llegan a Vetify) van en hora de CDMX (#253).
+- [ ] Al guardar una historia clínica ahora se abre su detalle en lugar de la lista (#250).
+- [ ] Las rutas de servicios solo piden sesión: cualquier rol puede editar el catálogo (queda como `it.todo` en #252).
 
 ## Prioridad 1
 
@@ -116,9 +133,9 @@ El detalle completo está en `docs/AUDITORIA-FLUJOS-2026-11.md`. Aquí solo va l
 
 ## Limpieza
 
-- [ ] Cerrar los issues #189 y #190 si ya los resolvió el PR #237.
-- [ ] Quitar los worktrees de ramas ya mergeadas: `cleanup-qa-lows`, `csp-unify-meta-pixel`, `dashboard-first-run-ctas` y `landing-signup-cta`.
+_(nada por ahora)_
 
 ## Cerrados
 
-_(vacío)_
+- [x] Cerrar los issues #189 y #190. #189 lo resolvió #237; #190 verificado en prod: `/api/version` y `/api/health` responden 200. _12/Nov._
+- [x] Quitar los worktrees de ramas ya mergeadas (16, incluidos los de #247 y #248). _12/Nov._
