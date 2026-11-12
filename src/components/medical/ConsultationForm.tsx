@@ -40,7 +40,6 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
     resolver: zodResolver(consultationSchema),
     defaultValues: {
       symptoms: [],
-      next_appointment: undefined,
     },
   });
 
@@ -380,20 +379,6 @@ export function ConsultationForm({ petId, tenantId, onSuccess, onCancel }: Consu
             rows={3}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500 placeholder-gray-400 dark:placeholder-gray-500"
             placeholder="Cualquier observación adicional, recomendaciones especiales..."
-          />
-        </div>
-
-        <div>
-          <label htmlFor="next_appointment" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-            Próxima cita (opcional)
-          </label>
-          <input
-            type="datetime-local"
-            id="next_appointment"
-            {...register('next_appointment', {
-              setValueAs: (value) => value ? new Date(value) : undefined,
-            })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-blue-500"
           />
         </div>
       </div>
