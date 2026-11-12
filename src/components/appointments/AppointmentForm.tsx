@@ -10,6 +10,7 @@ import { Calendar } from '../ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Loader2, Clock, AlertCircle, CheckCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { cn } from '../../lib/utils';
 import LocationSelector from '@/components/locations/LocationSelector';
@@ -70,8 +71,12 @@ export function AppointmentForm({
   const [availablePets, setAvailablePets] = useState<Pet[]>([]);
   // Store the selected time slot string for comparison (matches API format)
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
-  // Time slots are shown based on availability data
-  
+  // A time counts as chosen only when the user picked a slot, or when editing
+  // an existing appointment (its stored time). Never default to "now".
+  const [timeChosen, setTimeChosen] = useState<boolean>(
+    Boolean(appointmentId && initialData?.dateTime)
+  );
+
   const { checkAvailability, availability, loading: availabilityLoading } = useAvailability();
   
   const {
@@ -87,7 +92,7 @@ export function AppointmentForm({
     defaultValues: {
       customerId: initialData?.customerId || '',
       petId: initialData?.petId || '',
-      dateTime: initialData?.dateTime || new Date(),
+      dateTime: initialData?.dateTime,
       duration: initialData?.duration || 30,
       reason: initialData?.reason || '',
       notes: initialData?.notes || '',
@@ -99,6 +104,30 @@ export function AppointmentForm({
 
   const watchedDuration = watch('duration');
   const watchedStaffId = watch('staffId');
+  const watchedDateTime = watch('dateTime');
+
+  // Slot labels come from the API in clinic time; format the chosen instant
+  // in the same zone so the summary matches the button the user clicked.
+  const clinicTimeZone =
+    availability?.timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const chosenDateTime = timeChosen && watchedDateTime ? new Date(watchedDateTime) : null;
+  const isPastDateTime = chosenDateTime !== null && chosenDateTime.getTime() < Date.now();
+
+  // A time prefilled from the calendar (no appointmentId) counts as chosen
+  // only if it matches an available slot; a month-view click lands on
+  // midnight and must not be saved as-is.
+  const prefilledTime = initialData?.dateTime ? new Date(initialData.dateTime).getTime() : null;
+  useEffect(() => {
+    if (timeChosen || prefilledTime === null || !availability) return;
+    const match = availability.availableSlots.find(
+      (slot) => new Date(slot.dateTime).getTime() === prefilledTime
+    );
+    if (match) {
+      setValue('dateTime', new Date(match.dateTime));
+      setSelectedTimeSlot(match.dateTime);
+      setTimeChosen(true);
+    }
+  }, [availability, prefilledTime, timeChosen, setValue]);
 
   // Filtrar mascotas por cliente seleccionado
   useEffect(() => {
@@ -129,15 +158,18 @@ export function AppointmentForm({
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
-    // Clear selected time slot when date changes (slots will be different)
+    // Clear the chosen time when the date changes (slots will be different)
     setSelectedTimeSlot(null);
+    setTimeChosen(false);
   };
 
   const handleTimeSlotSelect = (dateTime: string) => {
-    const selectedDateTime = new Date(dateTime);
-    setValue('dateTime', selectedDateTime);
+    // dateTime is an absolute ISO instant from the API: parse it as-is, never
+    // rebuild it from local date parts.
+    setValue('dateTime', new Date(dateTime), { shouldValidate: true });
     // Store the original slot string for comparison (avoids ISO format mismatch)
     setSelectedTimeSlot(dateTime);
+    setTimeChosen(true);
     // Note: Don't update selectedDate here - it would trigger another availability check
     // The date is already selected, we just need to store the full datetime in the form
   };
@@ -148,6 +180,8 @@ export function AppointmentForm({
     await onSubmit({ ...data, locationId: locationId || null } as Parameters<typeof onSubmit>[0] & { locationId: string | null });
     reset();
     setLocationId('');
+    setSelectedTimeSlot(null);
+    setTimeChosen(false);
   };
 
   const handleCustomerChange = (customerId: string) => {
@@ -219,7 +253,7 @@ export function AppointmentForm({
       </div>
 
       {/* Selected DateTime Display - Moved to top for better visibility */}
-      {watch('dateTime') && (
+      {chosenDateTime && (
         <Card className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700">
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
@@ -228,13 +262,29 @@ export function AppointmentForm({
                 <p className="font-medium text-green-800 dark:text-green-200">
                   Fecha y hora seleccionada:
                 </p>
-                <p className="text-sm text-green-700 dark:text-green-300">
-                  {format(watch('dateTime'), 'PPP \'a las\' HH:mm', { locale: es })}
+                <p
+                  className="text-sm text-green-700 dark:text-green-300"
+                  data-testid="selected-datetime-label"
+                >
+                  {formatInTimeZone(chosenDateTime, clinicTimeZone, "PPP 'a las' HH:mm", { locale: es })}
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {isPastDateTime && (
+        <div
+          className="flex items-start gap-2 rounded-md border border-amber-200 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-3"
+          data-testid="past-datetime-warning"
+          role="status"
+        >
+          <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+          <p className="text-sm text-amber-800 dark:text-amber-200">
+            Esta fecha y hora ya pasaron. Puedes guardarla si estás registrando una consulta que ya ocurrió.
+          </p>
+        </div>
       )}
 
       {/* Date and Time Selection */}
@@ -459,7 +509,12 @@ export function AppointmentForm({
       </div>
 
       {/* Form Actions */}
-      <div className="flex justify-end gap-4 pt-4 border-t">
+      <div className="flex flex-wrap items-center justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        {!timeChosen && (
+          <p className="mr-auto text-sm text-gray-500 dark:text-gray-400" data-testid="choose-slot-hint">
+            Selecciona un horario para continuar
+          </p>
+        )}
         <Button
           type="button"
           variant="outline"
@@ -471,7 +526,7 @@ export function AppointmentForm({
         </Button>
         <Button
           type="submit"
-          disabled={isSubmitting || loading || !watch('dateTime')}
+          disabled={isSubmitting || loading || !timeChosen}
           data-testid="submit-appointment-button"
         >
           {(isSubmitting || loading) && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
