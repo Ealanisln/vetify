@@ -101,59 +101,70 @@ describe('Business Hours API', () => {
       expect(data.data.businessHours).toHaveLength(7);
     });
 
-    it('should create default settings when none exist', async () => {
+    it('returns default settings without writing when none exist', async () => {
       mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
-
-      // First call returns null (no settings exist)
-      prismaMock.tenantSettings.findUnique.mockResolvedValueOnce(null);
-
-      // Create returns new settings
-      prismaMock.tenantSettings.create.mockResolvedValue({
-        ...mockTenantSettings,
-        businessHours: [],
-      } as any);
-
-      // createMany for business hours
-      prismaMock.businessHours.createMany.mockResolvedValue({ count: 7 });
-
-      // Second findUnique returns settings with business hours
-      prismaMock.tenantSettings.findUnique.mockResolvedValue({
-        ...mockTenantSettings,
-        businessHours: mockBusinessHours,
-      } as any);
+      prismaMock.tenantSettings.findUnique.mockResolvedValue(null);
 
       const response = await GET();
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(prismaMock.tenantSettings.create).toHaveBeenCalled();
+      expect(data.data.defaultStartTime).toBe('08:00');
+      expect(data.data.defaultSlotDuration).toBe(15);
+      expect(data.data.businessHours).toHaveLength(7);
+      expect(prismaMock.tenantSettings.create).not.toHaveBeenCalled();
+      expect(prismaMock.businessHours.createMany).not.toHaveBeenCalled();
     });
 
-    it('should create default business hours when settings exist but hours are empty', async () => {
+    it('returns a default week from the tenant defaults without writing when no rows exist', async () => {
       mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
-
-      // First call returns settings without business hours
-      prismaMock.tenantSettings.findUnique.mockResolvedValueOnce({
-        ...mockTenantSettings,
-        businessHours: [],
-      } as any);
-
-      // createMany for business hours
-      prismaMock.businessHours.createMany.mockResolvedValue({ count: 7 });
-
-      // Second findUnique returns settings with business hours
       prismaMock.tenantSettings.findUnique.mockResolvedValue({
         ...mockTenantSettings,
-        businessHours: mockBusinessHours,
+        defaultStartTime: '09:00',
+        businessHours: [],
       } as any);
 
       const response = await GET();
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.success).toBe(true);
-      expect(prismaMock.businessHours.createMany).toHaveBeenCalled();
+      expect(data.data.businessHours).toHaveLength(7);
+      expect(data.data.businessHours[1]).toEqual(expect.objectContaining({
+        dayOfWeek: 1,
+        isWorkingDay: true,
+        startTime: '09:00',
+      }));
+      expect(data.data.businessHours[0].isWorkingDay).toBe(false);
+      // Concurrent GETs (StrictMode double fetch) used to seed 14 rows.
+      expect(prismaMock.businessHours.createMany).not.toHaveBeenCalled();
+      expect(prismaMock.businessHours.create).not.toHaveBeenCalled();
+    });
+
+    it('collapses duplicate rows to one per day', async () => {
+      mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
+      prismaMock.tenantSettings.findUnique.mockResolvedValue({
+        ...mockTenantSettings,
+        businessHours: [...mockBusinessHours, ...mockBusinessHours.map(h => ({ ...h, id: `dup-${h.dayOfWeek}` }))]
+          .sort((a, b) => a.dayOfWeek - b.dayOfWeek),
+      } as any);
+
+      const data = await (await GET()).json();
+
+      expect(data.data.businessHours.map((h: any) => h.dayOfWeek)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    });
+
+    it('reads only tenant-level rows', async () => {
+      mockRequirePermission.mockResolvedValue({ tenant: { id: mockTenant.id } });
+      prismaMock.tenantSettings.findUnique.mockResolvedValue({
+        ...mockTenantSettings,
+        businessHours: mockBusinessHours,
+      } as any);
+
+      await GET();
+
+      expect(prismaMock.tenantSettings.findUnique).toHaveBeenCalledWith(expect.objectContaining({
+        include: { businessHours: expect.objectContaining({ where: { locationId: null } }) },
+      }));
     });
 
     it('should return 500 for unauthenticated request', async () => {
@@ -399,8 +410,8 @@ describe('Business Hours API', () => {
         prismaMock.tenantSettings.findUnique.mockResolvedValue({
           ...mockTenantSettings,
           id: 'settings-1',
+          businessHours: mockBusinessHours,
         } as any);
-        prismaMock.businessHours.update.mockResolvedValue(mockBusinessHours[1] as any);
 
         const request = createMockPutRequest({
           defaultStartTime: '08:00',
