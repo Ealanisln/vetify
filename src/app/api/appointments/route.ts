@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { runAfterResponse } from '@/lib/after-response';
 import { requireAuth, requirePermission } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
 import { z } from 'zod';
@@ -286,10 +287,10 @@ export async function POST(request: Request) {
         },
       };
 
-      // Send email without awaiting (fire and forget)
-      sendAppointmentConfirmation(emailData).catch((error) => {
-        console.error('[APPOINTMENT] Failed to send confirmation email:', error);
-      });
+      runAfterResponse(
+        () => sendAppointmentConfirmation(emailData),
+        '[APPOINTMENT] Failed to send confirmation email:'
+      );
     }
 
     // Send notification to assigned staff if exists
@@ -332,10 +333,10 @@ export async function POST(request: Request) {
           },
         };
 
-        // Send email without awaiting (fire and forget)
-        sendAppointmentStaffNotification(staffEmailData).catch((error) => {
-          console.error('[APPOINTMENT] Failed to send staff notification email:', error);
-        });
+        runAfterResponse(
+          () => sendAppointmentStaffNotification(staffEmailData),
+          '[APPOINTMENT] Failed to send staff notification email:'
+        );
       }
     }
 

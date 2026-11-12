@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { runAfterResponse } from '@/lib/after-response';
 import { getTenantBySlug } from '../../../../lib/tenant';
 import { findOrCreateCustomer, createPublicAppointmentRequest } from '../../../../lib/customer-identification';
 import { prisma } from '../../../../lib/prisma';
@@ -159,19 +160,20 @@ export async function POST(request: NextRequest) {
 
     // 📈 TRACK CONVERSION (non-blocking)
     if (validatedData.sessionId) {
-      prisma.landingPageAnalytics.create({
-        data: {
-          tenantId: tenant.id,
-          eventType: 'CONVERSION' as AnalyticsEventType,
-          eventName: 'appointment_booked',
-          pageSlug: 'agendar',
-          sessionId: validatedData.sessionId,
-          conversionId: appointmentRequest.id,
-        },
-      }).catch((err) => {
-        // Don't fail the request if analytics fails
-        console.error('[Analytics] Failed to track conversion:', err);
-      });
+      const sessionId = validatedData.sessionId;
+      runAfterResponse(
+        () => prisma.landingPageAnalytics.create({
+          data: {
+            tenantId: tenant.id,
+            eventType: 'CONVERSION' as AnalyticsEventType,
+            eventName: 'appointment_booked',
+            pageSlug: 'agendar',
+            sessionId,
+            conversionId: appointmentRequest.id,
+          },
+        }),
+        '[Analytics] Failed to track conversion:'
+      );
     }
 
     // 📊 RESPUESTA CON INFORMACIÓN DE IDENTIFICACIÓN

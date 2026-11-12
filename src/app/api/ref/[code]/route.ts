@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { runAfterResponse } from '@/lib/after-response';
 import { resolveReferralCode, incrementClickCount } from '@/lib/referrals/queries';
 
 /**
@@ -21,9 +22,10 @@ export async function GET(
   }
 
   // Increment click count (non-blocking)
-  incrementClickCount(referral.id).catch((err) => {
-    console.error('[REF] Error incrementing click count:', err);
-  });
+  runAfterResponse(
+    () => incrementClickCount(referral.id),
+    '[REF] Error incrementing click count:'
+  );
 
   // Build redirect URL with ref param
   const redirectUrl = new URL('/precios', baseUrl);
