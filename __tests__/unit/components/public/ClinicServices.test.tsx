@@ -245,8 +245,30 @@ describe('ClinicServices', () => {
       ];
       render(<ClinicServices tenant={tenant} featuredServices={services} />);
 
-      // Mexican locale formats 1500 as $1,500
-      expect(screen.getByText('$1,500')).toBeInTheDocument();
+      // Same canonical formatter as the dashboard: MXN shows cents
+      expect(screen.getByText('$1,500.00')).toBeInTheDocument();
+    });
+
+    it("should format prices in the clinic's currency (CLP)", () => {
+      const tenant = createMockPublicTenant({ currencyCode: 'CLP' });
+      const services = [
+        createMockFeaturedService({
+          name: 'Service',
+          price: 350000,
+          publicPriceLabel: null,
+        }),
+      ];
+      render(<ClinicServices tenant={tenant} featuredServices={services} />);
+
+      expect(screen.getByText('$350.000')).toBeInTheDocument();
+    });
+
+    it('should default to MXN when the tenant has no currency', () => {
+      const tenant = createMockPublicTenant({ currencyCode: undefined });
+      const services = [createMockFeaturedService({ name: 'Service', price: 1500, publicPriceLabel: null })];
+      render(<ClinicServices tenant={tenant} featuredServices={services} />);
+
+      expect(screen.getByText('$1,500.00')).toBeInTheDocument();
     });
 
     it('should use publicPriceLabel when provided', () => {

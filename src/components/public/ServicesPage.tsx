@@ -27,6 +27,7 @@ import type { PublicTenant, PublicService } from '../../lib/tenant';
 import { getTheme, getThemeClasses } from '../../lib/themes';
 import { useThemeAware } from '@/hooks/useThemeAware';
 import { generateDarkColors } from '@/lib/color-utils';
+import { formatMoney } from '@/lib/currency';
 import {
   fadeInUp,
   staggerContainerFast,
@@ -82,15 +83,6 @@ function getIconComponent(iconName: string | null, category: string): LucideIcon
     return iconMap[iconName.toLowerCase()];
   }
   return categoryConfig[category]?.icon || Heart;
-}
-
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(price);
 }
 
 function formatDuration(minutes: number): string {
@@ -340,7 +332,7 @@ export function ServicesPage({ tenant, services }: ServicesPageProps) {
                                   className="text-sm sm:text-base font-medium"
                                   style={{ color: themeColor }}
                                 >
-                                  {service.publicPriceLabel || formatPrice(service.price)}
+                                  {service.publicPriceLabel || formatMoney(service.price, tenant.currencyCode)}
                                 </p>
                               </div>
                             </div>

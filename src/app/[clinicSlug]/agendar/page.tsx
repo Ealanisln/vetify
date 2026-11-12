@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getTenantBySlug } from '../../../lib/tenant';
+import { getTenantBySlug, getAllPublicServices } from '../../../lib/tenant';
 import { QuickBooking } from '../../../components/public/QuickBooking';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -83,6 +83,8 @@ export default async function AgendarPage({
     notFound();
   }
 
+  const bookingServices = await getAllPublicServices(tenant.id);
+
   // Generate breadcrumb structured data
   const breadcrumbSchema = createBreadcrumbsFromPath(
     `/${tenant.slug}/agendar`,
@@ -125,7 +127,7 @@ export default async function AgendarPage({
         </div>
 
         {/* Componente de booking */}
-        <QuickBooking tenant={tenant} />
+        <QuickBooking tenant={tenant} services={bookingServices} />
       </div>
     </>
   );

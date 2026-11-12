@@ -247,13 +247,22 @@ test.describe('Settings Management', () => {
     });
   });
   test.describe('Services Management', () => {
+    // Edit/delete/toggle only touch services this spec created, never real catalog data.
+    const E2E_PREFIX = 'Test Service E2E';
+    const e2eServiceCard = (page: Page) =>
+      page.locator('[data-testid="service-card"]', { hasText: E2E_PREFIX }).first();
+
     test.beforeEach(async ({ page }) => {
       await page.click('button:has-text("Servicios")');
       await page.waitForLoadState('networkidle');
     });
 
     test('should display services list', async ({ page }) => {
-      await expect(page.locator('[data-testid="services-list"]')).toBeVisible();
+      await expect(page.locator('[data-testid="services-settings"]')).toBeVisible();
+      // A tenant with no services shows the empty state instead of the grid
+      await expect(
+        page.locator('[data-testid="services-list"]').or(page.locator('[data-testid="services-empty-state"]'))
+      ).toBeVisible();
     });
 
     test('should have add service button', async ({ page }) => {
@@ -278,49 +287,64 @@ test.describe('Settings Management', () => {
       await page.click('[data-testid="add-service-button"]');
 
       const timestamp = Date.now();
-      await page.fill('[data-testid="service-name-input"]', `Test Service E2E ${timestamp}`);
+      await page.fill('[data-testid="service-name-input"]', `${E2E_PREFIX} ${timestamp}`);
       await page.fill('[data-testid="service-price-input"]', '150');
       await page.fill('[data-testid="service-duration-input"]', '30');
 
       await page.click('[data-testid="submit-service-button"]');
 
-      await expect(page.locator('text=/servicio.*creado/i')).toBeVisible();
+      await expect(page.locator('text=/servicio creado/i')).toBeVisible();
+      await expect(page.locator('[data-testid="service-card"]', { hasText: `${E2E_PREFIX} ${timestamp}` })).toBeVisible();
+    });
+
+    test('should create a service without duration', async ({ page }) => {
+      await page.click('[data-testid="add-service-button"]');
+
+      await page.fill('[data-testid="service-name-input"]', `${E2E_PREFIX} sin duración ${Date.now()}`);
+      await page.fill('[data-testid="service-price-input"]', '200');
+      await page.fill('[data-testid="service-duration-input"]', '');
+
+      await page.click('[data-testid="submit-service-button"]');
+
+      await expect(page.locator('text=/servicio creado/i')).toBeVisible();
     });
 
     test('should edit existing service', async ({ page }) => {
-      const serviceRow = page.locator('[data-testid="service-row"]').first();
+      const serviceCard = e2eServiceCard(page);
 
-      if (await serviceRow.isVisible()) {
-        await serviceRow.locator('[data-testid="edit-service-button"]').click();
+      if (await serviceCard.isVisible()) {
+        await serviceCard.locator('[data-testid="edit-service-button"]').click();
 
         await page.fill('[data-testid="service-price-input"]', '200');
         await page.click('[data-testid="submit-service-button"]');
 
-        await expect(page.locator('text=/servicio.*actualizado/i')).toBeVisible();
-      }
-    });
-
-    test('should delete service', async ({ page }) => {
-      const serviceRow = page.locator('[data-testid="service-row"]').first();
-
-      if (await serviceRow.isVisible()) {
-        await serviceRow.locator('[data-testid="delete-service-button"]').click();
-        await page.click('[data-testid="confirm-delete-button"]');
-
-        await expect(page.locator('text=/servicio.*eliminado/i')).toBeVisible();
+        await expect(page.locator('text=/servicio actualizado/i')).toBeVisible();
       }
     });
 
     test('should toggle service active status', async ({ page }) => {
-      const serviceRow = page.locator('[data-testid="service-row"]').first();
+      const serviceCard = e2eServiceCard(page);
 
-      if (await serviceRow.isVisible()) {
-        const toggleButton = serviceRow.locator('[data-testid="toggle-service-active"]');
+      if (await serviceCard.isVisible()) {
+        await serviceCard.locator('[data-testid="edit-service-button"]').click();
+        await page.locator('[data-testid="service-active-checkbox"]').uncheck();
+        await page.click('[data-testid="submit-service-button"]');
 
-        if (await toggleButton.isVisible()) {
-          await toggleButton.click();
-          await expect(page.locator('text=/servicio.*activado|desactivado/i')).toBeVisible();
-        }
+        await expect(page.locator('text=/servicio actualizado/i')).toBeVisible();
+        await expect(serviceCard.locator('text=Inactivo')).toBeVisible();
+      }
+    });
+
+    test('should delete service', async ({ page }) => {
+      const serviceCard = e2eServiceCard(page);
+
+      if (await serviceCard.isVisible()) {
+        // Deletion is confirmed with a native confirm() dialog
+        page.once('dialog', (dialog) => dialog.accept());
+        await serviceCard.locator('[data-testid="delete-service-button"]').click();
+
+        // Without sales it is deleted; with sales the API deactivates it instead
+        await expect(page.locator('text=/servicio eliminado|se ha desactivado/i')).toBeVisible();
       }
     });
   });

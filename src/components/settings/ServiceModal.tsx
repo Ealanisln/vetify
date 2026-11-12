@@ -1,12 +1,19 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { XMarkIcon, GlobeAltIcon, BuildingStorefrontIcon } from '@heroicons/react/24/outline';
-import { ServiceCategory } from '@prisma/client';
 import { ServiceWithCategory } from '@/types';
+import { useCurrency } from '@/components/providers/CurrencyProvider';
+import { moneyInputStep } from '@/lib/currency';
+import {
+  buildServiceFormSchema,
+  parseNumberInput,
+  SERVICE_DURATION_MAX_MINUTES,
+  type ServiceFormData,
+} from '@/lib/validations/service';
+import { SERVICE_CATEGORIES, SERVICE_CATEGORY_LABELS } from '@/lib/service-categories';
 
 interface Location {
   id: string;
@@ -25,23 +32,6 @@ const serviceIcons = [
   { value: 'microscope', label: 'Laboratorio' },
 ];
 
-// Esquema de validación
-const serviceSchema = z.object({
-  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').max(100, 'El nombre no puede exceder 100 caracteres'),
-  description: z.string().optional(),
-  category: z.nativeEnum(ServiceCategory, { required_error: 'Selecciona una categoría' }),
-  price: z.number().min(0, 'El precio no puede ser negativo').max(99999, 'El precio es demasiado alto'),
-  duration: z.number().min(1, 'La duración mínima es 1 minuto').max(480, 'La duración máxima es 8 horas').optional(),
-  isActive: z.boolean(),
-  locationId: z.string().nullable().optional(), // null = global (todas las ubicaciones)
-  // Public page display fields
-  isFeatured: z.boolean().optional(),
-  publicIcon: z.string().max(50).nullable().optional(),
-  publicPriceLabel: z.string().max(100).nullable().optional()
-});
-
-type ServiceFormData = z.infer<typeof serviceSchema>;
-
 interface ServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -52,6 +42,9 @@ interface ServiceModalProps {
 
 export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: ServiceModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const currency = useCurrency();
+  const serviceSchema = useMemo(() => buildServiceFormSchema(currency.code), [currency.code]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [loadingLocations, setLoadingLocations] = useState(true);
   const isEditing = !!service;
@@ -98,7 +91,7 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
         description: service.description || '',
         category: service.category,
         price: typeof service.price === 'number' ? service.price : Number(service.price),
-        duration: service.duration || undefined,
+        duration: service.duration ?? null,
         isActive: service.isActive,
         locationId: service.locationId ?? null,
         isFeatured: service.isFeatured ?? false,
@@ -126,12 +119,14 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
     if (!isOpen) {
       form.reset();
       setIsSubmitting(false);
+      setSubmitError(null);
     }
   }, [isOpen, form]);
 
   const onSubmit = async (data: ServiceFormData) => {
     setIsSubmitting(true);
-    
+    setSubmitError(null);
+
     try {
       const url = isEditing ? `/api/services/${service.id}` : '/api/services';
       const method = isEditing ? 'PUT' : 'POST';
@@ -149,7 +144,8 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al guardar el servicio');
+        // The API reports failures as { error }, e.g. a duplicate name
+        throw new Error(errorData.error || errorData.message || 'Error al guardar el servicio');
       }
 
       const savedService = await response.json();
@@ -157,28 +153,11 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
       onClose();
     } catch (error) {
       console.error('Error saving service:', error);
-      alert(error instanceof Error ? error.message : 'Error al guardar el servicio');
+      setSubmitError(error instanceof Error ? error.message : 'Error al guardar el servicio');
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const serviceCategories = [
-    { value: 'CONSULTATION', label: 'Consultas' },
-    { value: 'SURGERY', label: 'Cirugías' },
-    { value: 'VACCINATION', label: 'Vacunación' },
-    { value: 'DEWORMING', label: 'Desparasitación' },
-    { value: 'PREVENTATIVE_CARE', label: 'Medicina Preventiva' },
-    { value: 'GROOMING', label: 'Estética' },
-    { value: 'BOARDING', label: 'Hospitalización' },
-    { value: 'DENTAL_CARE', label: 'Cuidado Dental' },
-    { value: 'LABORATORY_TEST', label: 'Análisis de Laboratorio' },
-    { value: 'IMAGING_RADIOLOGY', label: 'Radiografías/Imágenes' },
-    { value: 'HOSPITALIZATION', label: 'Hospitalización' },
-    { value: 'EMERGENCY_CARE', label: 'Atención de Emergencia' },
-    { value: 'EUTHANASIA', label: 'Eutanasia' },
-    { value: 'OTHER', label: 'Otros' }
-  ];
 
   if (!isOpen) return null;
 
@@ -239,9 +218,9 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
                     data-testid="service-category-select"
                   >
-                    {serviceCategories.map(category => (
-                      <option key={category.value} value={category.value}>
-                        {category.label}
+                    {SERVICE_CATEGORIES.map(category => (
+                      <option key={category} value={category}>
+                        {SERVICE_CATEGORY_LABELS[category]}
                       </option>
                     ))}
                   </select>
@@ -253,7 +232,7 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                 </div>
 
                 {/* Ubicación - Solo mostrar si hay más de una ubicación */}
-                {locations.length > 0 && (
+                {locations.length > 1 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Disponibilidad
@@ -329,14 +308,19 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                     Precio *
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                    <span
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                      data-testid="service-price-symbol"
+                    >
+                      {currency.symbol}
+                    </span>
                     <input
                       type="number"
-                      step="0.01"
+                      step={moneyInputStep(currency.code)}
                       min="0"
-                      {...form.register('price', { valueAsNumber: true })}
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
-                      placeholder="0.00"
+                      {...form.register('price', { setValueAs: parseNumberInput(undefined) })}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                      placeholder={currency.decimals === 0 ? '0' : '0.00'}
                       data-testid="service-price-input"
                     />
                   </div>
@@ -355,13 +339,14 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                   <input
                     type="number"
                     min="1"
-                    max="480"
-                    {...form.register('duration', { valueAsNumber: true })}
+                    max={SERVICE_DURATION_MAX_MINUTES}
+                    {...form.register('duration', { setValueAs: parseNumberInput(null) })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
                     placeholder="30"
+                    data-testid="service-duration-input"
                   />
                   <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Opcional. Útil para programación de citas.
+                    Opcional. Solo informativo: se muestra junto al servicio en tu catálogo y página pública.
                   </p>
                   {form.formState.errors.duration && (
                     <p className="mt-1 text-sm text-red-600 dark:text-red-400">
@@ -394,6 +379,7 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                     type="checkbox"
                     {...form.register('isActive')}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    data-testid="service-active-checkbox"
                   />
                   <label className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                     Servicio activo
@@ -457,6 +443,16 @@ export function ServiceModal({ isOpen, onClose, onSave, service, tenantId }: Ser
                 </div>
               </div>
             </div>
+
+            {submitError && (
+              <div
+                role="alert"
+                className="mx-4 mb-4 sm:mx-6 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 px-3 py-2 text-sm text-red-700 dark:text-red-300"
+                data-testid="service-submit-error"
+              >
+                {submitError}
+              </div>
+            )}
 
             <div className="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
               <button

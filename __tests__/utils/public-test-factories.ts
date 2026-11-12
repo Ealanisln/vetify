@@ -1,4 +1,4 @@
-import type { PublicTenant, PublicHours, GalleryImage, PublicImages, PublicService, PublicSocialMedia } from '@/lib/tenant';
+import type { PublicTenant, PublicHours, GalleryImage, PublicImages, LegacyPublicService, PublicSocialMedia } from '@/lib/tenant';
 import type { ThemeId } from '@/lib/themes';
 
 /**
@@ -25,6 +25,7 @@ export function createMockPublicTenant(overrides: Partial<PublicTenant> = {}): P
     publicThemeColor: '#75a99c',
     publicTheme: 'modern' as ThemeId,
     publicBookingEnabled: true,
+    currencyCode: 'MXN',
     createdAt: new Date('2024-01-01'),
     tenantSubscription: {
       id: 'sub-1',
@@ -61,6 +62,7 @@ export function createMinimalPublicTenant(overrides: Partial<PublicTenant> = {})
     publicThemeColor: null,
     publicTheme: null,
     publicBookingEnabled: false,
+    currencyCode: 'MXN',
     createdAt: new Date('2024-01-01'),
     tenantSubscription: null,
     ...overrides,
@@ -123,9 +125,9 @@ export function createMockPublicImages(overrides: Partial<PublicImages> = {}): P
 }
 
 /**
- * Create a mock PublicService for testing
+ * Create a mock legacy publicServices JSON entry for testing
  */
-export function createMockPublicService(overrides: Partial<Omit<PublicService, 'icon'>> = {}): PublicService {
+export function createMockPublicService(overrides: Partial<Omit<LegacyPublicService, 'icon'>> = {}): LegacyPublicService {
   return {
     title: 'Consulta General',
     description: 'Examen completo de salud para tu mascota',

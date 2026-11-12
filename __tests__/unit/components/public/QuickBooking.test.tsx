@@ -1,7 +1,7 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QuickBooking } from '@/components/public/QuickBooking';
-import { createMockPublicTenant, createMockFeaturedService } from '../../../utils/public-test-factories';
+import { createMockPublicTenant, createMockPublicService } from '../../../utils/public-test-factories';
 
 // Mock next/link
 jest.mock('next/link', () => ({
@@ -77,8 +77,8 @@ describe('QuickBooking', () => {
   const defaultTenant = createMockPublicTenant({
     slug: 'test-clinic',
     publicServices: [
-      createMockFeaturedService({ title: 'Consulta General', description: 'General consultation', price: '$500' }),
-      createMockFeaturedService({ title: 'Vacunación', description: 'Pet vaccinations', price: '$300' }),
+      createMockPublicService({ title: 'Consulta General', description: 'General consultation', price: '$500' }),
+      createMockPublicService({ title: 'Vacunación', description: 'Pet vaccinations', price: '$300' }),
     ],
   });
 
@@ -157,6 +157,28 @@ describe('QuickBooking', () => {
       expect(options[1].textContent).toContain('Consulta General');
       expect(options[2].textContent).toContain('Vacunación');
       expect(options[3].textContent).toContain('Emergencia');
+    });
+
+    it("should list the clinic's catalog services over the legacy config", () => {
+      render(
+        <QuickBooking
+          tenant={defaultTenant}
+          services={[
+            { name: 'Consulta Felina', price: 450, publicPriceLabel: null },
+            { name: 'Pensión', price: 0, publicPriceLabel: 'Consultar' },
+          ]}
+        />
+      );
+
+      const serviceSelect = screen.getByLabelText(/tipo de servicio/i);
+      const options = Array.from(serviceSelect.querySelectorAll('option')).map((o) => o.textContent);
+
+      expect(options).toEqual([
+        'Selecciona un servicio',
+        'Consulta Felina - $450.00',
+        'Pensión - Consultar',
+        'Otro (especificar)',
+      ]);
     });
 
     it('should have "Otro" option in services', () => {
