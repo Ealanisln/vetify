@@ -321,18 +321,18 @@ async function linkUserToInvitation(invitation: InvitationWithDetails, userId: s
 // =============================================================================
 
 /**
- * Get a pending invitation by email for a specific tenant.
+ * Get the pending invitation for an email, only when it is unambiguous.
  * Used during user login to auto-accept pending invitations.
  *
  * @param email - User's email address
- * @returns The pending invitation or null
+ * @returns The single pending invitation, or null if there are none or several
  */
 export async function getPendingInvitationByEmail(
   email: string
 ): Promise<InvitationWithDetails | null> {
   const normalizedEmail = email.toLowerCase().trim();
 
-  const invitation = await prisma.tenantInvitation.findFirst({
+  const invitations = await prisma.tenantInvitation.findMany({
     where: {
       email: normalizedEmail,
       status: 'PENDING',
@@ -355,10 +355,17 @@ export async function getPendingInvitationByEmail(
         },
       },
     },
-    orderBy: { createdAt: 'desc' }, // Get most recent
+    orderBy: { createdAt: 'desc' },
+    take: 2, // Only need to know whether there is more than one
   });
 
-  return invitation as InvitationWithDetails | null;
+  // With invitations from several clinics we cannot know which link the
+  // user clicked; the invite page accepts by token in that case.
+  if (invitations.length !== 1) {
+    return null;
+  }
+
+  return invitations[0] as InvitationWithDetails;
 }
 
 /**

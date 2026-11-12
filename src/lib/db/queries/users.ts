@@ -1,15 +1,17 @@
 import { prisma } from '../../prisma';
 import { serializeUser } from '../../serializers';
 import { UserWithTenant } from "@/types";
-import { getPendingInvitationByEmail } from '@/lib/invitations/invitation-token';
+import { getPendingInvitationByEmail, acceptInvitation } from '@/lib/invitations/invitation-token';
 
 /**
  * Auto-accept a pending invitation for a user.
- * This links the user to the staff record and tenant.
+ * Only runs when the email has exactly one pending invitation, and goes
+ * through acceptInvitation so it applies the same safety checks as the
+ * explicit invite-page flow.
  *
  * @param userId - The user ID to link
  * @param email - The user's email to find matching invitations
- * @returns Updated user with tenant or null if no invitation found
+ * @returns Updated user with tenant or null if nothing was accepted
  */
 async function autoAcceptPendingInvitation(userId: string, email: string) {
   try {
@@ -19,53 +21,35 @@ async function autoAcceptPendingInvitation(userId: string, email: string) {
       return null;
     }
 
-    // Check if staff is already linked to a user
-    const existingStaff = await prisma.staff.findUnique({
-      where: { id: invitation.staff.id },
-      select: { userId: true },
-    });
-
-    if (existingStaff?.userId) {
+    const result = await acceptInvitation(invitation.token, userId);
+    if (!result.success) {
       return null;
     }
 
-    // Perform auto-accept in a transaction
-    const updatedUser = await prisma.$transaction(async (tx) => {
-      // 1. Update User with tenant ID
-      const user = await tx.user.update({
-        where: { id: userId },
-        data: { tenantId: invitation.tenantId },
-        include: {
-          tenant: {
-            include: {
-              tenantSubscription: {
-                include: { plan: true }
-              }
+    return prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        tenant: {
+          include: {
+            tenantSubscription: {
+              include: { plan: true }
             }
           }
         }
-      });
-
-      // 2. Link Staff to User
-      await tx.staff.update({
-        where: { id: invitation.staff!.id },
-        data: { userId },
-      });
-
-      // 3. Mark invitation as accepted
-      await tx.tenantInvitation.update({
-        where: { id: invitation.id },
-        data: { status: 'ACCEPTED' },
-      });
-
-      return user;
+      }
     });
-
-    return updatedUser;
   } catch (error) {
     console.error('[AutoAccept] Error auto-accepting invitation:', error);
     return null;
   }
+}
+
+export interface FindOrCreateUserOptions {
+  /**
+   * Auto-accept the user's single pending invitation (default true).
+   * Pass false when the caller accepts a specific invitation token itself.
+   */
+  autoAcceptInvitations?: boolean;
 }
 
 export interface CreateOrUpdateUserData {
@@ -106,8 +90,12 @@ export function userDataNeedsUpdate(
  * @returns User with tenant information
  * @throws {Error} If Kinde data is invalid
  */
-export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<UserWithTenant> {
+export async function findOrCreateUser(
+  data: CreateOrUpdateUserData,
+  options: FindOrCreateUserOptions = {}
+): Promise<UserWithTenant> {
   const { id, email, firstName, lastName, name } = data;
+  const autoAccept = options.autoAcceptInvitations !== false;
 
   // Validate required fields
   if (!id || !email) {
@@ -160,7 +148,7 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
       }
 
       // If user doesn't have a tenant, check for pending invitations
-      if (!userToReturn.tenantId) {
+      if (autoAccept && !userToReturn.tenantId) {
         const linkedUser = await autoAcceptPendingInvitation(id, email);
         if (linkedUser) {
           return serializeUser(linkedUser);
@@ -195,7 +183,7 @@ export async function findOrCreateUser(data: CreateOrUpdateUserData): Promise<Us
       });
 
       // Check for pending invitations for new users
-      const linkedUser = await autoAcceptPendingInvitation(id, email);
+      const linkedUser = autoAccept ? await autoAcceptPendingInvitation(id, email) : null;
       if (linkedUser) {
         return serializeUser(linkedUser);
       }

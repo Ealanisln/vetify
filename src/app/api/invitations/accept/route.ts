@@ -27,7 +27,9 @@ export async function POST(request: NextRequest) {
     // Get authenticated user
     // NOTE: This call may trigger autoAcceptPendingInvitation which could
     // accept the invitation before we get to the manual acceptance below
-    const user = await getAuthenticatedUser();
+    // Accept the exact invitation from the link: skip the login-time
+    // auto-accept, which matches by email and could pick another clinic.
+    const user = await getAuthenticatedUser({ autoAcceptInvitations: false });
 
     if (!user?.id) {
       return NextResponse.json(

@@ -6,7 +6,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { prismaMock } from '../../../mocks/prisma';
 import { addDays, subDays } from 'date-fns';
-import { generateStaffInvitation, acceptInvitation } from '@/lib/invitations/invitation-token';
+import {
+  generateStaffInvitation,
+  acceptInvitation,
+  getPendingInvitationByEmail,
+} from '@/lib/invitations/invitation-token';
 
 function uniqueConstraintError(field: string) {
   return Object.assign(
@@ -195,5 +199,25 @@ describe('acceptInvitation', () => {
     const result = await acceptInvitation('tok-1', 'user-1');
 
     expect(result).toMatchObject({ success: false, code: 'USER_ALREADY_LINKED' });
+  });
+});
+
+describe('getPendingInvitationByEmail', () => {
+  it('returns null when the email has pending invitations from more than one clinic', async () => {
+    prismaMock.tenantInvitation.findMany.mockResolvedValue([
+      invitationRow({ id: 'inv-a', tenantId: 'tenant-a' }),
+      invitationRow({ id: 'inv-b', tenantId: 'tenant-b' }),
+    ] as any);
+
+    await expect(getPendingInvitationByEmail('Ana@Example.com')).resolves.toBeNull();
+  });
+
+  it('returns the invitation when it is the only pending one', async () => {
+    const only = invitationRow({ id: 'inv-a' });
+    prismaMock.tenantInvitation.findMany.mockResolvedValue([only] as any);
+
+    await expect(getPendingInvitationByEmail('ana@example.com')).resolves.toMatchObject({ id: 'inv-a' });
+    const where = (prismaMock.tenantInvitation.findMany.mock.calls[0][0] as any).where;
+    expect(where).toMatchObject({ email: 'ana@example.com', status: 'PENDING' });
   });
 });

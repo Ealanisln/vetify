@@ -86,4 +86,13 @@ describe('POST /api/invitations/accept', () => {
     expect(res.status).toBe(200);
     expect(body).toMatchObject({ success: true, staffId: 'staff-1', tenantName: 'Clínica Norte' });
   });
+
+  it('accepts the token from the link instead of auto-accepting another invitation', async () => {
+    mockGetUser.mockResolvedValue({ id: 'user-1', email: 'ana@example.com', tenantId: null });
+    prismaMock.user.findUnique.mockResolvedValue({ id: 'user-1', tenantId: null } as any);
+
+    await POST(request({ token: 'tok-1' }));
+
+    expect(mockGetUser).toHaveBeenCalledWith({ autoAcceptInvitations: false });
+  });
 });
