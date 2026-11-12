@@ -984,30 +984,19 @@ describe('useCalendarConfig', () => {
     expect(result.current.locale).toBe('es');
   });
 
-  it('should return business hours Mon-Sat (1-6)', () => {
+  it('should not hardcode business hours or the visible time window', () => {
+    // They come from the clinic's saved hours via buildCalendarHours
     const { result } = renderHook(() => useCalendarConfig());
 
-    expect(result.current.businessHours.daysOfWeek).toEqual([1, 2, 3, 4, 5, 6]);
-  });
-
-  it('should return business hours 08:00-18:00', () => {
-    const { result } = renderHook(() => useCalendarConfig());
-
-    expect(result.current.businessHours.startTime).toBe('08:00');
-    expect(result.current.businessHours.endTime).toBe('18:00');
+    expect(result.current).not.toHaveProperty('businessHours');
+    expect(result.current).not.toHaveProperty('slotMinTime');
+    expect(result.current).not.toHaveProperty('slotMaxTime');
   });
 
   it('should return 15-minute slot duration', () => {
     const { result } = renderHook(() => useCalendarConfig());
 
     expect(result.current.slotDuration).toBe('00:15:00');
-  });
-
-  it('should return correct slot time range', () => {
-    const { result } = renderHook(() => useCalendarConfig());
-
-    expect(result.current.slotMinTime).toBe('08:00:00');
-    expect(result.current.slotMaxTime).toBe('18:00:00');
   });
 
   it('should return toolbar configuration', () => {
@@ -1030,10 +1019,7 @@ describe('useCalendarConfig', () => {
     const { result } = renderHook(() => useCalendarConfig());
 
     expect(result.current).toHaveProperty('locale');
-    expect(result.current).toHaveProperty('businessHours');
     expect(result.current).toHaveProperty('slotDuration');
-    expect(result.current).toHaveProperty('slotMinTime');
-    expect(result.current).toHaveProperty('slotMaxTime');
     expect(result.current).toHaveProperty('headerToolbar');
     expect(result.current).toHaveProperty('height');
     expect(result.current).toHaveProperty('expandRows');

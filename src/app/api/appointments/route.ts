@@ -9,6 +9,11 @@ import { shouldSendNotification } from '@/lib/enhanced-settings';
 import { parsePaginationParams, createPaginatedResponse } from '@/lib/pagination';
 import { appointmentSchema } from '@/lib/validations/appointments-api';
 
+// The month view asks for ~3 months; anything longer is not a calendar query.
+const MAX_CALENDAR_RANGE_MS = 100 * 24 * 60 * 60 * 1000;
+// Safety cap for a single calendar range response.
+const MAX_CALENDAR_RANGE_ROWS = 2000;
+
 export async function GET(request: Request) {
   try {
     const { tenant } = await requireAuth();
@@ -19,8 +24,19 @@ export async function GET(request: Request) {
     const status = searchParams.get('status');
     const locationId = searchParams.get('locationId') || undefined;
 
-    // Parse pagination params
-    const paginationParams = parsePaginationParams(searchParams);
+    // A calendar range (both dates, no explicit page/limit) returns every
+    // appointment in it; anything else keeps the paginated behavior.
+    const rangeStart = startDate ? new Date(startDate) : null;
+    const rangeEnd = endDate ? new Date(endDate) : null;
+    const isCalendarRange =
+      !!rangeStart && !!rangeEnd &&
+      !isNaN(rangeStart.getTime()) && !isNaN(rangeEnd.getTime()) &&
+      !searchParams.has('page') && !searchParams.has('limit') &&
+      rangeEnd.getTime() - rangeStart.getTime() <= MAX_CALENDAR_RANGE_MS;
+
+    const paginationParams = isCalendarRange
+      ? { page: 1, limit: MAX_CALENDAR_RANGE_ROWS, skip: 0 }
+      : parsePaginationParams(searchParams);
 
     // Construir filtros
     const where: Record<string, unknown> = {

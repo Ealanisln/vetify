@@ -26,10 +26,28 @@ import {
   startOfDay,
   endOfDay,
   startOfWeek,
+  endOfWeek,
   startOfMonth,
-  isAfter,
-  isBefore,
+  endOfMonth,
+  isWithinInterval,
 } from 'date-fns';
+
+const WEEK_OPTIONS = { weekStartsOn: 1 } as const; // Monday start
+
+/**
+ * Range that covers today, this week and this month. The Today list and the
+ * stats are computed from this range, never from the calendar's visible one.
+ */
+export function getStatsDateRange(now: Date = new Date()): { start: Date; end: Date } {
+  const weekStart = startOfWeek(now, WEEK_OPTIONS);
+  const monthStart = startOfMonth(now);
+  const weekEnd = endOfWeek(now, WEEK_OPTIONS);
+  const monthEnd = endOfMonth(now);
+  return {
+    start: weekStart < monthStart ? weekStart : monthStart,
+    end: weekEnd > monthEnd ? weekEnd : monthEnd,
+  };
+}
 
 /**
  * Options for useAppointmentsData hook
@@ -162,13 +180,9 @@ export function useTodayAppointments(
   allAppointments: AppointmentWithDetails[]
 ): AppointmentWithDetails[] {
   return useMemo(() => {
-    const todayStart = startOfDay(new Date());
-    const todayEnd = endOfDay(new Date());
+    const today = { start: startOfDay(new Date()), end: endOfDay(new Date()) };
 
-    return allAppointments.filter((apt) => {
-      const aptDate = new Date(apt.dateTime);
-      return isAfter(aptDate, todayStart) && isBefore(aptDate, todayEnd);
-    });
+    return allAppointments.filter((apt) => isWithinInterval(new Date(apt.dateTime), today));
   }, [allAppointments]);
 }
 
@@ -196,23 +210,15 @@ export function useAppointmentStatsFromData(
     }
 
     const now = new Date();
-    const todayStart = startOfDay(now);
-    const todayEnd = endOfDay(now);
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
-    const monthStart = startOfMonth(now);
+    const today = { start: startOfDay(now), end: endOfDay(now) };
+    const week = { start: startOfWeek(now, WEEK_OPTIONS), end: endOfWeek(now, WEEK_OPTIONS) };
+    const month = { start: startOfMonth(now), end: endOfMonth(now) };
+    const within = (interval: { start: Date; end: Date }) =>
+      appointments.filter((apt) => isWithinInterval(new Date(apt.dateTime), interval));
 
-    const todayAppointments = appointments.filter((apt) => {
-      const aptDate = new Date(apt.dateTime);
-      return isAfter(aptDate, todayStart) && isBefore(aptDate, todayEnd);
-    });
-
-    const weekAppointments = appointments.filter((apt) =>
-      isAfter(new Date(apt.dateTime), weekStart)
-    );
-
-    const monthAppointments = appointments.filter((apt) =>
-      isAfter(new Date(apt.dateTime), monthStart)
-    );
+    const todayAppointments = within(today);
+    const weekAppointments = within(week);
+    const monthAppointments = within(month);
 
     const completed = monthAppointments.filter(
       (apt) => apt.status === 'COMPLETED'
