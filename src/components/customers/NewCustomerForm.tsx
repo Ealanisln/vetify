@@ -181,7 +181,7 @@ export function NewCustomerForm({ tenantId }: NewCustomerFormProps) {
 
       for (const pet of formData.pets) {
         const result = await createPetForCustomer(pet, customerId);
-        if (result.ok) {
+        if ('pet' in result) {
           petsCreated.push(result.pet);
         } else {
           pendingFieldErrors[petsStillPending.length] = result.fieldErrors;
