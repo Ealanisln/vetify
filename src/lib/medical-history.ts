@@ -61,7 +61,7 @@ export async function createMedicalHistory(
     ? [data.notes?.trim(), `RECETA:\n${textLines.join('\n')}`].filter(Boolean).join('\n\n')
     : data.notes;
 
-  const visitDate = new Date(data.visitDate);
+  const visitDate = data.visitDate ? new Date(data.visitDate) : new Date();
 
   const medicalHistory = await prisma.$transaction(async (tx) => {
     // Crear la entrada de historia clínica

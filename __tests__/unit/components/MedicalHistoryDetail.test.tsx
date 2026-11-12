@@ -76,6 +76,19 @@ describe('MedicalHistoryDetail', () => {
     expect(screen.getByText('Dra. Ruiz')).toBeInTheDocument();
   });
 
+  it('links "Agendar seguimiento" to the appointment form with the customer, pet and a suggested reason', async () => {
+    prismaMock.medicalHistory.findUniqueOrThrow.mockResolvedValue(history as any);
+
+    render(await MedicalHistoryDetail({ tenantId: 'tenant-1', historyId: 'history-1' }));
+
+    const link = screen.getByRole('link', { name: /Agendar seguimiento/ });
+    const url = new URL(link.getAttribute('href') as string, 'http://localhost');
+    expect(url.pathname).toBe('/dashboard/appointments/new');
+    expect(url.searchParams.get('customerId')).toBe('customer-1');
+    expect(url.searchParams.get('petId')).toBe('pet-1');
+    expect(url.searchParams.get('reason')).toBe('Seguimiento: Control rutinario');
+  });
+
   it('shows "no encontrada" when the history is not in the tenant', async () => {
     prismaMock.medicalHistory.findUniqueOrThrow.mockRejectedValue(new Error('No MedicalHistory found'));
 

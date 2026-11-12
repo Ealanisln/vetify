@@ -13,8 +13,8 @@ import {
   PlusIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
-import { format } from 'date-fns';
 import { mapSpeciesToSpanish } from '@/lib/utils/pet-enum-mapping';
+import { PrescriptionProductInput, type InventoryProductOption } from './PrescriptionProductInput';
 
 interface NewMedicalHistoryFormProps {
   tenantId: string;
@@ -41,7 +41,8 @@ interface MedicalHistoryFormData {
   treatment: string;
   notes: string;
   prescriptions: Array<{
-    // Free-text medication: no inventory productId is sent
+    // Set only when picked from the inventory; free text sends no productId
+    productId?: string;
     productName: string;
     quantity: number;
     dosage: string;
@@ -61,7 +62,8 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
   
   const [formData, setFormData] = useState<MedicalHistoryFormData>({
     petId: '',
-    visitDate: format(new Date(), 'yyyy-MM-dd\'T\'HH:mm'),
+    // Empty means "now": the server stamps it in the clinic timezone
+    visitDate: '',
     reasonForVisit: '',
     diagnosis: '',
     treatment: '',
@@ -130,6 +132,25 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
     }));
   };
 
+  // Typing a name unlinks any inventory product picked before
+  const setPrescriptionName = (index: number, productName: string) => {
+    setFormData(prev => ({
+      ...prev,
+      prescriptions: prev.prescriptions.map((prescription, i) =>
+        i === index ? { ...prescription, productName, productId: undefined } : prescription
+      )
+    }));
+  };
+
+  const linkPrescriptionProduct = (index: number, product: InventoryProductOption) => {
+    setFormData(prev => ({
+      ...prev,
+      prescriptions: prev.prescriptions.map((prescription, i) =>
+        i === index ? { ...prescription, productName: product.name, productId: product.id } : prescription
+      )
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPet || !formData.reasonForVisit) return;
@@ -141,11 +162,16 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          visitDate: formData.visitDate || undefined,
+        }),
       });
 
       if (response.ok) {
-        router.push('/dashboard/medical-history');
+        // Open the saved record (it offers "Agendar seguimiento")
+        const created = await response.json().catch(() => null);
+        router.push(created?.id ? `/dashboard/medical-history/${created.id}` : '/dashboard/medical-history');
       } else {
         const error = await response.json();
         alert(error.error || 'Error al crear la historia clínica');
@@ -255,16 +281,20 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                    Fecha y Hora de Consulta *
+                  <label htmlFor="visitDate" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    Fecha y Hora de Consulta
                   </label>
                   <input
+                    id="visitDate"
                     type="datetime-local"
-                    required
+                    aria-describedby="visitDate-help"
                     value={formData.visitDate}
                     onChange={(e) => setFormData(prev => ({ ...prev, visitDate: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   />
+                  <p id="visitDate-help" className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Si la dejas vacía se usa la fecha y hora actual.
+                  </p>
                 </div>
               </div>
 
@@ -367,12 +397,11 @@ export function NewMedicalHistoryForm({ }: NewMedicalHistoryFormProps) {
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Nombre del Medicamento
                           </label>
-                          <input
-                            type="text"
-                            placeholder="Nombre del medicamento"
+                          <PrescriptionProductInput
                             value={prescription.productName}
-                            onChange={(e) => updatePrescription(index, 'productName', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            productId={prescription.productId}
+                            onChange={(name) => setPrescriptionName(index, name)}
+                            onSelectProduct={(product) => linkPrescriptionProduct(index, product)}
                           />
                         </div>
                         <div>

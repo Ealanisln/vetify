@@ -100,20 +100,25 @@ export async function POST(request: Request) {
     const historyData: MedicalHistoryFormData = await request.json();
 
     // Validaciones básicas
-    if (!historyData.petId || !historyData.visitDate || !historyData.reasonForVisit) {
+    if (!historyData.petId || !historyData.reasonForVisit) {
       return NextResponse.json(
-        { error: 'Mascota, fecha de visita y motivo de consulta son requeridos' },
+        { error: 'Mascota y motivo de consulta son requeridos' },
         { status: 400 }
       );
     }
 
     const tenantId = userWithTenant.tenant.id;
 
-    // The form sends a datetime-local value: a clinic wall-clock time
-    const timeZone = await getTenantTimeZone(tenantId);
-    const visitDate = parseClinicDateTimeInput(String(historyData.visitDate), timeZone);
-    if (!visitDate) {
-      return NextResponse.json({ error: 'La fecha de visita no es válida' }, { status: 400 });
+    // The form sends a datetime-local value (a clinic wall-clock time) or
+    // nothing, which means the visit is happening now
+    let visitDate = new Date();
+    if (historyData.visitDate) {
+      const timeZone = await getTenantTimeZone(tenantId);
+      const parsed = parseClinicDateTimeInput(String(historyData.visitDate), timeZone);
+      if (!parsed) {
+        return NextResponse.json({ error: 'La fecha de visita no es válida' }, { status: 400 });
+      }
+      visitDate = parsed;
     }
 
     // MedicalHistory.staffId references Staff, not the Kinde user

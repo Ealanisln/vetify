@@ -15,7 +15,7 @@ jest.mock('@/lib/email/email-service', () => ({
   sendAppointmentReminder: jest.fn(),
 }));
 
-import { createVaccination } from '@/lib/medical';
+import { createTreatment, createVaccination } from '@/lib/medical';
 import { processTreatmentReminders } from '@/lib/email/reminder-alerts';
 import { sendTreatmentReminder } from '@/lib/email/email-service';
 import { createTreatmentSchedule } from '@/lib/treatment-reminders';
@@ -193,6 +193,61 @@ describe('treatment reminders flow', () => {
     expect(formatInTimeZone(email.data.dueDate, TZ, 'yyyy-MM-dd')).toBe('2026-12-01');
     expect(email.data.daysUntilDue).toBe(7);
     expect(email.data.treatmentType).toBe('MEDICATION');
+  });
+
+  function treatmentData(treatmentType: TreatmentType, nextDue?: Date) {
+    return {
+      medication_name: 'Drontal Plus',
+      dosage: '1 tableta',
+      frequency: 'Dosis única',
+      duration_days: 1,
+      instructions: 'Administrar con alimento',
+      start_date: new Date('2026-11-12T00:00:00Z'),
+      treatment_type: treatmentType,
+      veterinarian_id: 'staff-1',
+      next_due_date: nextDue,
+    };
+  }
+
+  it.each([
+    [TreatmentType.DEWORMING, 'Desparasitación: Drontal Plus'],
+    [TreatmentType.FLEA_TICK, 'Antipulgas y garrapatas: Drontal Plus'],
+  ])('creates the schedule and Reminder for the next %s application, and the cron emails it', async (type, title) => {
+    const rows = useReminderTable();
+    jest.setSystemTime(new Date('2026-11-12T16:00:00Z'));
+
+    await createTreatment(pet.id, tenant.id, treatmentData(type, new Date('2027-02-12T00:00:00Z')));
+
+    expect(prismaMock.treatmentSchedule.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        petId: pet.id,
+        tenantId: tenant.id,
+        treatmentType: type,
+        productName: 'Drontal Plus',
+        status: 'SCHEDULED',
+      }),
+    });
+    const scheduledDate = (prismaMock.treatmentSchedule.create.mock.calls[0][0] as any).data.scheduledDate;
+    expect(formatInTimeZone(scheduledDate, TZ, 'yyyy-MM-dd HH:mm')).toBe('2027-02-12 12:00');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ tenantId: tenant.id, petId: pet.id, customerId: customer.id, type: 'TREATMENT', title });
+
+    jest.setSystemTime(new Date('2027-02-05T07:00:00Z'));
+    await processTreatmentReminders();
+
+    const email = (sendTreatmentReminder as jest.Mock).mock.calls[0][0];
+    expect(formatInTimeZone(email.data.dueDate, TZ, 'yyyy-MM-dd')).toBe('2027-02-12');
+    expect(email.data.daysUntilDue).toBe(7);
+  });
+
+  it('does not create a Reminder for a treatment without a next application', async () => {
+    const rows = useReminderTable();
+    jest.setSystemTime(new Date('2026-11-12T16:00:00Z'));
+
+    await createTreatment(pet.id, tenant.id, treatmentData(TreatmentType.DEWORMING));
+
+    expect(rows).toHaveLength(0);
+    expect(prismaMock.treatmentSchedule.create).not.toHaveBeenCalled();
   });
 
   it('does not create a Reminder when the next dose date is already in the past', async () => {
