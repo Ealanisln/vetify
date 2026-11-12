@@ -264,7 +264,7 @@ export function SubscriptionManager({ tenant, isActiveSubscription }: Subscripti
   const StatusIcon = statusConfig.icon;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="subscription-settings">
       {/* Status Overview Card */}
       <div className={`
         relative overflow-hidden rounded-lg border p-6
@@ -306,7 +306,7 @@ export function SubscriptionManager({ tenant, isActiveSubscription }: Subscripti
                 <p className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-1">
                   Plan Actual
                 </p>
-                <p className="text-lg font-bold">
+                <p className="text-lg font-bold" data-testid="current-plan">
                   {planDisplay.label}
                 </p>
               </div>

@@ -245,7 +245,7 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
               )}
               
               <div className="flex justify-between items-center text-sm">
-                <span className="font-medium text-gray-900 dark:text-gray-100">
+                <span className="font-medium text-gray-900 dark:text-gray-100" data-testid="service-price">
                   {formatMoney(Number(service.price))}
                 </span>
                 {service.duration && (
@@ -256,7 +256,7 @@ export function ServiceManagement({ tenantId }: ServiceManagementProps) {
               </div>
               
               <div className="mt-2 flex flex-wrap gap-2 items-center">
-                <span className={`text-xs px-2 py-1 rounded-full ${
+                <span data-testid="service-status" className={`text-xs px-2 py-1 rounded-full ${
                   service.isActive
                     ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                     : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'

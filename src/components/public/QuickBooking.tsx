@@ -540,6 +540,7 @@ export function QuickBooking({ tenant, services: catalogServices }: QuickBooking
                 </label>
                 <select
                   id="service"
+                  data-testid="booking-service-select"
                   value={formData.service}
                   onChange={(e) => setFormData({...formData, service: e.target.value, customService: ''})}
                   className="w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-transparent transition-colors bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100"

@@ -287,6 +287,7 @@ function UserSection({ onNavigate, isMobile = false }: { onNavigate?: () => void
     <div className="relative" ref={userDropdownRef}>
       <button
         onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+        data-testid="user-dropdown"
         className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-gradient-to-br from-[#4DB8A3]/10 to-[#75a99c]/5 hover:from-[#4DB8A3]/15 hover:to-[#75a99c]/10 dark:from-[#2a3630] dark:to-[#1a2620] dark:hover:from-[#3a4640] dark:hover:to-[#2a3630] transition-all duration-300 focus:ring-2 focus:ring-[#4DB8A3] focus:ring-offset-2 dark:focus:ring-offset-gray-900 hover:scale-105 shadow-sm hover:shadow-md"
       >
         <div className="flex items-center space-x-2">

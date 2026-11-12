@@ -261,7 +261,7 @@ export function NotificationSettings({ }: NotificationSettingsProps) {
   const staffNotifications = notificationOptions.filter((n) => n.category === 'staff');
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="notification-settings">
       {/* Quick Actions */}
       <div className="flex items-center justify-between">
         <div>
@@ -330,6 +330,7 @@ export function NotificationSettings({ }: NotificationSettingsProps) {
                   id={option.key}
                   checked={preferences[option.key] as boolean}
                   onCheckedChange={(checked) => handleToggleChange(option.key, checked)}
+                  data-testid={`notification-toggle-${option.key}`}
                 />
               </div>
             );
@@ -371,6 +372,7 @@ export function NotificationSettings({ }: NotificationSettingsProps) {
                   id={option.key}
                   checked={preferences[option.key] as boolean}
                   onCheckedChange={(checked) => handleToggleChange(option.key, checked)}
+                  data-testid={`notification-toggle-${option.key}`}
                 />
               </div>
             );
@@ -424,7 +426,7 @@ export function NotificationSettings({ }: NotificationSettingsProps) {
               <RotateCcw className="h-4 w-4 mr-2" />
               Descartar
             </Button>
-            <Button onClick={handleSave} size="sm" disabled={saving}>
+            <Button onClick={handleSave} size="sm" disabled={saving} data-testid="save-notifications">
               {saving ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
