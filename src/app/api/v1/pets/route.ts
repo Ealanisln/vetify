@@ -24,6 +24,7 @@ import {
   apiError,
 } from '@/lib/api/api-key-auth';
 import { serializePet, serializeCustomerSummary } from '../_shared/serializers';
+import { weightUnitSchema } from '../_shared/weight-unit';
 import { triggerWebhookEvent } from '@/lib/webhooks';
 
 // Validation schema for creating a pet
@@ -39,7 +40,7 @@ const createPetSchema = z.object({
   locationId: z.string().uuid().optional().nullable(),
   internalId: z.string().max(50).optional().nullable(),
   weight: z.number().positive().optional().nullable(),
-  weightUnit: z.enum(['kg', 'lb']).optional().nullable(),
+  weightUnit: weightUnitSchema.optional().nullable(),
   microchipNumber: z.string().max(50).optional().nullable(),
   isNeutered: z.boolean().optional(),
   profileImage: z.string().url().optional().nullable(),

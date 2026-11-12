@@ -31,6 +31,7 @@ import type {
   InventoryTransferResponse,
   InventoryItemSummaryResponse,
 } from './types';
+import { normalizeWeightUnit } from './weight-unit';
 
 // ============================================================================
 // Utility Functions
@@ -139,7 +140,7 @@ export function serializePet(pet: Pet): PetResponse {
     dateOfBirth: pet.dateOfBirth.toISOString(),
     gender: pet.gender,
     weight: toNumber(pet.weight),
-    weightUnit: pet.weightUnit,
+    weightUnit: normalizeWeightUnit(pet.weightUnit),
     microchipNumber: pet.microchipNumber,
     isNeutered: pet.isNeutered,
     isDeceased: pet.isDeceased,
