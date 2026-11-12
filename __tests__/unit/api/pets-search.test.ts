@@ -25,6 +25,9 @@ function matches(pet: any, where: any): boolean {
   return Object.entries(where).every(([key, cond]: [string, any]) => {
     if (key === 'tenantId' || key === 'locationId') return true;
     if (key === 'customer') return matches(pet.customer, cond);
+    if (cond && typeof cond === 'object' && 'in' in cond) {
+      return cond.in.includes(pet[key]);
+    }
     if (cond && typeof cond === 'object' && 'contains' in cond) {
       return String(pet[key]).toLowerCase().includes(String(cond.contains).toLowerCase());
     }
