@@ -138,10 +138,10 @@ export function FullCalendarView({
   }, [onDateSelect]);
 
   const handleEventDrop = useCallback(async (dropInfo: EventDropArg) => {
-    const appointment = dropInfo.event.extendedProps.appointment;
+    const { appointment, canEdit } = dropInfo.event.extendedProps;
     const newDateTime = dropInfo.event.start;
-    
-    if (!newDateTime || !appointment.canEdit) {
+
+    if (!newDateTime || !canEdit) {
       dropInfo.revert();
       toast.error('No se puede mover esta cita');
       return;
@@ -158,19 +158,19 @@ export function FullCalendarView({
       if (onEventDrop) {
         onEventDrop(dropInfo);
       }
-    } catch {
+    } catch (error) {
       dropInfo.revert();
-      toast.error('Error al reprogramar la cita');
-      // Error is already shown to user via toast
+      // Show the server's message (e.g. a 409 schedule conflict)
+      toast.error(error instanceof Error && error.message ? error.message : 'Error al reprogramar la cita');
     }
   }, [updateAppointment, refresh, onEventDrop]);
 
   const handleEventResize = useCallback(async (resizeInfo: EventDropArg) => {
-    const appointment = resizeInfo.event.extendedProps.appointment;
+    const { appointment, canEdit } = resizeInfo.event.extendedProps;
     const newEnd = resizeInfo.event.end;
     const start = resizeInfo.event.start;
-    
-    if (!newEnd || !start || !appointment.canEdit) {
+
+    if (!newEnd || !start || !canEdit) {
       resizeInfo.revert();
       toast.error('No se puede cambiar la duración de esta cita');
       return;
@@ -195,10 +195,10 @@ export function FullCalendarView({
       if (onEventResize) {
         onEventResize(resizeInfo);
       }
-    } catch {
+    } catch (error) {
       resizeInfo.revert();
-      toast.error('Error al actualizar la duración');
-      // Error is already shown to user via toast
+      // Show the server's message (e.g. a 409 schedule conflict)
+      toast.error(error instanceof Error && error.message ? error.message : 'Error al actualizar la duración');
     }
   }, [updateAppointment, refresh, onEventResize]);
 
@@ -440,6 +440,7 @@ export function FullCalendarView({
             eventClassNames={(info) => {
               const appointment = info.event.extendedProps?.appointment;
               const priority = info.event.extendedProps?.priority;
+              const canEdit = info.event.extendedProps?.canEdit;
 
               return [
                 'cursor-pointer',
@@ -448,7 +449,7 @@ export function FullCalendarView({
                 'rounded-md',
                 'border-l-4',
                 priority === 'emergency' && 'animate-pulse',
-                appointment && !appointment.canEdit && 'opacity-60',
+                appointment && !canEdit && 'opacity-60',
               ].filter(Boolean);
             }}
             eventDidMount={(info) => {
