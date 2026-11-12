@@ -119,6 +119,7 @@ export type InventoryFormData = {
 
 // Tipos para historia clínica
 export type MedicalHistoryWithDetails = NonNullable<Awaited<ReturnType<typeof prisma.medicalHistory.findUnique>>> & {
+  staff?: { id: string; name: string } | null;
   pet: NonNullable<Awaited<ReturnType<typeof prisma.pet.findUnique>>> & {
     customer: NonNullable<Awaited<ReturnType<typeof prisma.customer.findUnique>>>;
   };

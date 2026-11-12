@@ -222,6 +222,7 @@ describe('medical-history.ts', () => {
       expect(prisma.medicalHistory.findUniqueOrThrow).toHaveBeenCalledWith({
         where: { id: testHistoryId, tenantId: testTenantId },
         include: {
+          staff: { select: { id: true, name: true } },
           pet: { include: { customer: true } },
           medicalOrder: {
             include: {

@@ -132,6 +132,7 @@ export async function getMedicalHistoryById(
   const history = await prisma.medicalHistory.findUniqueOrThrow({
     where: { id: historyId, tenantId },
     include: {
+      staff: { select: { id: true, name: true } },
       pet: {
         include: {
           customer: true
