@@ -72,6 +72,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // The location must belong to this tenant: otherwise the service would be
+    // linked to (and the response would include) another clinic's location.
+    if (validatedData.locationId) {
+      const location = await prisma.location.findFirst({
+        where: { id: validatedData.locationId, tenantId: tenant.id },
+        select: { id: true },
+      });
+
+      if (!location) {
+        return NextResponse.json(
+          { error: 'Ubicación no encontrada o no pertenece a esta clínica' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Verificar si ya existe un servicio con el mismo nombre
     const existingService = await prisma.service.findFirst({
       where: {
