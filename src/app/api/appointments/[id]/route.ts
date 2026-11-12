@@ -12,6 +12,8 @@ import type {
   AppointmentRescheduledData,
 } from '@/lib/email/types';
 import { shouldSendNotification } from '@/lib/enhanced-settings';
+import { getClinicTimeZone } from '@/lib/clinic-timezone';
+import { formatTime } from '@/lib/utils/date-format';
 
 const updateAppointmentSchema = z.object({
   dateTime: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -278,6 +280,8 @@ export async function PUT(
             name: true,
             publicPhone: true,
             publicAddress: true,
+            countryCode: true,
+            tenantSettings: { select: { timezone: true } },
           }
         }
       }
@@ -295,7 +299,9 @@ export async function PUT(
       existingAppointment.dateTime.getTime() !== new Date(validatedData.dateTime).getTime() &&
       !wasCancelled;
 
-    // Send appropriate notification email (check preferences first)
+    // Send appropriate notification email (check preferences first).
+    // Emails show the clinic's local time, not the server's (UTC).
+    const clinicTimeZone = getClinicTimeZone(appointment.tenant);
     if (appointment.customer.email) {
       if (wasCancelled) {
         // Check notification preference before sending
@@ -303,10 +309,7 @@ export async function PUT(
         if (sendCancellation) {
           // Send cancellation email
           const cancelledBy = validatedData.status === 'CANCELLED_CLIENT' ? 'CLIENT' : 'CLINIC';
-          const appointmentTime = existingAppointment.dateTime.toLocaleTimeString('es-MX', {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+          const appointmentTime = formatTime(existingAppointment.dateTime, clinicTimeZone);
 
           const cancellationEmailData: AppointmentCancellationData = {
             template: 'appointment-cancellation',
@@ -316,6 +319,7 @@ export async function PUT(
             },
             subject: `Cita Cancelada - ${appointment.pet.name}`,
             tenantId: tenant.id,
+            timeZone: clinicTimeZone,
             data: {
               appointmentId: appointment.id,
               petName: appointment.pet.name,
@@ -340,14 +344,8 @@ export async function PUT(
         const sendRescheduled = await shouldSendNotification(tenant.id, 'appointmentRescheduled');
         if (sendRescheduled) {
           // Send rescheduled email
-          const previousTime = existingAppointment.dateTime.toLocaleTimeString('es-MX', {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
-          const newTime = appointment.dateTime.toLocaleTimeString('es-MX', {
-            hour: '2-digit',
-            minute: '2-digit',
-          });
+          const previousTime = formatTime(existingAppointment.dateTime, clinicTimeZone);
+          const newTime = formatTime(appointment.dateTime, clinicTimeZone);
 
           const rescheduledEmailData: AppointmentRescheduledData = {
             template: 'appointment-rescheduled',
@@ -357,6 +355,7 @@ export async function PUT(
             },
             subject: `Cita Reprogramada - ${appointment.pet.name}`,
             tenantId: tenant.id,
+            timeZone: clinicTimeZone,
             data: {
               appointmentId: appointment.id,
               petName: appointment.pet.name,
@@ -474,6 +473,8 @@ export async function DELETE(
             id: true,
             name: true,
             publicPhone: true,
+            countryCode: true,
+            tenantSettings: { select: { timezone: true } },
           }
         }
       }
@@ -482,10 +483,9 @@ export async function DELETE(
     // Send cancellation email to customer (check preferences first)
     const sendCancellation = await shouldSendNotification(tenant.id, 'appointmentCancellation');
     if (sendCancellation && appointment.customer.email) {
-      const appointmentTime = existingAppointment.dateTime.toLocaleTimeString('es-MX', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      // Emails show the clinic's local time, not the server's (UTC)
+      const clinicTimeZone = getClinicTimeZone(appointment.tenant);
+      const appointmentTime = formatTime(existingAppointment.dateTime, clinicTimeZone);
 
       const cancellationEmailData: AppointmentCancellationData = {
         template: 'appointment-cancellation',
@@ -495,6 +495,7 @@ export async function DELETE(
         },
         subject: `Cita Cancelada - ${appointment.pet.name}`,
         tenantId: tenant.id,
+        timeZone: clinicTimeZone,
         data: {
           appointmentId: appointment.id,
           petName: appointment.pet.name,

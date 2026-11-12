@@ -30,12 +30,17 @@ export async function sendSetupVerificationEmail(email: string) {
   `;
 
   const resend = getResendClient();
-  await resend.emails.send({
+  const response = await resend.emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: 'Completa la configuración inicial de Vetify',
     html,
   });
+
+  // Resend resolves (does not throw) on API errors such as an unverified domain
+  if (response.error) {
+    throw new Error(`Resend error (${response.error.name}): ${response.error.message}`);
+  }
 
   return { success: true } as const;
 } 

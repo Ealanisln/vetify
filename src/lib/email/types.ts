@@ -54,6 +54,12 @@ export interface BaseEmailData {
     name: string;
   };
   replyTo?: string;
+  /**
+   * IANA timezone used to format dates and times in the body (the clinic's,
+   * from getClinicTimeZone). Defaults to DEFAULT_CLINIC_TIME_ZONE because the
+   * server runs in UTC.
+   */
+  timeZone?: string;
   cc?: EmailRecipient[];
   bcc?: EmailRecipient[];
   attachments?: EmailAttachment[];

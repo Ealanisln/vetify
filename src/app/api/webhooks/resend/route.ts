@@ -48,47 +48,40 @@ interface ResendWebhookEvent {
   };
 }
 
+/** Max age of a webhook timestamp, to block replays (Svix uses 5 minutes) */
+const TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000;
+
 /**
- * Verify Resend webhook signature
+ * Verify a Resend webhook signature. Resend delivers through Svix:
+ * - the signed content is `${svix-id}.${svix-timestamp}.${rawBody}`
+ * - the HMAC-SHA256 key is the base64 part of the `whsec_...` secret
+ * - `svix-signature` holds space-separated `v1,<base64>` entries (several
+ *   during key rotation); any match is valid.
+ * Implemented with node:crypto because `svix` is not a dependency.
  *
- * Resend uses HMAC-SHA256 to sign webhooks.
- * The signature is in the 'svix-signature' header.
+ * @see https://docs.svix.com/receiving/verifying-payloads/how-manual
  */
 function verifyWebhookSignature(
   payload: string,
-  signature: string | null,
-  timestamp: string | null,
+  headers: { id: string | null; timestamp: string | null; signature: string | null },
   secret: string
 ): boolean {
-  if (!signature || !timestamp) {
+  const { id, timestamp, signature } = headers;
+  if (!id || !timestamp || !signature) {
     return false;
   }
 
-  // Extract signatures from header (format: "v1,signature1 v1,signature2")
-  const signatures = signature.split(' ').map((sig) => {
-    const [, value] = sig.split(',');
-    return value;
-  });
+  const key = Buffer.from(secret.startsWith('whsec_') ? secret.slice('whsec_'.length) : secret, 'base64');
+  const expected = crypto
+    .createHmac('sha256', key)
+    .update(`${id}.${timestamp}.${payload}`)
+    .digest();
 
-  // Create the signed payload
-  const signedPayload = `${timestamp}.${payload}`;
-
-  // Compute expected signature
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(signedPayload)
-    .digest('base64');
-
-  // Check if any signature matches
-  return signatures.some((sig) => {
-    try {
-      return crypto.timingSafeEqual(
-        Buffer.from(sig, 'base64'),
-        Buffer.from(expectedSignature, 'base64')
-      );
-    } catch {
-      return false;
-    }
+  return signature.split(' ').some((entry) => {
+    const [version, value] = entry.split(',');
+    if (version !== 'v1' || !value) return false;
+    const candidate = Buffer.from(value, 'base64');
+    return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
   });
 }
 
@@ -131,13 +124,15 @@ export async function POST(request: NextRequest) {
 
     // Verify signature when secret is configured
     if (webhookSecret) {
-      const signature = request.headers.get('svix-signature');
       const timestamp = request.headers.get('svix-timestamp');
 
       const isValid = verifyWebhookSignature(
         payload,
-        signature,
-        timestamp,
+        {
+          id: request.headers.get('svix-id'),
+          timestamp,
+          signature: request.headers.get('svix-signature'),
+        },
         webhookSecret
       );
 
@@ -149,29 +144,24 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Verify timestamp to prevent replay attacks (5 minute tolerance)
-      if (timestamp) {
-        const eventTime = parseInt(timestamp, 10) * 1000;
-        const now = Date.now();
-        const tolerance = 5 * 60 * 1000; // 5 minutes
-
-        if (Math.abs(now - eventTime) > tolerance) {
-          console.error('[RESEND_WEBHOOK] Timestamp too old');
-          return NextResponse.json(
-            { error: 'Timestamp too old' },
-            { status: 401 }
-          );
-        }
+      // Reject replays: the timestamp is part of the signed content
+      const eventTime = Number(timestamp) * 1000;
+      if (!Number.isFinite(eventTime) || Math.abs(Date.now() - eventTime) > TIMESTAMP_TOLERANCE_MS) {
+        console.error('[RESEND_WEBHOOK] Timestamp outside tolerance');
+        return NextResponse.json(
+          { error: 'Timestamp too old' },
+          { status: 401 }
+        );
       }
     }
 
     // Parse the event
     const event: ResendWebhookEvent = JSON.parse(payload);
 
+    // No recipient addresses in logs: the email id is enough to trace it
     console.log('[RESEND_WEBHOOK] Received event:', {
       type: event.type,
       emailId: event.data.email_id,
-      to: event.data.to,
     });
 
     // Map event to status

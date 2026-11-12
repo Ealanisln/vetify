@@ -8,6 +8,8 @@ import type { AppointmentConfirmationData, AppointmentStaffNotificationData } fr
 import { shouldSendNotification } from '@/lib/enhanced-settings';
 import { parsePaginationParams, createPaginatedResponse } from '@/lib/pagination';
 import { appointmentSchema } from '@/lib/validations/appointments-api';
+import { getClinicTimeZone } from '@/lib/clinic-timezone';
+import { formatTime } from '@/lib/utils/date-format';
 
 // The month view asks for ~3 months; anything longer is not a calendar query.
 const MAX_CALENDAR_RANGE_MS = 100 * 24 * 60 * 60 * 1000;
@@ -266,6 +268,8 @@ export async function POST(request: Request) {
             name: true,
             publicPhone: true,
             publicAddress: true,
+            countryCode: true,
+            tenantSettings: { select: { timezone: true } },
           }
         }
       }
@@ -273,12 +277,11 @@ export async function POST(request: Request) {
 
     // Send confirmation email asynchronously (don't block response)
     // Check notification preference before sending
+    // Emails show the clinic's local time, not the server's (UTC)
+    const clinicTimeZone = getClinicTimeZone(appointment.tenant);
     const sendConfirmation = await shouldSendNotification(tenant.id, 'appointmentConfirmation');
     if (sendConfirmation && appointment.customer.email) {
-      const appointmentTime = appointmentDateTime.toLocaleTimeString('es-MX', {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const appointmentTime = formatTime(appointmentDateTime, clinicTimeZone);
 
       const emailData: AppointmentConfirmationData = {
         template: 'appointment-confirmation',
@@ -288,6 +291,7 @@ export async function POST(request: Request) {
         },
         subject: `Confirmación de Cita - ${appointment.pet.name}`,
         tenantId: tenant.id,
+        timeZone: clinicTimeZone,
         data: {
           appointmentId: appointment.id,
           petName: appointment.pet.name,
@@ -320,10 +324,7 @@ export async function POST(request: Request) {
       });
 
       if (staffWithEmail?.email) {
-        const appointmentTime = appointmentDateTime.toLocaleTimeString('es-MX', {
-          hour: '2-digit',
-          minute: '2-digit',
-        });
+        const appointmentTime = formatTime(appointmentDateTime, clinicTimeZone);
 
         const staffEmailData: AppointmentStaffNotificationData = {
           template: 'appointment-staff-notification',
@@ -333,6 +334,7 @@ export async function POST(request: Request) {
           },
           subject: `Nueva Cita Asignada - ${appointment.pet.name}`,
           tenantId: tenant.id,
+          timeZone: clinicTimeZone,
           data: {
             appointmentId: appointment.id,
             staffName: staffWithEmail.name,
