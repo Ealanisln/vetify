@@ -514,7 +514,7 @@ describe('medical-history.ts', () => {
     ];
 
     it('should return common diagnoses as string array', async () => {
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue(mockDiagnoses as never);
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock).mockResolvedValue(mockDiagnoses as never);
 
       const result = await getCommonDiagnoses(testTenantId);
 
@@ -522,7 +522,7 @@ describe('medical-history.ts', () => {
     });
 
     it('should use default limit of 10', async () => {
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock).mockResolvedValue([]);
 
       await getCommonDiagnoses(testTenantId);
 
@@ -534,7 +534,7 @@ describe('medical-history.ts', () => {
     });
 
     it('should respect custom limit', async () => {
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock).mockResolvedValue([]);
 
       await getCommonDiagnoses(testTenantId, 5);
 
@@ -546,7 +546,7 @@ describe('medical-history.ts', () => {
     });
 
     it('should filter by tenantId', async () => {
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock).mockResolvedValue([]);
 
       await getCommonDiagnoses(testTenantId);
 
@@ -565,7 +565,7 @@ describe('medical-history.ts', () => {
         { diagnosis: null, _count: { diagnosis: 10 } },
         { diagnosis: 'Otitis', _count: { diagnosis: 5 } },
       ];
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue(diagnosesWithNull as never);
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock).mockResolvedValue(diagnosesWithNull as never);
 
       const result = await getCommonDiagnoses(testTenantId);
 
@@ -574,7 +574,7 @@ describe('medical-history.ts', () => {
     });
 
     it('should order by frequency descending', async () => {
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock).mockResolvedValue([]);
 
       await getCommonDiagnoses(testTenantId);
 
@@ -596,7 +596,7 @@ describe('medical-history.ts', () => {
     ];
 
     it('should return common treatments as string array', async () => {
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue(mockTreatments as never);
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock).mockResolvedValue(mockTreatments as never);
 
       const result = await getCommonTreatments(testTenantId);
 
@@ -604,7 +604,7 @@ describe('medical-history.ts', () => {
     });
 
     it('should use default limit of 10', async () => {
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock).mockResolvedValue([]);
 
       await getCommonTreatments(testTenantId);
 
@@ -616,7 +616,7 @@ describe('medical-history.ts', () => {
     });
 
     it('should respect custom limit', async () => {
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock).mockResolvedValue([]);
 
       await getCommonTreatments(testTenantId, 3);
 
@@ -628,7 +628,7 @@ describe('medical-history.ts', () => {
     });
 
     it('should filter by tenantId', async () => {
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock).mockResolvedValue([]);
 
       await getCommonTreatments(testTenantId);
 
@@ -647,7 +647,7 @@ describe('medical-history.ts', () => {
         { treatment: null, _count: { treatment: 15 } },
         { treatment: 'Dieta', _count: { treatment: 10 } },
       ];
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue(treatmentsWithNull as never);
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock).mockResolvedValue(treatmentsWithNull as never);
 
       const result = await getCommonTreatments(testTenantId);
 
@@ -656,7 +656,7 @@ describe('medical-history.ts', () => {
     });
 
     it('should order by frequency descending', async () => {
-      jest.mocked(prisma.medicalHistory.groupBy).mockResolvedValue([]);
+      (prisma.medicalHistory.groupBy as unknown as jest.Mock).mockResolvedValue([]);
 
       await getCommonTreatments(testTenantId);
 
