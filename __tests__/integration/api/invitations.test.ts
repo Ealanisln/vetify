@@ -1,562 +1,550 @@
- 
+/**
+ * Staff invitation API routes: send, validate and accept.
+ *
+ * These call the real route handlers together with the real invitation-token
+ * and invitation-email modules. Only the boundaries are mocked: the Kinde
+ * session (`@/lib/auth`), the email provider (`sendEmail`) and Prisma. The
+ * TenantInvitation table is an in-memory store that enforces the
+ * `staffId @unique` constraint, so a regression to "revoke + create" on
+ * re-invite fails here the same way it failed in production (P2002).
+ */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prismaMock } from '../../mocks/prisma';
-import {
-  createTestTenant,
-  createTestUser,
-  createTestStaff,
-} from '../../utils/test-utils';
 import { addDays, subDays } from 'date-fns';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { NextRequest } from 'next/server';
 
-// Helper to create test invitation
-function createTestInvitation(overrides: Partial<{
+jest.mock('@/lib/auth', () => ({
+  requirePermission: jest.fn(),
+  getAuthenticatedUser: jest.fn(),
+}));
+
+jest.mock('@/lib/email/email-service', () => ({
+  sendEmail: jest.fn(),
+}));
+
+import { POST as sendInvitation } from '@/app/api/invitations/send/route';
+import { GET as validateInvitation } from '@/app/api/invitations/validate/route';
+import { POST as acceptInvitation } from '@/app/api/invitations/accept/route';
+import { requirePermission, getAuthenticatedUser } from '@/lib/auth';
+import { sendEmail } from '@/lib/email/email-service';
+import { StaffInvitationEmail } from '@/lib/email/templates';
+
+const mockRequirePermission = requirePermission as jest.Mock;
+const mockGetUser = getAuthenticatedUser as jest.Mock;
+const mockSendEmail = sendEmail as jest.Mock;
+
+const TENANT = { id: 'tenant-1', name: 'Clínica Norte', logo: null };
+const STAFF_ID = '0b9d6a52-7c1e-4f3e-9a7e-2f1a3c4d5e6f';
+
+type StaffRow = {
   id: string;
+  name: string;
+  email: string | null;
+  position: string;
+  userId: string | null;
   tenantId: string;
-  staffId: string;
-  email: string;
-  roleKey: string;
-  token: string;
-  status: 'PENDING' | 'ACCEPTED' | 'REVOKED' | 'EXPIRED';
-  expiresAt: Date;
-  createdAt: Date;
-}> = {}) {
+};
+
+let staffRows: StaffRow[];
+let invitations: any[];
+let idCounter: number;
+
+const staffRow = (overrides: Partial<StaffRow> = {}): StaffRow => ({
+  id: STAFF_ID,
+  name: 'Ana López',
+  email: 'Ana@Example.com',
+  position: 'RECEPTIONIST',
+  userId: null,
+  tenantId: TENANT.id,
+  ...overrides,
+});
+
+const invitationRow = (overrides: Record<string, unknown> = {}) => ({
+  id: 'inv-1',
+  tenantId: TENANT.id,
+  staffId: STAFF_ID,
+  email: 'ana@example.com',
+  roleKey: 'RECEPTIONIST',
+  token: 'tok-existing',
+  status: 'PENDING',
+  expiresAt: addDays(new Date(), 7),
+  createdAt: subDays(new Date(), 10),
+  ...overrides,
+});
+
+const uniqueViolation = () =>
+  Object.assign(new Error('Unique constraint failed on the fields: (`staffId`)'), { code: 'P2002' });
+
+const withRelations = (row: any) => {
+  const staff = staffRows.find((s) => s.id === row.staffId);
   return {
-    id: overrides.id ?? 'invitation-123',
-    tenantId: overrides.tenantId ?? 'tenant-123',
-    staffId: overrides.staffId ?? 'staff-123',
-    email: overrides.email ?? 'newstaff@example.com',
-    roleKey: overrides.roleKey ?? 'VETERINARIAN',
-    token: overrides.token ?? 'valid-token-12345678901234567890',
-    status: overrides.status ?? 'PENDING',
-    expiresAt: overrides.expiresAt ?? addDays(new Date(), 7),
-    createdAt: overrides.createdAt ?? new Date(),
+    ...row,
+    tenant: TENANT,
+    staff: staff ? { id: staff.id, name: staff.name, position: staff.position, email: staff.email } : null,
   };
+};
+
+const matchesWhere = (row: any, where: any = {}) =>
+  Object.entries(where).every(([key, value]: [string, any]) => {
+    if (value && typeof value === 'object' && !(value instanceof Date)) {
+      if ('gt' in value) return row[key] > value.gt;
+      if ('lt' in value) return row[key] < value.lt;
+    }
+    return row[key] === value;
+  });
+
+function installInvitationStore() {
+  const inv = prismaMock.tenantInvitation;
+
+  inv.findFirst.mockImplementation((async ({ where }: any) => {
+    const rows = invitations
+      .filter((row) => matchesWhere(row, where))
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return rows[0] ?? null;
+  }) as any);
+
+  inv.findUnique.mockImplementation((async ({ where }: any) => {
+    const row = invitations.find((r) => matchesWhere(r, where));
+    return row ? withRelations(row) : null;
+  }) as any);
+
+  inv.create.mockImplementation((async ({ data }: any) => {
+    if (invitations.some((r) => r.staffId === data.staffId)) throw uniqueViolation();
+    const row = { id: `inv-${++idCounter}`, createdAt: new Date(), ...data };
+    invitations.push(row);
+    return row;
+  }) as any);
+
+  inv.upsert.mockImplementation((async ({ where, update, create }: any) => {
+    const row = invitations.find((r) => matchesWhere(r, where));
+    if (row) return Object.assign(row, update);
+    return (inv.create as any)({ data: create });
+  }) as any);
+
+  inv.update.mockImplementation((async ({ where, data }: any) => {
+    const row = invitations.find((r) => r.id === where.id);
+    if (!row) throw Object.assign(new Error('Record not found'), { code: 'P2025' });
+    return Object.assign(row, data);
+  }) as any);
 }
 
-describe('Invitations API Integration Tests', () => {
-  let mockTenant: ReturnType<typeof createTestTenant>;
-  let mockUser: ReturnType<typeof createTestUser>;
-  let mockStaff: ReturnType<typeof createTestStaff>;
-  let mockInvitation: ReturnType<typeof createTestInvitation>;
+const jsonPost = (url: string, body: unknown) =>
+  new NextRequest(`http://localhost${url}`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json' },
+  });
 
+const validateRequest = (token?: string) =>
+  new NextRequest(`http://localhost/api/invitations/validate${token ? `?token=${token}` : ''}`);
+
+describe('Staff invitation routes', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    staffRows = [staffRow()];
+    invitations = [];
+    idCounter = 1;
 
-    // Create test data
-    mockTenant = createTestTenant();
-    mockUser = createTestUser({ tenantId: mockTenant.id });
-    mockStaff = createTestStaff({
-      tenantId: mockTenant.id,
-      email: 'newstaff@example.com',
-      userId: null, // Staff without linked user
-    });
-    mockInvitation = createTestInvitation({
-      tenantId: mockTenant.id,
-      staffId: mockStaff.id,
-      email: mockStaff.email!,
-    });
+    installInvitationStore();
+    prismaMock.staff.findUnique.mockImplementation((async ({ where }: any) =>
+      staffRows.find((s) => (where.id ? s.id === where.id : s.userId === where.userId)) ?? null) as any);
+    prismaMock.tenant.findUnique.mockImplementation((async ({ where }: any) =>
+      where.id === TENANT.id ? TENANT : null) as any);
+    prismaMock.$transaction.mockImplementation((async (fn: any) => fn(prismaMock)) as any);
 
-    // Mock Prisma responses
-    prismaMock.tenantInvitation.findUnique.mockResolvedValue(mockInvitation);
-    prismaMock.tenantInvitation.findFirst.mockResolvedValue(mockInvitation);
-    prismaMock.tenantInvitation.create.mockResolvedValue(mockInvitation);
-    prismaMock.tenantInvitation.update.mockResolvedValue(mockInvitation);
-    prismaMock.staff.findUnique.mockResolvedValue(mockStaff);
+    mockRequirePermission.mockResolvedValue({ tenant: { id: TENANT.id }, user: { id: 'owner-1' } });
+    mockSendEmail.mockResolvedValue({ success: true, messageId: 'msg-1' });
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe('POST /api/invitations/send', () => {
-    it('should send invitation to staff member', async () => {
-      prismaMock.staff.findUnique.mockResolvedValue(mockStaff);
-      prismaMock.tenantInvitation.findFirst.mockResolvedValue(null); // No existing invitation
-      prismaMock.tenantInvitation.create.mockResolvedValue(mockInvitation);
+    it('creates a pending invitation scoped to the tenant and emails the invite link', async () => {
+      const response = await sendInvitation(jsonPost('/api/invitations/send', { staffId: STAFF_ID }));
+      const data = await response.json();
 
-      const staff = await prismaMock.staff.findUnique({
-        where: { id: mockStaff.id },
+      expect(response.status).toBe(200);
+      expect(mockRequirePermission).toHaveBeenCalledWith('staff', 'write');
+      expect(data).toEqual({
+        success: true,
+        invitationId: invitations[0].id,
+        message: 'Invitación enviada exitosamente',
+        staffName: 'Ana López',
+        email: 'Ana@Example.com',
       });
 
-      expect(staff).toBeDefined();
-      expect(staff?.email).toBe(mockStaff.email);
-      expect(staff?.userId).toBeNull(); // Staff should not have a linked user
+      expect(invitations).toHaveLength(1);
+      expect(invitations[0]).toMatchObject({
+        tenantId: TENANT.id,
+        staffId: STAFF_ID,
+        email: 'ana@example.com',
+        roleKey: 'RECEPTIONIST',
+        status: 'PENDING',
+      });
+      expect(invitations[0].token).toHaveLength(32);
+      expect(invitations[0].expiresAt.getTime()).toBeGreaterThan(addDays(new Date(), 6).getTime());
+
+      expect(mockSendEmail).toHaveBeenCalledTimes(1);
+      const email = mockSendEmail.mock.calls[0][0];
+      expect(email).toMatchObject({
+        to: { email: 'Ana@Example.com', name: 'Ana López' },
+        tenantId: TENANT.id,
+        template: 'staff-invitation',
+        subject: 'Clínica Norte te ha invitado a unirte al equipo',
+      });
+      expect(email.data.inviteUrl).toMatch(new RegExp(`/invite\\?token=${invitations[0].token}$`));
     });
 
-    it('should require staff:write permission', async () => {
-      // Permission check should happen before any DB operations
-      const requiredPermission = { resource: 'staff', action: 'write' };
-      expect(requiredPermission.resource).toBe('staff');
-      expect(requiredPermission.action).toBe('write');
+    it('names the role in the email with the same label the app uses', async () => {
+      await sendInvitation(jsonPost('/api/invitations/send', { staffId: STAFF_ID }));
+
+      const { data } = mockSendEmail.mock.calls[0][0];
+      expect(data.position).toBe('RECEPTIONIST');
+      const html = renderToStaticMarkup(StaffInvitationEmail(data));
+      expect(html).toContain('<strong>Recepcionista</strong>');
+      expect(html).not.toContain('RECEPTIONIST');
     });
 
-    it('should return 404 if staff not found', async () => {
-      prismaMock.staff.findUnique.mockResolvedValue(null);
+    it('re-invites after the previous invitation expired by reusing the row (staffId is unique)', async () => {
+      invitations.push(invitationRow({ status: 'EXPIRED', expiresAt: subDays(new Date(), 3) }));
 
-      const staff = await prismaMock.staff.findUnique({
-        where: { id: 'non-existent' },
-      });
+      const response = await sendInvitation(jsonPost('/api/invitations/send', { staffId: STAFF_ID }));
+      const data = await response.json();
 
-      expect(staff).toBeNull();
-      // API would return: { error: 'Personal no encontrado' }, { status: 404 }
+      expect(response.status).toBe(200);
+      expect(data).toMatchObject({ success: true, invitationId: 'inv-1', message: 'Invitación enviada exitosamente' });
+      expect(prismaMock.tenantInvitation.create).not.toHaveBeenCalled();
+      expect(invitations).toHaveLength(1);
+      expect(invitations[0].status).toBe('PENDING');
+      expect(invitations[0].token).not.toBe('tok-existing');
+      expect(invitations[0].expiresAt.getTime()).toBeGreaterThan(Date.now());
+      expect(mockSendEmail.mock.calls[0][0].data.inviteUrl).toContain(invitations[0].token);
     });
 
-    it('should return 403 if staff belongs to different tenant', async () => {
-      const otherTenantStaff = createTestStaff({
-        id: 'other-staff',
-        tenantId: 'other-tenant-id',
-      });
+    it('re-invites after an expired invitation that is still marked PENDING', async () => {
+      invitations.push(invitationRow({ expiresAt: subDays(new Date(), 1) }));
 
-      prismaMock.staff.findUnique.mockResolvedValue(otherTenantStaff);
+      const response = await sendInvitation(jsonPost('/api/invitations/send', { staffId: STAFF_ID }));
 
-      const staff = await prismaMock.staff.findUnique({
-        where: { id: otherTenantStaff.id },
-      });
-
-      const isOwnTenant = staff?.tenantId === mockTenant.id;
-      expect(isOwnTenant).toBe(false);
-      // API would return: { error: 'No tienes permiso para invitar a este personal' }, { status: 403 }
+      expect(response.status).toBe(200);
+      expect(invitations).toHaveLength(1);
+      expect(invitations[0].token).not.toBe('tok-existing');
+      expect(invitations[0].expiresAt.getTime()).toBeGreaterThan(Date.now());
     });
 
-    it('should return 400 if staff has no email', async () => {
-      const staffWithoutEmail = createTestStaff({
-        tenantId: mockTenant.id,
-        email: null,
-      });
+    it('resends an active invitation keeping its link and extending it', async () => {
+      invitations.push(invitationRow({ expiresAt: addDays(new Date(), 1) }));
 
-      prismaMock.staff.findUnique.mockResolvedValue(staffWithoutEmail);
+      const response = await sendInvitation(jsonPost('/api/invitations/send', { staffId: STAFF_ID }));
+      const data = await response.json();
 
-      const staff = await prismaMock.staff.findUnique({
-        where: { id: staffWithoutEmail.id },
-      });
-
-      expect(staff?.email).toBeNull();
-      // API would return: { error: 'El personal no tiene email configurado' }, { status: 400 }
+      expect(response.status).toBe(200);
+      expect(data.message).toBe('Invitación reenviada exitosamente');
+      expect(invitations).toHaveLength(1);
+      expect(invitations[0].token).toBe('tok-existing');
+      expect(invitations[0].expiresAt.getTime()).toBeGreaterThan(addDays(new Date(), 6).getTime());
+      expect(mockSendEmail.mock.calls[0][0].data.inviteUrl).toContain('tok-existing');
     });
 
-    it('should return 400 if staff already has linked user', async () => {
-      const staffWithUser = createTestStaff({
-        tenantId: mockTenant.id,
-        userId: mockUser.id,
-      });
+    it('answers in Spanish when the database still reports a unique conflict', async () => {
+      prismaMock.tenantInvitation.upsert.mockRejectedValue(uniqueViolation());
 
-      prismaMock.staff.findUnique.mockResolvedValue(staffWithUser);
+      const response = await sendInvitation(jsonPost('/api/invitations/send', { staffId: STAFF_ID }));
+      const data = await response.json();
 
-      const staff = await prismaMock.staff.findUnique({
-        where: { id: staffWithUser.id },
-      });
-
-      expect(staff?.userId).not.toBeNull();
-      // API would return: { error: 'El personal ya tiene una cuenta vinculada' }, { status: 400 }
+      expect(response.status).toBe(500);
+      expect(data.error).toMatch(/^Ya existe una invitación para este miembro del personal/);
+      expect(data.error).not.toMatch(/Unique constraint/);
     });
 
-    it('should resend if invitation already exists and is pending', async () => {
-      prismaMock.tenantInvitation.findFirst.mockResolvedValue(mockInvitation);
+    it('returns 500 with a Spanish message when the email provider fails', async () => {
+      mockSendEmail.mockResolvedValue({ success: false, error: 'Resend down' });
 
-      const existingInvitation = await prismaMock.tenantInvitation.findFirst({
-        where: { staffId: mockStaff.id, status: 'PENDING' },
-      });
+      const response = await sendInvitation(jsonPost('/api/invitations/send', { staffId: STAFF_ID }));
 
-      expect(existingInvitation).not.toBeNull();
-      expect(existingInvitation?.status).toBe('PENDING');
-      // API would return: { message: 'Invitación reenviada exitosamente' }
+      expect(response.status).toBe(500);
+      await expect(response.json()).resolves.toEqual({ error: 'Error al enviar el email de invitación' });
     });
+
+    it("refuses to invite another tenant's staff member", async () => {
+      staffRows = [staffRow({ tenantId: 'tenant-2' })];
+
+      const response = await sendInvitation(jsonPost('/api/invitations/send', { staffId: STAFF_ID }));
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({ error: 'No tienes permiso para invitar a este personal' });
+      expect(invitations).toHaveLength(0);
+      expect(mockSendEmail).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['the staff member does not exist', () => { staffRows = []; }, 404, 'Personal no encontrado'],
+      ['the staff member has no email', () => { staffRows = [staffRow({ email: null })]; }, 400, 'El personal no tiene email configurado'],
+      ['the staff member already has an account', () => { staffRows = [staffRow({ userId: 'user-9' })]; }, 400, 'El personal ya tiene una cuenta vinculada'],
+    ])('returns an error when %s', async (_label, arrange, status, error) => {
+      arrange();
+
+      const response = await sendInvitation(jsonPost('/api/invitations/send', { staffId: STAFF_ID }));
+
+      expect(response.status).toBe(status);
+      await expect(response.json()).resolves.toEqual({ error });
+      expect(mockSendEmail).not.toHaveBeenCalled();
+    });
+
+    it('rejects a staffId that is not a UUID', async () => {
+      const response = await sendInvitation(jsonPost('/api/invitations/send', { staffId: 'staff-1' }));
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.details).toContainEqual(expect.objectContaining({ message: 'ID de personal inválido' }));
+    });
+
+    it('returns 403 when the caller lacks the staff:write permission', async () => {
+      mockRequirePermission.mockRejectedValue(
+        new Error("Access denied. You don't have permission to write staff.")
+      );
+
+      const response = await sendInvitation(jsonPost('/api/invitations/send', { staffId: STAFF_ID }));
+
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({ error: 'No tienes permiso para enviar invitaciones' });
+      expect(prismaMock.staff.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('returns 401 without a session', async () => {
+      mockRequirePermission.mockRejectedValue(new Error('No authenticated user'));
+
+      const response = await sendInvitation(jsonPost('/api/invitations/send', { staffId: STAFF_ID }));
+
+      expect(response.status).toBe(401);
+    });
+
+    // Plan staff limits are not enforced by /api/staff or the invitation
+    // routes yet (docs/PENDIENTES.md, "Decisiones pendientes").
+    it.todo('enforces the plan staff limit once the product decision is made');
   });
 
   describe('GET /api/invitations/validate', () => {
-    it('should return valid invitation details', async () => {
-      const invitationWithDetails = {
-        ...mockInvitation,
-        tenant: {
-          id: mockTenant.id,
-          name: mockTenant.name,
-          logo: null,
-        },
-        staff: {
-          id: mockStaff.id,
-          name: mockStaff.name,
-          position: mockStaff.position,
-          email: mockStaff.email,
-        },
-      };
+    it('returns the sanitized invitation details for a valid token', async () => {
+      invitations.push(invitationRow());
 
-      prismaMock.tenantInvitation.findUnique.mockResolvedValue(invitationWithDetails);
+      const response = await validateInvitation(validateRequest('tok-existing'));
+      const data = await response.json();
 
-      const invitation = await prismaMock.tenantInvitation.findUnique({
-        where: { token: mockInvitation.token },
-        include: {
-          tenant: { select: { id: true, name: true, logo: true } },
-          staff: { select: { id: true, name: true, position: true, email: true } },
+      expect(response.status).toBe(200);
+      expect(prismaMock.tenantInvitation.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { token: 'tok-existing' } })
+      );
+      expect(data).toEqual({
+        valid: true,
+        invitation: {
+          id: 'inv-1',
+          email: 'ana@example.com',
+          roleKey: 'RECEPTIONIST',
+          expiresAt: invitations[0].expiresAt.toISOString(),
+          tenant: { name: 'Clínica Norte', logo: null },
+          staff: { name: 'Ana López', position: 'RECEPTIONIST' },
         },
       });
-
-      expect(invitation).not.toBeNull();
-      expect(invitation?.status).toBe('PENDING');
-      expect(invitation?.tenant).toBeDefined();
-      expect(invitation?.staff).toBeDefined();
+      expect(JSON.stringify(data)).not.toContain('tok-existing');
     });
 
-    it('should return invalid for non-existent token', async () => {
-      prismaMock.tenantInvitation.findUnique.mockResolvedValue(null);
+    it('rejects an expired invitation and marks it EXPIRED', async () => {
+      invitations.push(invitationRow({ expiresAt: subDays(new Date(), 1) }));
 
-      const invitation = await prismaMock.tenantInvitation.findUnique({
-        where: { token: 'invalid-token' },
+      const response = await validateInvitation(validateRequest('tok-existing'));
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({ valid: false, error: 'Esta invitación ha expirado' });
+      expect(prismaMock.tenantInvitation.update).toHaveBeenCalledWith({
+        where: { id: 'inv-1' },
+        data: { status: 'EXPIRED' },
       });
-
-      expect(invitation).toBeNull();
-      // API would return: { valid: false, reason: 'Invitación no encontrada' }
+      expect(invitations[0].status).toBe('EXPIRED');
     });
 
-    it('should return invalid for already accepted invitation', async () => {
-      const acceptedInvitation = createTestInvitation({
-        status: 'ACCEPTED',
-      });
+    it.each([
+      ['ACCEPTED', 'Esta invitación ya fue aceptada'],
+      ['REVOKED', 'Esta invitación fue revocada'],
+      ['EXPIRED', 'Esta invitación ha expirado'],
+    ])('rejects a %s invitation', async (status, error) => {
+      invitations.push(invitationRow({ status }));
 
-      prismaMock.tenantInvitation.findUnique.mockResolvedValue(acceptedInvitation);
+      const response = await validateInvitation(validateRequest('tok-existing'));
 
-      const invitation = await prismaMock.tenantInvitation.findUnique({
-        where: { token: acceptedInvitation.token },
-      });
-
-      expect(invitation?.status).toBe('ACCEPTED');
-      // API would return: { valid: false, reason: 'Esta invitación ya fue aceptada' }
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({ valid: false, error });
     });
 
-    it('should return invalid for revoked invitation', async () => {
-      const revokedInvitation = createTestInvitation({
-        status: 'REVOKED',
-      });
+    it('rejects an unknown token and points to the latest email', async () => {
+      const response = await validateInvitation(validateRequest('nope'));
+      const data = await response.json();
 
-      prismaMock.tenantInvitation.findUnique.mockResolvedValue(revokedInvitation);
-
-      const invitation = await prismaMock.tenantInvitation.findUnique({
-        where: { token: revokedInvitation.token },
-      });
-
-      expect(invitation?.status).toBe('REVOKED');
-      // API would return: { valid: false, reason: 'Esta invitación fue revocada' }
+      expect(response.status).toBe(400);
+      expect(data.valid).toBe(false);
+      expect(data.error).toMatch(/^Invitación no encontrada/);
     });
 
-    it('should return invalid for expired invitation', async () => {
-      const expiredInvitation = createTestInvitation({
-        expiresAt: subDays(new Date(), 1), // Expired yesterday
-      });
+    it('requires a token', async () => {
+      const response = await validateInvitation(validateRequest());
 
-      prismaMock.tenantInvitation.findUnique.mockResolvedValue(expiredInvitation);
-
-      const invitation = await prismaMock.tenantInvitation.findUnique({
-        where: { token: expiredInvitation.token },
-      });
-
-      const isExpired = invitation!.expiresAt < new Date();
-      expect(isExpired).toBe(true);
-      // API would return: { valid: false, reason: 'Esta invitación ha expirado' }
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({ error: 'Token de invitación requerido' });
     });
   });
 
   describe('POST /api/invitations/accept', () => {
-    it('should accept valid invitation and link user to staff', async () => {
-      const invitationWithDetails = {
-        ...mockInvitation,
-        tenant: {
-          id: mockTenant.id,
-          name: mockTenant.name,
-          logo: null,
-        },
-        staff: {
-          id: mockStaff.id,
-          name: mockStaff.name,
-          position: mockStaff.position,
-          email: mockStaff.email,
-        },
-      };
-
-      prismaMock.tenantInvitation.findUnique.mockResolvedValue(invitationWithDetails);
-      prismaMock.staff.findUnique.mockResolvedValue(mockStaff);
-
-      // Verify invitation is valid
-      const invitation = await prismaMock.tenantInvitation.findUnique({
-        where: { token: mockInvitation.token },
-      });
-
-      expect(invitation?.status).toBe('PENDING');
-      expect(invitation?.staff).toBeDefined();
-
-      // Simulate transaction updates
-      const updatedUser = { ...mockUser, tenantId: mockTenant.id };
-      const updatedStaff = { ...mockStaff, userId: mockUser.id };
-      const acceptedInvitation = { ...mockInvitation, status: 'ACCEPTED' as const };
-
-      prismaMock.user.update.mockResolvedValue(updatedUser);
-      prismaMock.staff.update.mockResolvedValue(updatedStaff);
-      prismaMock.tenantInvitation.update.mockResolvedValue(acceptedInvitation);
-
-      // Verify updates would succeed
-      expect(updatedUser.tenantId).toBe(mockTenant.id);
-      expect(updatedStaff.userId).toBe(mockUser.id);
-      expect(acceptedInvitation.status).toBe('ACCEPTED');
+    const invitee = (overrides: Record<string, unknown> = {}) => ({
+      id: 'user-ana',
+      email: 'ana@example.com',
+      tenantId: null,
+      ...overrides,
     });
 
-    it('should return error if staff already has linked user', async () => {
-      const staffWithUser = createTestStaff({
-        tenantId: mockTenant.id,
-        userId: 'existing-user-id',
-      });
-
-      prismaMock.staff.findUnique.mockResolvedValue(staffWithUser);
-
-      const staff = await prismaMock.staff.findUnique({
-        where: { id: staffWithUser.id },
-      });
-
-      expect(staff?.userId).not.toBeNull();
-      // acceptInvitation would return: { success: false, error: 'Este personal ya tiene una cuenta vinculada' }
+    beforeEach(() => {
+      invitations.push(invitationRow());
+      prismaMock.user.findUnique.mockImplementation((async ({ where }: any) =>
+        where.id === 'user-ana' ? { id: 'user-ana', tenantId: null } : null) as any);
     });
 
-    it('should return error if invitation token is invalid', async () => {
-      prismaMock.tenantInvitation.findUnique.mockResolvedValue(null);
+    it('links the user to the inviting tenant and staff record in one transaction', async () => {
+      mockGetUser.mockResolvedValue(invitee({ email: 'ANA@example.com' }));
 
-      const invitation = await prismaMock.tenantInvitation.findUnique({
-        where: { token: 'invalid-token' },
+      const response = await acceptInvitation(jsonPost('/api/invitations/accept', { token: 'tok-existing' }));
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual({
+        success: true,
+        message: '¡Invitación aceptada! Ahora tienes acceso al sistema.',
+        staffId: STAFF_ID,
+        tenantName: 'Clínica Norte',
       });
-
-      expect(invitation).toBeNull();
-      // acceptInvitation would return: { success: false, error: 'Invitación no encontrada' }
+      expect(mockGetUser).toHaveBeenCalledWith({ autoAcceptInvitations: false });
+      expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-ana' },
+        data: { tenantId: TENANT.id },
+      });
+      expect(prismaMock.staff.update).toHaveBeenCalledWith({
+        where: { id: STAFF_ID },
+        data: { userId: 'user-ana' },
+      });
+      expect(invitations[0].status).toBe('ACCEPTED');
     });
 
-    it('should handle race condition when autoAcceptPendingInvitation already accepted', async () => {
-      // This tests the race condition where:
-      // 1. User registers and is redirected back to /invite
-      // 2. autoAcceptPendingInvitation (in findOrCreateUser) accepts the invitation
-      // 3. The /api/invitations/accept endpoint is called but invitation is already accepted
-      // 4. The endpoint should still return success if user is linked to tenant
+    it('returns 403 EMAIL_MISMATCH with the invited email when signed in with another account', async () => {
+      mockGetUser.mockResolvedValue(invitee({ id: 'user-other', email: 'otro@example.com' }));
 
-      const acceptedInvitation = createTestInvitation({
-        status: 'ACCEPTED',
+      const response = await acceptInvitation(jsonPost('/api/invitations/accept', { token: 'tok-existing' }));
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data).toEqual({
+        success: false,
+        code: 'EMAIL_MISMATCH',
+        invitationEmail: 'ana@example.com',
+        error: 'Esta invitación es para ana@example.com. Debes iniciar sesión con ese email.',
       });
-
-      prismaMock.tenantInvitation.findUnique.mockResolvedValue(acceptedInvitation);
-
-      // Simulate user already linked to tenant (by autoAcceptPendingInvitation)
-      const userWithTenant = { ...mockUser, tenantId: mockTenant.id };
-      prismaMock.tenant.findUnique.mockResolvedValue(mockTenant);
-
-      // The validation would return invalid with "Esta invitación ya fue aceptada"
-      const invitation = await prismaMock.tenantInvitation.findUnique({
-        where: { token: acceptedInvitation.token },
-      });
-
-      expect(invitation?.status).toBe('ACCEPTED');
-
-      // But if user already has tenantId, the endpoint should return success
-      // This is the key behavior we're testing
-      const shouldReturnSuccess = userWithTenant.tenantId !== null;
-      expect(shouldReturnSuccess).toBe(true);
-
-      // API behavior:
-      // If validation.reason === 'Esta invitación ya fue aceptada' && user.tenantId exists
-      // Return: { success: true, alreadyAccepted: true, tenantName: tenant.name }
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+      expect(invitations[0].status).toBe('PENDING');
     });
 
-    it('should return error when invitation already accepted but user not linked', async () => {
-      // This tests when invitation was accepted by someone else
-      // and current user is NOT linked to any tenant
+    it('returns 409 USER_IN_OTHER_TENANT when the user already has a clinic', async () => {
+      mockGetUser.mockResolvedValue(invitee({ tenantId: 'tenant-own' }));
+      prismaMock.user.findUnique.mockResolvedValue({ id: 'user-ana', tenantId: 'tenant-own' } as any);
 
-      const acceptedInvitation = createTestInvitation({
-        status: 'ACCEPTED',
-      });
+      const response = await acceptInvitation(jsonPost('/api/invitations/accept', { token: 'tok-existing' }));
+      const data = await response.json();
 
-      prismaMock.tenantInvitation.findUnique.mockResolvedValue(acceptedInvitation);
-
-      // User without tenant (not linked)
-      const userWithoutTenant = { ...mockUser, tenantId: null };
-
-      const invitation = await prismaMock.tenantInvitation.findUnique({
-        where: { token: acceptedInvitation.token },
-      });
-
-      expect(invitation?.status).toBe('ACCEPTED');
-
-      // User should get an error because they're not linked
-      const shouldReturnError = userWithoutTenant.tenantId === null;
-      expect(shouldReturnError).toBe(true);
-
-      // API behavior:
-      // If validation.reason === 'Esta invitación ya fue aceptada' && !user.tenantId
-      // Return: { success: false, error: 'Esta invitación ya fue aceptada' }, status: 400
+      expect(response.status).toBe(409);
+      expect(data).toMatchObject({ success: false, code: 'USER_IN_OTHER_TENANT' });
+      expect(data.error).toMatch(/Tu cuenta ya pertenece a otra clínica/);
+      expect(prismaMock.user.update).not.toHaveBeenCalled();
+      expect(invitations[0].status).toBe('PENDING');
     });
 
-    it('should handle "staff already linked" as success when user has tenant', async () => {
-      // This tests when acceptInvitation fails because staff already linked
-      // but the user is the one who was linked (via autoAcceptPendingInvitation)
+    it('returns 409 STAFF_ALREADY_LINKED when the staff record belongs to someone else', async () => {
+      staffRows = [staffRow({ userId: 'someone-else' })];
+      mockGetUser.mockResolvedValue(invitee());
 
-      const invitationWithDetails = {
-        ...mockInvitation,
-        tenant: {
-          id: mockTenant.id,
-          name: mockTenant.name,
-          logo: null,
-        },
-        staff: {
-          id: mockStaff.id,
-          name: mockStaff.name,
-          position: mockStaff.position,
-          email: mockStaff.email,
-        },
-      };
+      const response = await acceptInvitation(jsonPost('/api/invitations/accept', { token: 'tok-existing' }));
 
-      prismaMock.tenantInvitation.findUnique.mockResolvedValue(invitationWithDetails);
-
-      // Staff already linked to user
-      const staffAlreadyLinked = { ...mockStaff, userId: mockUser.id };
-      prismaMock.staff.findUnique.mockResolvedValue(staffAlreadyLinked);
-
-      // User has tenant
-      const userWithTenant = { ...mockUser, tenantId: mockTenant.id };
-
-      // acceptInvitation would return error: 'Este personal ya tiene una cuenta vinculada'
-      // But if user.tenantId exists, endpoint should return success
-      const shouldTreatAsSuccess = userWithTenant.tenantId !== null;
-      expect(shouldTreatAsSuccess).toBe(true);
-
-      // API behavior:
-      // If result.error === 'Este personal ya tiene una cuenta vinculada' && user.tenantId
-      // Return: { success: true, alreadyAccepted: true, tenantName: invitation.tenant.name }
-    });
-  });
-
-  describe('Invitation Lifecycle', () => {
-    it('should generate new token when creating invitation', async () => {
-      const newInvitation = createTestInvitation({
-        token: 'abcdefghij1234567890abcdefghij12', // 32 chars
-        expiresAt: addDays(new Date(), 7),
-      });
-
-      prismaMock.tenantInvitation.create.mockResolvedValue(newInvitation);
-
-      const created = await prismaMock.tenantInvitation.create({
-        data: {
-          tenantId: mockTenant.id,
-          staffId: mockStaff.id,
-          email: mockStaff.email!,
-          roleKey: 'VETERINARIAN',
-          token: newInvitation.token,
-          status: 'PENDING',
-          expiresAt: newInvitation.expiresAt,
-        },
-      });
-
-      expect(created.token).toHaveLength(32);
-      expect(created.status).toBe('PENDING');
-      expect(created.expiresAt > new Date()).toBe(true);
+      expect(response.status).toBe(409);
+      await expect(response.json()).resolves.toMatchObject({ success: false, code: 'STAFF_ALREADY_LINKED' });
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
     });
 
-    it('should revoke old invitations when creating new one for same staff', async () => {
-      prismaMock.tenantInvitation.updateMany.mockResolvedValue({ count: 1 });
+    it('is idempotent when the staff record is already linked to this user', async () => {
+      staffRows = [staffRow({ userId: 'user-ana' })];
+      mockGetUser.mockResolvedValue(invitee({ tenantId: TENANT.id }));
 
-      const result = await prismaMock.tenantInvitation.updateMany({
-        where: {
-          staffId: mockStaff.id,
-          status: 'PENDING',
-        },
-        data: {
-          status: 'REVOKED',
-        },
-      });
+      const response = await acceptInvitation(jsonPost('/api/invitations/accept', { token: 'tok-existing' }));
 
-      expect(result.count).toBe(1);
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({ success: true, staffId: STAFF_ID });
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
     });
 
-    it('should update existing pending invitation instead of creating new', async () => {
-      prismaMock.tenantInvitation.findFirst.mockResolvedValue(mockInvitation);
+    it('reports success when the invitation was already accepted and the user has a clinic', async () => {
+      invitations[0].status = 'ACCEPTED';
+      mockGetUser.mockResolvedValue(invitee({ tenantId: TENANT.id }));
 
-      const existingInvitation = await prismaMock.tenantInvitation.findFirst({
-        where: {
-          staffId: mockStaff.id,
-          status: 'PENDING',
-          expiresAt: { gt: new Date() },
-        },
+      const response = await acceptInvitation(jsonPost('/api/invitations/accept', { token: 'tok-existing' }));
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        success: true,
+        alreadyAccepted: true,
+        tenantName: 'Clínica Norte',
       });
-
-      expect(existingInvitation).not.toBeNull();
-
-      const updatedInvitation = {
-        ...mockInvitation,
-        expiresAt: addDays(new Date(), 7),
-      };
-
-      prismaMock.tenantInvitation.update.mockResolvedValue(updatedInvitation);
-
-      const updated = await prismaMock.tenantInvitation.update({
-        where: { id: existingInvitation!.id },
-        data: {
-          expiresAt: addDays(new Date(), 7),
-        },
-      });
-
-      expect(updated.expiresAt > new Date()).toBe(true);
-    });
-  });
-
-  describe('Multi-Tenancy Isolation', () => {
-    it('should not allow accepting invitation for different tenant', async () => {
-      const otherTenantInvitation = createTestInvitation({
-        tenantId: 'other-tenant-id',
-      });
-
-      prismaMock.tenantInvitation.findUnique.mockResolvedValue(otherTenantInvitation);
-
-      const invitation = await prismaMock.tenantInvitation.findUnique({
-        where: { token: otherTenantInvitation.token },
-      });
-
-      // When accepting, the user would be linked to the invitation's tenant
-      // This is by design - the user joins the tenant that invited them
-      expect(invitation?.tenantId).toBe('other-tenant-id');
+      expect(prismaMock.tenant.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: TENANT.id } })
+      );
     });
 
-    it('should only allow staff from same tenant to be invited', async () => {
-      const otherTenantStaff = createTestStaff({
-        tenantId: 'other-tenant-id',
-      });
+    it('rejects an already accepted invitation for a user without a clinic', async () => {
+      invitations[0].status = 'ACCEPTED';
+      mockGetUser.mockResolvedValue(invitee());
 
-      prismaMock.staff.findUnique.mockResolvedValue(otherTenantStaff);
+      const response = await acceptInvitation(jsonPost('/api/invitations/accept', { token: 'tok-existing' }));
 
-      const staff = await prismaMock.staff.findUnique({
-        where: { id: otherTenantStaff.id },
-      });
-
-      const isSameTenant = staff?.tenantId === mockTenant.id;
-      expect(isSameTenant).toBe(false);
-      // API should return 403: 'No tienes permiso para invitar a este personal'
-    });
-  });
-
-  describe('Cleanup Operations', () => {
-    it('should mark expired invitations as EXPIRED', async () => {
-      prismaMock.tenantInvitation.updateMany.mockResolvedValue({ count: 5 });
-
-      const result = await prismaMock.tenantInvitation.updateMany({
-        where: {
-          status: 'PENDING',
-          expiresAt: { lt: new Date() },
-        },
-        data: {
-          status: 'EXPIRED',
-        },
-      });
-
-      expect(result.count).toBe(5);
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({ success: false, error: 'Esta invitación ya fue aceptada' });
     });
 
-    it('should get pending invitation by email', async () => {
-      prismaMock.tenantInvitation.findFirst.mockResolvedValue(mockInvitation);
+    it('rejects an expired invitation', async () => {
+      invitations[0].expiresAt = subDays(new Date(), 1);
+      mockGetUser.mockResolvedValue(invitee());
 
-      const invitation = await prismaMock.tenantInvitation.findFirst({
-        where: {
-          email: mockStaff.email!.toLowerCase(),
-          status: 'PENDING',
-          expiresAt: { gt: new Date() },
-        },
-      });
+      const response = await acceptInvitation(jsonPost('/api/invitations/accept', { token: 'tok-existing' }));
 
-      expect(invitation).not.toBeNull();
-      expect(invitation?.email).toBe(mockStaff.email);
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({ success: false, error: 'Esta invitación ha expirado' });
+      expect(prismaMock.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects an unknown token', async () => {
+      mockGetUser.mockResolvedValue(invitee());
+
+      const response = await acceptInvitation(jsonPost('/api/invitations/accept', { token: 'nope' }));
+      const data = await response.json();
+
+      expect(response.status).toBe(400);
+      expect(data.error).toMatch(/^Invitación no encontrada/);
+    });
+
+    it('returns 401 without a session', async () => {
+      mockGetUser.mockRejectedValue(new Error('No authenticated user'));
+
+      const response = await acceptInvitation(jsonPost('/api/invitations/accept', { token: 'tok-existing' }));
+
+      expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toEqual({ error: 'Debes iniciar sesión para aceptar la invitación' });
     });
   });
 });
