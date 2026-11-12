@@ -1,6 +1,22 @@
 import { defineConfig, devices } from '@playwright/test'
+import {
+  AUTH_STATE_PATH,
+  E2E_BASE_URL,
+  E2E_PORT,
+  FAKE_SERVICES_URL,
+} from './tests/e2e/support/constants'
 
 const isCI = !!process.env.CI
+
+/**
+ * Authenticated runs (TEST_AUTH_ENABLED=true) start the fake Kinde/Resend
+ * services, log in once in the `setup` project and reuse that session in the
+ * desktop projects. See tests/e2e/support/test-auth.ts for the guards.
+ */
+const isAuthEnabled = process.env.TEST_AUTH_ENABLED === 'true'
+const authenticated = isAuthEnabled
+  ? { dependencies: ['setup'], use: { storageState: AUTH_STATE_PATH } }
+  : { dependencies: [] as string[], use: {} }
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -30,7 +46,7 @@ export default defineConfig({
     },
   },
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: E2E_BASE_URL,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -38,10 +54,15 @@ export default defineConfig({
 
   /* Project configurations for different test types */
   projects: [
+    // Logs in as the seeded clinic owner (authenticated runs only)
+    ...(isAuthEnabled
+      ? [{ name: 'setup', testMatch: /auth\.setup\.ts$/ }]
+      : []),
     // Desktop browsers - E2E tests
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], ...authenticated.use },
+      dependencies: authenticated.dependencies,
       testMatch: /e2e\/(?!mobile).*\.spec\.ts$/,
     },
     ...(isCI
@@ -49,12 +70,14 @@ export default defineConfig({
       : [
           {
             name: 'firefox',
-            use: { ...devices['Desktop Firefox'] },
+            use: { ...devices['Desktop Firefox'], ...authenticated.use },
+            dependencies: authenticated.dependencies,
             testMatch: /e2e\/(?!mobile).*\.spec\.ts$/,
           },
           {
             name: 'webkit',
-            use: { ...devices['Desktop Safari'] },
+            use: { ...devices['Desktop Safari'], ...authenticated.use },
+            dependencies: authenticated.dependencies,
             testMatch: /e2e\/(?!mobile).*\.spec\.ts$/,
           },
         ]),
@@ -89,10 +112,23 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: isCI ? 'pnpm start' : 'pnpm dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !isCI,
-    timeout: 120 * 1000,
-  },
+  webServer: [
+    ...(isAuthEnabled
+      ? [
+          {
+            command: 'npx --yes tsx tests/e2e/support/fake-services.ts',
+            url: `${FAKE_SERVICES_URL}/health`,
+            reuseExistingServer: false,
+            timeout: 60 * 1000,
+          },
+        ]
+      : []),
+    {
+      command: isCI ? 'pnpm start' : 'pnpm dev',
+      url: E2E_BASE_URL,
+      env: { PORT: String(E2E_PORT) },
+      reuseExistingServer: !isCI,
+      timeout: 120 * 1000,
+    },
+  ],
 })
