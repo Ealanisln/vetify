@@ -81,41 +81,35 @@ export async function generateStaffInvitation(
   });
 
   if (existing) {
-    // Update the existing invitation with new expiration
+    // Keep the same link working and extend its expiration
     return prisma.tenantInvitation.update({
       where: { id: existing.id },
       data: {
         expiresAt: addDays(new Date(), expirationDays),
         email: normalizedEmail, // Update email in case it changed
+        roleKey: position,
       },
     });
   }
 
-  // Revoke any old invitations for this staff
-  await prisma.tenantInvitation.updateMany({
-    where: {
-      staffId,
-      status: 'PENDING',
-    },
-    data: {
-      status: 'REVOKED',
-    },
-  });
-
-  // Create new invitation
+  // TenantInvitation.staffId is @unique, so a staff member has at most one
+  // invitation row. Re-inviting after it expired, was revoked or accepted
+  // reuses that row with a fresh token instead of creating a second one.
   const token = nanoid(TOKEN_LENGTH);
   const expiresAt = addDays(new Date(), expirationDays);
+  const fields = {
+    tenantId,
+    email: normalizedEmail,
+    roleKey: position,
+    token,
+    status: 'PENDING' as const,
+    expiresAt,
+  };
 
-  return prisma.tenantInvitation.create({
-    data: {
-      tenantId,
-      staffId,
-      email: normalizedEmail,
-      roleKey: position,
-      token,
-      status: 'PENDING',
-      expiresAt,
-    },
+  return prisma.tenantInvitation.upsert({
+    where: { staffId },
+    update: fields,
+    create: { ...fields, staffId },
   });
 }
 
@@ -152,7 +146,11 @@ export async function validateInvitation(token: string): Promise<ValidationResul
   });
 
   if (!invitation) {
-    return { valid: false, reason: 'Invitación no encontrada' };
+    return {
+      valid: false,
+      reason:
+        'Invitación no encontrada. Si te enviaron una invitación nueva, usa el enlace del correo más reciente.',
+    };
   }
 
   if (invitation.status === 'ACCEPTED') {
