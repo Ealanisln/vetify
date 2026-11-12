@@ -12,6 +12,18 @@ import { z } from 'zod';
 import { withApiAuth, apiError } from '@/lib/api/api-key-auth';
 import { serializeAppointmentWithRelations } from '../../_shared/serializers';
 import { triggerWebhookEvent } from '@/lib/webhooks';
+import { evaluateStatusChange, isCancelledStatus } from '@/lib/appointments/status-transitions';
+
+/** Prisma raises P2025 when a guarded update matches no row */
+const isRecordNotFound = (error: unknown): boolean =>
+  typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2025';
+
+const concurrentChangeError = () =>
+  apiError(
+    'Appointment status changed concurrently; fetch it again and retry',
+    'CONFLICT',
+    409
+  );
 
 // Valid appointment statuses
 const APPOINTMENT_STATUSES = [
@@ -158,6 +170,16 @@ export const PUT = withApiAuth(
       );
     }
 
+    // Status changes must follow the allowed-transition map
+    const statusChange = data.status ? evaluateStatusChange(existing.status, data.status) : null;
+    if (statusChange?.type === 'invalid') {
+      return apiError(
+        `Invalid status transition from ${existing.status} to ${data.status}`,
+        'CONFLICT',
+        409
+      );
+    }
+
     // Verify staff if changing
     if (data.staffId && data.staffId !== existing.staffId) {
       const staff = await prisma.staff.findFirst({
@@ -220,15 +242,17 @@ export const PUT = withApiAuth(
       }
     }
 
-    // Update the appointment
+    // Update the appointment. A status change only applies if nobody changed
+    // the status since we read it; "unchanged" (e.g. re-cancel) keeps it as is.
+    const statusChanges = statusChange?.type === 'allowed';
     const appointment = await prisma.appointment.update({
-      where: { id },
+      where: { id, tenantId: apiKey.tenantId, ...(statusChanges && { status: existing.status }) },
       data: {
         ...(data.dateTime !== undefined && { dateTime: new Date(data.dateTime) }),
         ...(data.duration !== undefined && { duration: data.duration }),
         ...(data.reason !== undefined && { reason: data.reason }),
         ...(data.notes !== undefined && { notes: data.notes }),
-        ...(data.status !== undefined && { status: data.status }),
+        ...(statusChanges && { status: data.status }),
         ...(data.staffId !== undefined && { staffId: data.staffId }),
         ...(data.locationId !== undefined && { locationId: data.locationId }),
       },
@@ -264,13 +288,19 @@ export const PUT = withApiAuth(
           },
         },
       },
+    }).catch((error: unknown) => {
+      if (isRecordNotFound(error)) return null;
+      throw error;
     });
 
+    if (!appointment) {
+      return concurrentChangeError();
+    }
+
     // Trigger appropriate webhook event based on status change (fire-and-forget)
-    const cancelledStatuses = ['CANCELLED_CLIENT', 'CANCELLED_CLINIC'];
     const serialized = serializeAppointmentWithRelations(appointment);
 
-    if (data.status && cancelledStatuses.includes(data.status) && !cancelledStatuses.includes(existing.status)) {
+    if (statusChanges && isCancelledStatus(data.status!)) {
       triggerWebhookEvent(apiKey.tenantId, 'appointment.cancelled', serialized);
     } else {
       triggerWebhookEvent(apiKey.tenantId, 'appointment.updated', serialized);
@@ -316,8 +346,9 @@ export const DELETE = withApiAuth(
     }
 
     // Cancel the appointment (via API implies clinic-initiated)
+    // Guarded on the status we read, so concurrent cancels only win once
     const appointment = await prisma.appointment.update({
-      where: { id },
+      where: { id, tenantId: apiKey.tenantId, status: existing.status },
       data: { status: 'CANCELLED_CLINIC' },
       include: {
         pet: {
@@ -351,7 +382,14 @@ export const DELETE = withApiAuth(
           },
         },
       },
+    }).catch((error: unknown) => {
+      if (isRecordNotFound(error)) return null;
+      throw error;
     });
+
+    if (!appointment) {
+      return concurrentChangeError();
+    }
 
     // Trigger webhook event (fire-and-forget)
     triggerWebhookEvent(apiKey.tenantId, 'appointment.cancelled', serializeAppointmentWithRelations(appointment));

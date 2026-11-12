@@ -14,6 +14,17 @@ import type {
 import { shouldSendNotification } from '@/lib/enhanced-settings';
 import { getClinicTimeZone } from '@/lib/clinic-timezone';
 import { formatTime } from '@/lib/utils/date-format';
+import {
+  evaluateStatusChange,
+  isCancelledStatus,
+} from '@/lib/appointments/status-transitions';
+
+const CONCURRENT_CHANGE_ERROR =
+  'La cita cambió mientras la editabas. Recarga la página e intenta de nuevo.';
+
+/** Prisma raises P2025 when a guarded update matches no row */
+const isRecordNotFound = (error: unknown): boolean =>
+  typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2025';
 
 const updateAppointmentSchema = z.object({
   dateTime: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -128,6 +139,18 @@ export async function PUT(
       );
     }
 
+    // Status changes must follow the allowed-transition map
+    const statusChange = validatedData.status
+      ? evaluateStatusChange(existingAppointment.status, validatedData.status)
+      : null;
+
+    if (statusChange?.type === 'invalid') {
+      return NextResponse.json(
+        { success: false, error: statusChange.message },
+        { status: 409 }
+      );
+    }
+
     // Verificar cliente y mascota si se actualizan
     if (validatedData.customerId) {
       const customer = await prisma.customer.findFirst({
@@ -235,13 +258,20 @@ export async function PUT(
     if (validatedData.customerId) updateData.customerId = validatedData.customerId;
     if (validatedData.petId) updateData.petId = validatedData.petId;
     if (validatedData.reason) updateData.reason = validatedData.reason;
-    if (validatedData.status) updateData.status = validatedData.status;
+    // "unchanged" (e.g. re-cancelling) keeps the stored status untouched
+    if (statusChange?.type === 'allowed') updateData.status = validatedData.status;
     if (validatedData.notes !== undefined) updateData.notes = validatedData.notes;
     if (validatedData.staffId !== undefined) updateData.staffId = validatedData.staffId || null;
     if (validatedData.locationId !== undefined) updateData.locationId = validatedData.locationId || null;
 
+    // When the status changes, only apply it if nobody changed it since we
+    // read it (a double-click must not cancel twice or send two emails)
     const appointment = await prisma.appointment.update({
-      where: { id: appointmentId },
+      where: {
+        id: appointmentId,
+        tenantId: tenant.id,
+        ...(statusChange?.type === 'allowed' && { status: existingAppointment.status }),
+      },
       data: updateData,
       include: {
         customer: {
@@ -289,10 +319,7 @@ export async function PUT(
 
     // Determine what type of notification to send
     const wasCancelled =
-      validatedData.status &&
-      (validatedData.status === 'CANCELLED_CLIENT' || validatedData.status === 'CANCELLED_CLINIC') &&
-      existingAppointment.status !== 'CANCELLED_CLIENT' &&
-      existingAppointment.status !== 'CANCELLED_CLINIC';
+      statusChange?.type === 'allowed' && isCancelledStatus(validatedData.status!);
 
     const wasRescheduled =
       validatedData.dateTime &&
@@ -393,6 +420,13 @@ export async function PUT(
       );
     }
 
+    if (isRecordNotFound(error)) {
+      return NextResponse.json(
+        { success: false, error: CONCURRENT_CHANGE_ERROR },
+        { status: 409 }
+      );
+    }
+
     // Handle permission denied errors
     if (error instanceof Error && error.message.includes('Access denied')) {
       return NextResponse.json(
@@ -435,50 +469,86 @@ export async function DELETE(
       );
     }
 
-    // En lugar de eliminar físicamente, marcamos como cancelada
-    const appointment = await prisma.appointment.update({
-      where: { id: appointmentId },
-      data: {
-        status: 'CANCELLED_CLINIC',
-        notes: existingAppointment.notes
-          ? `${existingAppointment.notes}\n\nCancelada desde el sistema el ${new Date().toISOString()}`
-          : `Cancelada desde el sistema el ${new Date().toISOString()}`
-      },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-          }
+    const statusChange = evaluateStatusChange(existingAppointment.status, 'CANCELLED_CLINIC');
+
+    if (statusChange.type === 'invalid') {
+      return NextResponse.json(
+        { success: false, error: statusChange.message },
+        { status: 409 }
+      );
+    }
+
+    // Cancelling twice is a no-op: same answer, no second email
+    const alreadyCancelled = (data: unknown) =>
+      NextResponse.json({ success: true, data, message: 'La cita ya estaba cancelada' });
+
+    if (statusChange.type === 'unchanged') {
+      return alreadyCancelled(existingAppointment);
+    }
+
+    // En lugar de eliminar físicamente, marcamos como cancelada. The update is
+    // guarded on the status we read, so concurrent cancels only win once.
+    const appointment = await prisma.appointment
+      .update({
+        where: { id: appointmentId, tenantId: tenant.id, status: existingAppointment.status },
+        data: {
+          status: 'CANCELLED_CLINIC',
+          notes: existingAppointment.notes
+            ? `${existingAppointment.notes}\n\nCancelada desde el sistema el ${new Date().toISOString()}`
+            : `Cancelada desde el sistema el ${new Date().toISOString()}`
         },
-        pet: {
-          select: {
-            id: true,
-            name: true,
-            species: true,
-            breed: true,
-          }
-        },
-        staff: {
-          select: {
-            id: true,
-            name: true,
-            position: true,
-          }
-        },
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-            publicPhone: true,
-            countryCode: true,
-            tenantSettings: { select: { timezone: true } },
+        include: {
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              phone: true,
+            }
+          },
+          pet: {
+            select: {
+              id: true,
+              name: true,
+              species: true,
+              breed: true,
+            }
+          },
+          staff: {
+            select: {
+              id: true,
+              name: true,
+              position: true,
+            }
+          },
+          tenant: {
+            select: {
+              id: true,
+              name: true,
+              publicPhone: true,
+              countryCode: true,
+              tenantSettings: { select: { timezone: true } },
+            }
           }
         }
+      })
+      .catch((error: unknown) => {
+        if (isRecordNotFound(error)) return null;
+        throw error;
+      });
+
+    if (!appointment) {
+      const current = await prisma.appointment.findFirst({
+        where: { id: appointmentId, tenantId: tenant.id }
+      });
+      if (current && isCancelledStatus(current.status)) {
+        return alreadyCancelled(current);
       }
-    });
+      return NextResponse.json(
+        { success: false, error: CONCURRENT_CHANGE_ERROR },
+        { status: 409 }
+      );
+    }
 
     // Send cancellation email to customer (check preferences first)
     const sendCancellation = await shouldSendNotification(tenant.id, 'appointmentCancellation');

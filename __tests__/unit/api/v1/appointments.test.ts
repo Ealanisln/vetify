@@ -447,6 +447,90 @@ describe('API v1 Appointments', () => {
       expect(response.status).toBe(409);
       expect(body.code).toBe('CONFLICT');
     });
+
+    it.each([
+      ['COMPLETED', 'CANCELLED_CLINIC'],
+      ['CANCELLED_CLINIC', 'SCHEDULED'],
+      ['IN_PROGRESS', 'SCHEDULED'],
+    ])('should reject the invalid status transition %s -> %s', async (from, to) => {
+      const mockApiKey = createMockApiKey();
+
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
+      (mockPrisma.appointment.findFirst as jest.Mock).mockReset();
+      (mockPrisma.appointment.findFirst as jest.Mock).mockResolvedValue(createMockAppointment({ status: from }));
+      (mockPrisma.appointment.update as jest.Mock).mockReset();
+
+      const request = createMockRequest(`https://api.vetify.com/api/v1/appointments/${TEST_APPOINTMENT_ID}`, {
+        headers: { authorization: `Bearer ${validKey}` },
+        body: { status: to },
+      });
+
+      const response = await updateAppointment(request, {
+        params: Promise.resolve({ id: TEST_APPOINTMENT_ID }),
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(body.code).toBe('CONFLICT');
+      expect(mockPrisma.appointment.update).not.toHaveBeenCalled();
+    });
+
+    it('should keep the stored status when re-cancelling a cancelled appointment', async () => {
+      const mockApiKey = createMockApiKey();
+
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
+      (mockPrisma.appointment.findFirst as jest.Mock).mockReset();
+      (mockPrisma.appointment.findFirst as jest.Mock).mockResolvedValue(
+        createMockAppointment({ status: 'CANCELLED_CLIENT' })
+      );
+      (mockPrisma.appointment.update as jest.Mock).mockReset();
+      (mockPrisma.appointment.update as jest.Mock).mockResolvedValue(
+        createMockAppointmentWithRelations({ status: 'CANCELLED_CLIENT' })
+      );
+
+      const request = createMockRequest(`https://api.vetify.com/api/v1/appointments/${TEST_APPOINTMENT_ID}`, {
+        headers: { authorization: `Bearer ${validKey}` },
+        body: { status: 'CANCELLED_CLINIC' },
+      });
+
+      const response = await updateAppointment(request, {
+        params: Promise.resolve({ id: TEST_APPOINTMENT_ID }),
+      });
+
+      expect(response.status).toBe(200);
+      const updateArgs = (mockPrisma.appointment.update as jest.Mock).mock.calls[0][0];
+      expect(updateArgs.data.status).toBeUndefined();
+    });
+
+    it('should guard a status change on the status it read', async () => {
+      const mockApiKey = createMockApiKey();
+
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(mockApiKey);
+      (mockPrisma.appointment.findFirst as jest.Mock).mockReset();
+      (mockPrisma.appointment.findFirst as jest.Mock).mockResolvedValue(createMockAppointment());
+      (mockPrisma.appointment.update as jest.Mock).mockReset();
+      (mockPrisma.appointment.update as jest.Mock).mockRejectedValue(
+        Object.assign(new Error('No record was found for an update.'), { code: 'P2025' })
+      );
+
+      const request = createMockRequest(`https://api.vetify.com/api/v1/appointments/${TEST_APPOINTMENT_ID}`, {
+        headers: { authorization: `Bearer ${validKey}` },
+        body: { status: 'CONFIRMED' },
+      });
+
+      const response = await updateAppointment(request, {
+        params: Promise.resolve({ id: TEST_APPOINTMENT_ID }),
+      });
+      const body = await response.json();
+
+      expect(response.status).toBe(409);
+      expect(body.code).toBe('CONFLICT');
+      expect(mockPrisma.appointment.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: TEST_APPOINTMENT_ID, tenantId: TEST_TENANT_ID, status: 'SCHEDULED' },
+        })
+      );
+    });
   });
 
   describe('DELETE /api/v1/appointments/:id', () => {
@@ -474,7 +558,7 @@ describe('API v1 Appointments', () => {
       expect(response.status).toBe(204);
       expect(mockPrisma.appointment.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: TEST_APPOINTMENT_ID },
+          where: { id: TEST_APPOINTMENT_ID, tenantId: TEST_TENANT_ID, status: 'SCHEDULED' },
           data: { status: 'CANCELLED_CLINIC' },
         })
       );
