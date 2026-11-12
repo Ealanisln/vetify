@@ -53,6 +53,7 @@ import { GET as getPet, PUT as updatePet, DELETE as deletePet } from '@/app/api/
 import { NextRequest } from 'next/server';
 import type { AuthenticatedApiKey } from '@/lib/api/api-key-auth';
 import { Decimal } from '@prisma/client/runtime/library';
+import { generateOpenAPISpec } from '@/lib/api/openapi-spec';
 
 const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
@@ -206,6 +207,38 @@ describe('API v1 Pets', () => {
           }),
         })
       );
+    });
+
+    it('leaves out pets whose owner is archived', async () => {
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(createMockApiKey());
+      (mockPrisma.pet.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.pet.count as jest.Mock).mockResolvedValue(0);
+
+      await listPets(
+        createMockRequest('https://api.vetify.com/api/v1/pets', {
+          headers: { authorization: `Bearer ${validKey}` },
+        })
+      );
+
+      const where = (mockPrisma.pet.findMany as jest.Mock).mock.calls[0][0].where;
+      expect(where).toEqual(expect.objectContaining({ tenantId: TEST_TENANT_ID, customer: { isActive: true } }));
+      expect((mockPrisma.pet.count as jest.Mock).mock.calls[0][0].where).toEqual(where);
+    });
+
+    it('still lists the pets of an archived owner when filtering by that customer', async () => {
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(createMockApiKey());
+      (mockPrisma.pet.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.pet.count as jest.Mock).mockResolvedValue(0);
+
+      await listPets(
+        createMockRequest(`https://api.vetify.com/api/v1/pets?customerId=${TEST_CUSTOMER_ID}`, {
+          headers: { authorization: `Bearer ${validKey}` },
+        })
+      );
+
+      const where = (mockPrisma.pet.findMany as jest.Mock).mock.calls[0][0].where;
+      expect(where.customerId).toBe(TEST_CUSTOMER_ID);
+      expect(where).not.toHaveProperty('customer');
     });
 
     it('should filter by species', async () => {
@@ -507,6 +540,113 @@ describe('API v1 Pets', () => {
       });
 
       expect(response.status).toBe(404);
+    });
+  });
+
+  // The rest of the app stores pounds as 'lbs'; v1 used 'lb'. 'lb' stays
+  // accepted as an input alias so existing API clients keep working.
+  describe('weight units', () => {
+    function postBody(weightUnit: unknown) {
+      return {
+        name: 'Max',
+        species: 'Dog',
+        breed: 'Labrador',
+        dateOfBirth: '2020-01-15',
+        gender: 'male',
+        customerId: TEST_CUSTOMER_ID,
+        weight: 20,
+        weightUnit,
+      };
+    }
+
+    function setupCreate() {
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(createMockApiKey());
+      (mockPrisma.customer.findFirst as jest.Mock).mockResolvedValue(createMockCustomer());
+      (mockPrisma.pet.create as jest.Mock).mockImplementation(async ({ data }) => ({
+        ...createMockPet(),
+        ...data,
+        customer: { id: TEST_CUSTOMER_ID, name: 'John', email: null, phone: null },
+      }));
+    }
+
+    it.each(['lb', 'lbs'])('stores %s as lbs on create', async (unit) => {
+      setupCreate();
+
+      const response = await createPet(
+        createMockRequest('https://api.vetify.com/api/v1/pets', {
+          headers: { authorization: `Bearer ${validKey}` },
+          body: postBody(unit),
+        })
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(201);
+      expect((mockPrisma.pet.create as jest.Mock).mock.calls[0][0].data.weightUnit).toBe('lbs');
+      expect(body.data.weightUnit).toBe('lbs');
+    });
+
+    it('rejects an unknown unit', async () => {
+      setupCreate();
+
+      const response = await createPet(
+        createMockRequest('https://api.vetify.com/api/v1/pets', {
+          headers: { authorization: `Bearer ${validKey}` },
+          body: postBody('g'),
+        })
+      );
+
+      expect(response.status).toBe(400);
+      expect(mockPrisma.pet.create).not.toHaveBeenCalled();
+    });
+
+    it('stores lb as lbs on update', async () => {
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(createMockApiKey());
+      (mockPrisma.pet.findFirst as jest.Mock).mockResolvedValue(createMockPet());
+      (mockPrisma.pet.update as jest.Mock).mockImplementation(async ({ data }) => ({
+        ...createMockPet(),
+        ...data,
+        customer: { id: TEST_CUSTOMER_ID, name: 'John', email: null, phone: null },
+      }));
+
+      const response = await updatePet(
+        createMockRequest(`https://api.vetify.com/api/v1/pets/${TEST_PET_ID}`, {
+          headers: { authorization: `Bearer ${validKey}` },
+          body: { weightUnit: 'lb' },
+        }),
+        { params: Promise.resolve({ id: TEST_PET_ID }) }
+      );
+
+      expect(response.status).toBe(200);
+      expect((mockPrisma.pet.update as jest.Mock).mock.calls[0][0].data.weightUnit).toBe('lbs');
+    });
+
+    it('returns pets saved with the legacy lb unit as lbs', async () => {
+      (mockPrisma.tenantApiKey.findUnique as jest.Mock).mockResolvedValue(createMockApiKey());
+      (mockPrisma.pet.findFirst as jest.Mock).mockResolvedValue({
+        ...createMockPet({ weightUnit: 'lb' }),
+        customer: { id: TEST_CUSTOMER_ID, name: 'John', email: null, phone: null },
+      });
+
+      const response = await getPet(
+        createMockRequest(`https://api.vetify.com/api/v1/pets/${TEST_PET_ID}`, {
+          headers: { authorization: `Bearer ${validKey}` },
+        }),
+        { params: Promise.resolve({ id: TEST_PET_ID }) }
+      );
+      const body = await response.json();
+
+      expect(body.data.weightUnit).toBe('lbs');
+    });
+
+    it('documents lbs, with lb as an accepted input alias, in the OpenAPI spec', () => {
+      const schemas = generateOpenAPISpec('https://www.vetify.pro').components.schemas as Record<
+        string,
+        { properties: Record<string, { enum?: string[] }> }
+      >;
+
+      expect(schemas.Pet.properties.weightUnit.enum).toEqual(['kg', 'lbs']);
+      expect(schemas.PetCreate.properties.weightUnit.enum).toEqual(['kg', 'lbs', 'lb']);
+      expect(schemas.PetUpdate.properties.weightUnit.enum).toEqual(['kg', 'lbs', 'lb']);
     });
   });
 });

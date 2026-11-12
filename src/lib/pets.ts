@@ -100,6 +100,12 @@ export async function createPet(
   return serializePet(pet);
 }
 
+/**
+ * Pet lists, search and selectors hide pets whose owner is archived
+ * (customer.isActive = false). Views of a specific customer or pet don't use it.
+ */
+export const ACTIVE_OWNER_PETS = { customer: { isActive: true } } as const;
+
 const PET_LIST_INCLUDE = {
   customer: true,
   appointments: true,
@@ -116,6 +122,7 @@ export async function getPetsByTenant(
 ) {
   const where = {
     tenantId,
+    ...ACTIVE_OWNER_PETS,
     // Include pets with the specified location OR pets without any location assigned
     ...(locationId && {
       OR: [

@@ -3,6 +3,7 @@ import { DashboardStats } from '@/types';
 import { serializePets, serializeObject } from './serializers';
 import type { Tenant } from '@prisma/client';
 import { getClinicTimeZone } from './clinic-timezone';
+import { ACTIVE_OWNER_PETS } from './pets';
 
 // Not shown as "Próximas citas": the visit is not going to happen.
 const INACTIVE_APPOINTMENT_STATUSES = ['CANCELLED_CLIENT', 'CANCELLED_CLINIC', 'NO_SHOW'] as const;
@@ -27,11 +28,11 @@ export async function getDashboardStats(
     upcomingAppointments,
     tenantSettings
   ] = await Promise.all([
-    prisma.pet.count({ where: { tenantId } }),
+    prisma.pet.count({ where: { tenantId, ...ACTIVE_OWNER_PETS } }),
     prisma.appointment.count({ where: { tenantId } }),
     // Optimized: Only select fields needed for dashboard display
     prisma.pet.findMany({
-      where: { tenantId },
+      where: { tenantId, ...ACTIVE_OWNER_PETS },
       select: {
         id: true,
         name: true,

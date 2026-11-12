@@ -24,6 +24,8 @@ import {
   apiError,
 } from '@/lib/api/api-key-auth';
 import { serializePet, serializeCustomerSummary } from '../_shared/serializers';
+import { weightUnitSchema } from '../_shared/weight-unit';
+import { ACTIVE_OWNER_PETS } from '@/lib/pets';
 import { triggerWebhookEvent } from '@/lib/webhooks';
 
 // Validation schema for creating a pet
@@ -39,7 +41,7 @@ const createPetSchema = z.object({
   locationId: z.string().uuid().optional().nullable(),
   internalId: z.string().max(50).optional().nullable(),
   weight: z.number().positive().optional().nullable(),
-  weightUnit: z.enum(['kg', 'lb']).optional().nullable(),
+  weightUnit: weightUnitSchema.optional().nullable(),
   microchipNumber: z.string().max(50).optional().nullable(),
   isNeutered: z.boolean().optional(),
   profileImage: z.string().url().optional().nullable(),
@@ -62,7 +64,8 @@ export const GET = withApiAuth(
 
     const where = {
       ...baseWhere,
-      ...(customerId && { customerId }),
+      // Pets of archived customers are hidden unless that customer is asked for
+      ...(customerId ? { customerId } : ACTIVE_OWNER_PETS),
       ...(species && { species: { equals: species, mode: 'insensitive' as const } }),
       ...(isDeceased !== undefined && { isDeceased }),
     };

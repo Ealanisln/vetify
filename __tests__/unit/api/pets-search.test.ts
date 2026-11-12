@@ -13,8 +13,10 @@ import { GET } from '@/app/api/pets/route';
 import { requireActiveSubscriptionApi } from '@/lib/auth';
 
 const pets = [
-  { id: 'pet-1', name: 'Firulais', customer: { name: 'Ana López' } },
-  { id: 'pet-2', name: 'Michi', customer: { name: 'Beto Ruiz' } },
+  { id: 'pet-1', name: 'Firulais', customer: { name: 'Ana López', isActive: true } },
+  { id: 'pet-2', name: 'Michi', customer: { name: 'Beto Ruiz', isActive: true } },
+  // Owner archived: hidden from lists and search
+  { id: 'pet-3', name: 'Pelusa', customer: { name: 'Ana Archivada', isActive: false } },
 ];
 
 /** Minimal evaluator for the where clauses getPetsByTenant builds. */
@@ -63,6 +65,15 @@ describe('GET /api/pets search', () => {
   it('keeps returning every pet without search', async () => {
     const body = await (await get('http://localhost/api/pets')).json();
     expect(body.data).toHaveLength(2);
+  });
+
+  it('leaves out pets whose owner is archived', async () => {
+    const all = await (await get('http://localhost/api/pets?page=1&limit=10')).json();
+    expect(all.data.map((p: any) => p.id)).toEqual(['pet-1', 'pet-2']);
+    expect(all.pagination.total).toBe(2);
+
+    const search = await (await get('http://localhost/api/pets?search=ana&limit=10')).json();
+    expect(search.data.map((p: any) => p.id)).toEqual(['pet-1']);
   });
 
   it('stays scoped to the tenant', async () => {

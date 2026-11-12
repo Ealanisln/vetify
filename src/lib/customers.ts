@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 import { z } from 'zod';
 import { serializeCustomer, serializeCustomers } from './serializers';
@@ -235,18 +236,39 @@ export async function updateCustomer(
   tenantId: string,
   data: Partial<CreateCustomerInput>
 ) {
+  // Only fields present in the input are written: undefined leaves the stored
+  // value as is, so partial updates don't wipe email or location.
+  const updates: Prisma.CustomerUncheckedUpdateInput = {};
+  if (data.name !== undefined) updates.name = data.name;
+  if (data.firstName !== undefined) updates.firstName = data.firstName;
+  if (data.lastName !== undefined) updates.lastName = data.lastName;
+  if (data.phone !== undefined) updates.phone = data.phone;
+  if (data.address !== undefined) updates.address = data.address;
+  if (data.preferredContactMethod !== undefined) {
+    updates.preferredContactMethod = data.preferredContactMethod;
+  }
+  if (data.notes !== undefined) updates.notes = data.notes;
+
+  // An empty string clears the email (the form sends '' for "no email").
+  if (data.email !== undefined) updates.email = data.email || null;
+
+  if (data.locationId !== undefined) {
+    if (data.locationId) {
+      const location = await prisma.location.findFirst({
+        where: { id: data.locationId, tenantId },
+        select: { id: true },
+      });
+
+      if (!location) {
+        throw new Error('Ubicación no encontrada o no pertenece a esta clínica');
+      }
+    }
+    updates.locationId = data.locationId || null;
+  }
+
   const customer = await prisma.customer.update({
     where: { id: customerId, tenantId },
-    data: {
-      name: data.name,
-      firstName: data.firstName,
-      lastName: data.lastName,
-      email: data.email || null,
-      phone: data.phone,
-      address: data.address,
-      preferredContactMethod: data.preferredContactMethod,
-      notes: data.notes,
-    },
+    data: updates,
   });
 
   return serializeCustomer(customer);
