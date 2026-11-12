@@ -7,6 +7,36 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.13.0] - 2026-11-12
+
+### Agregado
+- **Seguimiento desde la historia clínica.** Un botón "Agendar seguimiento" abre el formulario de cita con el cliente, la mascota y el motivo ya llenos. Al guardar una historia nueva se abre su detalle.
+- **Próxima aplicación de desparasitación y antipulgas.** Al registrar uno de estos tratamientos se puede indicar la siguiente fecha, y se crea un recordatorio para el dueño, igual que con las vacunas.
+- **Productos del inventario en la historia clínica.** El campo de medicamento sugiere productos del inventario con su presentación y existencias. También se puede escribir texto libre.
+- **Los correos a los clientes de la clínica se responden a la clínica.** Confirmaciones, recordatorios y cancelaciones de cita usan el correo público de la clínica como dirección de respuesta, o el de su administrador si no tiene uno.
+
+### Corregido
+- **Horarios de citas en la zona horaria de la clínica.** Los horarios disponibles se calculaban en UTC, así que una cita de las 9:00 podía bloquear el horario de las 15:00 y se podían empalmar citas. Ahora los horarios, la reserva pública, el calendario, los correos y "Próximas citas" usan la zona de la clínica.
+- **Configuración de horarios.** "Sin comida" ya se guarda, las clínicas nuevas empiezan con una semana laboral por defecto, la duración por defecto se aplica sin pasos extra y se validan los rangos de horario.
+- **Catálogo de servicios.** La reserva pública muestra los servicios de la clínica, los precios usan su moneda, los errores salen en español y eliminar un servicio con ventas lo desactiva sin hacerlo desaparecer de la lista.
+- **Invitaciones al equipo.** Reinvitar después de que una invitación expiró ya funciona. Si el invitado abre el enlace con otra cuenta, puede cerrar sesión y entrar con la correcta, y quien ya pertenece a otra clínica recibe un mensaje claro en lugar de un error.
+- **Correos que no se enviaban.** Algunos correos (aviso de alta, bienvenida, citas, reservas) se perdían porque la función terminaba antes de enviarlos.
+- **El formulario de citas ya no se prellena con la hora actual.** Hay que elegir un horario, y las fechas pasadas muestran una advertencia.
+- **Calendario.** Muestra todas las citas del rango (antes solo 10), arrastrar y redimensionar guarda el cambio, editar una cita ya no obliga a reprogramarla y se respeta el horario de la clínica.
+- **Estados de las citas.** Una cita completada, cancelada o marcada como "no se presentó" ya no se puede cambiar, y cancelar dos veces ya no envía dos correos.
+- **Choques de horario.** Se usa la duración real de cada cita. Dos citas sin veterinario asignado ya no se pueden empalmar.
+- **Recordatorios de citas y vacunas.** Los recordatorios de cita apuntan al día siguiente en la hora de la clínica, y las vacunas con próxima dosis crean su recordatorio con la fecha real. Antes no se enviaba ninguno.
+- **Registro de clínicas.** Los errores del registro ahora se muestran, se rechazan las direcciones reservadas, la prueba muestra los días reales y las direcciones de clínica ya no terminan en guion.
+- **El plan anual se cobraba con el precio mensual.**
+- **Clientes y mascotas.** El formulario combinado ya no dice "éxito" si la mascota falló, las unidades de peso son consistentes (`kg`/`lbs`), no se duplica el cliente al reintentar, la búsqueda ignora acentos y las mascotas de clientes archivados ya no aparecen en las listas.
+- **Historia clínica.** La página de historia nueva y la de detalle funcionan, una etapa de vacuna vacía ya no bloquea el guardado, la fecha de visita es opcional y los signos vitales ya no se mezclan con el diagnóstico.
+- **Reserva pública.** Ya no expone datos de otros clientes, la búsqueda pide teléfono completo más nombre o correo, las reservas anónimas no modifican clientes existentes y se limita el número de solicitudes.
+- **Los planes ilimitados bloqueaban WhatsApp y cajas**, y la prueba no permitía enviar WhatsApp.
+- **Fechas en los correos de prueba, cobro y retención** salían en UTC; ahora llevan zona horaria.
+- **Enlaces en correos.** Algunos apuntaban a `localhost` o a `undefined/…`. Ahora todos usan el dominio de Vetify.
+- **Aislamiento entre clínicas.** Las rutas de horarios y servicios aceptaban identificadores de otra clínica; ahora lo rechazan.
+- **Las alertas de inventario bajo** usaban una consulta inválida, y la tarea diaria ahora reporta sus fallas.
+
 ## [1.12.1] - 2026-10-02
 
 ### Corregido
