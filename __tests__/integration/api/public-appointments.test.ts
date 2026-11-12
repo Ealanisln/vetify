@@ -106,7 +106,7 @@ describe('Public Appointments API', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(data.message).toBe('Appointment request created successfully');
+      expect(data.message).toBe('Solicitud de cita recibida');
       expect(data.data.appointmentRequest.petName).toBe('Firulais');
     });
 
@@ -268,8 +268,10 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.data.customerStatus).toBe('existing');
-      expect(data.data.existingPets).toEqual(existingPets);
+      // Knowing a phone must not reveal that it belongs to a client, nor their pets
+      expect(Object.keys(data.data)).toEqual(['appointmentRequest']);
+      expect(JSON.stringify(data)).not.toContain('pet-1');
+      expect(JSON.stringify(data)).not.toContain(mockCustomer.id);
 
       // Verify findOrCreateCustomer was called with correct params
       expect(mockFindOrCreateCustomer).toHaveBeenCalledWith({
@@ -309,9 +311,9 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.data.customerStatus).toBe('existing');
-      expect(data.data.hasAccount).toBe(true);
-      expect(data.data.loginPrompt).not.toBeNull();
+      // No login prompt: it disclosed the account and its email to anyone
+      expect(Object.keys(data.data)).toEqual(['appointmentRequest']);
+      expect(JSON.stringify(data)).not.toContain('juan@example.com');
     });
 
     it('should create new customer when not found', async () => {
@@ -348,9 +350,15 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.data.customerStatus).toBe('new');
-      expect(data.data.hasAccount).toBe(false);
-      expect(data.data.loginPrompt).toBeNull();
+      expect(data.data).toEqual({
+        appointmentRequest: {
+          id: 'appt-req-new',
+          petName: 'Rocky',
+          service: 'Vacunación',
+          preferredDate: null,
+          status: 'PENDING',
+        },
+      });
     });
 
     it('should return needs_review status for ambiguous match', async () => {
@@ -392,9 +400,10 @@ describe('Public Appointments API', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.data.customerStatus).toBe('needs_review');
-      expect(data.data.confidence).toBe('low');
-      expect(data.data.similarCustomers).toHaveLength(2);
+      // Other customers with a similar name are never returned
+      expect(Object.keys(data.data)).toEqual(['appointmentRequest']);
+      expect(JSON.stringify(data)).not.toContain('similar-1');
+      expect(JSON.stringify(data)).not.toContain('Juan Garza');
     });
 
     it('should match pet by ID when provided', async () => {

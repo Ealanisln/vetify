@@ -190,10 +190,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 📊 RESPUESTA CON INFORMACIÓN DE IDENTIFICACIÓN
+    // Generic answer: an anonymous caller must not learn whether the phone or
+    // name belongs to a client, nor anything about that client or others.
     return NextResponse.json({
       success: true,
-      message: 'Appointment request created successfully',
+      message: 'Solicitud de cita recibida',
       data: {
         appointmentRequest: {
           id: appointmentRequest.id,
@@ -201,18 +202,7 @@ export async function POST(request: NextRequest) {
           service: appointmentRequest.service,
           preferredDate: appointmentRequest.preferredDate,
           status: appointmentRequest.status
-        },
-        customerStatus: identificationResult.status,
-        existingPets: identificationResult.existingPets || [],
-        hasAccount: identificationResult.hasUserAccount,
-        confidence: identificationResult.confidence,
-        loginPrompt: identificationResult.hasUserAccount ? {
-          message: "¡Te reconocemos! Inicia sesión para ver tu historial completo",
-          loginUrl: `/sign-in?redirect=dashboard${identificationResult.customer.email ? `&email=${identificationResult.customer.email}` : ''}`
-        } : null,
-        similarCustomers: identificationResult.status === 'needs_review' 
-          ? identificationResult.similarCustomers?.slice(0, 2) 
-          : null
+        }
       }
     });
 
