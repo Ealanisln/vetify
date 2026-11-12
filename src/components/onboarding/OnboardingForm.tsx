@@ -166,6 +166,7 @@ export function OnboardingForm({ user, promoInfo, detectedCountry }: OnboardingF
         onSubmit={handleSubmit}
         isSubmitting={isSubmitting}
         submitError={submitError}
+        trialDays={trialDays}
         detectedCountry={detectedCountry}
       />
     </div>

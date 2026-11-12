@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { generateSlugFromName, removeAccents } from '../../../lib/tenant';
 import { ONBOARDING_COUNTRIES } from '../../../lib/onboarding-defaults';
 import { getDisplayHost } from '../../../lib/seo/config';
+import { TRIAL_PERIOD_DAYS } from '../../../lib/constants';
 
 interface ClinicInfoProps {
   user: {
@@ -21,6 +22,8 @@ interface ClinicInfoProps {
   isSubmitting: boolean;
   /** Spanish message shown when creating the clinic failed; the form stays filled for a retry. */
   submitError?: string | null;
+  /** Trial length to promise (a FREE_TRIAL promotion can change it). */
+  trialDays?: number;
   /** ISO alpha-2 country pre-detected server-side (x-vercel-ip-country). */
   detectedCountry?: string;
   initialData?: {
@@ -36,7 +39,14 @@ const SLUG_CHECK_DEBOUNCE_MS = 300;
 const isOfferedCountry = (code?: string) =>
   !!code && ONBOARDING_COUNTRIES.some(c => c.code === code.toUpperCase());
 
-export function ClinicInfo({ onSubmit, isSubmitting, submitError, detectedCountry, initialData }: ClinicInfoProps) {
+export function ClinicInfo({
+  onSubmit,
+  isSubmitting,
+  submitError,
+  trialDays = TRIAL_PERIOD_DAYS,
+  detectedCountry,
+  initialData,
+}: ClinicInfoProps) {
   const [clinicName, setClinicName] = useState(initialData?.clinicName || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [countryCode, setCountryCode] = useState(
@@ -253,7 +263,7 @@ export function ClinicInfo({ onSubmit, isSubmitting, submitError, detectedCountr
         </button>
 
         <p className="text-center text-sm text-green-600 dark:text-green-400 font-medium">
-          ✅ 30 días gratis · Sin tarjeta · Plan Profesional completo
+          ✅ {trialDays} días gratis · Sin tarjeta · Plan Profesional completo
         </p>
       </form>
     </div>
