@@ -423,13 +423,18 @@ describe('QuickBooking', () => {
   });
 
   describe('Date Selection', () => {
-    it('should set min date to today', () => {
-      render(<QuickBooking tenant={defaultTenant} />);
+    // Regression: min used the UTC date, so from 18:00 in Mexico City the
+    // clinic's own today could no longer be picked.
+    it('should set min date to today in the clinic timezone', () => {
+      jest.useFakeTimers({ now: new Date('2026-11-17T03:00:00.000Z') }); // 21:00 on the 16th in CDMX
+      try {
+        render(<QuickBooking tenant={{ ...defaultTenant, timeZone: 'America/Mexico_City' }} />);
 
-      const dateInput = screen.getByLabelText(/fecha preferida/i);
-      const today = new Date().toISOString().split('T')[0];
-
-      expect(dateInput).toHaveAttribute('min', today);
+        const dateInput = screen.getByLabelText(/fecha preferida/i);
+        expect(dateInput).toHaveAttribute('min', '2026-11-16');
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('should fetch availability when date is selected', async () => {

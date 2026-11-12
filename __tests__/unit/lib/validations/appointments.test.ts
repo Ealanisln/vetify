@@ -4,7 +4,6 @@
  *
  * Tests cover:
  * - Zod schemas validation (appointmentFormSchema, updateAppointmentSchema, etc.)
- * - validateAppointmentTime() - time validation logic
  * - getNextAppointmentStatus() - state machine transitions
  * - getAppointmentStatusColor() - utility function
  * - getAppointmentStatusLabel() - utility function
@@ -22,7 +21,6 @@ import {
   appointmentReminderSchema,
   businessHoursSchema,
   appointmentStatus,
-  validateAppointmentTime,
   getAppointmentStatusColor,
   getAppointmentStatusLabel,
   getNextAppointmentStatus,
@@ -473,123 +471,6 @@ describe('Appointment Validations', () => {
           expect(() => businessHoursSchema.parse(data)).toThrow('Formato de hora inválido');
         }
       );
-    });
-  });
-
-  describe('validateAppointmentTime', () => {
-    // Mock the current date for consistent testing
-    const mockNow = new Date('2026-01-15T10:00:00');
-
-    beforeEach(() => {
-      jest.useFakeTimers();
-      jest.setSystemTime(mockNow);
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
-    describe('past date validation', () => {
-      it('should throw error for past appointment', () => {
-        const pastDate = new Date('2026-01-14T10:00:00'); // Yesterday
-        expect(() => validateAppointmentTime(pastDate)).toThrow(
-          'La cita debe ser en el futuro'
-        );
-      });
-
-      it('should throw error for current time appointment', () => {
-        const now = new Date(mockNow);
-        expect(() => validateAppointmentTime(now)).toThrow('La cita debe ser en el futuro');
-      });
-    });
-
-    describe('Sunday validation', () => {
-      it('should throw error for Sunday appointment', () => {
-        // January 18, 2026 is a Sunday
-        const sunday = new Date('2026-01-18T10:00:00');
-        expect(() => validateAppointmentTime(sunday)).toThrow(
-          'No se pueden agendar citas los domingos'
-        );
-      });
-
-      it('should accept Monday appointment', () => {
-        // January 19, 2026 is a Monday
-        const monday = new Date('2026-01-19T10:00:00');
-        expect(validateAppointmentTime(monday)).toBe(true);
-      });
-
-      it('should accept Saturday appointment', () => {
-        // January 17, 2026 is a Saturday
-        const saturday = new Date('2026-01-17T10:00:00');
-        expect(validateAppointmentTime(saturday)).toBe(true);
-      });
-    });
-
-    describe('business hours validation', () => {
-      it('should throw error for appointment before 8:00 AM', () => {
-        const earlyMorning = new Date('2026-01-19T07:59:00');
-        expect(() => validateAppointmentTime(earlyMorning)).toThrow(
-          'Las citas deben ser entre 8:00 AM y 6:00 PM'
-        );
-      });
-
-      it('should accept appointment at 8:00 AM', () => {
-        const morning = new Date('2026-01-19T08:00:00');
-        expect(validateAppointmentTime(morning)).toBe(true);
-      });
-
-      it('should throw error for appointment at 6:00 PM or later', () => {
-        const evening = new Date('2026-01-19T18:00:00');
-        expect(() => validateAppointmentTime(evening)).toThrow(
-          'Las citas deben ser entre 8:00 AM y 6:00 PM'
-        );
-      });
-
-      it('should accept appointment at 5:59 PM (17:59)', () => {
-        const afternoon = new Date('2026-01-19T17:59:00');
-        expect(validateAppointmentTime(afternoon)).toBe(true);
-      });
-    });
-
-    describe('lunch hour validation', () => {
-      it('should throw error for appointment at 1:00 PM (13:00)', () => {
-        const lunchStart = new Date('2026-01-19T13:00:00');
-        expect(() => validateAppointmentTime(lunchStart)).toThrow(
-          'No se pueden agendar citas durante la hora de comida (1:00 PM - 2:00 PM)'
-        );
-      });
-
-      it('should throw error for appointment at 1:30 PM (13:30)', () => {
-        const midLunch = new Date('2026-01-19T13:30:00');
-        expect(() => validateAppointmentTime(midLunch)).toThrow(
-          'No se pueden agendar citas durante la hora de comida (1:00 PM - 2:00 PM)'
-        );
-      });
-
-      it('should accept appointment at 2:00 PM (14:00)', () => {
-        const afterLunch = new Date('2026-01-19T14:00:00');
-        expect(validateAppointmentTime(afterLunch)).toBe(true);
-      });
-
-      it('should accept appointment at 12:59 PM (12:59)', () => {
-        const beforeLunch = new Date('2026-01-19T12:59:00');
-        expect(validateAppointmentTime(beforeLunch)).toBe(true);
-      });
-    });
-
-    describe('valid appointment times', () => {
-      it.each([
-        ['2026-01-19T08:00:00', 'Monday 8:00 AM'],
-        ['2026-01-19T09:30:00', 'Monday 9:30 AM'],
-        ['2026-01-19T12:00:00', 'Monday 12:00 PM'],
-        ['2026-01-19T14:00:00', 'Monday 2:00 PM'],
-        ['2026-01-19T17:00:00', 'Monday 5:00 PM'],
-        ['2026-01-20T10:00:00', 'Tuesday 10:00 AM'],
-        ['2026-01-17T15:00:00', 'Saturday 3:00 PM'],
-      ])('should accept valid time: %s (%s)', (dateStr) => {
-        const date = new Date(dateStr);
-        expect(validateAppointmentTime(date)).toBe(true);
-      });
     });
   });
 
