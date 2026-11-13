@@ -22,30 +22,66 @@ import {
   AppointmentWithDetails,
   AppointmentQuery,
 } from '@/lib/appointments/fetchers';
+import { isWithinInterval } from 'date-fns';
 import {
-  startOfDay,
-  endOfDay,
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  isWithinInterval,
-} from 'date-fns';
+  DEFAULT_CLINIC_TIME_ZONE,
+  clinicDayRange,
+  clinicToday,
+  dayOfWeekForDate,
+} from '@/lib/clinic-timezone';
 
-const WEEK_OPTIONS = { weekStartsOn: 1 } as const; // Monday start
+interface Interval {
+  start: Date;
+  end: Date;
+}
+
+/** Shifts a yyyy-MM-dd calendar date by whole days. */
+function shiftDate(date: string, days: number): string {
+  const [y, m, d] = date.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
 
 /**
- * Range that covers today, this week and this month. The Today list and the
- * stats are computed from this range, never from the calendar's visible one.
+ * Today, this week (Monday start) and this month as instants, measured in the
+ * clinic's calendar. The browser may sit in another timezone, so its own
+ * midnight is not the clinic's.
  */
-export function getStatsDateRange(now: Date = new Date()): { start: Date; end: Date } {
-  const weekStart = startOfWeek(now, WEEK_OPTIONS);
-  const monthStart = startOfMonth(now);
-  const weekEnd = endOfWeek(now, WEEK_OPTIONS);
-  const monthEnd = endOfMonth(now);
+export function getClinicPeriods(
+  timeZone: string = DEFAULT_CLINIC_TIME_ZONE,
+  now: Date = new Date()
+): { today: Interval; week: Interval; month: Interval } {
+  const today = clinicToday(timeZone, now);
+  const weekStart = shiftDate(today, -((dayOfWeekForDate(today) + 6) % 7));
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const [y, m] = today.split('-').map(Number);
+  const monthEnd = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+
   return {
-    start: weekStart < monthStart ? weekStart : monthStart,
-    end: weekEnd > monthEnd ? weekEnd : monthEnd,
+    today: clinicDayRange(today, timeZone),
+    week: {
+      start: clinicDayRange(weekStart, timeZone).start,
+      end: clinicDayRange(shiftDate(weekStart, 6), timeZone).end,
+    },
+    month: {
+      start: clinicDayRange(monthStart, timeZone).start,
+      end: clinicDayRange(monthEnd, timeZone).end,
+    },
+  };
+}
+
+/**
+ * Range that covers the clinic's today, this week and this month. The Today
+ * list and the stats are computed from this range, never from the calendar's
+ * visible one.
+ */
+export function getStatsDateRange(
+  now: Date = new Date(),
+  timeZone: string = DEFAULT_CLINIC_TIME_ZONE
+): Interval {
+  const { week, month } = getClinicPeriods(timeZone, now);
+  return {
+    start: week.start < month.start ? week.start : month.start,
+    end: week.end > month.end ? week.end : month.end,
   };
 }
 
@@ -173,17 +209,18 @@ export function useAppointmentsData(
 }
 
 /**
- * Hook for today's appointments
+ * Hook for the clinic's today appointments
  * Filters from the main appointments cache to avoid extra API call
  */
 export function useTodayAppointments(
-  allAppointments: AppointmentWithDetails[]
+  allAppointments: AppointmentWithDetails[],
+  timeZone: string = DEFAULT_CLINIC_TIME_ZONE
 ): AppointmentWithDetails[] {
   return useMemo(() => {
-    const today = { start: startOfDay(new Date()), end: endOfDay(new Date()) };
+    const { today } = getClinicPeriods(timeZone);
 
     return allAppointments.filter((apt) => isWithinInterval(new Date(apt.dateTime), today));
-  }, [allAppointments]);
+  }, [allAppointments, timeZone]);
 }
 
 /**
@@ -198,22 +235,20 @@ export interface AppointmentStats {
 }
 
 /**
- * Hook for appointment statistics
+ * Hook for appointment statistics, in the clinic's calendar
  * Calculates stats from the main appointments cache
  */
 export function useAppointmentStatsFromData(
-  appointments: AppointmentWithDetails[]
+  appointments: AppointmentWithDetails[],
+  timeZone: string = DEFAULT_CLINIC_TIME_ZONE
 ): AppointmentStats {
   return useMemo(() => {
     if (!appointments.length) {
       return { today: 0, thisWeek: 0, thisMonth: 0, completionRate: 0 };
     }
 
-    const now = new Date();
-    const today = { start: startOfDay(now), end: endOfDay(now) };
-    const week = { start: startOfWeek(now, WEEK_OPTIONS), end: endOfWeek(now, WEEK_OPTIONS) };
-    const month = { start: startOfMonth(now), end: endOfMonth(now) };
-    const within = (interval: { start: Date; end: Date }) =>
+    const { today, week, month } = getClinicPeriods(timeZone);
+    const within = (interval: Interval) =>
       appointments.filter((apt) => isWithinInterval(new Date(apt.dateTime), interval));
 
     const todayAppointments = within(today);
@@ -234,7 +269,7 @@ export function useAppointmentStatsFromData(
       thisMonth: monthAppointments.length,
       completionRate,
     };
-  }, [appointments]);
+  }, [appointments, timeZone]);
 }
 
 /**
