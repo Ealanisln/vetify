@@ -7,8 +7,9 @@ import { QuickActions } from './QuickActions';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Loader2, Clock, AlertCircle, User, Calendar } from 'lucide-react';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
+import { DEFAULT_CLINIC_TIME_ZONE } from '../../lib/clinic-timezone';
 import { getAppointmentStatusLabel } from '../../lib/validations/appointments';
 import { cn } from '../../lib/utils';
 
@@ -43,8 +44,11 @@ export function TodayAppointments({
   const error = isInProvider ? (contextData?.error?.message ?? null) : (legacyData?.error ?? null);
   const refresh = isInProvider ? (contextData?.refresh ?? noopPromise) : (legacyData?.refresh ?? noopPromise);
 
-  const today = new Date();
-  const formattedDate = format(today, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
+  // Date and times are the clinic's, whatever the browser's timezone is
+  const timeZone = contextData?.clinicSettings?.timeZone ?? DEFAULT_CLINIC_TIME_ZONE;
+  const formattedDate = formatInTimeZone(new Date(), timeZone, "EEEE, d 'de' MMMM 'de' yyyy", {
+    locale: es,
+  });
   // Capitalize first letter
   const capitalizedDate = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
 
@@ -150,7 +154,7 @@ export function TodayAppointments({
                     <div className="flex items-center gap-3">
                       {/* Time */}
                       <span className="text-2xl font-bold text-gray-900 dark:text-gray-100 tabular-nums" data-testid="appointment-time">
-                        {format(appointment.dateTime, 'HH:mm')}
+                        {formatInTimeZone(appointment.dateTime, timeZone, 'HH:mm')}
                       </span>
 
                       {/* Status badge */}

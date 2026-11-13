@@ -30,6 +30,8 @@ import {
   AppointmentStats,
 } from '@/hooks/appointments/useAppointmentsData';
 import { useAppointmentMutations } from '@/hooks/appointments/useAppointmentMutations';
+import { useClinicCalendarSettings, ClinicCalendarSettings } from '@/hooks/useCalendar';
+import { DEFAULT_CLINIC_TIME_ZONE } from '@/lib/clinic-timezone';
 import { AppointmentWithDetails } from '@/lib/appointments/fetchers';
 import { AppointmentFormData } from '@/lib/validations/appointments';
 import {
@@ -87,6 +89,8 @@ interface AppointmentsContextValue {
   todayAppointments: AppointmentWithDetails[];
   stats: AppointmentStats;
   calendarEvents: CalendarEvent[];
+  /** Clinic hours and timezone (null fields until loaded) */
+  clinicSettings: ClinicCalendarSettings;
 
   // State
   isLoading: boolean;
@@ -211,9 +215,17 @@ export function AppointmentsProvider({
     keepPreviousData: true,
   });
 
+  // Clinic hours and timezone. "Today", the week and the month are the
+  // clinic's, which can differ from the browser's.
+  const clinicSettings = useClinicCalendarSettings();
+  const clinicTimeZone = clinicSettings.timeZone ?? DEFAULT_CLINIC_TIME_ZONE;
+
   // Today's list and stats come from their own range (this week + this
   // month), so they don't change when the calendar navigates elsewhere.
-  const [statsRange] = useState(() => getStatsDateRange(new Date()));
+  const statsRange = useMemo(
+    () => getStatsDateRange(new Date(), clinicTimeZone),
+    [clinicTimeZone]
+  );
   const {
     appointments: statsAppointments,
     refresh: refreshStats,
@@ -229,8 +241,8 @@ export function AppointmentsProvider({
   }, [refreshCalendar, refreshStats]);
 
   // Derived data - calculated client-side
-  const todayAppointments = useTodayAppointments(statsAppointments);
-  const stats = useAppointmentStatsFromData(statsAppointments);
+  const todayAppointments = useTodayAppointments(statsAppointments, clinicTimeZone);
+  const stats = useAppointmentStatsFromData(statsAppointments, clinicTimeZone);
   const calendarEvents = useCalendarEvents(appointments);
 
   // Mutations
@@ -255,6 +267,7 @@ export function AppointmentsProvider({
       todayAppointments,
       stats,
       calendarEvents,
+      clinicSettings,
 
       // State
       isLoading,
@@ -285,6 +298,7 @@ export function AppointmentsProvider({
       todayAppointments,
       stats,
       calendarEvents,
+      clinicSettings,
       isLoading,
       isValidating,
       error,
