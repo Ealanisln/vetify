@@ -2,7 +2,7 @@
 
 Lista viva de lo que falta. Lo más importante va arriba. Cuando algo se cierre, se marca con `[x]`, se anota la fecha y el PR, y se mueve a "Cerrados".
 
-Última actualización: 12/Nov/2026 (#247 y #248 mergeados a `development`; tanda 3 en los PRs #249 a #255, abiertos)
+Última actualización: 13/Nov/2026 (v1.13.0 en prod desde el 12/Nov; tanda 4: #259 a #261 mergeados a `development`, #262 abierto)
 
 ## Prioridad 0: no negociable
 
@@ -12,7 +12,7 @@ Lista viva de lo que falta. Lo más importante va arriba. Cuando algo se cierre,
   - **Servicios:** `src/components/settings/ServiceManagement.tsx` y `ServiceModal.tsx`. Crear, editar, desactivar y borrar servicios, con precios en la moneda del tenant, y verificar que aparezcan al agendar.
   - **Equipo:** `src/app/dashboard/staff/new`, `src/app/dashboard/staff/[id]` y `src/app/api/invitations/{send,validate,accept}`. Revisar que el correo de invitación llegue, que el invitado pueda aceptar (con o sin cuenta de Kinde), que quede ligado al tenant correcto con su rol y que respete los límites del plan.
   - **Hecho cuando:** existe un E2E de Playwright que cubre los tres flujos y pasa en CI, y el flujo completo se probó a mano en producción con un tenant de prueba antes de la llamada.
-  - **Avance (12/Nov):** el E2E existe y pasa en CI (`tests/e2e/clinic-setup/clinic-setup.spec.ts`, PR #255). Falta: mergear #255, hacer el release a `main` y la prueba manual en prod con un tenant de prueba.
+  - **Avance (12/Nov):** el E2E existe y pasa en CI (`tests/e2e/clinic-setup/clinic-setup.spec.ts`, PR #255). #255 ya está en prod (v1.13.0). Falta la prueba manual en prod con un tenant de prueba.
   - **Estado en prod (12/Nov):** Animal Medical Centre tiene 0 servicios, 0 horarios guardados y 0 sucursales; en la llamada todo se configura desde cero. En toda la vida de prod solo hay 2 invitaciones de equipo.
   - **Auditoría de código (12/Nov).** Los marcados con ✔ los verifiqué contra el código; el resto viene de la auditoría y está trazado, pero falta confirmarlo con tests.
 
@@ -51,7 +51,7 @@ El detalle completo está en `docs/AUDITORIA-FLUJOS-2026-11.md`. Aquí solo va l
 - Historia clínica: recordatorios de vacunas, el formulario de historia nueva, el detalle, "Etapa" vacía, chips, línea de tiempo y signos vitales.
 - Reserva pública: sin exposición de datos, búsqueda segura, sin cambios a clientes existentes y límite de peticiones.
 
-**Tanda 3 (no requería decisión):** resuelta en PRs abiertos el 12/Nov, pendientes de mergear.
+**Tanda 3 (no requería decisión):** mergeada el 12/Nov y en prod con v1.13.0.
 - [x] Citas: transiciones de estado inválidas y cancelación doble. _PR #251._
 - [x] Citas: choques con la duración real; sin staff, choca con cualquier cita que se empalme en la clínica. _PR #251._
 - [x] Calendario en la zona de la clínica (`@fullcalendar/luxon3`). _PR #254._
@@ -64,12 +64,18 @@ El detalle completo está en `docs/AUDITORIA-FLUJOS-2026-11.md`. Aquí solo va l
 - [x] Historia clínica: próxima aplicación, "Agendar seguimiento", fecha opcional y selector de inventario. _PR #250._
 - [x] Consulta muerta de `CONFIRMED` en `api/public/availability`. _PR #251._
 
-**Siguiente tanda (no requiere decisión):**
-- [ ] La lista de "hoy" y las estadísticas del dashboard siguen en la zona del navegador (salió de #254).
-- [ ] La búsqueda pública de clientes todavía encuentra clientes archivados (salió de #249).
-- [ ] `robots.ts` solo permite el rastreo si la URL base es exactamente la apex. Si `NEXT_PUBLIC_BASE_URL` cambia a `www`, Google deja de indexar todo el sitio. Hoy prod está bien (verificado el 12/Nov). Hacer que acepte las dos (salió de #253).
-- [ ] E2E: fixture de usuario sin rol de admin (8 tests de acceso por rol están en skip) y fixture de plan CORPORATIVO para `api-keys.spec.ts` y `webhooks.spec.ts`, que aún tienen los `if (isVisible)` (salió de #255).
-- [ ] Los tests de Stripe fallan en local sin `STRIPE_SECRET_KEY`, y eso rompe el pre-commit hook en worktrees. Que usen una llave falsa como en CI.
+**Tanda 4 (no requería decisión):** 13/Nov, en `development` salvo #262.
+- [x] La lista de "hoy" y las estadísticas de citas en la zona de la clínica. La pantalla de inicio del dashboard no calcula cortes por día, así que no aplica. _PR #261._
+- [x] La búsqueda pública de clientes ya no encuentra clientes archivados. _PR #259._
+- [x] `robots.ts` acepta la apex y `www`. _PR #259._
+- [ ] E2E: fixture de veterinario sin rol de admin (los 8 tests de acceso por rol ya corren) y clínica con plan CORPORATIVO (`api-keys.spec.ts` sin `if (isVisible)`). _PR #262, abierto: falta que pase el CI y mergearlo._
+- [x] Los tests de Stripe usan una llave falsa si no hay una configurada; el pre-commit ya no falla en worktrees. _PR #260._
+
+**Tanda 5 (no requiere decisión, arrancar con agentes en paralelo cuando #262 esté mergeado):**
+- [ ] **La UI de webhooks no está montada.** `WebhookConfig` no se exporta ni se usa en ninguna página, así que el plan CORPORATIVO no puede configurar webhooks. Montarla en settings y quitar los `test.fixme` de `tests/e2e/settings/webhooks.spec.ts` (salió de #262).
+- [ ] **No se puede elegir sucursal al crear una API key.** `ApiKeyManagement` guarda toda la respuesta de `/api/locations` en lugar de `data.data`, y el selector nunca aparece. Quitar el `test.fixme` correspondiente en `api-keys.spec.ts` (salió de #262).
+- [ ] **La reserva pública liga clientes archivados.** `POST /api/public/appointments` todavía identifica por teléfono a clientes archivados al crear la reserva; #259 solo arregló la búsqueda (salió de #259).
+- [ ] Los worktrees nuevos necesitan `pnpm prisma generate`, o 3 suites de unit fallan por falta de `.prisma/client`. Evaluar un `postinstall` o documentarlo.
 
 **Requiere decisión (💳 cobro/permisos, 🗄 esquema):**
 - [ ] 💳 Cambiar de plan cancela la suscripción antes de cobrar la nueva.
