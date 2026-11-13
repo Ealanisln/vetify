@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { AUTH_STATE_PATH, VET_AUTH_STATE_PATH } from '../support/constants';
 
 /**
  * E2E Tests for Settings Management
@@ -402,15 +403,16 @@ test.describe('Settings Management', () => {
  * These tests verify that the settings page is properly protected
  * and only accessible to MANAGER and ADMINISTRATOR roles.
  *
- * NOTE: These tests require special setup with test users having different roles.
- * Set TEST_ROLE_ACCESS_ENABLED=true to run these tests.
+ * Denied scenarios run as SEEDED_VET (VETERINARIAN, not the owner); allowed
+ * scenarios run as SEEDED_OWNER (Administrador). Both are seeded by
+ * scripts/seed-ci-test-data.ts and logged in by tests/auth.setup.ts.
  */
-const isRoleAccessTestEnabled = process.env.TEST_ROLE_ACCESS_ENABLED === 'true';
-
 test.describe('Settings Role-Based Access Control', () => {
-  test.skip(!isRoleAccessTestEnabled, 'Skipping - requires role-based test setup. Set TEST_ROLE_ACCESS_ENABLED=true');
+  test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session. Set TEST_AUTH_ENABLED=true');
 
   test.describe('Access Denied Scenarios', () => {
+    test.use({ storageState: VET_AUTH_STATE_PATH });
+
     test('should redirect non-admin user to dashboard when accessing settings directly', async ({ page }) => {
       // This test requires a user logged in with a non-admin role (e.g., VETERINARIAN)
       // The page should redirect to /dashboard?error=access_denied
@@ -451,13 +453,15 @@ test.describe('Settings Role-Based Access Control', () => {
   });
 
   test.describe('Access Allowed Scenarios', () => {
+    test.use({ storageState: AUTH_STATE_PATH });
+
     test('should allow MANAGER to access settings page', async ({ page }) => {
       // This test requires a user logged in with MANAGER role
       await page.goto('/dashboard/settings');
       await page.waitForLoadState('networkidle');
 
-      // Should see the settings page header
-      await expect(page.locator('h1:has-text("Configuración")')).toBeVisible();
+      // Should see the settings page header (the layout also renders a hidden mobile one)
+      await expect(page.locator('h1:has-text("Configuración")').filter({ visible: true }).first()).toBeVisible();
       await expect(page.locator('[data-testid="settings-tabs"]')).toBeVisible();
     });
 
@@ -466,9 +470,9 @@ test.describe('Settings Role-Based Access Control', () => {
       await page.goto('/dashboard');
       await page.waitForLoadState('networkidle');
 
-      // The sidebar should have a settings link for admin users
-      const settingsLink = page.locator('a[href="/dashboard/settings"]');
-      await expect(settingsLink).toBeVisible();
+      // The sidebar should have a settings link for admin users (desktop and mobile sidebars both render one)
+      const settingsLink = page.locator('a[href="/dashboard/settings"]').filter({ visible: true });
+      await expect(settingsLink.first()).toBeVisible();
     });
 
     test('should show settings link in user dropdown for MANAGER', async ({ page }) => {
@@ -486,6 +490,8 @@ test.describe('Settings Role-Based Access Control', () => {
   });
 
   test.describe('Security Edge Cases', () => {
+    test.use({ storageState: VET_AUTH_STATE_PATH });
+
     test('should handle direct URL access attempt by non-admin', async ({ page }) => {
       // Attempt to access settings with various URL patterns
       const settingsUrls = [

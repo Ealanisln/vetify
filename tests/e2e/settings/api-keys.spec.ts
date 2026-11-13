@@ -1,4 +1,10 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
+import {
+  AUTH_STATE_PATH,
+  CORPORATIVO_AUTH_STATE_PATH,
+  SEEDED_CORPORATIVO_LOCATION_NAME,
+  VET_AUTH_STATE_PATH,
+} from '../support/constants';
 
 /**
  * E2E Tests for API Key Management
@@ -11,436 +17,353 @@ import { test, expect } from '@playwright/test';
  * - Feature gating for non-CORPORATIVO users
  * - Search and filter
  *
- * NOTE: These tests require authentication and a CORPORATIVO plan.
- * They will be skipped if TEST_AUTH_ENABLED is not set.
+ * Runs as SEEDED_CORPORATIVO_OWNER (CORPORATIVO plan, API access), except the
+ * gating and role tests, which use the PROFESIONAL owner and the veterinarian.
+ * All are seeded by scripts/seed-ci-test-data.ts and logged in by
+ * tests/auth.setup.ts. Skipped unless TEST_AUTH_ENABLED=true.
  *
- * SECURITY: API key management is only available to CORPORATIVO plan users.
- * Non-CORPORATIVO users will see a feature gate/upgrade prompt.
+ * Each test creates the keys it needs with a unique name and only looks at
+ * those, so the tests do not depend on each other or on run order.
  */
 
 const isAuthTestEnabled = process.env.TEST_AUTH_ENABLED === 'true';
 
+const API_TAB = '/dashboard/settings?tab=api';
+
+async function openApiTab(page: Page) {
+  await page.goto(API_TAB);
+  await expect(page.getByRole('button', { name: 'Nueva Clave', exact: true })).toBeVisible();
+}
+
+async function openCreateModal(page: Page) {
+  await page.getByRole('button', { name: 'Nueva Clave', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Nueva Clave de API' })).toBeVisible();
+}
+
+/** The card of the key named `name` (ApiKeyCard has no test id). */
+function keyCard(page: Page, name: string): Locator {
+  return page
+    .locator('div.rounded-lg')
+    .filter({ has: page.getByRole('heading', { name, exact: true }) })
+    .filter({ has: page.getByRole('button', { name: 'Eliminar' }) })
+    .last();
+}
+
+/** Creates a key through the UI and closes the one-time display. */
+async function createKey(page: Page, prefix: string): Promise<string> {
+  const name = `${prefix} ${Date.now()}`;
+  await openCreateModal(page);
+  await page.fill('#api-key-name', name);
+  await page.getByRole('button', { name: 'Crear Clave' }).click();
+  await expect(page.getByRole('heading', { name: 'Clave de API Creada' })).toBeVisible();
+  await page.getByRole('button', { name: /Entendido/ }).click();
+  await expect(keyCard(page, name)).toBeVisible();
+  return name;
+}
+
 test.describe('API Key Management', () => {
   test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session. Set TEST_AUTH_ENABLED=true');
+  test.use({ storageState: CORPORATIVO_AUTH_STATE_PATH });
 
   test.describe('Feature Access', () => {
     test('should show API tab in settings for CORPORATIVO users', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await page.goto(API_TAB);
 
-      // Should see the API key management section
       await expect(
-        page.locator('text=Las claves de API permiten que aplicaciones externas')
+        page.getByText('Las claves de API permiten que aplicaciones externas').first()
       ).toBeVisible();
-    });
-
-    test('should show upgrade prompt for non-CORPORATIVO users', async ({ page }) => {
-      // This test requires a non-CORPORATIVO user
-      // The FeatureGate component should block access
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
-
-      // May see either the API management (if CORPORATIVO) or upgrade prompt
-      const upgradePrompt = page.locator('text=Función Premium');
-      const apiSection = page.locator('text=Las claves de API permiten');
-
-      // One of these should be visible
-      await expect(upgradePrompt.or(apiSection)).toBeVisible();
+      await expect(page.getByText('Función Premium')).not.toBeVisible();
     });
   });
 
   test.describe('Create API Key Flow', () => {
-    test('should open create modal when clicking "Nueva Clave" button', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
-
-      // Click create button
-      await page.click('button:has-text("Nueva Clave")');
-
-      // Modal should open
-      await expect(page.locator('text=Nueva Clave de API')).toBeVisible();
+    test.beforeEach(async ({ page }) => {
+      await openApiTab(page);
     });
 
-    test('should show form validation errors', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    test('should open create modal when clicking "Nueva Clave" button', async ({ page }) => {
+      await openCreateModal(page);
+      await expect(page.locator('#api-key-name')).toBeVisible();
+    });
 
-      await page.click('button:has-text("Nueva Clave")');
+    test('should require a name before creating', async ({ page }) => {
+      await openCreateModal(page);
 
-      // Try to submit without name
-      await page.click('button:has-text("Crear Clave")');
+      await page.getByRole('button', { name: 'Crear Clave' }).click();
 
-      // Should show validation error
-      await expect(page.locator('text=El nombre es requerido')).toBeVisible();
+      // The name input is `required`, so the browser blocks the submit
+      const nameInput = page.locator('#api-key-name');
+      expect(await nameInput.evaluate((input: HTMLInputElement) => input.validity.valueMissing)).toBe(true);
+      await expect(page.getByRole('heading', { name: 'Nueva Clave de API' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Clave de API Creada' })).not.toBeVisible();
     });
 
     test('should create API key and show one-time display', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openCreateModal(page);
+      await page.fill('#api-key-name', `E2E Test Key ${Date.now()}`);
+      await page.getByRole('button', { name: 'Crear Clave' }).click();
 
-      // Open modal
-      await page.click('button:has-text("Nueva Clave")');
-
-      // Fill form
-      const timestamp = Date.now();
-      const keyName = `E2E Test Key ${timestamp}`;
-      await page.fill('#api-key-name', keyName);
-
-      // Submit
-      await page.click('button:has-text("Crear Clave")');
-
-      // Should show the created key modal
-      await expect(page.locator('text=Clave de API Creada')).toBeVisible();
-
-      // Should show the full key (one time)
-      await expect(page.locator('code:has-text("vfy_")')).toBeVisible();
-
-      // Should show the warning about one-time display
-      await expect(page.locator('text=Esta es la única vez que verás la clave completa')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Clave de API Creada' })).toBeVisible();
+      // The full key, shown only once
+      await expect(page.locator('code', { hasText: /^vfy_/ }).first()).toBeVisible();
+      await expect(page.getByText('Esta es la única vez que verás la clave completa')).toBeVisible();
     });
 
     test('should copy key to clipboard', async ({ page, context }) => {
-      // Grant clipboard permissions
       await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openCreateModal(page);
+      await page.fill('#api-key-name', `Copy Test Key ${Date.now()}`);
+      await page.getByRole('button', { name: 'Crear Clave' }).click();
+      await expect(page.getByRole('heading', { name: 'Clave de API Creada' })).toBeVisible();
 
-      await page.click('button:has-text("Nueva Clave")');
+      await page.locator('button[title="Copiar clave"]').click();
 
-      const keyName = `Copy Test Key ${Date.now()}`;
-      await page.fill('#api-key-name', keyName);
-      await page.click('button:has-text("Crear Clave")');
-
-      await expect(page.locator('text=Clave de API Creada')).toBeVisible();
-
-      // Click copy button
-      const copyButton = page.locator('button[title*="Copiar"]');
-      await copyButton.click();
-
-      // Should show confirmation
-      await expect(page.locator('text=Clave copiada al portapapeles')).toBeVisible();
+      await expect(page.getByText('Clave copiada al portapapeles')).toBeVisible();
+      const clipboard = await page.evaluate(() => navigator.clipboard.readText());
+      expect(clipboard).toMatch(/^vfy_/);
     });
 
     test('should close modal and show key in list', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      const name = await createKey(page, 'List Test Key');
 
-      await page.click('button:has-text("Nueva Clave")');
-
-      const keyName = `List Test Key ${Date.now()}`;
-      await page.fill('#api-key-name', keyName);
-      await page.click('button:has-text("Crear Clave")');
-
-      await expect(page.locator('text=Clave de API Creada')).toBeVisible();
-
-      // Close the modal
-      await page.click('button:has-text("Entendido")');
-
-      // Key should appear in the list
-      await expect(page.locator(`text=${keyName}`)).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Clave de API Creada' })).not.toBeVisible();
+      await expect(keyCard(page, name).getByText('Activa', { exact: true })).toBeVisible();
     });
 
     test('should select different scope bundles', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openCreateModal(page);
 
-      await page.click('button:has-text("Nueva Clave")');
+      await page.getByRole('button', { name: /Solo lectura/ }).click();
 
-      // Open bundle dropdown
-      await page.click('button:has-text("Solo lectura")');
-
-      // Should show all bundle options
-      await expect(page.locator('text=Acceso completo')).toBeVisible();
-      await expect(page.locator('text=Solo citas')).toBeVisible();
-      await expect(page.locator('text=Solo inventario')).toBeVisible();
-      await expect(page.locator('text=Personalizado')).toBeVisible();
+      for (const bundle of ['Acceso completo', 'Solo citas', 'Solo inventario', 'Personalizado']) {
+        await expect(page.getByRole('button', { name: new RegExp(`^${bundle}`) })).toBeVisible();
+      }
     });
 
     test('should show custom scopes when selecting Personalizado', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openCreateModal(page);
 
-      await page.click('button:has-text("Nueva Clave")');
+      await page.getByRole('button', { name: /Solo lectura/ }).click();
+      await page.getByRole('button', { name: /^Personalizado/ }).click();
 
-      // Open bundle dropdown
-      await page.click('button:has-text("Solo lectura")');
-
-      // Select custom
-      await page.click('text=Personalizado >> nth=0');
-
-      // Should show scope groups
-      await expect(page.locator('text=Mascotas')).toBeVisible();
-      await expect(page.locator('text=Citas')).toBeVisible();
-      await expect(page.locator('text=Clientes')).toBeVisible();
+      const intro = page.getByText('Selecciona los permisos específicos para esta clave de API:');
+      await expect(intro).toBeVisible();
+      const customScopes = page.locator('div').filter({ has: intro }).last();
+      for (const group of ['Mascotas', 'Citas', 'Clientes']) {
+        await expect(customScopes.getByText(group, { exact: true })).toBeVisible();
+      }
     });
   });
 
   test.describe('Edit API Key', () => {
-    test('should open edit dialog when clicking edit button', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    test('should rename a key from the edit prompt', async ({ page }) => {
+      await openApiTab(page);
+      const name = await createKey(page, 'Edit Test Key');
+      const newName = `Renamed Key ${Date.now()}`;
 
-      // First create a key if none exists
-      const keyExists = await page.locator('[data-testid="api-key-card"]').count() > 0;
+      page.once('dialog', async (dialog) => {
+        expect(dialog.type()).toBe('prompt');
+        expect(dialog.defaultValue()).toBe(name);
+        await dialog.accept(newName);
+      });
+      await keyCard(page, name).getByRole('button', { name: 'Editar' }).click();
 
-      if (!keyExists) {
-        await page.click('button:has-text("Nueva Clave")');
-        await page.fill('#api-key-name', `Edit Test Key ${Date.now()}`);
-        await page.click('button:has-text("Crear Clave")');
-        await page.click('button:has-text("Entendido")');
-        await page.waitForLoadState('networkidle');
-      }
-
-      // Click edit button (pencil icon)
-      const editButton = page.locator('button[title="Editar"]').first();
-      if (await editButton.isVisible()) {
-        // Handle the prompt dialog
-        page.on('dialog', async (dialog) => {
-          expect(dialog.type()).toBe('prompt');
-          await dialog.accept('Renamed Key');
-        });
-
-        await editButton.click();
-      }
+      await expect(keyCard(page, newName)).toBeVisible();
+      await expect(page.getByRole('heading', { name, exact: true })).not.toBeVisible();
     });
   });
 
   test.describe('Delete API Key', () => {
-    test('should show confirmation dialog when clicking delete', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    test('should keep the key when the confirmation is dismissed', async ({ page }) => {
+      await openApiTab(page);
+      const name = await createKey(page, 'Keep Test Key');
 
-      const deleteButton = page.locator('button[title="Eliminar"]').first();
-
-      if (await deleteButton.isVisible()) {
-        // Handle the confirmation dialog
-        page.on('dialog', async (dialog) => {
+      const dialogShown = new Promise<void>((resolve) => {
+        page.once('dialog', async (dialog) => {
           expect(dialog.type()).toBe('confirm');
           expect(dialog.message()).toContain('Estás seguro');
-          await dialog.dismiss(); // Don't actually delete
+          await dialog.dismiss();
+          resolve();
         });
+      });
+      await keyCard(page, name).getByRole('button', { name: 'Eliminar' }).click();
+      await dialogShown;
 
-        await deleteButton.click();
-      }
+      await expect(keyCard(page, name)).toBeVisible();
     });
 
     test('should delete key when confirmed', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openApiTab(page);
+      const name = await createKey(page, 'Delete Test Key');
 
-      // First create a key to delete
-      await page.click('button:has-text("Nueva Clave")');
-      const keyName = `Delete Test Key ${Date.now()}`;
-      await page.fill('#api-key-name', keyName);
-      await page.click('button:has-text("Crear Clave")');
-      await page.click('button:has-text("Entendido")');
-      await page.waitForLoadState('networkidle');
+      page.once('dialog', (dialog) => dialog.accept());
+      await keyCard(page, name).getByRole('button', { name: 'Eliminar' }).click();
 
-      // Find the key's delete button
-      const keyCard = page.locator(`text=${keyName}`).locator('..').locator('..');
-      const deleteButton = keyCard.locator('button[title="Eliminar"]');
-
-      // Accept the confirmation
-      page.on('dialog', async (dialog) => {
-        await dialog.accept();
-      });
-
-      await deleteButton.click();
-
-      // Key should be removed from list
-      await expect(page.locator(`text=${keyName}`)).not.toBeVisible();
+      await expect(page.getByRole('heading', { name, exact: true })).not.toBeVisible();
+      // Still gone after a reload, so it was deleted on the server
+      await openApiTab(page);
+      await expect(page.getByRole('heading', { name, exact: true })).not.toBeVisible();
     });
   });
 
   test.describe('Toggle API Key Active State', () => {
-    test('should toggle key from active to inactive', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    test('should deactivate and reactivate a key', async ({ page }) => {
+      await openApiTab(page);
+      const name = await createKey(page, 'Toggle Test Key');
+      const card = keyCard(page, name);
 
-      const deactivateButton = page.locator('button:has-text("Desactivar")').first();
+      await card.getByRole('button', { name: 'Desactivar' }).click();
+      await expect(card.getByText('Inactiva', { exact: true })).toBeVisible();
 
-      if (await deactivateButton.isVisible()) {
-        await deactivateButton.click();
-
-        // Should now show "Inactiva" badge
-        await expect(page.locator('text=Inactiva')).toBeVisible();
-      }
-    });
-
-    test('should toggle key from inactive to active', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
-
-      const activateButton = page.locator('button:has-text("Activar")').first();
-
-      if (await activateButton.isVisible()) {
-        await activateButton.click();
-
-        // Should now show "Activa" badge
-        await expect(page.locator('text=Activa')).toBeVisible();
-      }
+      await card.getByRole('button', { name: 'Activar' }).click();
+      await expect(card.getByText('Activa', { exact: true })).toBeVisible();
     });
   });
 
   test.describe('Search and Filter', () => {
     test('should filter keys by search term', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openApiTab(page);
+      const name = await createKey(page, 'Search Test Key');
+      const searchInput = page.getByPlaceholder('Buscar por nombre o prefijo...');
 
-      // Ensure we have some keys
-      const keyCount = await page.locator('[data-testid="api-key-card"]').count();
+      await searchInput.fill('nonexistent-key-name');
+      await expect(page.getByText('Sin resultados')).toBeVisible();
 
-      if (keyCount > 0) {
-        const searchInput = page.locator('input[placeholder*="Buscar"]');
-        await searchInput.fill('nonexistent-key-name');
-
-        // Should show no results or filtered results
-        await expect(page.locator('text=Sin resultados')).toBeVisible();
-      }
+      await searchInput.fill(name);
+      await expect(keyCard(page, name)).toBeVisible();
+      await expect(page.getByText('Sin resultados')).not.toBeVisible();
     });
 
     test('should filter keys by status', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openApiTab(page);
+      const name = await createKey(page, 'Status Test Key');
+      await keyCard(page, name).getByRole('button', { name: 'Desactivar' }).click();
+      await expect(keyCard(page, name).getByText('Inactiva', { exact: true })).toBeVisible();
+      const statusSelect = page.locator('select').filter({ has: page.locator('option[value="inactive"]') });
 
-      const statusSelect = page.locator('select');
+      await statusSelect.selectOption('active');
+      await expect(page.getByRole('heading', { name, exact: true })).not.toBeVisible();
 
-      if (await statusSelect.isVisible()) {
-        // Filter by active only
-        await statusSelect.selectOption('active');
-
-        // All visible keys should have "Activa" badge
-        const inactiveBadges = page.locator('text=Inactiva');
-        await expect(inactiveBadges).toHaveCount(0);
-      }
+      await statusSelect.selectOption('inactive');
+      await expect(keyCard(page, name)).toBeVisible();
     });
 
     test('should clear filters and show all keys', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openApiTab(page);
+      const name = await createKey(page, 'Clear Filter Key');
+      const searchInput = page.getByPlaceholder('Buscar por nombre o prefijo...');
+      const statusSelect = page.locator('select').filter({ has: page.locator('option[value="inactive"]') });
 
-      const statusSelect = page.locator('select');
+      await statusSelect.selectOption('inactive');
+      await searchInput.fill('nonexistent-key-name');
+      await expect(page.getByText('Sin resultados')).toBeVisible();
 
-      if (await statusSelect.isVisible()) {
-        // Filter by inactive, then back to all
-        await statusSelect.selectOption('inactive');
-        await statusSelect.selectOption('all');
-
-        // Should show all keys (no "Sin resultados" message if keys exist)
-        const searchInput = page.locator('input[placeholder*="Buscar"]');
-        if (await searchInput.isVisible()) {
-          await searchInput.fill('');
-        }
-      }
+      await statusSelect.selectOption('all');
+      await searchInput.fill('');
+      await expect(keyCard(page, name)).toBeVisible();
     });
   });
 
   test.describe('Empty State', () => {
     test('should show empty state when no keys exist', async ({ page }) => {
-      // This test would need a tenant with no API keys
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openApiTab(page);
 
-      // Check if we're in empty state
-      const emptyState = page.locator('text=No hay claves de API');
-      const createFirstButton = page.locator('text=Crear Primera Clave');
-
-      // If empty state is visible, verify the CTA
-      if (await emptyState.isVisible()) {
-        await expect(createFirstButton).toBeVisible();
+      // Delete every key of the clinic, then the empty state must show
+      page.on('dialog', (dialog) => dialog.accept());
+      const deleteButtons = page.getByRole('button', { name: 'Eliminar' });
+      while ((await deleteButtons.count()) > 0) {
+        const remaining = await deleteButtons.count();
+        await deleteButtons.first().click();
+        await expect(deleteButtons).toHaveCount(remaining - 1);
       }
+
+      await expect(page.getByRole('heading', { name: 'No hay claves de API' })).toBeVisible();
+      await page.getByRole('button', { name: 'Crear Primera Clave' }).click();
+      await expect(page.getByRole('heading', { name: 'Nueva Clave de API' })).toBeVisible();
     });
   });
 
   test.describe('Location Selection', () => {
-    test('should show location dropdown in create modal', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    // FIXME(app): the location select never renders. ApiKeyManagement calls
+    // setLocations(data) with the whole /api/locations body
+    // ({ success, data, pagination }) instead of data.data, so
+    // locations.length is undefined. The CORPORATIVO clinic has a seeded location.
+    test.fixme('should show location dropdown in create modal', async ({ page }) => {
+      await openApiTab(page);
+      await openCreateModal(page);
 
-      await page.click('button:has-text("Nueva Clave")');
-
-      // Location select should be visible if tenant has locations
       const locationSelect = page.locator('#api-key-location');
-
-      if (await locationSelect.isVisible()) {
-        await expect(page.locator('text=Todas las ubicaciones (Global)')).toBeVisible();
-      }
+      await expect(locationSelect).toBeVisible();
+      await expect(locationSelect.locator('option')).toHaveText([
+        'Todas las ubicaciones (Global)',
+        SEEDED_CORPORATIVO_LOCATION_NAME,
+      ]);
     });
   });
 
   test.describe('Advanced Options', () => {
     test('should show advanced options section', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openApiTab(page);
+      await openCreateModal(page);
 
-      await page.click('button:has-text("Nueva Clave")');
-
-      // Advanced options should be collapsible
-      await expect(page.locator('text=Opciones avanzadas')).toBeVisible();
+      await expect(page.getByText('Opciones avanzadas')).toBeVisible();
+      await expect(page.getByText('Límite de peticiones por hora')).not.toBeVisible();
     });
 
     test('should expand advanced options on click', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openApiTab(page);
+      await openCreateModal(page);
 
-      await page.click('button:has-text("Nueva Clave")');
+      await page.getByText('Opciones avanzadas').click();
 
-      // Click to expand
-      await page.click('text=Opciones avanzadas');
-
-      // Should show rate limit and expiration inputs
-      await expect(page.locator('text=Límite de peticiones por hora')).toBeVisible();
-      await expect(page.locator('text=Fecha de expiración')).toBeVisible();
+      await expect(page.getByText('Límite de peticiones por hora')).toBeVisible();
+      await expect(page.getByText('Fecha de expiración')).toBeVisible();
     });
   });
 
   test.describe('Accessibility', () => {
     test('should have proper heading structure', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openApiTab(page);
 
-      // Should have main heading
-      const heading = page.locator('h1, h2, h3').first();
-      await expect(heading).toBeVisible();
+      // The layout also renders a hidden mobile header
+      await expect(
+        page.getByRole('heading', { level: 1, name: 'Configuración' }).filter({ visible: true }).first()
+      ).toBeVisible();
     });
 
     test('should be keyboard navigable', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openApiTab(page);
 
-      // Focus on first interactive element
       await page.keyboard.press('Tab');
 
-      // Should have focus visible
-      const focusedElement = page.locator(':focus');
-      await expect(focusedElement).toBeVisible();
+      await expect(page.locator(':focus')).toBeVisible();
     });
   });
 });
 
-/**
- * Separate test group for role-based access control
- */
-const isRoleTestEnabled = process.env.TEST_ROLE_ACCESS_ENABLED === 'true';
+test.describe('API Key Feature Gate', () => {
+  test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session. Set TEST_AUTH_ENABLED=true');
+  // The CI clinic is on PROFESIONAL, which has no API access
+  test.use({ storageState: AUTH_STATE_PATH });
+
+  test('should show upgrade prompt for non-CORPORATIVO users', async ({ page }) => {
+    await page.goto(API_TAB);
+
+    await expect(page.getByText('Función Premium')).toBeVisible();
+    await expect(page.getByText('El acceso a la API requiere el plan Corporativo')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Nueva Clave', exact: true })).not.toBeVisible();
+  });
+});
 
 test.describe('API Key Role-Based Access', () => {
-  test.skip(!isRoleTestEnabled, 'Skipping - requires role-based test setup');
+  test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session. Set TEST_AUTH_ENABLED=true');
+  test.use({ storageState: VET_AUTH_STATE_PATH });
 
   test('should only allow MANAGER/ADMINISTRATOR to access API settings', async ({ page }) => {
-    await page.goto('/dashboard/settings?tab=api');
-    await page.waitForLoadState('networkidle');
+    await page.goto(API_TAB);
 
-    // For non-admin users, should redirect or show access denied
-    const currentUrl = page.url();
-
-    // Either on the settings page or redirected
-    const isOnSettings = currentUrl.includes('/settings');
-    const hasApiAccess = await page.locator('text=Nueva Clave').isVisible();
-
-    // If user doesn't have access, they shouldn't see the API key management
-    if (!hasApiAccess && isOnSettings) {
-      await expect(page.locator('text=Función Premium')).toBeVisible();
-    }
+    await expect(page).toHaveURL(/\/dashboard\?error=access_denied/);
+    await expect(page.getByRole('button', { name: 'Nueva Clave', exact: true })).not.toBeVisible();
   });
 });
