@@ -44,7 +44,8 @@ export interface CustomerIdentificationResult {
  */
 export async function findCustomersByPhone(
   tenantId: string,
-  phone: string
+  phone: string,
+  options: { activeOnly?: boolean } = {}
 ): Promise<Array<{ id: string; name: string; email: string | null; phone: string | null }>> {
   const key = phoneMatchKey(phone);
   if (!key) return [];
@@ -57,6 +58,8 @@ export async function findCustomersByPhone(
     where: {
       tenantId,
       phone: { contains: key.slice(-2) },
+      // Archived customers are hidden from searches (same rule as the lists)
+      ...(options.activeOnly && { isActive: true }),
     },
     select: { id: true, name: true, email: true, phone: true },
     orderBy: { createdAt: 'asc' },
