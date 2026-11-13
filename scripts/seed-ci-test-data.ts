@@ -5,6 +5,13 @@
  * createTenantWithDefaults in src/lib/tenant.ts: User, admin role, Staff
  * "Administrador", settings and default week), plus a customer, pet and
  * appointment so that authenticated E2E tests have data to work with.
+ *
+ * Also seeds the other E2E users (ids match tests/e2e/support/constants.ts):
+ * - a veterinarian on the same clinic, without the admin role, for the
+ *   role-access specs;
+ * - a second clinic on the CORPORATIVO plan (active subscription, one
+ *   location) with its own owner, for the API key and webhook specs.
+ *
  * Idempotent: safe to run more than once against the same database.
  *
  * Run after seed-ci-plans.ts:
@@ -18,6 +25,74 @@ const prisma = new PrismaClient();
 const TEST_TENANT_ID = 'ci-test-tenant-001';
 const TEST_KINDE_ID = 'kp_e2e_test_user_ci';
 const TEST_EMAIL = 'e2e-test@vetify-ci.com';
+
+const VET_KINDE_ID = 'kp_e2e_test_vet_ci';
+const VET_EMAIL = 'e2e-vet@vetify-ci.com';
+
+const CORPORATIVO_TENANT_ID = 'ci-test-tenant-corporativo';
+const CORPORATIVO_KINDE_ID = 'kp_e2e_corporativo_owner_ci';
+const CORPORATIVO_EMAIL = 'e2e-corporativo@vetify-ci.com';
+
+/**
+ * The owner of a clinic: the tenant's first User, with the admin role and an
+ * "Administrador" Staff record, as createTenantWithDefaults leaves them.
+ */
+async function upsertClinicOwner(
+  tenantId: string,
+  owner: { id: string; email: string; firstName: string; lastName: string }
+) {
+  const name = `${owner.firstName} ${owner.lastName}`;
+  await prisma.user.upsert({
+    where: { id: owner.id },
+    create: { ...owner, tenantId, name },
+    update: { tenantId, isActive: true },
+  });
+
+  let adminRole = await prisma.role.findFirst({ where: { tenantId, key: 'admin' } });
+  if (!adminRole) {
+    adminRole = await prisma.role.create({
+      data: { tenantId, key: 'admin', name: 'Administrador', isSystem: true },
+    });
+  }
+  const existingUserRole = await prisma.userRole.findFirst({
+    where: { userId: owner.id, roleId: adminRole.id },
+  });
+  if (!existingUserRole) {
+    await prisma.userRole.create({ data: { userId: owner.id, roleId: adminRole.id } });
+  }
+
+  await prisma.staff.upsert({
+    where: { userId: owner.id },
+    create: { tenantId, userId: owner.id, name, email: owner.email, position: 'Administrador' },
+    update: { tenantId, position: 'Administrador', isActive: true },
+  });
+}
+
+/** Tenant settings plus the default week, as onboarding creates them. */
+async function upsertSettingsAndHours(tenantId: string) {
+  const tenantSettings = await prisma.tenantSettings.upsert({
+    where: { tenantId },
+    create: {
+      tenantId,
+      timezone: 'America/Mexico_City',
+      currencyCode: 'MXN',
+      currencySymbol: '$',
+      currencyConfirmed: true,
+      appointmentDuration: 30,
+    },
+    update: {},
+  });
+  const existingHours = await prisma.businessHours.count({ where: { tenantId } });
+  if (existingHours === 0) {
+    await prisma.businessHours.createMany({
+      data: buildDefaultWeek().map((day) => ({
+        ...day,
+        tenantId,
+        tenantSettingsId: tenantSettings.id,
+      })),
+    });
+  }
+}
 
 async function main() {
   console.log('🌱 Seeding E2E test data for CI...');
@@ -60,29 +135,8 @@ async function main() {
   console.log('  ✓ Upserted test tenant');
 
   // 2a. Settings and the default week, as onboarding creates them
-  const tenantSettings = await prisma.tenantSettings.upsert({
-    where: { tenantId: TEST_TENANT_ID },
-    create: {
-      tenantId: TEST_TENANT_ID,
-      timezone: 'America/Mexico_City',
-      currencyCode: 'MXN',
-      currencySymbol: '$',
-      currencyConfirmed: true,
-      appointmentDuration: 30,
-    },
-    update: {},
-  });
-  const existingHours = await prisma.businessHours.count({ where: { tenantId: TEST_TENANT_ID } });
-  if (existingHours === 0) {
-    await prisma.businessHours.createMany({
-      data: buildDefaultWeek().map((day) => ({
-        ...day,
-        tenantId: TEST_TENANT_ID,
-        tenantSettingsId: tenantSettings.id,
-      })),
-    });
-    console.log('  ✓ Created default business hours');
-  }
+  await upsertSettingsAndHours(TEST_TENANT_ID);
+  console.log('  ✓ Upserted settings and business hours');
 
   // 2b. Create tenant subscription linking to plan
   const existingSubscription = await prisma.tenantSubscription.findUnique({
@@ -104,47 +158,43 @@ async function main() {
     console.log('  ✓ Tenant subscription already exists');
   }
 
-  // 3. The E2E user owns the clinic: the first User of the tenant, with the
-  // admin role and an "Administrador" Staff record. The id is the Kinde `sub`
-  // the fake issuer puts in the test session (tests/e2e/support/constants.ts).
+  // 3. The E2E user owns the clinic. The id is the Kinde `sub` the fake
+  // issuer puts in the test session (tests/e2e/support/constants.ts).
+  await upsertClinicOwner(TEST_TENANT_ID, {
+    id: TEST_KINDE_ID,
+    email: TEST_EMAIL,
+    firstName: 'E2E',
+    lastName: 'Owner',
+  });
+  console.log('  ✓ Upserted clinic owner (user, admin role, staff)');
+
+  // 3a. A veterinarian on the same clinic: no role and not the first user, so
+  // requirePermission('settings') denies them (src/lib/staff-permissions.ts).
+  // Created after the owner, so isTenantOwner still picks the owner.
   await prisma.user.upsert({
-    where: { id: TEST_KINDE_ID },
+    where: { id: VET_KINDE_ID },
     create: {
-      id: TEST_KINDE_ID,
+      id: VET_KINDE_ID,
       tenantId: TEST_TENANT_ID,
-      email: TEST_EMAIL,
+      email: VET_EMAIL,
       firstName: 'E2E',
-      lastName: 'Owner',
-      name: 'E2E Owner',
+      lastName: 'Vet',
+      name: 'E2E Vet',
     },
     update: { tenantId: TEST_TENANT_ID, isActive: true },
   });
-
-  let adminRole = await prisma.role.findFirst({ where: { tenantId: TEST_TENANT_ID, key: 'admin' } });
-  if (!adminRole) {
-    adminRole = await prisma.role.create({
-      data: { tenantId: TEST_TENANT_ID, key: 'admin', name: 'Administrador', isSystem: true },
-    });
-  }
-  const existingUserRole = await prisma.userRole.findFirst({
-    where: { userId: TEST_KINDE_ID, roleId: adminRole.id },
-  });
-  if (!existingUserRole) {
-    await prisma.userRole.create({ data: { userId: TEST_KINDE_ID, roleId: adminRole.id } });
-  }
-
   await prisma.staff.upsert({
-    where: { userId: TEST_KINDE_ID },
+    where: { userId: VET_KINDE_ID },
     create: {
       tenantId: TEST_TENANT_ID,
-      userId: TEST_KINDE_ID,
-      name: 'E2E Owner',
-      email: TEST_EMAIL,
-      position: 'Administrador',
+      userId: VET_KINDE_ID,
+      name: 'E2E Vet',
+      email: VET_EMAIL,
+      position: 'VETERINARIAN',
     },
-    update: { tenantId: TEST_TENANT_ID, position: 'Administrador', isActive: true },
+    update: { tenantId: TEST_TENANT_ID, position: 'VETERINARIAN', isActive: true },
   });
-  console.log('  ✓ Upserted clinic owner (user, admin role, staff)');
+  console.log('  ✓ Upserted veterinarian (user, staff, no admin role)');
 
   // 4. Create test customer
   const existingCustomer = await prisma.customer.findFirst({
@@ -223,7 +273,72 @@ async function main() {
     console.log('  ✓ Test appointment already exists');
   }
 
+  // 7. A second clinic on the CORPORATIVO plan, with an active subscription
+  await seedCorporativoClinic();
+
   console.log('✅ CI test data seeded successfully');
+}
+
+async function seedCorporativoClinic() {
+  const plan = await prisma.plan.findFirst({ where: { key: 'CORPORATIVO' } });
+  if (!plan) {
+    console.error('❌ CORPORATIVO plan not found. Run seed-ci-plans.ts first.');
+    process.exit(1);
+  }
+
+  const periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const activePlan = {
+    planType: 'CORPORATIVO' as const,
+    isTrialPeriod: false,
+    subscriptionStatus: 'ACTIVE' as const,
+  };
+  await prisma.tenant.upsert({
+    where: { id: CORPORATIVO_TENANT_ID },
+    create: {
+      id: CORPORATIVO_TENANT_ID,
+      name: 'CI Corporativo Clinic',
+      slug: 'ci-corporativo-clinic',
+      countryCode: 'MX',
+      ...activePlan,
+    },
+    update: activePlan,
+  });
+  await upsertSettingsAndHours(CORPORATIVO_TENANT_ID);
+
+  await prisma.tenantSubscription.upsert({
+    where: { tenantId: CORPORATIVO_TENANT_ID },
+    create: {
+      tenantId: CORPORATIVO_TENANT_ID,
+      planId: plan.id,
+      status: 'ACTIVE',
+      currentPeriodStart: new Date(),
+      currentPeriodEnd: periodEnd,
+    },
+    update: { planId: plan.id, status: 'ACTIVE', currentPeriodEnd: periodEnd },
+  });
+
+  await upsertClinicOwner(CORPORATIVO_TENANT_ID, {
+    id: CORPORATIVO_KINDE_ID,
+    email: CORPORATIVO_EMAIL,
+    firstName: 'E2E',
+    lastName: 'Corporativo',
+  });
+
+  // One location, so the API key modal offers a location
+  const existingLocation = await prisma.location.findFirst({
+    where: { tenantId: CORPORATIVO_TENANT_ID, slug: 'sucursal-centro' },
+  });
+  if (!existingLocation) {
+    await prisma.location.create({
+      data: {
+        tenantId: CORPORATIVO_TENANT_ID,
+        name: 'Sucursal Centro',
+        slug: 'sucursal-centro',
+        isPrimary: true,
+      },
+    });
+  }
+  console.log('  ✓ Upserted CORPORATIVO clinic (tenant, subscription, owner, location)');
 }
 
 main()

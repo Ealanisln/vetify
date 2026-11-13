@@ -58,6 +58,9 @@ const plans = [
       pets: -1,
       storage: 100,
       support: 'dedicated',
+      // As in src/lib/pricing-config.ts; the API key and webhook E2E specs need apiAccess
+      multiLocation: true,
+      apiAccess: true,
     },
     maxUsers: -1,
     maxPets: -1,
