@@ -119,14 +119,17 @@ export async function findOrCreateCustomer({
 }): Promise<CustomerIdentificationResult> {
   const provided = { name, phone, email };
 
+  // Archived customers are never matched: a booking that only matches an
+  // archived customer follows the unknown-phone path (a new customer).
+
   // 1️⃣ BÚSQUEDA POR TELÉFONO NORMALIZADO (ALTA CONFIANZA)
-  const phoneMatches = await findCustomersByPhone(tenantId, phone);
+  const phoneMatches = await findCustomersByPhone(tenantId, phone, { activeOnly: true });
   const phoneCandidate =
     phoneMatches.find((candidate) => namesMatch(candidate.name, name)) ?? phoneMatches[0];
 
   const phoneMatch = phoneCandidate
     ? await prisma.customer.findFirst({
-        where: { id: phoneCandidate.id, tenantId },
+        where: { id: phoneCandidate.id, tenantId, isActive: true },
         include: {
           pets: true,
           user: true
@@ -150,6 +153,7 @@ export async function findOrCreateCustomer({
     const emailMatch = await prisma.customer.findFirst({
       where: {
         tenantId,
+        isActive: true,
         email: { equals: email.trim(), mode: 'insensitive' }
       },
       include: {
