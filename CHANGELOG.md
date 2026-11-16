@@ -7,6 +7,17 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.14.0] - 2026-11-16
+
+### Agregado
+- **Webhooks en Configuración.** Las clínicas con plan Corporativo ya pueden configurar sus webhooks desde una pestaña nueva en Configuración.
+
+### Corregido
+- **Sucursal al crear una API key.** El selector de sucursal no aparecía; ahora se puede limitar una API key a una sucursal.
+- **Citas de hoy y estadísticas en la zona horaria de la clínica.** La lista de "hoy" y los conteos de citas usaban la hora del navegador.
+- **Reserva pública y clientes archivados.** La búsqueda de clientes y la creación de la reserva ya no toman en cuenta a clientes archivados; si los datos solo coinciden con uno archivado, se registra un cliente nuevo.
+- **Indexación del sitio.** Los buscadores pueden rastrear el sitio tanto en `vetify.pro` como en `www.vetify.pro`.
+
 ## [1.13.0] - 2026-11-12
 
 ### Agregado
