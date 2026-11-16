@@ -24,7 +24,7 @@ Vetify is a multi-tenant SaaS platform for veterinary practice management built 
 
 Required versions:
 - Node.js >= 20.0.0
-- pnpm 9.15.9
+- pnpm 10.20.0 (pinned in `packageManager`)
 
 ## Common Commands
 

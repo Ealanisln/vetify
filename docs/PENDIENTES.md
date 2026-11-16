@@ -2,7 +2,7 @@
 
 Lista viva de lo que falta. Lo más importante va arriba. Cuando algo se cierre, se marca con `[x]`, se anota la fecha y el PR, y se mueve a "Cerrados".
 
-Última actualización: 13/Nov/2026 (v1.13.0 en prod desde el 12/Nov; tanda 4: #259 a #261 mergeados a `development`, #262 abierto)
+Última actualización: 16/Nov/2026 (v1.13.0 en prod desde el 12/Nov; tandas 4 y 5, #259 a #267, mergeadas a `development` y sin liberar a `main`)
 
 ## Prioridad 0: no negociable
 
@@ -64,18 +64,26 @@ El detalle completo está en `docs/AUDITORIA-FLUJOS-2026-11.md`. Aquí solo va l
 - [x] Historia clínica: próxima aplicación, "Agendar seguimiento", fecha opcional y selector de inventario. _PR #250._
 - [x] Consulta muerta de `CONFIRMED` en `api/public/availability`. _PR #251._
 
-**Tanda 4 (no requería decisión):** 13/Nov, en `development` salvo #262.
+**Tanda 4 (no requería decisión):** mergeada el 13/Nov a `development`; falta el release a `main`.
 - [x] La lista de "hoy" y las estadísticas de citas en la zona de la clínica. La pantalla de inicio del dashboard no calcula cortes por día, así que no aplica. _PR #261._
 - [x] La búsqueda pública de clientes ya no encuentra clientes archivados. _PR #259._
 - [x] `robots.ts` acepta la apex y `www`. _PR #259._
-- [ ] E2E: fixture de veterinario sin rol de admin (los 8 tests de acceso por rol ya corren) y clínica con plan CORPORATIVO (`api-keys.spec.ts` sin `if (isVisible)`). _PR #262, abierto: falta que pase el CI y mergearlo._
+- [x] E2E: fixture de veterinario sin rol de admin (los 8 tests de acceso por rol ya corren) y clínica con plan CORPORATIVO (`api-keys.spec.ts` sin `if (isVisible)`). _PR #262._
 - [x] Los tests de Stripe usan una llave falsa si no hay una configurada; el pre-commit ya no falla en worktrees. _PR #260._
 
-**Tanda 5 (no requiere decisión, arrancar con agentes en paralelo cuando #262 esté mergeado):**
-- [ ] **La UI de webhooks no está montada.** `WebhookConfig` no se exporta ni se usa en ninguna página, así que el plan CORPORATIVO no puede configurar webhooks. Montarla en settings y quitar los `test.fixme` de `tests/e2e/settings/webhooks.spec.ts` (salió de #262).
-- [ ] **No se puede elegir sucursal al crear una API key.** `ApiKeyManagement` guarda toda la respuesta de `/api/locations` en lugar de `data.data`, y el selector nunca aparece. Quitar el `test.fixme` correspondiente en `api-keys.spec.ts` (salió de #262).
-- [ ] **La reserva pública liga clientes archivados.** `POST /api/public/appointments` todavía identifica por teléfono a clientes archivados al crear la reserva; #259 solo arregló la búsqueda (salió de #259).
-- [ ] Los worktrees nuevos necesitan `pnpm prisma generate`, o 3 suites de unit fallan por falta de `.prisma/client`. Evaluar un `postinstall` o documentarlo.
+**Tanda 5 (no requería decisión):** mergeada el 16/Nov a `development`; falta el release a `main`.
+- [x] La UI de webhooks ya está montada, en su propia pestaña de settings (`?tab=webhooks`) y con el mismo candado de plan que las API keys. _PR #267._
+- [x] El selector de sucursal ya aparece al crear una API key. _PR #264._
+- [x] La reserva pública ya no liga clientes archivados, ni por teléfono ni por correo; si solo coincide con uno archivado, crea un cliente nuevo. _PR #266._
+- [x] `postinstall` con `prisma generate`. La causa: el repo fija `pnpm@10.20.0`, que ignora el build script de `@prisma/client`. _PR #265._
+
+**Tanda 6 (no requiere decisión):**
+- [ ] **Webhooks: falta UI para regenerar el secreto y para ver los logs de entrega.** Las rutas ya existen (`PUT` con `regenerateSecret` y `GET /api/settings/webhooks/[id]/logs`); 4 specs de `tests/e2e/settings/webhooks.spec.ts` siguen en `test.fixme` (salió de #267).
+- [ ] **El ping de prueba de un webhook no actualiza su estado.** `deliverWebhookSync` guarda el log pero no toca `lastDeliveryAt`, `lastSuccessAt` ni `consecutiveFailures`, y la tarjeta sigue diciendo "Sin entregas" (salió de #267).
+- [ ] **Textos de webhooks:** faltan acentos en `WebhookConfig` y `WebhookCard` ("Exito", "clinica", "accion"), las descripciones de `WEBHOOK_EVENTS` están en inglés, y editar es un `prompt()` que solo renombra, con `alert()` para resultados y errores (salió de #267).
+- [ ] La lista de clientes similares que se le marca al staff (`findSimilarCustomers`) todavía incluye archivados. No los liga, solo los señala (salió de #266).
+- [ ] E2E en local: el `.env` trae las variables reales de Upstash y la corrida se cuelga si no se vacían. Documentarlo o hacer que el script las ignore (salió de #267).
+- [ ] Un test de unit falla a veces en el pre-commit cuando hay varias corridas en paralelo y pasa al reintentar (visto en #264 y #266). Identificar cuál es.
 
 **Requiere decisión (💳 cobro/permisos, 🗄 esquema):**
 - [ ] 💳 Cambiar de plan cancela la suscripción antes de cobrar la nueva.
