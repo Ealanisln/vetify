@@ -62,8 +62,9 @@ export function ApiKeyManagement({ tenantId }: ApiKeyManagementProps) {
     try {
       const response = await fetch(`/api/locations?tenantId=${tenantId}`);
       if (response.ok) {
-        const data = await response.json();
-        setLocations(data);
+        // GET /api/locations returns { success, data, pagination }
+        const body = await response.json();
+        setLocations(Array.isArray(body?.data) ? body.data : []);
       }
     } catch (err) {
       // Silently fail - locations are optional
