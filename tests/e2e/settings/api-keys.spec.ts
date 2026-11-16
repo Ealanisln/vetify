@@ -285,11 +285,8 @@ test.describe('API Key Management', () => {
   });
 
   test.describe('Location Selection', () => {
-    // FIXME(app): the location select never renders. ApiKeyManagement calls
-    // setLocations(data) with the whole /api/locations body
-    // ({ success, data, pagination }) instead of data.data, so
-    // locations.length is undefined. The CORPORATIVO clinic has a seeded location.
-    test.fixme('should show location dropdown in create modal', async ({ page }) => {
+    // The CORPORATIVO clinic has one seeded location.
+    test('should show location dropdown in create modal', async ({ page }) => {
       await openApiTab(page);
       await openCreateModal(page);
 

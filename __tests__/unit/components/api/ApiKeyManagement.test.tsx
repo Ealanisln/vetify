@@ -68,6 +68,20 @@ describe('ApiKeyManagement', () => {
     { id: 'loc-2', name: 'Downtown Branch' },
   ];
 
+  // Real GET /api/locations body: createPaginatedResponse spread with success
+  const mockLocationsResponse = {
+    success: true,
+    data: mockLocations,
+    pagination: {
+      page: 1,
+      limit: 50,
+      total: mockLocations.length,
+      totalPages: 1,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    },
+  };
+
   const defaultProps = {
     tenantId: 'tenant-1',
   };
@@ -92,7 +106,7 @@ describe('ApiKeyManagement', () => {
       if (url.includes('/api/locations')) {
         return Promise.resolve({
           ok: true,
-          json: () => Promise.resolve(mockLocations),
+          json: () => Promise.resolve(mockLocationsResponse),
         });
       }
       return Promise.resolve({
@@ -390,6 +404,46 @@ describe('ApiKeyManagement', () => {
       expect(screen.getByText('Nueva Clave de API')).toBeInTheDocument();
     });
 
+    it('should list the tenant locations from the paginated /api/locations body', async () => {
+      render(<ApiKeyManagement {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Nueva Clave')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Nueva Clave'));
+
+      const select = await screen.findByLabelText('Ubicación (opcional)');
+      const options = Array.from(select.querySelectorAll('option')).map((o) => o.textContent);
+      expect(options).toEqual(['Todas las ubicaciones (Global)', 'Main Clinic', 'Downtown Branch']);
+    });
+
+    it('should hide the location selector when the locations body has no data array', async () => {
+      (global.fetch as jest.Mock).mockImplementation((url: string) => {
+        if (url === '/api/settings/api-keys') {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({ success: true, data: mockApiKeys }),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ success: true }),
+        });
+      });
+
+      render(<ApiKeyManagement {...defaultProps} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Nueva Clave')).toBeInTheDocument();
+      });
+
+      fireEvent.click(screen.getByText('Nueva Clave'));
+
+      expect(screen.getByText('Nueva Clave de API')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Ubicación (opcional)')).not.toBeInTheDocument();
+    });
+
     it('should show created key modal after successful creation', async () => {
       const user = userEvent.setup();
 
@@ -424,7 +478,7 @@ describe('ApiKeyManagement', () => {
         if (url.includes('/api/locations')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve(mockLocations),
+            json: () => Promise.resolve(mockLocationsResponse),
           });
         }
         return Promise.resolve({
@@ -484,7 +538,7 @@ describe('ApiKeyManagement', () => {
         if (url.includes('/api/locations')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve(mockLocations),
+            json: () => Promise.resolve(mockLocationsResponse),
           });
         }
         return Promise.resolve({
@@ -534,7 +588,7 @@ describe('ApiKeyManagement', () => {
         if (url.includes('/api/locations')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve(mockLocations),
+            json: () => Promise.resolve(mockLocationsResponse),
           });
         }
         return Promise.resolve({
@@ -607,7 +661,7 @@ describe('ApiKeyManagement', () => {
         if (url.includes('/api/locations')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve(mockLocations),
+            json: () => Promise.resolve(mockLocationsResponse),
           });
         }
         return Promise.resolve({
@@ -684,7 +738,7 @@ describe('ApiKeyManagement', () => {
         if (url.includes('/api/locations')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve(mockLocations),
+            json: () => Promise.resolve(mockLocationsResponse),
           });
         }
         return Promise.resolve({
@@ -741,7 +795,7 @@ describe('ApiKeyManagement', () => {
         if (url.includes('/api/locations')) {
           return Promise.resolve({
             ok: true,
-            json: () => Promise.resolve(mockLocations),
+            json: () => Promise.resolve(mockLocationsResponse),
           });
         }
         return Promise.resolve({
