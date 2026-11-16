@@ -224,12 +224,12 @@ jobs:
       # The only step with the test session on. TEST_AUTH_SECRET is random per
       # run; the fake issuer refuses to start without it, without
       # TEST_AUTH_ENABLED=true, or when VERCEL/VERCEL_ENV are set.
-      - name: Run authenticated E2E tests (clinic setup, settings)
+      - name: Run authenticated E2E tests (clinic setup, settings, API keys, webhooks)
         run: |
           TEST_AUTH_SECRET="$(openssl rand -hex 32)"
           echo "::add-mask::$TEST_AUTH_SECRET"
           export TEST_AUTH_SECRET
-          pnpm exec playwright test tests/e2e/clinic-setup tests/e2e/dashboard/settings.spec.ts --project=setup --project=chromium --workers=1
+          pnpm exec playwright test tests/e2e/clinic-setup tests/e2e/dashboard/settings.spec.ts tests/e2e/settings --project=setup --project=chromium --workers=1
         env:
           CI: true
           TEST_AUTH_ENABLED: 'true'

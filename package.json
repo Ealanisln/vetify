@@ -1,6 +1,6 @@
 {
   "name": "vetify",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -95,7 +95,8 @@
     "vercel:env:generate": "node scripts/generate-vercel-env.mjs",
     "vercel:env:custom": "node scripts/generate-vercel-env-custom.mjs",
     "vercel:env:optimized": "node scripts/generate-vercel-env-optimized.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -2,7 +2,7 @@
 
 Lista viva de lo que falta. Lo más importante va arriba. Cuando algo se cierre, se marca con `[x]`, se anota la fecha y el PR, y se mueve a "Cerrados".
 
-Última actualización: 12/Nov/2026 (#247 y #248 mergeados a `development`; tanda 3 en los PRs #249 a #255, abiertos)
+Última actualización: 16/Nov/2026 (v1.13.0 en prod desde el 12/Nov; tandas 4 y 5, #259 a #267, mergeadas a `development` y sin liberar a `main`)
 
 ## Prioridad 0: no negociable
 
@@ -12,7 +12,7 @@ Lista viva de lo que falta. Lo más importante va arriba. Cuando algo se cierre,
   - **Servicios:** `src/components/settings/ServiceManagement.tsx` y `ServiceModal.tsx`. Crear, editar, desactivar y borrar servicios, con precios en la moneda del tenant, y verificar que aparezcan al agendar.
   - **Equipo:** `src/app/dashboard/staff/new`, `src/app/dashboard/staff/[id]` y `src/app/api/invitations/{send,validate,accept}`. Revisar que el correo de invitación llegue, que el invitado pueda aceptar (con o sin cuenta de Kinde), que quede ligado al tenant correcto con su rol y que respete los límites del plan.
   - **Hecho cuando:** existe un E2E de Playwright que cubre los tres flujos y pasa en CI, y el flujo completo se probó a mano en producción con un tenant de prueba antes de la llamada.
-  - **Avance (12/Nov):** el E2E existe y pasa en CI (`tests/e2e/clinic-setup/clinic-setup.spec.ts`, PR #255). Falta: mergear #255, hacer el release a `main` y la prueba manual en prod con un tenant de prueba.
+  - **Avance (12/Nov):** el E2E existe y pasa en CI (`tests/e2e/clinic-setup/clinic-setup.spec.ts`, PR #255). #255 ya está en prod (v1.13.0). Falta la prueba manual en prod con un tenant de prueba.
   - **Estado en prod (12/Nov):** Animal Medical Centre tiene 0 servicios, 0 horarios guardados y 0 sucursales; en la llamada todo se configura desde cero. En toda la vida de prod solo hay 2 invitaciones de equipo.
   - **Auditoría de código (12/Nov).** Los marcados con ✔ los verifiqué contra el código; el resto viene de la auditoría y está trazado, pero falta confirmarlo con tests.
 
@@ -51,7 +51,7 @@ El detalle completo está en `docs/AUDITORIA-FLUJOS-2026-11.md`. Aquí solo va l
 - Historia clínica: recordatorios de vacunas, el formulario de historia nueva, el detalle, "Etapa" vacía, chips, línea de tiempo y signos vitales.
 - Reserva pública: sin exposición de datos, búsqueda segura, sin cambios a clientes existentes y límite de peticiones.
 
-**Tanda 3 (no requería decisión):** resuelta en PRs abiertos el 12/Nov, pendientes de mergear.
+**Tanda 3 (no requería decisión):** mergeada el 12/Nov y en prod con v1.13.0.
 - [x] Citas: transiciones de estado inválidas y cancelación doble. _PR #251._
 - [x] Citas: choques con la duración real; sin staff, choca con cualquier cita que se empalme en la clínica. _PR #251._
 - [x] Calendario en la zona de la clínica (`@fullcalendar/luxon3`). _PR #254._
@@ -64,12 +64,26 @@ El detalle completo está en `docs/AUDITORIA-FLUJOS-2026-11.md`. Aquí solo va l
 - [x] Historia clínica: próxima aplicación, "Agendar seguimiento", fecha opcional y selector de inventario. _PR #250._
 - [x] Consulta muerta de `CONFIRMED` en `api/public/availability`. _PR #251._
 
-**Siguiente tanda (no requiere decisión):**
-- [ ] La lista de "hoy" y las estadísticas del dashboard siguen en la zona del navegador (salió de #254).
-- [ ] La búsqueda pública de clientes todavía encuentra clientes archivados (salió de #249).
-- [ ] `robots.ts` solo permite el rastreo si la URL base es exactamente la apex. Si `NEXT_PUBLIC_BASE_URL` cambia a `www`, Google deja de indexar todo el sitio. Hoy prod está bien (verificado el 12/Nov). Hacer que acepte las dos (salió de #253).
-- [ ] E2E: fixture de usuario sin rol de admin (8 tests de acceso por rol están en skip) y fixture de plan CORPORATIVO para `api-keys.spec.ts` y `webhooks.spec.ts`, que aún tienen los `if (isVisible)` (salió de #255).
-- [ ] Los tests de Stripe fallan en local sin `STRIPE_SECRET_KEY`, y eso rompe el pre-commit hook en worktrees. Que usen una llave falsa como en CI.
+**Tanda 4 (no requería decisión):** mergeada el 13/Nov a `development`; falta el release a `main`.
+- [x] La lista de "hoy" y las estadísticas de citas en la zona de la clínica. La pantalla de inicio del dashboard no calcula cortes por día, así que no aplica. _PR #261._
+- [x] La búsqueda pública de clientes ya no encuentra clientes archivados. _PR #259._
+- [x] `robots.ts` acepta la apex y `www`. _PR #259._
+- [x] E2E: fixture de veterinario sin rol de admin (los 8 tests de acceso por rol ya corren) y clínica con plan CORPORATIVO (`api-keys.spec.ts` sin `if (isVisible)`). _PR #262._
+- [x] Los tests de Stripe usan una llave falsa si no hay una configurada; el pre-commit ya no falla en worktrees. _PR #260._
+
+**Tanda 5 (no requería decisión):** mergeada el 16/Nov a `development`; falta el release a `main`.
+- [x] La UI de webhooks ya está montada, en su propia pestaña de settings (`?tab=webhooks`) y con el mismo candado de plan que las API keys. _PR #267._
+- [x] El selector de sucursal ya aparece al crear una API key. _PR #264._
+- [x] La reserva pública ya no liga clientes archivados, ni por teléfono ni por correo; si solo coincide con uno archivado, crea un cliente nuevo. _PR #266._
+- [x] `postinstall` con `prisma generate`. La causa: el repo fija `pnpm@10.20.0`, que ignora el build script de `@prisma/client`. _PR #265._
+
+**Tanda 6 (no requiere decisión):**
+- [ ] **Webhooks: falta UI para regenerar el secreto y para ver los logs de entrega.** Las rutas ya existen (`PUT` con `regenerateSecret` y `GET /api/settings/webhooks/[id]/logs`); 4 specs de `tests/e2e/settings/webhooks.spec.ts` siguen en `test.fixme` (salió de #267).
+- [ ] **El ping de prueba de un webhook no actualiza su estado.** `deliverWebhookSync` guarda el log pero no toca `lastDeliveryAt`, `lastSuccessAt` ni `consecutiveFailures`, y la tarjeta sigue diciendo "Sin entregas" (salió de #267).
+- [ ] **Textos de webhooks:** faltan acentos en `WebhookConfig` y `WebhookCard` ("Exito", "clinica", "accion"), las descripciones de `WEBHOOK_EVENTS` están en inglés, y editar es un `prompt()` que solo renombra, con `alert()` para resultados y errores (salió de #267).
+- [ ] La lista de clientes similares que se le marca al staff (`findSimilarCustomers`) todavía incluye archivados. No los liga, solo los señala (salió de #266).
+- [ ] E2E en local: el `.env` trae las variables reales de Upstash y la corrida se cuelga si no se vacían. Documentarlo o hacer que el script las ignore (salió de #267).
+- [ ] Un test de unit falla a veces en el pre-commit cuando hay varias corridas en paralelo y pasa al reintentar (visto en #264 y #266). Identificar cuál es.
 
 **Requiere decisión (💳 cobro/permisos, 🗄 esquema):**
 - [ ] 💳 Cambiar de plan cancela la suscripción antes de cobrar la nueva.

@@ -1,670 +1,517 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Locator, type Page } from '@playwright/test';
+import { AUTH_STATE_PATH, CORPORATIVO_AUTH_STATE_PATH, VET_AUTH_STATE_PATH } from '../support/constants';
 
 /**
  * E2E Tests for Webhook Management
  *
- * This test suite verifies the Webhook Management feature:
+ * This test suite verifies the Webhook Management feature, mounted in the
+ * "Webhooks" tab of /dashboard/settings (WebhookConfig):
  * - Create Webhook flow with event selection
- * - Edit Webhook
+ * - Rename Webhook (edit prompt)
  * - Delete Webhook
  * - Test Webhook delivery
  * - Toggle Webhook active state
- * - View delivery logs
  * - Feature gating for non-CORPORATIVO users
  *
- * NOTE: These tests require authentication and a CORPORATIVO plan.
- * They will be skipped if TEST_AUTH_ENABLED is not set.
+ * Management tests run as SEEDED_CORPORATIVO_OWNER (CORPORATIVO plan); the
+ * gate and role tests use the PROFESIONAL owner and the veterinarian. All are
+ * seeded by scripts/seed-ci-test-data.ts and logged in by tests/auth.setup.ts.
+ * Skipped unless TEST_AUTH_ENABLED=true.
+ *
+ * Each test creates the webhooks it needs with a unique name and only looks at
+ * those, so the tests do not depend on each other or on run order. States the
+ * seed cannot produce (no webhooks, failed deliveries) come from a mocked list.
  *
  * SECURITY: Webhook management is only available to CORPORATIVO plan users.
  */
 
 const isAuthTestEnabled = process.env.TEST_AUTH_ENABLED === 'true';
 
+const WEBHOOKS_TAB = '/dashboard/settings?tab=webhooks';
+const WEBHOOK_URL = 'https://example.com/webhook';
+
+async function openWebhooksTab(page: Page) {
+  await page.goto(WEBHOOKS_TAB);
+  await expect(page.getByRole('button', { name: 'Nuevo Webhook', exact: true })).toBeVisible();
+}
+
+async function openCreateModal(page: Page) {
+  await page.getByRole('button', { name: 'Nuevo Webhook', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Nuevo Webhook' })).toBeVisible();
+}
+
+/** The create form, so category and event names do not match the page around it. */
+function createForm(page: Page): Locator {
+  return page.locator('form').filter({ has: page.locator('#webhook-name') });
+}
+
+/** The checkbox of an event, labelled by its code and description. */
+function eventCheckbox(page: Page, event: string): Locator {
+  return page.getByRole('checkbox', { name: new RegExp(`^${event.replace('.', '\\.')}\\b`) });
+}
+
+/** The card of the webhook named `name` (WebhookCard has no test id). */
+function webhookCard(page: Page, name: string): Locator {
+  return page
+    .locator('div.rounded-lg')
+    .filter({ has: page.getByRole('heading', { name, exact: true }) })
+    .filter({ has: page.getByRole('button', { name: 'Eliminar' }) })
+    .last();
+}
+
+async function fillCreateForm(page: Page, name: string, events: string[], url = WEBHOOK_URL) {
+  await page.fill('#webhook-name', name);
+  await page.fill('#webhook-url', url);
+  for (const event of events) {
+    await eventCheckbox(page, event).check();
+  }
+}
+
+/** Creates a webhook through the UI and closes the one-time secret display. */
+async function createWebhook(page: Page, prefix: string, events = ['pet.created']): Promise<string> {
+  const name = `${prefix} ${Date.now()}`;
+  await openCreateModal(page);
+  await fillCreateForm(page, name, events);
+  await page.getByRole('button', { name: 'Crear Webhook' }).click();
+  await expect(page.getByRole('heading', { name: 'Webhook Creado' })).toBeVisible();
+  await page.getByRole('button', { name: /Entendido/ }).click();
+  await expect(webhookCard(page, name)).toBeVisible();
+  return name;
+}
+
+/** Serves a fixed webhook list to the page; writes still reach the API. */
+async function mockWebhookList(page: Page, webhooks: Record<string, unknown>[]) {
+  await page.route('**/api/settings/webhooks', (route) =>
+    route.request().method() === 'GET'
+      ? route.fulfill({ json: { success: true, data: webhooks } })
+      : route.continue()
+  );
+}
+
+function mockedWebhook(overrides: Record<string, unknown>) {
+  const now = new Date().toISOString();
+  return {
+    id: 'mocked-webhook',
+    name: 'Mocked Webhook',
+    url: WEBHOOK_URL,
+    events: ['pet.created'],
+    isActive: true,
+    consecutiveFailures: 0,
+    lastDeliveryAt: null,
+    lastSuccessAt: null,
+    createdAt: now,
+    updatedAt: now,
+    _count: { deliveries: 0 },
+    ...overrides,
+  };
+}
+
 test.describe('Webhook Management', () => {
   test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session. Set TEST_AUTH_ENABLED=true');
+  test.use({ storageState: CORPORATIVO_AUTH_STATE_PATH });
 
   test.describe('Feature Access', () => {
-    test('should show webhooks section in API settings for CORPORATIVO users', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    test('should show the webhooks tab for CORPORATIVO users', async ({ page }) => {
+      await page.goto(WEBHOOKS_TAB);
 
-      // Should see the webhook management section
+      await expect(page.getByTestId('settings-tab-webhooks')).toHaveClass(/border-r-2/);
       await expect(
-        page.locator('text=Webhooks').first()
+        page.getByText('Los webhooks permiten recibir notificaciones en tiempo real').first()
       ).toBeVisible();
-    });
-
-    test('should show upgrade prompt for non-CORPORATIVO users', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
-
-      // May see either the webhook management (if CORPORATIVO) or upgrade prompt
-      const upgradePrompt = page.locator('text=Función Premium');
-      const webhookSection = page.locator('text=Los webhooks permiten que');
-
-      // One of these should be visible
-      await expect(upgradePrompt.or(webhookSection)).toBeVisible();
+      await expect(page.getByText('Función Premium')).not.toBeVisible();
     });
   });
 
   test.describe('Create Webhook Flow', () => {
+    test.beforeEach(async ({ page }) => {
+      await openWebhooksTab(page);
+    });
+
     test('should open create modal when clicking "Nuevo Webhook" button', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openCreateModal(page);
 
-      // Click create webhook button
-      await page.click('button:has-text("Nuevo Webhook")');
-
-      // Modal should open
-      await expect(page.locator('text=Nuevo Webhook').first()).toBeVisible();
+      await expect(page.locator('#webhook-name')).toBeVisible();
+      await expect(page.locator('#webhook-url')).toBeVisible();
     });
 
     test('should show form validation errors', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openCreateModal(page);
 
-      await page.click('button:has-text("Nuevo Webhook")');
+      // No event selected: the hint shows and submit stays disabled
+      await expect(createForm(page).getByText('Debes seleccionar al menos un evento')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Crear Webhook' })).toBeDisabled();
 
-      // Try to submit without required fields
-      await page.click('button:has-text("Crear Webhook")');
-
-      // Should show validation errors
-      await expect(
-        page.locator('text=El nombre es requerido').or(
-          page.locator('text=Debe seleccionar al menos un evento')
-        )
-      ).toBeVisible();
+      // A blank name passes the browser's required check but not the form's
+      await fillCreateForm(page, '   ', ['pet.created']);
+      await page.getByRole('button', { name: 'Crear Webhook' }).click();
+      await expect(page.getByText('El nombre es requerido')).toBeVisible();
     });
 
     test('should require HTTPS URL', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openCreateModal(page);
+      await fillCreateForm(page, 'Test Webhook', ['pet.created'], 'http://example.com/webhook');
 
-      await page.click('button:has-text("Nuevo Webhook")');
+      await page.getByRole('button', { name: 'Crear Webhook' }).click();
 
-      // Fill with HTTP URL
-      await page.fill('#webhook-name', 'Test Webhook');
-      await page.fill('#webhook-url', 'http://example.com/webhook');
-
-      // Select at least one event
-      await page.click('text=pet.created');
-
-      // Try to submit
-      await page.click('button:has-text("Crear Webhook")');
-
-      // Should show HTTPS validation error
-      await expect(page.locator('text=La URL debe usar HTTPS')).toBeVisible();
+      // exact: the URL field's hint also starts with this sentence
+      await expect(page.getByText('La URL debe usar HTTPS', { exact: true })).toBeVisible();
     });
 
     test('should create webhook and show one-time secret', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openCreateModal(page);
+      await fillCreateForm(page, `E2E Test Webhook ${Date.now()}`, ['pet.created', 'pet.updated']);
 
-      // Open modal
-      await page.click('button:has-text("Nuevo Webhook")');
+      await page.getByRole('button', { name: 'Crear Webhook' }).click();
 
-      // Fill form
-      const timestamp = Date.now();
-      const webhookName = `E2E Test Webhook ${timestamp}`;
-      await page.fill('#webhook-name', webhookName);
-      await page.fill('#webhook-url', 'https://example.com/webhook');
-
-      // Select events
-      await page.click('text=pet.created');
-      await page.click('text=pet.updated');
-
-      // Submit
-      await page.click('button:has-text("Crear Webhook")');
-
-      // Should show the created webhook secret modal
-      await expect(page.locator('text=Webhook Creado')).toBeVisible();
-
-      // Should show the secret (one time)
-      await expect(page.locator('code:has-text("whsec_")')).toBeVisible();
-
-      // Should show the warning about one-time display
-      await expect(
-        page.locator('text=Esta es la única vez que verás el secreto')
-      ).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Webhook Creado' })).toBeVisible();
+      await expect(page.locator('code').filter({ hasText: /^whsec_[0-9a-f]+$/ })).toBeVisible();
+      await expect(page.getByText('Esta es la única vez que verás el secreto')).toBeVisible();
     });
 
     test('should copy secret to clipboard', async ({ page, context }) => {
-      // Grant clipboard permissions
       await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+      await openCreateModal(page);
+      await fillCreateForm(page, `Copy Secret Test ${Date.now()}`, ['pet.created']);
+      await page.getByRole('button', { name: 'Crear Webhook' }).click();
+      await expect(page.getByRole('heading', { name: 'Webhook Creado' })).toBeVisible();
 
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await page.getByTitle('Copiar secreto').click();
 
-      await page.click('button:has-text("Nuevo Webhook")');
-
-      const webhookName = `Copy Secret Test ${Date.now()}`;
-      await page.fill('#webhook-name', webhookName);
-      await page.fill('#webhook-url', 'https://example.com/webhook');
-      await page.click('text=pet.created');
-      await page.click('button:has-text("Crear Webhook")');
-
-      await expect(page.locator('text=Webhook Creado')).toBeVisible();
-
-      // Click copy button
-      const copyButton = page.locator('button[title*="Copiar"]');
-      await copyButton.click();
-
-      // Should show confirmation
-      await expect(page.locator('text=Secreto copiado')).toBeVisible();
+      await expect(page.getByText('Secreto copiado al portapapeles')).toBeVisible();
     });
 
     test('should close modal and show webhook in list', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      const name = await createWebhook(page, 'List Test Webhook');
 
-      await page.click('button:has-text("Nuevo Webhook")');
-
-      const webhookName = `List Test Webhook ${Date.now()}`;
-      await page.fill('#webhook-name', webhookName);
-      await page.fill('#webhook-url', 'https://example.com/webhook');
-      await page.click('text=pet.created');
-      await page.click('button:has-text("Crear Webhook")');
-
-      await expect(page.locator('text=Webhook Creado')).toBeVisible();
-
-      // Close the modal
-      await page.click('button:has-text("Entendido")');
-
-      // Webhook should appear in the list
-      await expect(page.locator(`text=${webhookName}`)).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Webhook Creado' })).not.toBeVisible();
+      await expect(webhookCard(page, name).getByText(WEBHOOK_URL)).toBeVisible();
     });
   });
 
   test.describe('Event Selection', () => {
+    test.beforeEach(async ({ page }) => {
+      await openWebhooksTab(page);
+      await openCreateModal(page);
+    });
+
     test('should display events grouped by category', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
-
-      await page.click('button:has-text("Nuevo Webhook")');
-
-      // Should show event categories
-      await expect(page.locator('text=Mascotas')).toBeVisible();
-      await expect(page.locator('text=Citas')).toBeVisible();
-      await expect(page.locator('text=Inventario')).toBeVisible();
-      await expect(page.locator('text=Ventas')).toBeVisible();
+      for (const category of ['Mascotas', 'Citas', 'Inventario', 'Ventas']) {
+        await expect(createForm(page).getByText(category, { exact: true })).toBeVisible();
+      }
     });
 
     test('should allow selecting multiple events', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      const events = ['pet.created', 'appointment.created', 'sale.completed'];
 
-      await page.click('button:has-text("Nuevo Webhook")');
-
-      // Select multiple events
-      await page.click('text=pet.created');
-      await page.click('text=appointment.created');
-      await page.click('text=sale.completed');
-
-      // All should be checked
-      const petCreatedCheckbox = page.locator('input[type="checkbox"][value="pet.created"]');
-      const appointmentCheckbox = page.locator('input[type="checkbox"][value="appointment.created"]');
-      const saleCheckbox = page.locator('input[type="checkbox"][value="sale.completed"]');
-
-      if (await petCreatedCheckbox.isVisible()) {
-        await expect(petCreatedCheckbox).toBeChecked();
-        await expect(appointmentCheckbox).toBeChecked();
-        await expect(saleCheckbox).toBeChecked();
+      for (const event of events) {
+        await eventCheckbox(page, event).check();
       }
+
+      for (const event of events) {
+        await expect(eventCheckbox(page, event)).toBeChecked();
+      }
+      await expect(eventCheckbox(page, 'pet.updated')).not.toBeChecked();
     });
 
     test('should toggle all events in category', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      const mascotas = page.getByRole('checkbox', { name: 'Mascotas', exact: true });
 
-      await page.click('button:has-text("Nuevo Webhook")');
-
-      // Find and click "Select all" for Mascotas category
-      const selectAllMascotas = page.locator('text=Mascotas').locator('..').locator('button:has-text("Todos")');
-
-      if (await selectAllMascotas.isVisible()) {
-        await selectAllMascotas.click();
-
-        // All pet events should be checked
-        await expect(page.locator('input[value="pet.created"]')).toBeChecked();
-        await expect(page.locator('input[value="pet.updated"]')).toBeChecked();
-        await expect(page.locator('input[value="pet.deleted"]')).toBeChecked();
+      await mascotas.check();
+      for (const event of ['pet.created', 'pet.updated', 'pet.deleted']) {
+        await expect(eventCheckbox(page, event)).toBeChecked();
       }
+      await expect(eventCheckbox(page, 'appointment.created')).not.toBeChecked();
+
+      await mascotas.uncheck();
+      await expect(eventCheckbox(page, 'pet.created')).not.toBeChecked();
     });
   });
 
   test.describe('Edit Webhook', () => {
-    test('should open edit modal when clicking edit button', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    test('should rename webhook from the edit prompt', async ({ page }) => {
+      await openWebhooksTab(page);
+      const name = await createWebhook(page, 'Edit Test Webhook');
+      const newName = `Updated Webhook ${Date.now()}`;
 
-      // First create a webhook if none exists
-      const webhookExists = await page.locator('[data-testid="webhook-card"]').count() > 0;
+      // The click only settles once the native dialog is handled
+      const dialogPromise = page.waitForEvent('dialog');
+      const click = webhookCard(page, name).getByTitle('Editar').click();
+      const dialog = await dialogPromise;
+      expect(dialog.type()).toBe('prompt');
+      expect(dialog.defaultValue()).toBe(name);
+      await dialog.accept(newName);
+      await click;
 
-      if (!webhookExists) {
-        await page.click('button:has-text("Nuevo Webhook")');
-        await page.fill('#webhook-name', `Edit Test Webhook ${Date.now()}`);
-        await page.fill('#webhook-url', 'https://example.com/webhook');
-        await page.click('text=pet.created');
-        await page.click('button:has-text("Crear Webhook")');
-        await page.click('button:has-text("Entendido")');
-        await page.waitForLoadState('networkidle');
-      }
-
-      // Click edit button
-      const editButton = page.locator('button[title="Editar"]').first();
-      if (await editButton.isVisible()) {
-        await editButton.click();
-
-        // Edit modal should be visible
-        await expect(page.locator('text=Editar Webhook')).toBeVisible();
-      }
+      await expect(webhookCard(page, newName)).toBeVisible();
+      await expect(page.getByRole('heading', { name, exact: true })).not.toBeVisible();
     });
 
-    test('should update webhook name', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    // FIXME(app): WebhookConfig has no edit modal and no way to rotate the
+    // secret; editing is a prompt() that only renames.
+    test.fixme('should allow regenerating secret', async ({ page }) => {
+      await openWebhooksTab(page);
+      const name = await createWebhook(page, 'Regenerate Secret Webhook');
 
-      const editButton = page.locator('button[title="Editar"]').first();
+      await webhookCard(page, name).getByTitle('Editar').click();
+      await page.getByRole('button', { name: 'Regenerar Secreto' }).click();
 
-      if (await editButton.isVisible()) {
-        await editButton.click();
-
-        // Update name
-        const newName = `Updated Webhook ${Date.now()}`;
-        await page.fill('#webhook-name', newName);
-        await page.click('button:has-text("Guardar")');
-
-        // Should see updated name in list
-        await expect(page.locator(`text=${newName}`)).toBeVisible();
-      }
-    });
-
-    test('should allow regenerating secret', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
-
-      const editButton = page.locator('button[title="Editar"]').first();
-
-      if (await editButton.isVisible()) {
-        await editButton.click();
-
-        // Click regenerate secret button
-        const regenerateButton = page.locator('button:has-text("Regenerar Secreto")');
-        if (await regenerateButton.isVisible()) {
-          await regenerateButton.click();
-
-          // Should show confirmation dialog or new secret
-          await expect(
-            page.locator('text=Nuevo secreto generado').or(
-              page.locator('text=whsec_')
-            )
-          ).toBeVisible();
-        }
-      }
+      await expect(page.locator('code').filter({ hasText: /^whsec_/ })).toBeVisible();
     });
   });
 
   test.describe('Delete Webhook', () => {
-    test('should show confirmation dialog when clicking delete', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    test.beforeEach(async ({ page }) => {
+      await openWebhooksTab(page);
+    });
 
-      const deleteButton = page.locator('button[title="Eliminar"]').first();
+    test('should keep the webhook when the confirmation is dismissed', async ({ page }) => {
+      const name = await createWebhook(page, 'Keep Test Webhook');
 
-      if (await deleteButton.isVisible()) {
-        // Handle the confirmation dialog
-        page.on('dialog', async (dialog) => {
-          expect(dialog.type()).toBe('confirm');
-          expect(dialog.message()).toContain('Estás seguro');
-          await dialog.dismiss(); // Don't actually delete
-        });
+      // The click only settles once the native dialog is handled
+      const dialogPromise = page.waitForEvent('dialog');
+      const click = webhookCard(page, name).getByTitle('Eliminar').click();
+      const dialog = await dialogPromise;
+      expect(dialog.type()).toBe('confirm');
+      expect(dialog.message()).toContain(`deseas eliminar el webhook "${name}"`);
+      await dialog.dismiss();
+      await click;
 
-        await deleteButton.click();
-      }
+      await expect(webhookCard(page, name)).toBeVisible();
     });
 
     test('should delete webhook when confirmed', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      const name = await createWebhook(page, 'Delete Test Webhook');
 
-      // First create a webhook to delete
-      await page.click('button:has-text("Nuevo Webhook")');
-      const webhookName = `Delete Test Webhook ${Date.now()}`;
-      await page.fill('#webhook-name', webhookName);
-      await page.fill('#webhook-url', 'https://example.com/webhook');
-      await page.click('text=pet.created');
-      await page.click('button:has-text("Crear Webhook")');
-      await page.click('button:has-text("Entendido")');
-      await page.waitForLoadState('networkidle');
+      page.once('dialog', (dialog) => dialog.accept());
+      await webhookCard(page, name).getByTitle('Eliminar').click();
 
-      // Find the webhook's delete button
-      const webhookCard = page.locator(`text=${webhookName}`).locator('..').locator('..');
-      const deleteButton = webhookCard.locator('button[title="Eliminar"]');
-
-      // Accept the confirmation
-      page.on('dialog', async (dialog) => {
-        await dialog.accept();
-      });
-
-      await deleteButton.click();
-
-      // Webhook should be removed from list
-      await expect(page.locator(`text=${webhookName}`)).not.toBeVisible();
+      await expect(page.getByRole('heading', { name, exact: true })).not.toBeVisible();
+      await page.reload();
+      await expect(page.getByRole('button', { name: 'Nuevo Webhook', exact: true })).toBeVisible();
+      await expect(page.getByRole('heading', { name, exact: true })).not.toBeVisible();
     });
   });
 
   test.describe('Toggle Webhook Active State', () => {
-    test('should toggle webhook from active to inactive', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    test('should deactivate and reactivate a webhook', async ({ page }) => {
+      await openWebhooksTab(page);
+      const name = await createWebhook(page, 'Toggle Test Webhook');
+      const card = webhookCard(page, name);
 
-      const deactivateButton = page.locator('button:has-text("Desactivar")').first();
+      await card.getByRole('button', { name: 'Desactivar' }).click();
+      await expect(card.getByText('Inactivo', { exact: true })).toBeVisible();
+      await expect(card.getByTitle('Probar webhook')).toBeDisabled();
 
-      if (await deactivateButton.isVisible()) {
-        await deactivateButton.click();
-
-        // Should now show "Inactivo" badge
-        await expect(page.locator('text=Inactivo')).toBeVisible();
-      }
-    });
-
-    test('should toggle webhook from inactive to active', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
-
-      const activateButton = page.locator('button:has-text("Activar")').first();
-
-      if (await activateButton.isVisible()) {
-        await activateButton.click();
-
-        // Should now show "Activo" badge
-        await expect(page.locator('text=Activo')).toBeVisible();
-      }
+      await card.getByRole('button', { name: 'Activar' }).click();
+      await expect(card.getByText('Activo', { exact: true })).toBeVisible();
+      await expect(card.getByTitle('Probar webhook')).toBeEnabled();
     });
   });
 
   test.describe('Test Webhook', () => {
-    test('should send test ping and show result', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    // The ping is a real POST from the server; delivery times out after 30s
+    test.setTimeout(90_000);
 
-      const testButton = page.locator('button:has-text("Probar")').first();
+    test('should send test ping, show the result and count the delivery', async ({ page }) => {
+      await openWebhooksTab(page);
+      const name = await createWebhook(page, 'Ping Test Webhook');
+      const card = webhookCard(page, name);
+      await expect(card.getByText('0 entregas')).toBeVisible();
 
-      if (await testButton.isVisible()) {
-        await testButton.click();
+      const dialogPromise = page.waitForEvent('dialog', { timeout: 40_000 });
+      await card.getByTitle('Probar webhook').click();
+      const dialog = await dialogPromise;
 
-        // Should show test result (success or failure)
-        await expect(
-          page.locator('text=Test enviado exitosamente').or(
-            page.locator('text=Error al enviar test')
-          )
-        ).toBeVisible({ timeout: 35000 }); // Webhook delivery has 30s timeout
-      }
-    });
+      // Success reports the HTTP status; failure reports the error
+      expect(dialog.type()).toBe('alert');
+      expect(dialog.message()).toMatch(/^Prueba exitosa!\n\nCodigo HTTP: \d{3}$|^Prueba fallida\n\n\S/);
+      await dialog.accept();
 
-    test('should show delivery status in test result', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
-
-      const testButton = page.locator('button:has-text("Probar")').first();
-
-      if (await testButton.isVisible()) {
-        await testButton.click();
-
-        // Should show HTTP status code or error message
-        await expect(
-          page.locator('text=200').or(
-            page.locator('text=Error:').or(
-              page.locator('text=Timeout')
-            )
-          )
-        ).toBeVisible({ timeout: 35000 });
-      }
+      await expect(card.getByText('1 entrega', { exact: true })).toBeVisible();
     });
   });
 
   test.describe('Delivery Logs', () => {
-    test('should show delivery logs when clicking webhook', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    // FIXME(app): WebhookConfig has no delivery log viewer. The data is served
+    // by GET /api/settings/webhooks/[id]/logs, but no component reads it.
+    test.fixme('should show delivery logs when clicking webhook', async ({ page }) => {
+      await openWebhooksTab(page);
+      const name = await createWebhook(page, 'Logs Test Webhook');
 
-      const webhookCard = page.locator('[data-testid="webhook-card"]').first();
+      await webhookCard(page, name).click();
 
-      if (await webhookCard.isVisible()) {
-        await webhookCard.click();
-
-        // Should show delivery history section
-        await expect(
-          page.locator('text=Historial de entregas').or(
-            page.locator('text=Sin entregas registradas')
-          )
-        ).toBeVisible();
-      }
+      await expect(page.getByText('Historial de entregas')).toBeVisible();
     });
 
-    test('should display delivery status badges', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    test.fixme('should display delivery status badges', async ({ page }) => {
+      await openWebhooksTab(page);
+      const name = await createWebhook(page, 'Log Badges Webhook');
 
-      const webhookCard = page.locator('[data-testid="webhook-card"]').first();
+      await webhookCard(page, name).click();
 
-      if (await webhookCard.isVisible()) {
-        await webhookCard.click();
-
-        // Check for status badges in delivery logs
-        const deliveredBadge = page.locator('text=Entregado');
-        const failedBadge = page.locator('text=Fallido');
-        const pendingBadge = page.locator('text=Pendiente');
-        const noDeliveries = page.locator('text=Sin entregas');
-
-        // At least one of these should be visible
-        await expect(
-          deliveredBadge.or(failedBadge).or(pendingBadge).or(noDeliveries)
-        ).toBeVisible();
-      }
+      await expect(
+        page.getByText('Entregado').or(page.getByText('Fallido')).or(page.getByText('Pendiente')).first()
+      ).toBeVisible();
     });
 
-    test('should paginate delivery logs', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    test.fixme('should paginate delivery logs', async ({ page }) => {
+      await openWebhooksTab(page);
+      const name = await createWebhook(page, 'Log Pages Webhook');
 
-      const webhookCard = page.locator('[data-testid="webhook-card"]').first();
+      await webhookCard(page, name).click();
+      await page.getByRole('button', { name: 'Siguiente' }).click();
 
-      if (await webhookCard.isVisible()) {
-        await webhookCard.click();
-
-        // Check for pagination controls
-        const nextPage = page.locator('button:has-text("Siguiente")');
-        const pageNumbers = page.locator('text=/Página \\d+/');
-
-        // If there are multiple pages, pagination should be visible
-        if (await nextPage.isVisible()) {
-          await nextPage.click();
-          await expect(page.locator('text=Página 2')).toBeVisible();
-        }
-      }
+      await expect(page.getByText('Página 2')).toBeVisible();
     });
   });
 
   test.describe('Webhook Status Indicators', () => {
     test('should show active/inactive status badge', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await openWebhooksTab(page);
+      const name = await createWebhook(page, 'Badge Test Webhook');
 
-      const webhookCard = page.locator('[data-testid="webhook-card"]').first();
-
-      if (await webhookCard.isVisible()) {
-        // Should show either Activo or Inactivo badge
-        await expect(
-          page.locator('text=Activo').or(page.locator('text=Inactivo'))
-        ).toBeVisible();
-      }
+      await expect(webhookCard(page, name).getByText('Activo', { exact: true })).toBeVisible();
     });
 
     test('should show failure count when webhook has failures', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await mockWebhookList(page, [
+        mockedWebhook({
+          name: 'Failing Webhook',
+          consecutiveFailures: 3,
+          lastDeliveryAt: new Date().toISOString(),
+          _count: { deliveries: 3 },
+        }),
+      ]);
+      await openWebhooksTab(page);
 
-      // Check for failure indicators
-      const failureCount = page.locator('text=/\\d+ fallos?/');
-      const warningIcon = page.locator('[data-testid="failure-warning"]');
-
-      // These may or may not be visible depending on webhook state
-      const failureVisible = await failureCount.isVisible() || await warningIcon.isVisible();
-
-      // This is an informational test - pass either way
-      expect(true).toBe(true);
+      const card = webhookCard(page, 'Failing Webhook');
+      await expect(card.getByText('3 fallos consecutivos')).toBeVisible();
+      await expect(card.getByText(/^Fallo hace/)).toBeVisible();
     });
 
     test('should show last delivery timestamp', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await mockWebhookList(page, [
+        mockedWebhook({ id: 'never', name: 'Never Delivered Webhook' }),
+        mockedWebhook({
+          id: 'delivered',
+          name: 'Delivered Webhook',
+          lastDeliveryAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+          lastSuccessAt: new Date(Date.now() - 5 * 60_000).toISOString(),
+          _count: { deliveries: 1 },
+        }),
+      ]);
+      await openWebhooksTab(page);
 
-      const webhookCard = page.locator('[data-testid="webhook-card"]').first();
-
-      if (await webhookCard.isVisible()) {
-        // Should show last delivery info
-        const lastDelivery = page.locator('text=Última entrega');
-        const neverDelivered = page.locator('text=Sin entregas');
-
-        await expect(lastDelivery.or(neverDelivered)).toBeVisible();
-      }
+      await expect(webhookCard(page, 'Never Delivered Webhook').getByText('Sin entregas')).toBeVisible();
+      await expect(webhookCard(page, 'Delivered Webhook').getByText(/^Exito hace 5 minutos$/)).toBeVisible();
     });
   });
 
   test.describe('Empty State', () => {
+    test.beforeEach(async ({ page }) => {
+      await mockWebhookList(page, []);
+      await openWebhooksTab(page);
+    });
+
     test('should show empty state when no webhooks exist', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
-
-      // Check if we're in empty state
-      const emptyState = page.locator('text=No hay webhooks configurados');
-      const createFirstButton = page.locator('text=Crear Primer Webhook');
-
-      // If empty state is visible, verify the CTA
-      if (await emptyState.isVisible()) {
-        await expect(createFirstButton).toBeVisible();
-      }
+      await expect(page.getByRole('heading', { name: 'No hay webhooks configurados' })).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Crear Primer Webhook' })).toBeVisible();
     });
 
     test('should open create modal from empty state CTA', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      await page.getByRole('button', { name: 'Crear Primer Webhook' }).click();
 
-      const createFirstButton = page.locator('text=Crear Primer Webhook');
-
-      if (await createFirstButton.isVisible()) {
-        await createFirstButton.click();
-
-        // Should open create modal
-        await expect(page.locator('text=Nuevo Webhook')).toBeVisible();
-      }
+      await expect(page.getByRole('heading', { name: 'Nuevo Webhook' })).toBeVisible();
     });
   });
 
   test.describe('Accessibility', () => {
-    test('should have proper heading structure', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    test.beforeEach(async ({ page }) => {
+      await openWebhooksTab(page);
+    });
 
-      // Should have main heading
-      const heading = page.locator('h1, h2, h3').first();
-      await expect(heading).toBeVisible();
+    test('should have proper heading structure', async ({ page }) => {
+      await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toHaveText('Configuración');
     });
 
     test('should be keyboard navigable', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      const createButton = page.getByRole('button', { name: 'Nuevo Webhook', exact: true });
 
-      // Focus on first interactive element
-      await page.keyboard.press('Tab');
+      await createButton.focus();
+      await expect(createButton).toBeFocused();
+      await page.keyboard.press('Enter');
 
-      // Should have focus visible
-      const focusedElement = page.locator(':focus');
-      await expect(focusedElement).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Nuevo Webhook' })).toBeVisible();
     });
 
-    test('should have aria labels on buttons', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+    test('should have titles on card action buttons', async ({ page }) => {
+      const name = await createWebhook(page, 'A11y Test Webhook');
+      const card = webhookCard(page, name);
 
-      // Check for aria-labels on action buttons
-      const buttons = page.locator('button[aria-label], button[title]');
-      const count = await buttons.count();
-
-      // Should have accessible buttons
-      expect(count).toBeGreaterThan(0);
+      for (const title of ['Probar webhook', 'Editar', 'Eliminar']) {
+        await expect(card.getByRole('button', { name: title })).toBeVisible();
+      }
     });
   });
 
   test.describe('Event Types Display', () => {
+    test.beforeEach(async ({ page }) => {
+      await openWebhooksTab(page);
+    });
+
     test('should display subscribed events on webhook card', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      const name = await createWebhook(page, 'Events Test Webhook', ['pet.created', 'sale.completed']);
+      const card = webhookCard(page, name);
 
-      const webhookCard = page.locator('[data-testid="webhook-card"]').first();
-
-      if (await webhookCard.isVisible()) {
-        // Should show event badges
-        await expect(
-          page.locator('text=pet.created').or(
-            page.locator('text=appointment.created').or(
-              page.locator('text=sale.completed')
-            )
-          )
-        ).toBeVisible();
-      }
+      await expect(card.getByText('pet.created', { exact: true })).toBeVisible();
+      await expect(card.getByText('sale.completed', { exact: true })).toBeVisible();
     });
 
     test('should show truncated events with "more" indicator', async ({ page }) => {
-      await page.goto('/dashboard/settings?tab=api');
-      await page.waitForLoadState('networkidle');
+      const events = [
+        'pet.created',
+        'pet.updated',
+        'pet.deleted',
+        'appointment.created',
+        'appointment.updated',
+        'sale.completed',
+      ];
+      const name = await createWebhook(page, 'Many Events Webhook', events);
+      const card = webhookCard(page, name);
 
-      // Create webhook with many events
-      await page.click('button:has-text("Nuevo Webhook")');
-      await page.fill('#webhook-name', `Many Events Webhook ${Date.now()}`);
-      await page.fill('#webhook-url', 'https://example.com/webhook');
+      // The card shows three events and folds the rest behind "+N mas"
+      const more = card.getByRole('button', { name: /^\+3 m[aá]s$/ });
+      await expect(more).toBeVisible();
+      await expect(card.getByText('sale.completed', { exact: true })).not.toBeVisible();
 
-      // Select many events
-      await page.click('text=pet.created');
-      await page.click('text=pet.updated');
-      await page.click('text=pet.deleted');
-      await page.click('text=appointment.created');
-      await page.click('text=appointment.updated');
-      await page.click('text=sale.completed');
-
-      await page.click('button:has-text("Crear Webhook")');
-      await page.click('button:has-text("Entendido")');
-
-      // Should show "+N más" indicator if events are truncated
-      const moreIndicator = page.locator('text=/\\+\\d+ más/');
-      if (await moreIndicator.isVisible()) {
-        expect(await moreIndicator.textContent()).toMatch(/\+\d+ más/);
-      }
+      await more.click();
+      await expect(card.getByText('sale.completed', { exact: true })).toBeVisible();
     });
   });
 });
 
-/**
- * Separate test group for role-based access control
- */
-const isRoleTestEnabled = process.env.TEST_ROLE_ACCESS_ENABLED === 'true';
+test.describe('Webhook Feature Gate', () => {
+  test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session. Set TEST_AUTH_ENABLED=true');
+  // The CI clinic is on PROFESIONAL, which has no API access
+  test.use({ storageState: AUTH_STATE_PATH });
+
+  test('should show upgrade prompt for non-CORPORATIVO users', async ({ page }) => {
+    await page.goto(WEBHOOKS_TAB);
+
+    await expect(page.getByText('Función Premium')).toBeVisible();
+    await expect(page.getByText('Los webhooks requieren el plan Corporativo')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Nuevo Webhook' })).not.toBeVisible();
+  });
+});
 
 test.describe('Webhook Role-Based Access', () => {
-  test.skip(!isRoleTestEnabled, 'Skipping - requires role-based test setup');
+  test.skip(!isAuthTestEnabled, 'Skipping - requires authenticated session. Set TEST_AUTH_ENABLED=true');
+  test.use({ storageState: VET_AUTH_STATE_PATH });
 
   test('should only allow MANAGER/ADMINISTRATOR to manage webhooks', async ({ page }) => {
-    await page.goto('/dashboard/settings?tab=api');
-    await page.waitForLoadState('networkidle');
+    await page.goto(WEBHOOKS_TAB);
 
-    // For non-admin users, should redirect or show access denied
-    const currentUrl = page.url();
-    const isOnSettings = currentUrl.includes('/settings');
-    const hasWebhookAccess = await page.locator('text=Nuevo Webhook').isVisible();
-
-    // If user doesn't have access, they shouldn't see webhook management
-    if (!hasWebhookAccess && isOnSettings) {
-      await expect(page.locator('text=Función Premium')).toBeVisible();
-    }
+    await expect(page).toHaveURL(/\/dashboard\?error=access_denied/);
+    await expect(page.getByRole('button', { name: 'Nuevo Webhook' })).not.toBeVisible();
   });
 });

@@ -23,12 +23,13 @@ import {
   BarChart3,
   Lock,
   Key,
-  Coins
+  Coins,
+  Webhook
 } from 'lucide-react';
 import { PublicPageSettings } from '../../../components/settings/PublicPageSettings';
 import { QrCodeGenerator } from '../../../components/settings/QrCodeGenerator';
 import { LandingAnalyticsSection } from '../../../components/analytics/LandingAnalyticsSection';
-import { ApiKeyManagement } from '../../../components/api';
+import { ApiKeyManagement, WebhookConfig } from '../../../components/api';
 import { FeatureGate } from '../../../components/features/FeatureGate';
 
 const settingsSections = [
@@ -106,6 +107,15 @@ const settingsSections = [
     requiresFeature: 'apiAccess'
   },
   {
+    id: 'webhooks',
+    title: 'Webhooks',
+    description: 'Recibe notificaciones en tu sistema cuando ocurren eventos en tu clínica',
+    icon: Webhook,
+    component: 'webhooks',
+    requiresSubscription: true,
+    requiresFeature: 'apiAccess'
+  },
+  {
     id: 'security',
     title: 'Seguridad',
     description: 'Configure la seguridad y autenticación',
@@ -177,6 +187,15 @@ export function SettingsPageClient({ tenant, isActiveSubscription }: SettingsPag
             upgradeMessage="El acceso a la API requiere el plan Corporativo"
           >
             <ApiKeyManagement tenantId={tenant.id} />
+          </FeatureGate>
+        );
+      case 'webhooks':
+        return (
+          <FeatureGate
+            feature="apiAccess"
+            upgradeMessage="Los webhooks requieren el plan Corporativo"
+          >
+            <WebhookConfig />
           </FeatureGate>
         );
       default:

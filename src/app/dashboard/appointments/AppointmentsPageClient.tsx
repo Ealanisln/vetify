@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { Badge } from '../../../components/ui/badge';
 import { PlusIcon, Calendar, Clock, Users, Loader2 } from 'lucide-react';
 import { useStaffPermissions } from '../../../hooks/useStaffPermissions';
-import { useClinicCalendarSettings } from '../../../hooks/useCalendar';
 import { DateSelectArg } from '@fullcalendar/core';
 import { formatDate, formatTime } from '../../../lib/utils/date-format';
 import { POSITION_LABELS_ES, StaffPositionType } from '../../../lib/staff-positions';
@@ -101,11 +100,11 @@ function AppointmentsPageContent({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
 
-  // Use context for quickAction and refresh (single source of truth)
-  const { quickAction, refresh } = useAppointmentsContext();
+  // Use context for quickAction and refresh (single source of truth).
+  // Clinic hours and timezone are loaded once by the provider and shared by
+  // the today list, the stats, the calendar and the appointment form.
+  const { quickAction, refresh, clinicSettings } = useAppointmentsContext();
   const { canAccess: checkPermission } = useStaffPermissions();
-  // Clinic hours and timezone, shared by the calendar and the appointment form
-  const clinicSettings = useClinicCalendarSettings();
 
   // Check if user has permission to create/edit appointments
   const canWriteAppointments = checkPermission('appointments', 'write');

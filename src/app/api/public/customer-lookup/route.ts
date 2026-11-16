@@ -54,7 +54,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const phoneMatches = await findCustomersByPhone(tenant.id, phone);
+    // Customers the clinic archived are not offered to the public form
+    const phoneMatches = await findCustomersByPhone(tenant.id, phone, { activeOnly: true });
     const customer = phoneMatches.find(
       (candidate) =>
         (customerName && namesMatch(candidate.name, customerName)) ||

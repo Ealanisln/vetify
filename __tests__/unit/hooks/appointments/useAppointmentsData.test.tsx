@@ -56,6 +56,11 @@ const createMockAppointment = (
   ...overrides,
 });
 
+// These tests build "today" from the process's local clock, so the derived
+// hooks get the process zone. Clinic-zone behavior is covered in
+// useAppointmentsData-clinic-timezone.test.tsx.
+const LOCAL_ZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 // SWR wrapper to clear cache between tests
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
@@ -252,7 +257,7 @@ describe('useTodayAppointments', () => {
       createMockAppointment({ id: 'tomorrow', dateTime: tomorrow }),
     ];
 
-    const { result } = renderHook(() => useTodayAppointments(appointments));
+    const { result } = renderHook(() => useTodayAppointments(appointments, LOCAL_ZONE));
 
     expect(result.current).toHaveLength(2);
     expect(result.current.map((a) => a.id)).toContain('today-1');
@@ -265,7 +270,7 @@ describe('useTodayAppointments', () => {
       createMockAppointment({ id: 'yesterday', dateTime: yesterday }),
     ];
 
-    const { result } = renderHook(() => useTodayAppointments(appointments));
+    const { result } = renderHook(() => useTodayAppointments(appointments, LOCAL_ZONE));
 
     expect(result.current).toHaveLength(0);
   });
@@ -276,7 +281,7 @@ describe('useTodayAppointments', () => {
       createMockAppointment({ id: 'tomorrow', dateTime: tomorrow }),
     ];
 
-    const { result } = renderHook(() => useTodayAppointments(appointments));
+    const { result } = renderHook(() => useTodayAppointments(appointments, LOCAL_ZONE));
 
     expect(result.current).toHaveLength(0);
   });
@@ -291,7 +296,7 @@ describe('useTodayAppointments', () => {
     ];
 
     const { result, rerender } = renderHook(
-      ({ appts }) => useTodayAppointments(appts),
+      ({ appts }) => useTodayAppointments(appts, LOCAL_ZONE),
       { initialProps: { appts: appointments } }
     );
 
@@ -329,7 +334,7 @@ describe('useAppointmentStatsFromData', () => {
       createMockAppointment({ id: '2', dateTime: todayAfternoon }),
     ];
 
-    const { result } = renderHook(() => useAppointmentStatsFromData(appointments));
+    const { result } = renderHook(() => useAppointmentStatsFromData(appointments, LOCAL_ZONE));
 
     expect(result.current.today).toBe(2);
   });
@@ -350,7 +355,7 @@ describe('useAppointmentStatsFromData', () => {
       createMockAppointment({ id: 'last-week', dateTime: lastWeekDate }),
     ];
 
-    const { result } = renderHook(() => useAppointmentStatsFromData(appointments));
+    const { result } = renderHook(() => useAppointmentStatsFromData(appointments, LOCAL_ZONE));
 
     expect(result.current.thisWeek).toBe(1);
   });
@@ -371,7 +376,7 @@ describe('useAppointmentStatsFromData', () => {
       createMockAppointment({ id: 'last-month', dateTime: lastMonthDate }),
     ];
 
-    const { result } = renderHook(() => useAppointmentStatsFromData(appointments));
+    const { result } = renderHook(() => useAppointmentStatsFromData(appointments, LOCAL_ZONE));
 
     expect(result.current.thisMonth).toBe(1);
   });
@@ -389,7 +394,7 @@ describe('useAppointmentStatsFromData', () => {
       createMockAppointment({ id: '4', dateTime: thisMonthDate, status: 'CANCELLED_CLINIC' }),
     ];
 
-    const { result } = renderHook(() => useAppointmentStatsFromData(appointments));
+    const { result } = renderHook(() => useAppointmentStatsFromData(appointments, LOCAL_ZONE));
 
     // 2 completed out of 4 = 50%
     expect(result.current.completionRate).toBe(50);
@@ -400,7 +405,7 @@ describe('useAppointmentStatsFromData', () => {
 
     const appointments = [createMockAppointment({ id: 'later', dateTime: farFuture })];
 
-    const { result } = renderHook(() => useAppointmentStatsFromData(appointments));
+    const { result } = renderHook(() => useAppointmentStatsFromData(appointments, LOCAL_ZONE));
 
     expect(result.current.thisWeek).toBe(0);
     expect(result.current.thisMonth).toBe(0);
@@ -413,7 +418,7 @@ describe('useAppointmentStatsFromData', () => {
       createMockAppointment({ id: '1', dateTime: lastMonth, status: 'COMPLETED' }),
     ];
 
-    const { result } = renderHook(() => useAppointmentStatsFromData(appointments));
+    const { result } = renderHook(() => useAppointmentStatsFromData(appointments, LOCAL_ZONE));
 
     expect(result.current.completionRate).toBe(0);
   });

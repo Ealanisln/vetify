@@ -1,5 +1,10 @@
 import type { MetadataRoute } from 'next';
 import { getBaseUrl } from '@/lib/seo/config';
+import { PRODUCTION_APP_URL } from '@/lib/app-url';
+
+// Hosts that serve production. The apex redirects to www, but either may be
+// configured as the base URL.
+const PRODUCTION_HOSTS = new Set(['https://vetify.pro', PRODUCTION_APP_URL]);
 
 /**
  * Generate robots.txt file
@@ -12,11 +17,11 @@ import { getBaseUrl } from '@/lib/seo/config';
  * Vercel deployment protection enabled (which returns 401).
  */
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = getBaseUrl();
+  const baseUrl = getBaseUrl().trim().replace(/\/+$/, '');
 
   // Block all crawling on non-production domains
   // This prevents 401 errors in Search Console from preview deployments
-  const isProduction = baseUrl === 'https://vetify.pro';
+  const isProduction = PRODUCTION_HOSTS.has(baseUrl);
 
   if (!isProduction) {
     return {

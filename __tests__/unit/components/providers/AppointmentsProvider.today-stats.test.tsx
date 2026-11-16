@@ -31,6 +31,15 @@ jest.mock('@/hooks/appointments/useAppointmentMutations', () => ({
   }),
 }));
 
+// "Today" here is built from the process's local clock, so the clinic runs in
+// the process zone. Clinic-zone behavior: AppointmentsProvider.clinic-today.test.tsx
+jest.mock('@/hooks/useCalendar', () => ({
+  useClinicCalendarSettings: () => ({
+    days: null,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  }),
+}));
+
 import { useAppointmentsData } from '@/hooks/appointments/useAppointmentsData';
 
 const mockedUseAppointmentsData = useAppointmentsData as jest.MockedFunction<typeof useAppointmentsData>;
