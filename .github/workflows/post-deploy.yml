@@ -1,0 +1,98 @@
+name: Post-deploy validation
+
+# Runs after every successful production deployment on Vercel.
+# Vetify has no QA environment, so this is the QA gate: read-only checks
+# against the live site. See docs/POST-DEPLOY.md for the full flow.
+on:
+  deployment_status:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  NODE_VERSION: '20'
+  PROD_URL: https://www.vetify.pro
+
+concurrency:
+  group: post-deploy-validation
+  cancel-in-progress: false
+
+jobs:
+  prod-smoke:
+    name: Production smoke (read-only)
+    # Vercel also reports preview deployments; only production counts.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout deployed commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha || github.sha }}
+
+      - name: Wait for the deployed version to be live
+        id: version
+        run: |
+          expected=$(node -p "require('./package.json').version")
+          echo "expected=$expected" >> "$GITHUB_OUTPUT"
+          for attempt in $(seq 1 18); do
+            live=$(curl -fsS --max-time 10 "$PROD_URL/api/version" | node -p "JSON.parse(require('fs').readFileSync(0, 'utf8')).version" 2>/dev/null || true)
+            echo "attempt $attempt: live=${live:-unreachable} expected=$expected"
+            if [ "$live" = "$expected" ]; then
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::$PROD_URL/api/version reports '${live:-unreachable}', expected '$expected'"
+          exit 1
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run production smoke suite
+        run: pnpm test:post-deploy:prod
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: post-deploy-report
+          path: |
+            playwright-report-weekly/
+            test-results/
+          retention-days: 14
+
+      - name: Open an issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.expected }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Post-deploy validation failed for v${VERSION:-unknown}" \
+            --body "The production smoke suite failed after a deployment to $PROD_URL.
+
+          Run: $RUN_URL
+          Commit: ${{ github.event.deployment.sha || github.sha }}
+
+          Follow docs/POST-DEPLOY.md to triage. Roll back in Vercel if a critical flow is broken."
