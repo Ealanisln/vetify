@@ -118,8 +118,15 @@ describe('Webhook Events', () => {
 
   describe('getEventDescription', () => {
     it('should return description for valid event', () => {
-      expect(getEventDescription('pet.created')).toBe('When a new pet is registered');
-      expect(getEventDescription('appointment.cancelled')).toBe('When an appointment is cancelled');
+      expect(getEventDescription('pet.created')).toBe('Cuando se registra una nueva mascota');
+      expect(getEventDescription('appointment.cancelled')).toBe('Cuando se cancela una cita');
+    });
+
+    // The descriptions are shown to clinics in the event selector
+    it('should describe every event in Spanish', () => {
+      ALL_WEBHOOK_EVENTS.forEach((event) => {
+        expect(getEventDescription(event)).toMatch(/^Cuando /);
+      });
     });
 
     it('should return correct descriptions', () => {
