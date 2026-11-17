@@ -219,6 +219,8 @@ async function findSimilarCustomers(
   const nameSimilar = await prisma.customer.findMany({
     where: {
       tenantId,
+      // Archived customers are hidden from searches (same rule as findCustomersByPhone)
+      isActive: true,
       OR: [
         {
           name: {
