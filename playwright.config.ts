@@ -3,6 +3,7 @@ import {
   AUTH_STATE_PATH,
   E2E_BASE_URL,
   E2E_PORT,
+  E2E_SERVER_ENV,
   FAKE_SERVICES_URL,
 } from './tests/e2e/support/constants'
 
@@ -126,7 +127,7 @@ export default defineConfig({
     {
       command: isCI ? 'pnpm start' : 'pnpm dev',
       url: E2E_BASE_URL,
-      env: { PORT: String(E2E_PORT) },
+      env: { ...E2E_SERVER_ENV, PORT: String(E2E_PORT) },
       reuseExistingServer: !isCI,
       timeout: 120 * 1000,
     },
