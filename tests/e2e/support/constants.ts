@@ -47,3 +47,14 @@ export const SEEDED_CORPORATIVO_OWNER = {
 export const SEEDED_CORPORATIVO_CLINIC_SLUG = 'ci-corporativo-clinic';
 /** The CORPORATIVO clinic's only location, so the API key modal offers a location. */
 export const SEEDED_CORPORATIVO_LOCATION_NAME = 'Sucursal Centro';
+
+/**
+ * Env for the local app server Playwright starts. Next.js only loads a var
+ * from .env when it is not already in process.env, so these blanks win over
+ * the real Upstash credentials a developer's .env may carry: rate limiting is
+ * then off instead of every request waiting on Redis.
+ */
+export const E2E_SERVER_ENV = {
+  UPSTASH_REDIS_REST_URL: '',
+  UPSTASH_REDIS_REST_TOKEN: '',
+};
