@@ -13,6 +13,8 @@ interface WebhookSecretModalProps {
   onClose: () => void;
   webhookName: string;
   secret: string;
+  /** 'regenerated' when the secret replaces a previous one */
+  variant?: 'created' | 'regenerated';
 }
 
 export function WebhookSecretModal({
@@ -20,6 +22,7 @@ export function WebhookSecretModal({
   onClose,
   webhookName,
   secret,
+  variant = 'created',
 }: WebhookSecretModalProps) {
   const [copied, setCopied] = useState(false);
 
@@ -38,17 +41,34 @@ export function WebhookSecretModal({
         <div className="fixed inset-0 bg-black/50 transition-opacity" />
 
         {/* Modal */}
-        <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-auto">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="webhook-secret-title"
+          className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-auto"
+        >
           {/* Header */}
           <div className="p-6 pb-4 text-center">
             <div className="mx-auto flex items-center justify-center w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 mb-4">
               <LinkIcon className="h-6 w-6 text-green-600 dark:text-green-400" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Webhook Creado
+            <h2
+              id="webhook-secret-title"
+              className="text-xl font-semibold text-gray-900 dark:text-white mb-2"
+            >
+              {variant === 'regenerated' ? 'Secreto Regenerado' : 'Webhook Creado'}
             </h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Tu webhook <strong>{webhookName}</strong> ha sido creado exitosamente
+              {variant === 'regenerated' ? (
+                <>
+                  El secreto de tu webhook <strong>{webhookName}</strong> fue reemplazado. El
+                  anterior ya no es válido.
+                </>
+              ) : (
+                <>
+                  Tu webhook <strong>{webhookName}</strong> ha sido creado exitosamente
+                </>
+              )}
             </p>
           </div>
 
@@ -88,6 +108,7 @@ export function WebhookSecretModal({
                     : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                 }`}
                 title={copied ? 'Copiado' : 'Copiar secreto'}
+                aria-label={copied ? 'Copiado' : 'Copiar secreto'}
               >
                 {copied ? (
                   <CheckIcon className="h-5 w-5" />

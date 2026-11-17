@@ -11,6 +11,7 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
+  QueueListIcon,
 } from '@heroicons/react/24/outline';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -37,6 +38,7 @@ interface WebhookCardProps {
   onDelete: (webhook: WebhookData) => void;
   onToggleActive: (webhook: WebhookData) => void;
   onTest: (webhook: WebhookData) => void;
+  onViewLogs: (webhook: WebhookData) => void;
 }
 
 export function WebhookCard({
@@ -45,6 +47,7 @@ export function WebhookCard({
   onDelete,
   onToggleActive,
   onTest,
+  onViewLogs,
 }: WebhookCardProps) {
   const [showAllEvents, setShowAllEvents] = useState(false);
 
@@ -60,9 +63,17 @@ export function WebhookCard({
     ? `${webhook.url.substring(0, 47)}...`
     : webhook.url;
 
+  // Runs a card action without also triggering the card's own click
+  const withoutCardClick = (action: () => void) => (event: React.MouseEvent) => {
+    event.stopPropagation();
+    action();
+  };
+
   return (
+    // Clicking the card is a pointer shortcut; "Ver entregas" is the keyboard path
     <div
-      className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow ${
+      onClick={() => onViewLogs(webhook)}
+      className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer ${
         !webhook.isActive ? 'opacity-60' : ''
       }`}
     >
@@ -84,7 +95,9 @@ export function WebhookCard({
 
         <div className="flex items-center gap-1 ml-2">
           <button
-            onClick={() => onTest(webhook)}
+            type="button"
+            onClick={withoutCardClick(() => onTest(webhook))}
+            aria-label="Probar webhook"
             disabled={!webhook.isActive}
             className="p-1.5 text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors rounded hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             title="Probar webhook"
@@ -92,14 +105,18 @@ export function WebhookCard({
             <PlayIcon className="h-4 w-4" />
           </button>
           <button
-            onClick={() => onEdit(webhook)}
+            type="button"
+            onClick={withoutCardClick(() => onEdit(webhook))}
+            aria-label="Editar"
             className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors rounded hover:bg-gray-100 dark:hover:bg-gray-700"
             title="Editar"
           >
             <PencilIcon className="h-4 w-4" />
           </button>
           <button
-            onClick={() => onDelete(webhook)}
+            type="button"
+            onClick={withoutCardClick(() => onDelete(webhook))}
+            aria-label="Eliminar"
             className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors rounded hover:bg-gray-100 dark:hover:bg-gray-700"
             title="Eliminar"
           >
@@ -145,10 +162,12 @@ export function WebhookCard({
           })}
           {remainingEvents > 0 && (
             <button
-              onClick={() => setShowAllEvents(!showAllEvents)}
+              type="button"
+              onClick={withoutCardClick(() => setShowAllEvents(!showAllEvents))}
+              aria-expanded={showAllEvents}
               className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
             >
-              +{remainingEvents} mas
+              +{remainingEvents} más
             </button>
           )}
         </div>
@@ -184,7 +203,7 @@ export function WebhookCard({
         {webhook.lastSuccessAt && (
           <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400">
             <CheckCircleIcon className="h-3.5 w-3.5" />
-            Exito{' '}
+            Éxito{' '}
             {formatDistanceToNow(new Date(webhook.lastSuccessAt), {
               addSuffix: true,
               locale: es,
@@ -229,27 +248,39 @@ export function WebhookCard({
           )}
         </div>
 
-        {/* Toggle active button */}
-        <button
-          onClick={() => onToggleActive(webhook)}
-          className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-            webhook.isActive
-              ? 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
-              : 'text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20'
-          }`}
-        >
-          {webhook.isActive ? (
-            <>
-              <EyeSlashIcon className="h-3.5 w-3.5" />
-              Desactivar
-            </>
-          ) : (
-            <>
-              <EyeIcon className="h-3.5 w-3.5" />
-              Activar
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={withoutCardClick(() => onViewLogs(webhook))}
+            className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            <QueueListIcon className="h-3.5 w-3.5" aria-hidden="true" />
+            Ver entregas
+          </button>
+
+          {/* Toggle active button */}
+          <button
+            type="button"
+            onClick={withoutCardClick(() => onToggleActive(webhook))}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+              webhook.isActive
+                ? 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
+                : 'text-green-600 hover:text-green-700 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20'
+            }`}
+          >
+            {webhook.isActive ? (
+              <>
+                <EyeSlashIcon className="h-3.5 w-3.5" />
+                Desactivar
+              </>
+            ) : (
+              <>
+                <EyeIcon className="h-3.5 w-3.5" />
+                Activar
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
