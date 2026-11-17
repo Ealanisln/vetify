@@ -528,6 +528,90 @@ describe('Webhook Delivery Service', () => {
       expect(result.success).toBe(false);
       expect(result.httpStatusCode).toBe(500);
     });
+
+    describe('webhook state after a test ping', () => {
+      beforeEach(() => {
+        prismaMock.webhook.findUnique.mockResolvedValue(
+          createTestWebhook({ consecutiveFailures: 3 })
+        );
+        prismaMock.webhookDeliveryLog.create.mockResolvedValue(createTestDeliveryLog());
+        prismaMock.webhookDeliveryLog.update.mockResolvedValue(createTestDeliveryLog());
+        prismaMock.webhook.update.mockResolvedValue(createTestWebhook());
+      });
+
+      it('records lastDeliveryAt, lastSuccessAt and resets failures on success', async () => {
+        mockFetch.mockResolvedValue({
+          ok: true,
+          status: 200,
+          text: () => Promise.resolve('OK'),
+        });
+
+        await sendTestWebhook('webhook-1');
+
+        expect(prismaMock.webhook.update).toHaveBeenCalledTimes(1);
+        expect(prismaMock.webhook.update).toHaveBeenCalledWith({
+          where: { id: 'webhook-1' },
+          data: {
+            lastDeliveryAt: expect.any(Date),
+            lastSuccessAt: expect.any(Date),
+            consecutiveFailures: 0,
+          },
+        });
+      });
+
+      it('records lastDeliveryAt and counts a failure on non-2xx', async () => {
+        mockFetch.mockResolvedValue({
+          ok: false,
+          status: 500,
+          text: () => Promise.resolve('Server Error'),
+        });
+
+        await sendTestWebhook('webhook-1');
+
+        expect(prismaMock.webhook.update).toHaveBeenCalledTimes(1);
+        expect(prismaMock.webhook.update).toHaveBeenCalledWith({
+          where: { id: 'webhook-1' },
+          data: {
+            lastDeliveryAt: expect.any(Date),
+            consecutiveFailures: { increment: 1 },
+          },
+        });
+      });
+
+      it('records lastDeliveryAt and counts a failure on network error', async () => {
+        mockFetch.mockRejectedValue(new Error('Network error'));
+
+        const result = await sendTestWebhook('webhook-1');
+
+        expect(result.error).toBe('Network error');
+        expect(prismaMock.webhook.update).toHaveBeenCalledTimes(1);
+        expect(prismaMock.webhook.update).toHaveBeenCalledWith({
+          where: { id: 'webhook-1' },
+          data: {
+            lastDeliveryAt: expect.any(Date),
+            consecutiveFailures: { increment: 1 },
+          },
+        });
+      });
+
+      it('does not auto-disable or schedule retries, even past the failure threshold', async () => {
+        prismaMock.webhook.findUnique.mockResolvedValue(
+          createTestWebhook({ consecutiveFailures: MAX_CONSECUTIVE_FAILURES })
+        );
+        mockFetch.mockResolvedValue({
+          ok: false,
+          status: 503,
+          text: () => Promise.resolve('Unavailable'),
+        });
+
+        await sendTestWebhook('webhook-1');
+
+        expect(prismaMock.webhook.update).not.toHaveBeenCalledWith(
+          expect.objectContaining({ data: expect.objectContaining({ isActive: false }) })
+        );
+        expect(jest.getTimerCount()).toBe(0);
+      });
+    });
   });
 
   describe('WebhookPayload structure', () => {
