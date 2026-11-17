@@ -77,13 +77,14 @@ El detalle completo está en `docs/AUDITORIA-FLUJOS-2026-11.md`. Aquí solo va l
 - [x] La reserva pública ya no liga clientes archivados, ni por teléfono ni por correo; si solo coincide con uno archivado, crea un cliente nuevo. _PR #266._
 - [x] `postinstall` con `prisma generate`. La causa: el repo fija `pnpm@10.20.0`, que ignora el build script de `@prisma/client`. _PR #265._
 
-**Tanda 6 (no requiere decisión):**
-- [ ] **Webhooks: falta UI para regenerar el secreto y para ver los logs de entrega.** Las rutas ya existen (`PUT` con `regenerateSecret` y `GET /api/settings/webhooks/[id]/logs`); 4 specs de `tests/e2e/settings/webhooks.spec.ts` siguen en `test.fixme` (salió de #267).
-- [ ] **El ping de prueba de un webhook no actualiza su estado.** `deliverWebhookSync` guarda el log pero no toca `lastDeliveryAt`, `lastSuccessAt` ni `consecutiveFailures`, y la tarjeta sigue diciendo "Sin entregas" (salió de #267).
-- [ ] **Textos de webhooks:** faltan acentos en `WebhookConfig` y `WebhookCard` ("Exito", "clinica", "accion"), las descripciones de `WEBHOOK_EVENTS` están en inglés, y editar es un `prompt()` que solo renombra, con `alert()` para resultados y errores (salió de #267).
-- [ ] La lista de clientes similares que se le marca al staff (`findSimilarCustomers`) todavía incluye archivados. No los liga, solo los señala (salió de #266).
-- [ ] E2E en local: el `.env` trae las variables reales de Upstash y la corrida se cuelga si no se vacían. Documentarlo o hacer que el script las ignore (salió de #267).
-- [ ] Un test de unit falla a veces en el pre-commit cuando hay varias corridas en paralelo y pasa al reintentar (visto en #264 y #266). Identificar cuál es.
+**Tanda 6 (no requería decisión):** mergeada el 17/Nov a `development`; falta el release a `main`.
+- [x] Webhooks: UI para regenerar el secreto (con confirmación) y para ver los logs de entrega. Los 4 specs de `tests/e2e/settings/webhooks.spec.ts` ya corren sin `test.fixme`. _PR #275._
+- [x] El ping de prueba de un webhook ya actualiza `lastDeliveryAt`, `lastSuccessAt` y `consecutiveFailures`. Un ping fallido sí suma al contador de fallas consecutivas; el ping nunca desactiva el webhook por sí solo. _PR #273._
+- [x] Textos de webhooks con acentos, descripciones de `WEBHOOK_EVENTS` en español, y editar y borrar en modales propios en lugar de `prompt()`, `alert()` y `confirm()`. _PR #275._
+- [x] La lista de clientes similares (`findSimilarCustomers`) ya no incluye archivados. _PR #272._
+- [x] E2E en local: el servidor que levanta Playwright recibe las variables de Upstash en blanco. Si ya hay un dev server arriba en el puerto, Playwright lo reutiliza y el blanco no aplica. _PR #274._
+- [ ] Un test de unit falla a veces en el pre-commit cuando hay varias corridas en paralelo y pasa al reintentar (visto en #264 y #266). Sigue sin identificar. Pista: el hook solo corre los tests relacionados con los archivos cambiados (`jest __tests__/unit --changedSince=HEAD`) y los de #264 y #266 no comparten ninguno, así que probablemente no es un solo test. Hace falta el output de una falla real.
+- [ ] `ApiKeyManagement` todavía usa `alert()` y `confirm()` nativos (salió de #275).
 
 **Requiere decisión (💳 cobro/permisos, 🗄 esquema):**
 - [ ] 💳 Cambiar de plan cancela la suscripción antes de cobrar la nueva.

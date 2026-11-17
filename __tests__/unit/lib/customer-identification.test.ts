@@ -15,16 +15,21 @@ type StoredCustomer = {
   email: string | null;
   pets: Array<{ id: string; name: string; species: string }>;
   user: null;
+  /** Archived customers have isActive false; rows default to active. */
+  isActive?: boolean;
 };
 
 /**
  * Minimal in-memory customer table. findMany/findFirst honour the tenant,
- * phone `contains`, email and id filters the code sends, so the matching
- * logic under test runs against realistic rows instead of canned answers.
+ * isActive, phone `contains`, email and id filters the code sends, so the
+ * matching logic under test runs against realistic rows instead of canned
+ * answers. The fuzzy name search (`OR` of name `contains`) only returns rows
+ * when `fuzzyNames` is set, so the other tests see no similar customers.
  */
-function useCustomerTable(rows: StoredCustomer[]) {
+function useCustomerTable(rows: StoredCustomer[], { fuzzyNames = false } = {}) {
   const matchesWhere = (c: StoredCustomer, where: any): boolean => {
     if (where?.tenantId && c.tenantId !== where.tenantId) return false;
+    if (where?.isActive !== undefined && (c.isActive ?? true) !== where.isActive) return false;
     if (where?.id && c.id !== where.id) return false;
     if (where?.phone?.contains !== undefined) {
       if (!c.phone || !c.phone.includes(where.phone.contains)) return false;
@@ -38,7 +43,11 @@ function useCustomerTable(rows: StoredCustomer[]) {
         return false;
       }
     }
-    if (where?.OR) return false; // fuzzy name search: no similar customers in these tests
+    if (where?.OR) {
+      if (!fuzzyNames) return false;
+      return where.OR.some((clause: any) =>
+        c.name.toLowerCase().includes(String(clause.name.contains).toLowerCase()));
+    }
     return true;
   };
 
@@ -141,6 +150,82 @@ describe('findOrCreateCustomer', () => {
     expect(result.status).toBe('existing');
     expect(prismaMock.customer.update).not.toHaveBeenCalled();
     expect(result.customer.phone).toBeNull();
+  });
+});
+
+describe('findOrCreateCustomer similar customers', () => {
+  const juanArchived: StoredCustomer = {
+    ...juan,
+    id: 'customer-juan-archived',
+    phone: '33 99 88 77 66',
+    isActive: false,
+  };
+  const juanActive: StoredCustomer = {
+    ...juan,
+    id: 'customer-juan-active',
+    phone: '81 11 22 33 44',
+  };
+
+  it('does not flag archived customers as similar', async () => {
+    useCustomerTable([juanArchived], { fuzzyNames: true });
+
+    const result = await findOrCreateCustomer({
+      tenantId: TENANT_ID,
+      phone: '5500001111',
+      name: 'Juan García',
+    });
+
+    expect(result.status).toBe('new');
+    expect(result.similarCustomers).toEqual([]);
+    expect(prismaMock.customer.create).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ needsReview: false }) })
+    );
+  });
+
+  it('flags only active customers of the same clinic as similar', async () => {
+    useCustomerTable(
+      [juanArchived, juanActive, { ...juanActive, id: 'customer-juan-other-clinic', tenantId: 'other-tenant' }],
+      { fuzzyNames: true }
+    );
+
+    const result = await findOrCreateCustomer({
+      tenantId: TENANT_ID,
+      phone: '5500001111',
+      name: 'Juan García',
+    });
+
+    expect(result.status).toBe('needs_review');
+    expect(result.similarCustomers?.map((c) => c.id)).toEqual(['customer-juan-active']);
+    expect(prismaMock.customer.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ tenantId: TENANT_ID, isActive: true, OR: expect.any(Array) }),
+      })
+    );
+  });
+
+  it('stores only active similar customer ids on the appointment request', async () => {
+    useCustomerTable([juanArchived, juanActive], { fuzzyNames: true });
+
+    const identification = await findOrCreateCustomer({
+      tenantId: TENANT_ID,
+      phone: '5500001111',
+      name: 'Juan García',
+    });
+    await createPublicAppointmentRequest({
+      tenantId: TENANT_ID,
+      customerId: identification.customer.id,
+      appointmentData: { petName: 'Firulais' },
+      identificationResult: identification,
+    });
+
+    expect(prismaMock.appointmentRequest.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          identificationStatus: 'needs_review',
+          similarCustomerIds: ['customer-juan-active'],
+        }),
+      })
+    );
   });
 });
 

@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
+import { E2E_SERVER_ENV } from './tests/e2e/support/constants'
 
 /**
  * Playwright configuration for weekly smoke tests
@@ -84,6 +85,7 @@ export default defineConfig({
         webServer: {
           command: process.env.CI ? 'pnpm start' : 'pnpm dev',
           url: 'http://localhost:3000',
+          env: E2E_SERVER_ENV,
           reuseExistingServer: !process.env.CI,
           timeout: 120 * 1000,
         },

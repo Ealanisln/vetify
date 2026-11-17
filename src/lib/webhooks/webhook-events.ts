@@ -6,15 +6,15 @@
  */
 
 export const WEBHOOK_EVENTS = {
-  'pet.created': 'When a new pet is registered',
-  'pet.updated': 'When pet information is modified',
-  'pet.deleted': 'When a pet record is removed',
-  'appointment.created': 'When a new appointment is scheduled',
-  'appointment.updated': 'When appointment details are modified',
-  'appointment.cancelled': 'When an appointment is cancelled',
-  'inventory.low_stock': 'When inventory falls below minimum stock',
-  'inventory.transfer_completed': 'When inventory transfer is completed',
-  'sale.completed': 'When a sale is fully paid',
+  'pet.created': 'Cuando se registra una nueva mascota',
+  'pet.updated': 'Cuando se modifica la información de una mascota',
+  'pet.deleted': 'Cuando se elimina el registro de una mascota',
+  'appointment.created': 'Cuando se agenda una nueva cita',
+  'appointment.updated': 'Cuando se modifican los detalles de una cita',
+  'appointment.cancelled': 'Cuando se cancela una cita',
+  'inventory.low_stock': 'Cuando el inventario baja del stock mínimo',
+  'inventory.transfer_completed': 'Cuando se completa una transferencia de inventario',
+  'sale.completed': 'Cuando una venta queda pagada por completo',
 } as const;
 
 export type WebhookEventType = keyof typeof WEBHOOK_EVENTS;

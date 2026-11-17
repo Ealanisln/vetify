@@ -76,7 +76,19 @@ pnpm pricing:sync             # Verify pricing sync
 pnpm vercel-build             # Build for Vercel (includes asset copy)
 pnpm build:production         # Production build with migrations
 pnpm deploy:check             # Check deployment readiness
+pnpm test:post-deploy:prod    # Read-only smoke suite against production
 ```
+
+### After Every Production Deploy
+
+There is no QA environment: production is validated after each deploy to `main`. A release is not done until the flow in `docs/POST-DEPLOY.md` has run:
+
+1. **Public smoke** runs by itself (`.github/workflows/post-deploy.yml`, triggered by Vercel's production deployment). Check that the run is green; on failure it opens an issue.
+2. **Clinic flow** on the QA clinic (pending, see the doc).
+3. **Exploratory pass** with `/qa-only` against `https://www.vetify.pro`, starting with the screens the release changed.
+4. **Manual checklist** in `docs/post-deploy-manual-checklist.md`.
+
+Only the QA clinic may be written to in production. Never create, edit or delete data in a real clinic.
 
 ## Git Workflow
 

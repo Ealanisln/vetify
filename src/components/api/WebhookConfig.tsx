@@ -7,9 +7,13 @@ import {
   FunnelIcon,
   LinkIcon,
 } from '@heroicons/react/24/outline';
+import { toast } from 'sonner';
 import { WebhookCard, type WebhookData } from './WebhookCard';
 import { CreateWebhookModal } from './CreateWebhookModal';
 import { WebhookSecretModal } from './WebhookSecretModal';
+import { EditWebhookModal } from './EditWebhookModal';
+import { DeleteWebhookDialog } from './DeleteWebhookDialog';
+import { WebhookDeliveryLogs } from './WebhookDeliveryLogs';
 
 type StatusFilter = 'all' | 'active' | 'inactive';
 
@@ -28,6 +32,14 @@ export function WebhookConfig() {
     secret: string;
     name: string;
   } | null>(null);
+  const [editingWebhook, setEditingWebhook] = useState<WebhookData | null>(null);
+  const [regeneratedSecret, setRegeneratedSecret] = useState<{
+    name: string;
+    secret: string;
+  } | null>(null);
+  const [deletingWebhook, setDeletingWebhook] = useState<WebhookData | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [logsWebhook, setLogsWebhook] = useState<WebhookData | null>(null);
 
   // Load webhooks
   const loadWebhooks = useCallback(async () => {
@@ -73,36 +85,25 @@ export function WebhookConfig() {
     loadWebhooks(); // Refresh the list
   };
 
-  // Handle edit
-  const handleEdit = async (webhook: WebhookData) => {
-    const newName = prompt('Nuevo nombre para el webhook:', webhook.name);
-    if (newName && newName.trim() !== webhook.name) {
-      try {
-        const response = await fetch(`/api/settings/webhooks/${webhook.id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: newName.trim() }),
-        });
-
-        if (response.ok) {
-          loadWebhooks();
-        } else {
-          const data = await response.json();
-          alert(data.error || 'Error al actualizar el webhook');
-        }
-      } catch {
-        alert('Error al actualizar el webhook');
-      }
-    }
+  // Handle webhook updated from the edit modal
+  const handleWebhookUpdated = (updated: WebhookData) => {
+    // The PUT response has no delivery count, so keep the one already loaded
+    setWebhooks((current) => current.map((w) => (w.id === updated.id ? { ...w, ...updated } : w)));
+    setEditingWebhook(null);
+    toast.success('Webhook actualizado');
   };
 
-  // Handle delete
-  const handleDelete = async (webhook: WebhookData) => {
-    const confirmed = confirm(
-      `¿Estas seguro de que deseas eliminar el webhook "${webhook.name}"?\n\nEsta accion no se puede deshacer y dejara de recibir notificaciones.`
-    );
+  // Handle secret regenerated from the edit modal
+  const handleSecretRegenerated = (data: { name: string; secret: string }) => {
+    setEditingWebhook(null);
+    setRegeneratedSecret(data);
+  };
 
-    if (!confirmed) return;
+  // Handle delete (confirmed in DeleteWebhookDialog)
+  const handleConfirmDelete = async () => {
+    if (!deletingWebhook) return;
+    const webhook = deletingWebhook;
+    setIsDeleting(true);
 
     try {
       const response = await fetch(`/api/settings/webhooks/${webhook.id}`, {
@@ -110,13 +111,17 @@ export function WebhookConfig() {
       });
 
       if (response.ok) {
-        setWebhooks(webhooks.filter((w) => w.id !== webhook.id));
+        setWebhooks((current) => current.filter((w) => w.id !== webhook.id));
+        toast.success('Webhook eliminado');
       } else {
         const data = await response.json();
-        alert(data.error || 'Error al eliminar el webhook');
+        toast.error(data.error || 'Error al eliminar el webhook');
       }
     } catch {
-      alert('Error al eliminar el webhook');
+      toast.error('Error al eliminar el webhook');
+    } finally {
+      setIsDeleting(false);
+      setDeletingWebhook(null);
     }
   };
 
@@ -130,17 +135,24 @@ export function WebhookConfig() {
       });
 
       if (response.ok) {
-        setWebhooks(
-          webhooks.map((w) =>
-            w.id === webhook.id ? { ...w, isActive: !w.isActive, consecutiveFailures: !w.isActive ? 0 : w.consecutiveFailures } : w
+        setWebhooks((current) =>
+          current.map((w) =>
+            w.id === webhook.id
+              ? {
+                  ...w,
+                  isActive: !webhook.isActive,
+                  // Re-enabling resets the failure count on the server
+                  consecutiveFailures: !webhook.isActive ? 0 : w.consecutiveFailures,
+                }
+              : w
           )
         );
       } else {
         const data = await response.json();
-        alert(data.error || 'Error al actualizar el webhook');
+        toast.error(data.error || 'Error al actualizar el webhook');
       }
     } catch {
-      alert('Error al actualizar el webhook');
+      toast.error('Error al actualizar el webhook');
     }
   };
 
@@ -154,20 +166,21 @@ export function WebhookConfig() {
       });
 
       const data = await response.json();
+      const httpStatus = data.data?.httpStatusCode
+        ? `Código HTTP: ${data.data.httpStatusCode}`
+        : null;
 
       if (data.success) {
-        alert(`Prueba exitosa!\n\nCodigo HTTP: ${data.data.httpStatusCode}`);
+        toast.success('Prueba exitosa', httpStatus ? { description: httpStatus } : undefined);
       } else {
-        alert(
-          `Prueba fallida\n\n${data.error || 'Error desconocido'}${
-            data.data?.httpStatusCode ? `\nCodigo HTTP: ${data.data.httpStatusCode}` : ''
-          }`
-        );
+        toast.error('Prueba fallida', {
+          description: [data.error || 'Error desconocido', httpStatus].filter(Boolean).join(' · '),
+        });
       }
 
       loadWebhooks(); // Refresh to update delivery stats
     } catch {
-      alert('Error al probar el webhook');
+      toast.error('Error al probar el webhook');
     } finally {
       setTestingId(null);
     }
@@ -204,7 +217,7 @@ export function WebhookConfig() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Los webhooks permiten recibir notificaciones en tiempo real cuando ocurren eventos en tu clinica.
+            Los webhooks permiten recibir notificaciones en tiempo real cuando ocurren eventos en tu clínica.
           </p>
         </div>
         <button
@@ -224,6 +237,7 @@ export function WebhookConfig() {
             <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
+              aria-label="Buscar webhooks"
               placeholder="Buscar por nombre o URL..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -235,6 +249,7 @@ export function WebhookConfig() {
           <div className="relative">
             <FunnelIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <select
+              aria-label="Filtrar por estado"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
               className="pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary focus:border-primary dark:bg-gray-900 dark:text-white appearance-none"
@@ -254,10 +269,11 @@ export function WebhookConfig() {
             <WebhookCard
               key={webhook.id}
               webhook={webhook}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
+              onEdit={setEditingWebhook}
+              onDelete={setDeletingWebhook}
               onToggleActive={handleToggleActive}
               onTest={handleTest}
+              onViewLogs={setLogsWebhook}
             />
           ))}
         </div>
@@ -269,7 +285,7 @@ export function WebhookConfig() {
             No hay webhooks configurados
           </h3>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-            Los webhooks permiten que tu sistema externo reciba notificaciones en tiempo real cuando se crean mascotas, se agendan citas, y mas.
+            Los webhooks permiten que tu sistema externo reciba notificaciones en tiempo real cuando se crean mascotas, se agendan citas, y más.
           </p>
           <button
             onClick={() => setIsCreateModalOpen(true)}
@@ -296,7 +312,7 @@ export function WebhookConfig() {
       {webhooks.length > 0 && (
         <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <p className="text-sm text-blue-700 dark:text-blue-300">
-            <strong>Tip:</strong> Los webhooks envian peticiones POST firmadas con HMAC-SHA256.
+            <strong>Tip:</strong> Los webhooks envían peticiones POST firmadas con HMAC-SHA256.
             Verifica el header <code className="bg-blue-100 dark:bg-blue-900/50 px-1 rounded">X-Vetify-Signature</code> para
             asegurar que los eventos provienen de Vetify.
           </p>
@@ -319,10 +335,46 @@ export function WebhookConfig() {
         />
       )}
 
+      {editingWebhook && (
+        <EditWebhookModal
+          key={editingWebhook.id}
+          webhook={editingWebhook}
+          onClose={() => setEditingWebhook(null)}
+          onUpdated={handleWebhookUpdated}
+          onSecretRegenerated={handleSecretRegenerated}
+        />
+      )}
+
+      {regeneratedSecret && (
+        <WebhookSecretModal
+          isOpen={true}
+          variant="regenerated"
+          onClose={() => setRegeneratedSecret(null)}
+          webhookName={regeneratedSecret.name}
+          secret={regeneratedSecret.secret}
+        />
+      )}
+
+      {deletingWebhook && (
+        <DeleteWebhookDialog
+          webhookName={deletingWebhook.name}
+          isDeleting={isDeleting}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setDeletingWebhook(null)}
+        />
+      )}
+
+      {logsWebhook && (
+        <WebhookDeliveryLogs webhook={logsWebhook} onClose={() => setLogsWebhook(null)} />
+      )}
+
       {/* Testing indicator overlay */}
       {testingId && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-40">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl">
+        <div
+          role="status"
+          className="fixed inset-0 bg-black/30 flex items-center justify-center z-40"
+        >
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-xl">
             <div className="flex items-center gap-3">
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary"></div>
               <span className="text-gray-700 dark:text-gray-300">Enviando prueba...</span>

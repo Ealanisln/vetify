@@ -164,6 +164,20 @@ y este proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ## [No publicado]
 
+## [1.15.0] - 2026-11-17
+
+### Agregado
+- **Historial de entregas de un webhook.** Desde la tarjeta de cada webhook se pueden ver sus entregas recientes, con el resultado y el código de respuesta de cada una.
+- **Regenerar el secreto de un webhook.** Al editar un webhook se puede generar un secreto nuevo. Se pide confirmación porque el secreto anterior deja de funcionar de inmediato, y el nuevo se muestra una sola vez.
+
+### Cambiado
+- **Editar y eliminar webhooks.** Editar ahora abre un formulario completo, y eliminar pide confirmación dentro de la aplicación. Los resultados y los errores se muestran como avisos en pantalla.
+
+### Corregido
+- **El envío de prueba de un webhook actualiza su estado.** Después de probar un webhook, la tarjeta seguía diciendo "Sin entregas". Una prueba fallida cuenta como una entrega fallida.
+- **Clientes similares y clientes archivados.** Al revisar una reserva pública, la lista de clientes parecidos ya no incluye clientes archivados.
+- **Textos de webhooks.** Se corrigieron acentos, y las descripciones de los eventos ahora están en español.
+
 ## [1.14.0] - 2026-11-16
 
 ### Agregado
