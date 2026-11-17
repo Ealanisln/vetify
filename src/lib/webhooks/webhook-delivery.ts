@@ -210,21 +210,7 @@ export async function deliverWebhook(
       },
     });
 
-    // Update webhook stats
-    await prisma.webhook.update({
-      where: { id: webhookId },
-      data: {
-        lastDeliveryAt: new Date(),
-        ...(isSuccess
-          ? {
-              lastSuccessAt: new Date(),
-              consecutiveFailures: 0,
-            }
-          : {
-              consecutiveFailures: { increment: 1 },
-            }),
-      },
-    });
+    await recordDeliveryOutcome(webhookId, isSuccess);
 
     // If failed and we have retries left, schedule retry
     if (!isSuccess && attempt < MAX_RETRY_ATTEMPTS) {
@@ -252,14 +238,7 @@ export async function deliverWebhook(
       },
     });
 
-    // Update webhook failure count
-    await prisma.webhook.update({
-      where: { id: webhookId },
-      data: {
-        lastDeliveryAt: new Date(),
-        consecutiveFailures: { increment: 1 },
-      },
-    });
+    await recordDeliveryOutcome(webhookId, false);
 
     // Schedule retry if attempts remaining
     if (attempt < MAX_RETRY_ATTEMPTS) {
@@ -270,6 +249,29 @@ export async function deliverWebhook(
   }
 
   return result;
+}
+
+/**
+ * Records the outcome of a delivery attempt on the webhook itself.
+ *
+ * Shared by the async (event) and sync (test ping) delivery paths so the
+ * dashboard state stays consistent between them.
+ */
+async function recordDeliveryOutcome(
+  webhookId: string,
+  isSuccess: boolean
+): Promise<void> {
+  const now = new Date();
+
+  await prisma.webhook.update({
+    where: { id: webhookId },
+    data: {
+      lastDeliveryAt: now,
+      ...(isSuccess
+        ? { lastSuccessAt: now, consecutiveFailures: 0 }
+        : { consecutiveFailures: { increment: 1 } }),
+    },
+  });
 }
 
 /**
@@ -356,7 +358,8 @@ export async function sendTestWebhook(webhookId: string): Promise<DeliveryResult
 
 /**
  * Synchronous webhook delivery (for testing)
- * Does not schedule retries and returns result immediately
+ * Does not schedule retries and returns result immediately. Updates the
+ * webhook state like a regular delivery, but never auto-disables the webhook.
  */
 async function deliverWebhookSync(
   webhookId: string,
@@ -434,6 +437,8 @@ async function deliverWebhookSync(
       },
     });
 
+    await recordDeliveryOutcome(webhookId, isSuccess);
+
     return {
       success: isSuccess,
       httpStatusCode: response.status,
@@ -452,6 +457,8 @@ async function deliverWebhookSync(
         error: errorMessage,
       },
     });
+
+    await recordDeliveryOutcome(webhookId, false);
 
     return {
       success: false,
