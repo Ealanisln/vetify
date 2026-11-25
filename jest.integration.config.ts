@@ -1,7 +1,11 @@
 import type { Config } from 'jest';
+import { maxTestWorkers } from './test-workers.cjs';
+
+const workers = maxTestWorkers();
 
 const config: Config = {
   displayName: 'integration',
+  ...(workers === undefined ? {} : { maxWorkers: workers }),
   testEnvironment: 'node',
   setupFilesAfterEnv: ['<rootDir>/jest.integration.setup.ts'],
   moduleNameMapper: {
