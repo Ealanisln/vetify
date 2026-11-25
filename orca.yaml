@@ -1,0 +1,12 @@
+# Orca workspace defaults. Reference: https://orca.dev/docs/model/orca-yaml
+#
+# Each Orca workspace is a fresh git worktree, so it starts without
+# node_modules. Dependencies are installed per worktree instead of shared by
+# symlink: `postinstall` runs `prisma generate` into node_modules, and a shared
+# copy would be overwritten by whichever branch installed last.
+scripts:
+  setup: |
+    pnpm install --frozen-lockfile
+
+# Hold the agent until dependencies exist, so its first test run does not fail.
+setupAgentStartupPolicy: wait-for-setup
