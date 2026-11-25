@@ -1,0 +1,5 @@
+# Gitignored files copied from the primary checkout into each new worktree.
+# Local development only: production and Vercel env files are left out on
+# purpose so they are not duplicated into every worktree.
+.env
+.env.local

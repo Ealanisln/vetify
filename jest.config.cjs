@@ -1,10 +1,14 @@
 const nextJest = require('next/jest')
+const { maxTestWorkers } = require('./test-workers.cjs')
 
 const createJestConfig = nextJest({
   dir: './',
 })
 
+const workers = maxTestWorkers()
+
 const customJestConfig = {
+  ...(workers === undefined ? {} : { maxWorkers: workers }),
   setupFiles: ['<rootDir>/jest.env-defaults.cjs'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.cjs'],
   testEnvironment: 'jest-environment-jsdom',

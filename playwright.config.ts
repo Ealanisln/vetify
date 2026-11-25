@@ -6,6 +6,7 @@ import {
   E2E_SERVER_ENV,
   FAKE_SERVICES_URL,
 } from './tests/e2e/support/constants'
+import { maxTestWorkers } from './test-workers.cjs'
 
 const isCI = !!process.env.CI
 
@@ -27,7 +28,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
-  workers: isCI ? 2 : undefined,
+  workers: isCI ? 2 : maxTestWorkers(),
   timeout: 30 * 1000,
   // Global timeout for the entire test run (10 minutes max)
   globalTimeout: isCI ? 10 * 60 * 1000 : undefined,
